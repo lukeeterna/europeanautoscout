@@ -184,6 +184,33 @@ MCP config:   .mcp.json                         ← claude-mem project scope
 
 ---
 
+## PROTOCOLLO FINE SESSIONE — OBBLIGATORIO
+
+```
+STEP 1 — Aggiorna HANDOFF.md (root):
+  - Stato corrente aggiornato
+  - Gap/task aperti
+  - Prompt ripartenza pronto
+
+STEP 2 — Aggiorna memory/MEMORY.md:
+  - Sezione stato corrente aggiornata
+  - Eventuali nuovi file memory topic
+
+STEP 3 — Commit:
+  git add HANDOFF.md docs/dev/SESSION_XX_HANDOFF.md
+  git add memory/MEMORY.md memory/session_XX_*.md
+  git commit -m "chore(handoff): sXX — [descrizione] — [N test se applicabile]"
+
+STEP 4 — Output sessione:
+  Tabella riepilogo task completati (Gap | Fix | Commit)
+  Prompt ripartenza pronto copia-incolla
+```
+
+**NOTA PUSH**: Nessun remote git configurato. Commit locale. Aggiungere remote quando disponibile.
+**HANDOFF.md**: File singolo in root, sempre sovrascritto — NON numerato.
+
+---
+
 ## FAILURE MODES NOTI (da sessioni precedenti)
 
 ```
