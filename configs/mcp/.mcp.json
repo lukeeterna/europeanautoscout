@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "claude-mem": {
+      "command": "/usr/local/bin/node",
+      "args": [
+        "/Users/macbook/.npm-global/lib/node_modules/claude-mem/plugin/scripts/mcp-server.cjs",
+        "--memory-dir",
+        "/Users/macbook/.claude/projects/-Users-macbook-Documents-combaretrovamiauto/memory"
+      ],
+      "env": {
+        "PATH": "/Users/macbook/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin",
+        "NODE_ENV": "production",
+        "CLAUDE_MEM_PROVIDER": "claude",
+        "CLAUDE_MEM_CONTEXT_OBSERVATIONS": "50"
+      }
+    }
+  }
+}
