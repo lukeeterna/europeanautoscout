@@ -1,0 +1,22 @@
+# COMBARETROVAMIAUTO Telegram Bot Requirements
+# Bot: @CombaRetrovamiautoNotifierbot
+
+# Core Telegram Bot Framework
+python-telegram-bot>=21.0
+
+# Optional: for job queue (scheduled briefings)
+# python-telegram-bot[job-queue]>=21.0
+
+# Configuration Management
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+
+# Database
+duckdb>=0.9.0
+
+# Async Support (should be available in Python 3.8+)
+# asyncio (built-in)
+
+# Development Dependencies (optional)
+# pytest>=7.0.0
+# pytest-asyncio>=0.21.0
