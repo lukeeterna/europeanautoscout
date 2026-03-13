@@ -186,65 +186,75 @@ Percorso locale: `/tmp/argos_review/`
 
 ---
 
-## 🚀 PROSSIMA SESSIONE (S50) — PROMPT COMPLETO
+## 🚀 PROSSIMA SESSIONE (S51) — PROMPT COMPLETO
 
 ```
-Sessione 50 — ARGOS. Leggi HANDOFF.md + i 3 file enterprise in /tmp/argos_review/.
+Sessione 51 — ARGOS. Leggi HANDOFF.md.
 
-FILE ENTERPRISE S50 (ground truth per tutti i fix):
-  /tmp/argos_review/ARGOS_HANDOFF_S50.md  ← schema canonico + patterns
-  /tmp/argos_review/ARGOS_SKILL.md        ← skill Claude Code con checklist
-  /tmp/argos_review/ARGOS_TASKS_S50.md   ← 6 task ordinati con verifica
-
-Se /tmp/argos_review/ è assente → chiedi all'utente il zip "files (4).zip" prima di procedere.
+S50 COMPLETATO: T-01..T-06 tutti ✅ — wa-daemon v2.1 online, codebase fixato.
+Unica pendenza: QR re-auth WA daemon (STEP 1 sotto).
 
 ---
 
-STEP 0 — Fix token Telegram su iMac (prima di tutto, se SSH online):
+STEP 1 — WA Daemon QR re-auth (OBBLIGATORIO — sessione WA scaduta):
+  Il daemon v2.1 è online su :9191 ma WA non autenticato.
+  Scansionare QR UNA volta con Android per ripristinare sessione.
+
+  OPZIONE A — QR via browser (preferita):
+    ssh gianlucadistasi@192.168.1.12 "
+      export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:\$PATH
+      cd ~/Documents/app-antigravity-auto/wa-sender
+      nohup node send_qr_server.js > /tmp/qr.log 2>&1 &
+      echo PID:\$!
+    "
+    Apri http://192.168.1.12:8765 → scansiona con Android (stesso numero Very Mobile +393281536308)
+    Verifica: ssh imac "pm2 logs argos-wa-daemon --lines 5 --nostream" → deve mostrare "✅ Client PRONTO"
+
+  OPZIONE B — Copia sessione wa-sender → wa-daemon (più rapida se wa-sender è autenticato):
+    ssh gianlucadistasi@192.168.1.12 "
+      cp -r ~/Documents/app-antigravity-auto/wa-sender/.wwebjs_auth/ \
+             ~/Documents/app-antigravity-auto/wa-intelligence/.wwebjs_auth/
+      export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:\$PATH
+      pm2 restart argos-wa-daemon
+    "
+
+STEP 2 — Verifica stato Mario (controlla DB + Telegram):
   ssh gianlucadistasi@192.168.1.12 "
-    export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:$PATH
-    sed -i '' 's|ARGOS_TELEGRAM_TOKEN=.*|ARGOS_TELEGRAM_TOKEN=8691360619:AAG_R9bKLtAtRuMS5VD-AP7E-CKt_o-xOmA|' \
-      ~/Documents/app-antigravity-auto/wa-intelligence/.env
-    pm2 restart argos-tg-bot --update-env
-    echo '✅ Token aggiornato'
+    export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:\$PATH
+    pm2 logs argos-wa-daemon --lines 20 --nostream
   "
+  Se Mario ha risposto → segui STEP 3A
+  Se silenzio e data ≥ 2026-03-17 → segui STEP 3B
 
-STEP 1 — WA Daemon re-auth (se daemon offline/non risponde su :9191):
-  Il daemon ha sessione separata da wa-sender — scansionare QR UNA volta.
-  OPZIONE A (preferita): QR via browser
-    ssh imac "export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:$PATH &&
-      cd ~/Documents/app-antigravity-auto/wa-sender &&
-      nohup node send_qr_server.js > /tmp/qr.log 2>&1 &"
-    open http://192.168.1.12:8765 → scansiona con Android
-  OPZIONE B (rapida): Copia sessione wa-sender → wa-intelligence
-    ssh imac "cp -r ~/Documents/app-antigravity-auto/wa-sender/.wwebjs_auth/ \
-      ~/Documents/app-antigravity-auto/wa-intelligence/.wwebjs_auth/ &&
-      export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:$PATH &&
-      pm2 restart argos-wa-daemon"
+STEP 3A — Mario risposta ricevuta:
+  POSITIVO  → registra pipeline in dealer_network.duckdb:
+              UPDATE conversations SET current_step='NEGOTIATION', close_reason='INTERESTED'
+              WHERE dealer_id='dealer_mario_orefice'
+  OBIEZIONE → skill-argos [E] PERSONA PROTOCOL — OBJ-1..5 RAGIONIERE templates
+  NEGATIVO  → UPDATE conversations SET current_step='CLOSED', close_reason='NO_INTEREST'
 
-STEP 2 — Fix codebase (esegui TASKS_S50.md in ordine):
-  T-01 (5min):  Elimina cove_quantum_integration.py + cove_neural_crisis_prevention.py
-                Verifica: grep -r "quantum_integration" src/ → output vuoto
-  T-02 (10min): Fix cove_engine_v4.py — import path + datetime.utcnow() + WEIGHT_HISTORY 0.10→0.20
-                Segui ARGOS_TASKS_S50.md §TASK-02 esattamente
-  T-03 (3-5h):  Rewrite wa-daemon.js DB layer — sostituisci dbExec/dbQuery con DBPool (§5 ARGOS_SKILL.md)
-                Pattern: duckdb npm, prepared statements "?", niente python subprocess
-  T-04 (2h):    Unifica schema personalità — dealer_personality_engine.py + objection_handler.py
-                importano PersonaEngine + ObjectionLibrary da response_analyzer.py
-  T-05 (1h):    Fix keyword false positive in response-analyzer.py
-                "vediamo" → UNKNOWN (non POSITIVE), split POSITIVE_STRONG/POSITIVE_WEAK
-  T-06 (30min): Deploy finale + health check
-
-STEP 3 — Mario Day 7 Recovery (se data ≥ 2026-03-17 e silenzio):
-  Invia Recovery RAGIONIERE v3 (testo in §MARIO OREFICE sopra).
+STEP 3B — Mario Day 7 Recovery (data ≥ 2026-03-17, silenzio):
+  Invia Recovery RAGIONIERE v3 via skill-argos [A] WA PROTOCOL.
   OBBLIGATORIO: approvazione Telegram PRIMA di inviare.
-  Canale: WhatsApp via skill-argos [A] WA PROTOCOL.
+  Testo approvato:
+    "Mario, le ho scritto qualche giorno fa in modo
+    forse troppo diretto — mi scuso.
+    Verifico veicoli in Europa per dealer con dati
+    certificati. Zero anticipi, si paga solo
+    a veicolo consegnato e approvato.
+    Se serve una verifica su qualcosa di specifico,
+    sono qui. — Luca"
 
-STEP 4 — Mario risposta (se ha risposto):
-  POSITIVO → registra €800 pipeline in dealer_network.duckdb
-             UPDATE conversations SET current_step='NEGOTIATION', close_reason='INTERESTED'
-  OBIEZIONE → skill-argos [E] PERSONA PROTOCOL (OBJ-1..5 RAGIONIERE templates)
-  NEGATIVO  → LOG CLOSED_NO, nessun recontact
+STEP 4 — Mario DB seed (se conversations è vuota):
+  Verificare con: skill-cove [Q] query su dealer_network.duckdb
+  Se Mario non è in conversations → INSERT:
+    INSERT OR IGNORE INTO conversations
+      (dealer_id, dealer_name, company_name, phone_number, city,
+       persona_type, current_step, tier, wa_day1_sent_at)
+    VALUES
+      ('dealer_mario_orefice', 'Mario Orefice', 'Mariauto Srl',
+       '+393336142544', 'Napoli', 'RAGIONIERE', 'PROSPECT', 'A',
+       '2026-03-13 12:00:00');
 
 STEP 5 — Nuovi lead se pipeline vuota:
   AutoScout24 / Carapis — dealer target Sud Italia (Campania, Puglia, Sicilia)
