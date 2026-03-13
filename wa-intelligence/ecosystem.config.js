@@ -16,18 +16,32 @@
 
 'use strict';
 
+const fs      = require('fs');
 const path    = require('path');
 const HOME    = process.env.HOME || '/Users/gianlucadistasi';
 const BASE    = path.join(HOME, 'Documents/app-antigravity-auto');
 const INTEL   = path.join(BASE, 'wa-intelligence');
 
-// Variabili d'ambiente condivise (SENZA credenziali — quelle vanno in .env)
+// Carica .env da wa-intelligence/ (mai hardcoded nel codice)
+const dotEnvPath = path.join(INTEL, '.env');
+const dotEnv = {};
+if (fs.existsSync(dotEnvPath)) {
+    fs.readFileSync(dotEnvPath, 'utf8').split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+            const eqIdx = trimmed.indexOf('=');
+            dotEnv[trimmed.slice(0, eqIdx).trim()] = trimmed.slice(eqIdx + 1).trim();
+        }
+    });
+}
+
+// Variabili d'ambiente condivise
 const SHARED_ENV = {
-    NODE_ENV:             'production',
-    TZ:                   'Europe/Rome',
-    ARGOS_DB_PATH:        path.join(BASE, 'dealer_network.duckdb'),
-    ARGOS_TELEGRAM_CHAT_ID: '931063621',   // Chat ID Telegram Luke
-    // ARGOS_TELEGRAM_TOKEN: letto da .env — mai hardcoded
+    NODE_ENV:               'production',
+    TZ:                     'Europe/Rome',
+    ARGOS_DB_PATH:          path.join(BASE, 'dealer_network.duckdb'),
+    ARGOS_TELEGRAM_CHAT_ID: dotEnv.ARGOS_TELEGRAM_CHAT_ID || '931063621',
+    ARGOS_TELEGRAM_TOKEN:   dotEnv.ARGOS_TELEGRAM_TOKEN   || '',
 };
 
 module.exports = {
