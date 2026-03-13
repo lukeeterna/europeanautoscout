@@ -74,8 +74,9 @@ ssh gianlucadistasi@192.168.1.12 "
 "
 
 # 3. Sessione esistente? (se sì → salta A1, vai ad A2)
+# LocalAuth salva in path relativo alla dir progetto, NON in ~/
 ssh gianlucadistasi@192.168.1.12 \
-  "ls ~/.wwebjs_auth/session-argosautomotive/ 2>/dev/null && echo SESSIONE_OK || echo SESSIONE_ASSENTE"
+  "ls ~/Documents/app-antigravity-auto/wa-sender/.wwebjs_auth/session-argosautomotive/ 2>/dev/null && echo SESSIONE_OK || echo SESSIONE_ASSENTE"
 ```
 
 ### A1 — Prima autenticazione (solo se sessione assente)
@@ -105,12 +106,13 @@ Android → WhatsApp → Menu ⋮ → Dispositivi collegati → Collega disposit
 
 ```bash
 # Verifica proof-of-send (esegui dopo scansione)
+# LocalAuth path = RELATIVO alla dir progetto, NON ~/
 ssh gianlucadistasi@192.168.1.12 "
-  ls -la ~/.wwebjs_auth/session-argosautomotive/ 2>&1 | head -3
+  ls -la ~/Documents/app-antigravity-auto/wa-sender/.wwebjs_auth/session-argosautomotive/ 2>&1 | head -3
   echo '---LOG---'
   tail -5 /tmp/wa_log.txt
 "
-# OUTPUT ATTESO: cartella con file + '✅ MESSAGGIO INVIATO'
+# OUTPUT ATTESO: cartella con file + '[ARGOS] INVIATO'
 # OUTPUT FALSO: 'No such file or directory' = QR non scansionato
 ```
 
@@ -312,8 +314,9 @@ Prima imm.:     15/06/2020
 
 ```bash
 # WhatsApp inviato?
+# NOTA: LocalAuth salva in path RELATIVO alla dir del progetto, NON in ~/
 ssh gianlucadistasi@192.168.1.12 \
-  "ls ~/.wwebjs_auth/session-argosautomotive/ && tail -3 /tmp/wa_log.txt"
+  "ls ~/Documents/app-antigravity-auto/wa-sender/.wwebjs_auth/session-argosautomotive/ && tail -3 /tmp/wa_log.txt"
 
 # DB aggiornato?
 ssh gianlucadistasi@192.168.1.12 "python3 -c \"
