@@ -4,14 +4,15 @@
 
 ---
 
-## ⚡ STATO CORRENTE
+## ⚡ STATO CORRENTE (aggiornato S49 fine)
 
 **claude-mem**: ✅ Fix S46 confermato attivo.
 **Mario Orefice**: ✅ WA DAY 1 INVIATO — 2026-03-13 ~12:00 | Account: +393281536308 (Very Mobile) | Message ID: `true_227002057543819@lid_3EB07A584C107FB7661C17` | ACK: 0
 **WhatsApp stack**: ✅ whatsapp-web.js su iMac | sessione `wa-sender` persistente in `wa-sender/.wwebjs_auth/`
 **CI/CD**: ✅ CI verde su GitHub Actions | CD deploy iMac + Day7 cron attivo
 **WA Intelligence**: ✅ DEPLOYATO S49 | PM2 online: argos-wa-daemon + argos-tg-bot | LaunchAgent scheduler ogni 5min | health ✅ http://192.168.1.12:9191
-**WA Daemon sessione**: ⚠️ RICHIEDE RE-AUTH QR — usa `send_qr_server.js` da `wa-sender/`, poi copia session in `wa-intelligence/.wwebjs_auth/` | Telegram alert inviato
+**WA Daemon sessione**: ⚠️ RICHIEDE QR RE-AUTH — dataPath fix deployato, sessione condivisa con wa-sender ora OK; basta scansionare QR una volta
+**Telegram token**: ✅ CORRETTO — `8691360619:AAG_R9bKLtAtRuMS5VD-AP7E-CKt_o-xOmA` | @ArgosautomotivebotToken | salvato in memory permanente | iMac .env da aggiornare quando SSH torna online
 **Skill argos**: ✅ v3 ATTIVA in `.claude/skills/skill-argos/` | v2 backup in `skill-argos-v2-backup/`
 **OUTREACH REVIEW**: ⚠️ Msg Day1 Mario troppo diretto per RAGIONIERE — Recovery Day7 corretto pronto
 **Secrets GitHub**: ✅ `IMAC_HOST=100.79.153.61` | `IMAC_USER` | `IMAC_SSH_KEY` (ED25519 gh-deploy)
@@ -119,10 +120,31 @@ tools/fee_calculator.py                    ← Fee calc (nuovo S47)
 
 ---
 
+## 🔴 CRITICAL ISSUES TROVATI — DEEP RESEARCH S49
+
+Vedi analisi completa sotto. Issues prioritari da fixare in S50:
+
+| # | File | Issue | Severità |
+|---|---|---|---|
+| 1 | `wa-daemon.js` | SQL injection via string interpolation in tutte le query | 🔴 CRITICO |
+| 2 | `wa-daemon.js` | `dbExec` via `python3 -c` — lento, fragile, causa schema errors | 🔴 CRITICO |
+| 3 | Schema OBJ codes | `objection_handler.py` OBJ-1=prezzo vs `response-analyzer.py` OBJ-1=competition — INVERTITI | 🔴 CRITICO |
+| 4 | Schema personalità | 3 sistemi incompatibili: `personality_engine` (4 tipi), `response-analyzer` (RAGIONIERE/BARONE), `objection_handler` (IMPRENDITORE) | 🔴 CRITICO |
+| 5 | `cove_engine_v4.py` | Import paths `python.cove.*` wrong — file è in `src/cove/`, non funziona da enterprise dir | 🔴 CRITICO |
+| 6 | `cove_quantum_integration.py` | File "quantum" AI-generated buzzword, mai integrato, numpy inutile — DELETE | 🟡 MEDIO |
+| 7 | `response-analyzer.py` | False positive "vediamo" → POSITIVE (in IT = scetticismo), "aspetta" → OBJ-3 | 🟡 MEDIO |
+| 8 | `cove_engine_v4.py` | `datetime.utcnow()` deprecated Python 3.12+ | 🟡 MEDIO |
+| 9 | Due DB separati | `cove_tracker.duckdb` (MacBook) e `dealer_network.duckdb` (iMac) senza sync | 🟡 MEDIO |
+
+---
+
 ## 🚀 PROSSIMA SESSIONE (S50)
 
 ```
 Sessione 50 — ARGOS. Leggi HANDOFF.md.
+
+STEP 0 — Fix token Telegram su iMac (quando SSH torna online):
+  ssh imac "sed -i '' 's|ARGOS_TELEGRAM_TOKEN=.*|ARGOS_TELEGRAM_TOKEN=8691360619:AAG_R9bKLtAtRuMS5VD-AP7E-CKt_o-xOmA|' ~/Documents/app-antigravity-auto/wa-intelligence/.env && pm2 restart argos-tg-bot --update-env"
 
 STEP 1 — WA Daemon re-auth (PRIORITÀ):
   Il daemon argos-wa-daemon gira su PM2 ma ha sessione separata da wa-sender.
