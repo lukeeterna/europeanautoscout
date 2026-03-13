@@ -4,10 +4,14 @@ DEALER PERSONALITY ENGINE — CoVe 2026 Enterprise Implementation
 ================================================================
 
 AI model training framework per automotive luxury dealer personalities.
-Implements 4-type personality detection + diversified response generation.
+Implements 5-type canonical personality detection.
 
-Enterprise Research Base: AUTOMOTIVE_DEALER_PERSONALITIES_RESEARCH_COVe_2026.md
-Business Application: €500K-1M scaling strategy, 200+ dealer network
+Schema canonico (ARGOS_HANDOFF_S50 §1.1):
+  RAGIONIERE  — vuole dati, cifre, certezze
+  BARONE      — vuole sentirsi unico, VIP, rispettato
+  PERFORMANTE — fast mover, vuole risultati immediati
+  NARCISO     — innovatore, ama tecnologia e personal brand
+  TECNICO     — scettico per default, vuole capire tutto
 
 Author: ARGOS Automotive CoVe 2026
 """
@@ -21,12 +25,81 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+# ── CANONICAL 5-ARCHETYPE SCHEMA (ARGOS_HANDOFF_S50 §1.1) ───────────────
+class PersonaEngine:
+    """
+    Source of truth per gli archetipi dealer.
+    Importata da tutti i moduli che usano personalità.
+    MAI ridefinire localmente i 5 nomi.
+    """
+    PERSONAS = {
+        "RAGIONIERE":  {
+            "tone": "formale, preciso, numerico",
+            "cialdini": ["SOCIAL_PROOF", "AUTHORITY", "SCARCITY"],
+            "opening": "Buongiorno {nome},",
+            "closing": "Resto a disposizione per qualsiasi chiarimento.",
+        },
+        "BARONE": {
+            "tone": "rispettoso, esclusivo, deferente",
+            "cialdini": ["EXCLUSIVITY", "LIKING", "RECIPROCITY"],
+            "opening": "La contatto personalmente,",
+            "closing": "Sono a sua completa disposizione.",
+        },
+        "PERFORMANTE": {
+            "tone": "diretto, veloce, action-oriented",
+            "cialdini": ["SCARCITY", "URGENCY", "COMMITMENT"],
+            "opening": "Ciao {nome},",
+            "closing": "Fammi sapere — posso muovermi subito.",
+        },
+        "NARCISO": {
+            "tone": "moderno, tecnico, da peer",
+            "cialdini": ["SOCIAL_PROOF", "NOVELTY", "LIKING"],
+            "opening": "Hey {nome},",
+            "closing": "Possiamo fare una call veloce?",
+        },
+        "TECNICO": {
+            "tone": "tecnico, trasparente, paziente",
+            "cialdini": ["AUTHORITY", "TRANSPARENCY"],
+            "opening": "Buongiorno {nome},",
+            "closing": "Se vuole, posso mandarle la documentazione tecnica completa.",
+        },
+    }
+
+    # Mapping legacy names → canonical (retrocompatibilità)
+    LEGACY_MAP = {
+        "TRADIZIONALE":  "RAGIONIERE",
+        "STRATEGICO":    "PERFORMANTE",
+        "IMPRENDITORE":  "RAGIONIERE",
+        "LAUREATO":      "TECNICO",
+    }
+
+    @classmethod
+    def get(cls, persona_type: str) -> dict:
+        p = cls.normalize(persona_type)
+        return cls.PERSONAS.get(p, cls.PERSONAS["RAGIONIERE"])
+
+    @classmethod
+    def normalize(cls, persona_type: str) -> str:
+        p = persona_type.upper().strip()
+        return cls.LEGACY_MAP.get(p, p)
+
+    @classmethod
+    def is_valid(cls, persona_type: str) -> bool:
+        return cls.normalize(persona_type) in cls.PERSONAS
+
+    @classmethod
+    def all_names(cls) -> list:
+        return list(cls.PERSONAS.keys())
+
+
+# ── Legacy enum (mantenuto per retrocompatibilità) ───────────────────────
 class DealerPersonality(Enum):
-    """Automotive dealer personality types - enterprise validated"""
-    TRADIZIONALE = "tradizionale"      # Traditional family-business
-    LAUREATO = "laureato"              # Graduate modern tech-savvy
-    STRATEGICO = "strategico"          # Strategic C-level director
-    IMPRENDITORE = "imprenditore"      # Entrepreneurial growth-focused
+    """Legacy enum — usare PersonaEngine.PERSONAS per nuovi sviluppi."""
+    TRADIZIONALE = "tradizionale"
+    LAUREATO     = "laureato"
+    STRATEGICO   = "strategico"
+    IMPRENDITORE = "imprenditore"
 
 class PersonalityEngine:
     """

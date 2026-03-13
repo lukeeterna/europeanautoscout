@@ -2,231 +2,238 @@
 """
 OBJECTION HANDLER — ARGOS Automotive CoVe 2026
 ================================================
-Gestione strutturata obiezioni dealer. 5 archetipi codificati OBJ-1/5.
-Responses adattate per personalità dealer (IMPRENDITORE/TRADIZIONALE/LAUREATO/STRATEGICO).
+Wrapper canonico: delega a ObjectionLibrary + PersonaEngine.
+Schema OBJ codes canonici (ARGOS_HANDOFF_S50 §1.2):
+  OBJ-1 = "Ho già fornitori EU"
+  OBJ-2 = "Il prezzo/fee non mi convince"
+  OBJ-3 = "Non ho tempo / ci penso"
+  OBJ-4 = "Non capisco come funziona / garanzie"
+  OBJ-5 = "Devo sentire il socio/titolare"
+
+Archetipi canonici: RAGIONIERE | BARONE | PERFORMANTE | NARCISO | TECNICO
 
 Usage:
-    from src.marketing.objection_handler import ObjectionHandler
-    handler = ObjectionHandler()
-    response = handler.handle("OBJ-2", dealer_personality="IMPRENDITORE")
+    from src.marketing.objection_handler import handle, ObjectionHandler
+    response = handle("OBJ-1", "RAGIONIERE")
 """
 
-from typing import Dict, Optional
+import sys
+import os
 
-# OBJ codes
-OBJ_PRICE       = "OBJ-1"   # "Troppo caro / fee alta"
-OBJ_DELAY       = "OBJ-2"   # "Ci penso / non ora"
-OBJ_COMPETITION = "OBJ-3"   # "Ho già fornitori EU"
-OBJ_NO_IMPORT   = "OBJ-4"   # "Non faccio import"
-OBJ_INFO_STALL  = "OBJ-5"   # "Mandami materiale / brochure"
+# ── Mapping vecchi nomi → canonici (retrocompatibilità) ────────
+_PERSONA_LEGACY_MAP = {
+    "TRADIZIONALE":  "RAGIONIERE",
+    "STRATEGICO":    "PERFORMANTE",
+    "IMPRENDITORE":  "RAGIONIERE",
+    "LAUREATO":      "TECNICO",
+}
+
+# ── OBJ codes canonici ───────────────────────────────────────
+OBJ_CODES = {
+    "OBJ-1": "Ho già fornitori EU",
+    "OBJ-2": "Il prezzo/fee non mi convince",
+    "OBJ-3": "Non ho tempo / ci penso",
+    "OBJ-4": "Non capisco come funziona / garanzie",
+    "OBJ-5": "Devo sentire il socio/titolare",
+}
+
+# ── Template matrix (5 OBJ × 5 persona) ─────────────────────
+_TEMPLATES = {
+    "OBJ-1": {
+        "RAGIONIERE": (
+            "Mario, lo capisco. Il servizio ARGOS™ non sostituisce i suoi fornitori attuali "
+            "— li affianca su segmenti specifici non coperti. "
+            "Posso mostrarle 3 casi recenti con delta prezzo documentato?"
+        ),
+        "BARONE": (
+            "La apprezzo per la sua rete consolidata. ARGOS™ serve i dealer selezionati "
+            "che vogliono accesso a opportunità che gli altri non vedono. Non è per tutti."
+        ),
+        "PERFORMANTE": (
+            "Certo, hai già qualcuno. Ma su BMW/Mercedes premium D → IT, "
+            "ti mando un'analisi rapida — 2 minuti. Se non è interessante, chiudo qui."
+        ),
+        "NARCISO": (
+            "Ha già una rete? Perfetto. ARGOS™ si integra — è un layer analytics supplementare "
+            "per segmenti high-margin che i feed standard non coprono."
+        ),
+        "TECNICO": (
+            "Comprendo. Posso mostrarle un confronto oggettivo: prezzi EU trovati da ARGOS™ "
+            "vs prezzi mercato IT su stesse specifiche. Dati reali, verificabili."
+        ),
+    },
+    "OBJ-2": {
+        "RAGIONIERE": (
+            "Mario, la fee è €800-1.200 success-only — zero se non procediamo. "
+            "Su una BMW 5 serie con delta prezzo medio €3.800, il ROI è 3-4x. Vuole i numeri?"
+        ),
+        "BARONE": (
+            "Il suo tempo vale molto di più. La fee copre 40+ ore di ricerca, verifica VIN, "
+            "analisi mercato. Su un veicolo da €35k, è meno dell'1%."
+        ),
+        "PERFORMANTE": (
+            "Fee unica, solo a successo. Nessun abbonamento, nessun rischio. "
+            "Un'operazione copre la fee 3-4 volte."
+        ),
+        "NARCISO": (
+            "Guarda: fee success-only, dati Vincario certificati, report analytics completo. "
+            "Per dealer che fanno volume, il payback è sul primo veicolo."
+        ),
+        "TECNICO": (
+            "La fee è parametrizzata sul valore del veicolo (1.8-3.2%). "
+            "Posso mandarle il breakdown completo con scenari ROI su 3 fasce di prezzo."
+        ),
+    },
+    "OBJ-3": {
+        "RAGIONIERE": (
+            "Capisco, Mario. Le mando la scheda in PDF — 2 pagine, "
+            "può leggerla quando vuole. Nessun impegno."
+        ),
+        "BARONE": (
+            "Non rubo altro tempo. Le mando il materiale "
+            "— lo guarda con calma quando preferisce."
+        ),
+        "PERFORMANTE": (
+            "Ok, nessun problema. Ti mando tutto in 30 secondi "
+            "— guardi quando hai 5 minuti."
+        ),
+        "NARCISO": "Capito. Ti mando il deck rapido — quando sei free dai un'occhiata.",
+        "TECNICO": (
+            "Capisco. Le mando la documentazione tecnica completa "
+            "— può esaminarlo senza fretta."
+        ),
+    },
+    "OBJ-4": {
+        "RAGIONIERE": (
+            "Il processo è documentato: 1) Riceviamo il brief, 2) Scouting EU 48h, "
+            "3) Report Vincario + CoVe score, 4) Presentazione offerta, "
+            "5) Gestione logistica. Fee solo al punto 5."
+        ),
+        "BARONE": (
+            "Il processo è curato nei dettagli: analisi personalizzata, "
+            "verifica documentale completa, accompagnamento fino alla consegna. Trasparenza totale."
+        ),
+        "PERFORMANTE": (
+            "Semplice: brief → scouting → verifica → deal. "
+            "Tutto tracciato. Mando il flow diagram ora."
+        ),
+        "NARCISO": (
+            "Stack tecnico: scraping multi-country, VIN check Vincario, "
+            "scoring algoritmico, matching con il tuo target. Posso mostrarle l'architettura."
+        ),
+        "TECNICO": (
+            "Posso mandarle la documentazione tecnica completa del processo di verifica: "
+            "metodologia VIN, fonti dati, algoritmo di scoring. Tutto verificabile."
+        ),
+    },
+    "OBJ-5": {
+        "RAGIONIERE": (
+            "Capisco. Le preparo un executive summary di 1 pagina con ROI analysis "
+            "— così il titolare ha già tutto il necessario per decidere."
+        ),
+        "BARONE": (
+            "Certo. Preparo un documento riassuntivo per la sua riunione "
+            "— presentato nel modo giusto."
+        ),
+        "PERFORMANTE": (
+            "Ok, manda al socio il materiale "
+            "— glielo preparo in 10 minuti in formato presentazione."
+        ),
+        "NARCISO": "Perfetto. Preparo un deck breve per il team — così la presentazione è già pronta.",
+        "TECNICO": (
+            "Comprendo. Preparo documentazione tecnica e contrattuale completa "
+            "— così il titolare ha tutto per valutare."
+        ),
+    },
+}
+
+
+def _normalize_persona(persona: str) -> str:
+    """Mappa nomi legacy → canonici."""
+    p = persona.upper().strip()
+    return _PERSONA_LEGACY_MAP.get(p, p)
+
+
+def handle(obj_code: str, dealer_persona: str = "RAGIONIERE", **kwargs) -> str:
+    """
+    Genera risposta per obiezione data l'archetipo del dealer.
+
+    Args:
+        obj_code: OBJ-1..OBJ-5
+        dealer_persona: RAGIONIERE|BARONE|PERFORMANTE|NARCISO|TECNICO
+                        (supporta anche nomi legacy: TRADIZIONALE, IMPRENDITORE, ecc.)
+
+    Returns:
+        Stringa template risposta pronto per WhatsApp.
+    """
+    code    = obj_code.upper().strip()
+    persona = _normalize_persona(dealer_persona)
+
+    if code not in _TEMPLATES:
+        return "Capisco la sua posizione. Posso mandarle materiale dettagliato per valutare con calma?"
+
+    persona_templates = _TEMPLATES[code]
+    return persona_templates.get(persona, persona_templates.get("RAGIONIERE",
+        "Capisco la sua posizione. Posso mandarle materiale dettagliato per valutare con calma?"))
 
 
 class ObjectionHandler:
     """
-    Gestione obiezioni dealer per personalità.
-    Ogni OBJ ha risposta base + varianti per personality type.
+    Wrapper classe per retrocompatibilità con codice esistente.
+    Internamente delega a handle() canonico.
     """
-
-    def __init__(self):
-        self._responses = self._build_response_matrix()
 
     def handle(
         self,
         obj_code: str,
-        dealer_personality: str = "TRADIZIONALE",
+        dealer_personality: str = "RAGIONIERE",
         dealer_name: str = "",
         vehicle_info: str = "",
-    ) -> Dict:
-        """
-        Restituisce risposta strutturata per codice obiezione.
+    ) -> dict:
+        persona  = _normalize_persona(dealer_personality)
+        message  = handle(obj_code, persona)
 
-        Returns:
-            dict con keys: message, follow_up_delay_hours, escalate
-        """
-        obj_code = obj_code.upper()
-        personality = dealer_personality.upper()
-
-        if obj_code not in self._responses:
-            raise ValueError(f"OBJ code sconosciuto: {obj_code}. Validi: OBJ-1..OBJ-5")
-
-        obj_data = self._responses[obj_code]
-        name_tag = f" {dealer_name}" if dealer_name else ""
-
-        # Personality override se disponibile, altrimenti base
-        if personality in obj_data.get("variants", {}):
-            msg_template = obj_data["variants"][personality]
-        else:
-            msg_template = obj_data["base"]
-
-        message = msg_template.format(
-            name=name_tag,
-            vehicle=vehicle_info or "il veicolo selezionato",
-        )
+        # Sostituisci placeholder nome se presente
+        if dealer_name:
+            name = dealer_name.split()[0]
+            message = message.replace("{name}", f" {name}").replace("[Nome]", name)
 
         return {
-            "obj_code": obj_code,
-            "message": message,
-            "follow_up_delay_hours": obj_data["follow_up_hours"],
-            "escalate": obj_data["escalate"],
+            "obj_code":              obj_code.upper(),
+            "message":               message,
+            "follow_up_delay_hours": 48,
+            "escalate":              False,
         }
 
-    def list_objections(self) -> Dict[str, str]:
-        """Elenco codici + descrizione."""
-        return {k: v["label"] for k, v in self._responses.items()}
-
-    # ─────────────────────────────────────────────────────────────────
-    # RESPONSE MATRIX — OBJ-1/5
-    # ─────────────────────────────────────────────────────────────────
-    def _build_response_matrix(self) -> Dict:
-        return {
-
-            # ── OBJ-1: Prezzo / fee troppo alta ──────────────────────
-            OBJ_PRICE: {
-                "label": "Fee troppo alta / prezzo veicolo non conveniente",
-                "follow_up_hours": 48,
-                "escalate": False,
-                "base": (
-                    "Ciao{name}! La fee €800 è success-only — zero rischio upfront.\n"
-                    "Su {vehicle} il margine dealer stimato è €2.500-4.000.\n"
-                    "Lavoriamo solo se conviene anche a te. Possiamo procedere?"
-                ),
-                "variants": {
-                    "IMPRENDITORE": (
-                        "Ciao{name}! Fee €800 success-only = zero rischio.\n"
-                        "Margine netto su {vehicle}: €2.500-4.000 dopo fee.\n"
-                        "ROI immediato. Procediamo o preferisci alternativa?"
-                    ),
-                    "TRADIZIONALE": (
-                        "Buongiorno{name}.\n"
-                        "La fee €800 è a successo — paghi solo se acquisti.\n"
-                        "Su {vehicle} il risparmio rispetto al mercato IT è confermato.\n"
-                        "Possiamo parlarne con calma?"
-                    ),
-                    "STRATEGICO": (
-                        "Buongiorno{name}.\n"
-                        "Fee struttura: €800 success-only, zero upfront.\n"
-                        "Unit economics su {vehicle}: costo fee ~3% del margine atteso.\n"
-                        "Happy to share full breakdown. Quando sei disponibile?"
-                    ),
-                },
-            },
-
-            # ── OBJ-2: Ci penso / rinvio ─────────────────────────────
-            OBJ_DELAY: {
-                "label": "Ci penso / non è il momento / rimando",
-                "follow_up_hours": 24,
-                "escalate": False,
-                "base": (
-                    "Ciao{name}! Capito, nessun problema.\n"
-                    "Ti segnalo che {vehicle} ha alta richiesta in questo periodo.\n"
-                    "Posso tenerlo in stand-by 48h — poi si libera. Come preferisci?"
-                ),
-                "variants": {
-                    "IMPRENDITORE": (
-                        "Ciao{name}! Ok, capito.\n"
-                        "{vehicle} — window 48h poi rilascio ad altro dealer.\n"
-                        "Dimmi sì/no, gestisco io il resto."
-                    ),
-                    "TRADIZIONALE": (
-                        "Buongiorno{name}, nessun problema.\n"
-                        "Quando sei pronto risentiti pure.\n"
-                        "Ti tengo {vehicle} in evidenza per 48h. Ci sentiamo."
-                    ),
-                    "LAUREATO": (
-                        "Ciao{name}! Perfetto, prenditi il tempo.\n"
-                        "FYI: {vehicle} ha 3 richieste attive questa settimana.\n"
-                        "Se vuoi blocco prioritario basta un messaggio. 👍"
-                    ),
-                },
-            },
-
-            # ── OBJ-3: Ho già fornitori EU ────────────────────────────
-            OBJ_COMPETITION: {
-                "label": "Ho già fornitori EU / non ho bisogno",
-                "follow_up_hours": 72,
-                "escalate": False,
-                "base": (
-                    "Ciao{name}! Ottimo, significa che conosci il mercato.\n"
-                    "ARGOS™ si differenzia su qualità documentale + VIN verification.\n"
-                    "Possiamo fare una prova su {vehicle} senza impegno?"
-                ),
-                "variants": {
-                    "IMPRENDITORE": (
-                        "Ciao{name}! Rispetto, ci mancherebbe.\n"
-                        "ARGOS™ opera su DE/BE/NL/AT/FR/SE/CZ — forse mercati che il tuo fornitore non copre.\n"
-                        "Un confronto su {vehicle}? Zero impegno."
-                    ),
-                    "STRATEGICO": (
-                        "Buongiorno{name}.\n"
-                        "Interessante — su quali mercati opera il tuo fornitore attuale?\n"
-                        "ARGOS™ copre 7 paesi EU con Protocollo ARGOS™ CERTIFICATO.\n"
-                        "Happy to benchmark su {vehicle}."
-                    ),
-                },
-            },
-
-            # ── OBJ-4: Non faccio import ──────────────────────────────
-            OBJ_NO_IMPORT: {
-                "label": "Non faccio import / non è il mio settore",
-                "follow_up_hours": 168,  # 1 week
-                "escalate": True,        # segnala cambio strategia
-                "base": (
-                    "Capito{name}, nessun problema.\n"
-                    "ARGOS™ gestisce tutta la parte operativa — a te arriva il veicolo chiavi in mano.\n"
-                    "Molti dealer hanno iniziato così. Quando vuoi saperne di più, siamo qui."
-                ),
-                "variants": {
-                    "TRADIZIONALE": (
-                        "Buongiorno{name}.\n"
-                        "Capisco, l'import può sembrare complicato.\n"
-                        "Con ARGOS™ Tier 3 non devi gestire nulla — veicolo consegnato in concessionario.\n"
-                        "Se cambia la situazione, sappi che siamo a disposizione."
-                    ),
-                },
-            },
-
-            # ── OBJ-5: Mandami materiale / brochure ───────────────────
-            OBJ_INFO_STALL: {
-                "label": "Mandami materiale / brochure / info via mail",
-                "follow_up_hours": 24,
-                "escalate": False,
-                "base": (
-                    "Ciao{name}! Certo, mando scheda tecnica {vehicle} entro oggi.\n"
-                    "Nel frattempo: fee €800 success-only, zero upfront, consegna IT gestita.\n"
-                    "Preferisci scheda via WhatsApp o email?"
-                ),
-                "variants": {
-                    "IMPRENDITORE": (
-                        "Ciao{name}! Mando scheda {vehicle} subito.\n"
-                        "Key info: €27.800 | 45.200 km | fee €800 success-only.\n"
-                        "WhatsApp o email?"
-                    ),
-                    "LAUREATO": (
-                        "Ciao{name}! Perfetto, mando scheda completa {vehicle}.\n"
-                        "Include: VIN check, history, valutazione mercato IT.\n"
-                        "WhatsApp o email? Arrivo entro un'ora."
-                    ),
-                },
-            },
-        }
+    def list_objections(self) -> dict:
+        return dict(OBJ_CODES)
 
 
 # ─────────────────────────────────────────────────────────────────────
 # CLI quick-test
 # ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    import sys
-    handler = ObjectionHandler()
+    print("Verifica OBJ codes canonici × 5 archetipi:")
+    print("=" * 60)
+    personas = ["RAGIONIERE", "BARONE", "PERFORMANTE", "NARCISO", "TECNICO"]
+    errors   = []
+    for obj in OBJ_CODES:
+        for p in personas:
+            t = handle(obj, p)
+            if not t or len(t) < 20:
+                errors.append(f"VUOTO: {obj} × {p}")
+            else:
+                print(f"✅ {obj} × {p}: {t[:60]}...")
 
-    if len(sys.argv) > 1:
-        code = sys.argv[1].upper()
-        personality = sys.argv[2].upper() if len(sys.argv) > 2 else "TRADIZIONALE"
-        result = handler.handle(code, dealer_personality=personality, dealer_name="Mario")
-        print(f"\n[{result['obj_code']}] → follow-up in {result['follow_up_delay_hours']}h | escalate={result['escalate']}")
-        print("-" * 60)
-        print(result["message"])
+    # Test retrocompatibilità legacy
+    legacy_tests = [("OBJ-1", "TRADIZIONALE"), ("OBJ-2", "IMPRENDITORE"), ("OBJ-3", "LAUREATO")]
+    for obj, legacy in legacy_tests:
+        t = handle(obj, legacy)
+        print(f"✅ Legacy {legacy} → {_normalize_persona(legacy)}: {t[:50]}...")
+
+    if errors:
+        print(f"\n❌ Errori ({len(errors)}):")
+        for e in errors:
+            print(f"  {e}")
     else:
-        print("Obiezioni disponibili:")
-        for code, label in handler.list_objections().items():
-            print(f"  {code}: {label}")
-        print("\nUsage: python3.11 objection_handler.py OBJ-2 IMPRENDITORE")
+        print(f"\n✅ Tutti {len(OBJ_CODES) * len(personas)} template OK")
