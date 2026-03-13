@@ -84,7 +84,7 @@ echo "▶ [5/7] Configurazione .env..."
 ssh "$IMAC" "
   ENV_FILE=$REMOTE_INTEL/.env
   if [ ! -f \"\$ENV_FILE\" ]; then
-    echo 'ARGOS_TELEGRAM_TOKEN=INSERISCI_IL_TOKEN_QUI' > \"\$ENV_FILE\"
+    echo 'ARGOS_TELEGRAM_TOKEN=8691360619:AAG_R9bKLtAtRuMS5VD-AP7E-CKt_o-xOmA' > \"\$ENV_FILE\"
     echo 'ARGOS_TELEGRAM_CHAT_ID=931063621'            >> \"\$ENV_FILE\"
     echo 'ARGOS_DB_PATH=$REMOTE_BASE/dealer_network.duckdb' >> \"\$ENV_FILE\"
     chmod 600 \"\$ENV_FILE\"
