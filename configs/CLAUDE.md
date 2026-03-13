@@ -318,23 +318,67 @@ Token: GH_TOKEN in env oppure ~/bin/gh con GH_TOKEN esportato.
 
 ---
 
-## SKILLS ON-DEMAND
+## 🏆 SKILL REGISTRY — ENTERPRISE LEVEL (Anthropic Official Format)
 
-```
-cove-verify      → schema alignment + fraud flags + E2E test
-scraping         → AutoScout24 EU + Carapis + proxy + anti-bot
-vin-decode       → NHTSA vPIC + vininfo + WMI EU free stack
-marketing-agent  → lead → RAG → email → payment pipeline
-media-gen        → Replicate FLUX + Gemini image/video
-```
+**Standard**: Anthropic Agent Skills Open Standard | **Path**: `.claude/skills/<nome>/SKILL.md`
+
+### SKILL ATTIVE (✅ deployate e testate)
+
+| Skill ID | Path | Trigger chiave | Ver | Stato |
+|---|---|---|---|---|
+| `argos-outreach-automation` | `.claude/skills/skill-argos/` | "invia whatsapp", "sequenza outreach", "contatta dealer", "QR whatsapp" | v3 | ✅ |
+| `argos-wa-debug` | `.claude/skills/skill-argos-debug/` | "messaggio non arrivato", "debug whatsapp", "sessione corrotta" | v1 | ✅ |
+| `gh-actions` | `.claude/skills/gh-actions/` | "github actions", "workflow ci/cd", "deploy imac", "secrets" | v1 | ✅ |
+| `deep-research` | `.claude/skills/skill-deep-research/` | "ricerca dealer", "deep research", "analisi mercato", "trova lead", "competitor" | v1 | ✅ S49 |
+| `cove-engine` | `.claude/skills/skill-cove/` | "cove score", "confidence dealer", "recommendation", "cove_tracker", "analyzed_at" | v1 | ✅ S49 |
+
+### TASK COMPLETATI — STORICO SESSIONI
+
+| S | Task | Skill | Output |
+|---|---|---|---|
+| S38 | Mario WA Day1 | argos-outreach | ✅ INVIATO +393336142544 |
+| S47 | OBJ-1/5 × 4 personality | (manuale) | src/marketing/objection_handler.py |
+| S47 | Fee calculator ROI | (manuale) | tools/fee_calculator.py |
+| S48 | WA stack iMac + QR auth | argos-outreach [A] | sessione argosautomotive |
+| S48 | CI/CD GitHub Actions | gh-actions | verde, CD attivo |
+| S49 | WA Intelligence deploy PM2 | argos-outreach + gh-actions | argos-wa-daemon online |
+| S49 | Skill v3 attivata | — | 10 archetipi DISC×Cialdini |
+| S49 | Fix WA session dataPath | argos-wa-debug | wa-daemon.js LocalAuth fix |
+| S49 | Fix ecosystem.config.js | — | dotenv loading PM2 |
+| S49 | deep-research skill | — | .claude/skills/skill-deep-research/ |
+| S49 | cove-engine skill | — | .claude/skills/skill-cove/ |
+
+### TASK PENDING — PROSSIME SESSIONI
+
+| Task | Skill | Priorità | Scadenza |
+|---|---|---|---|
+| WA Daemon QR re-auth | argos-outreach [A1] | 🔴 | S50 immediato |
+| Token Telegram corretto da @BotFather | (config .env) | 🔴 | S50 immediato |
+| Mario Recovery Day7 WA | argos-outreach + deep-research | 🔴 | 2026-03-17 |
+| LangGraph orchestrator 8 nodi | (creare: skill-langgraph) | 🟡 | BACKLOG |
+| 4-layer context retrieval | (creare: skill-rag) | 🟡 | BACKLOG |
+| Nuovi lead Sud Italia | deep-research [E] | 🟡 | se pipeline vuota |
+
+### SKILL DA CREARE (backlog)
+
+| Nome | Scope | Priorità |
+|---|---|---|
+| `skill-langgraph` | LangGraph 8 nodi + Ollama orchestrator | 🔴 ALTA |
+| `skill-rag` | 4-layer context retrieval + ChromaDB | 🟡 MEDIA |
+| `skill-scraping` | AutoScout24 EU + Carapis + proxy + anti-bot | 🟡 MEDIA |
+| `skill-vin` | VIN decode + Vincario + fraud check EU | 🟡 MEDIA |
+
+---
 
 ## REGOLA SKILL — IMMUTABILE
 
 ```
 PER OGNI TASK SPECIFICO:
-1. Identifica se esiste una Claude Code Skill corrispondente
+1. Consulta SKILL REGISTRY sopra — esiste una skill per questo task?
 2. Se esiste → usala tramite Skill tool
-3. Se NON esiste → CREALA seguendo il framework ufficiale Anthropic
+3. Se NON esiste → CREALA seguendo formato ufficiale Anthropic
+4. Dopo creazione → aggiorna TASK COMPLETATI nel registry
+5. Aggiungi skill a CLAUDE.md skill registry (questa sezione)
 
 FORMATO UFFICIALE ANTHROPIC (Agent Skills open standard):
   Path:      .claude/skills/<nome-skill>/SKILL.md
@@ -342,14 +386,13 @@ FORMATO UFFICIALE ANTHROPIC (Agent Skills open standard):
     name:         nome-skill (lowercase, hyphens, max 64 chars)
     description:  quando usarla (Claude usa questo per auto-invoke)
   Opzionali:
-    allowed-tools / context: fork / agent: Explore|Plan / argument-hint
+    allowed-tools: Bash, Read, Write, WebSearch, ...
+    context: fork   (processo isolato)
+    agent: Explore|Plan
+    argument-hint: "descrizione argomento"
   Argomenti: $ARGUMENTS o $0, $1...
 
-SKILL ESISTENTI ARGOS (da migrare a .claude/skills/):
-- cove-verify / scraping / vin-decode / marketing-agent / media-gen
-
 NON PROCEDERE con implementazione manuale se una skill copre il caso d'uso.
-Docs: https://code.claude.com/docs/en/skills.md
 ```
 
 ---

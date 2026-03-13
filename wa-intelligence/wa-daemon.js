@@ -316,7 +316,10 @@ function initClient() {
     ensureSchema();
 
     const client = new Client({
-        authStrategy: new LocalAuth({ clientId: CONFIG.SESSION_ID }),
+        authStrategy: new LocalAuth({
+            clientId: CONFIG.SESSION_ID,
+            dataPath: path.join(__dirname, '..', 'wa-sender'),
+        }),
         puppeteer: {
             headless: true,
             args: [
