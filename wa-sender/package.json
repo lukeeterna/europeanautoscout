@@ -1,0 +1,13 @@
+{
+  "name": "argos-wa-sender",
+  "version": "1.0.0",
+  "description": "ARGOS Automotive WhatsApp sender — CoVe 2026",
+  "main": "send_verified.js",
+  "scripts": {
+    "test": "node tests/validate-phone-format.js && node tests/validate-session-structure.js && node tests/validate-message-payload.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.3",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}
