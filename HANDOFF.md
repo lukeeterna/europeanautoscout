@@ -1,6 +1,6 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session 48 — 2026-03-13
+**Aggiornato**: Session 48 — 2026-03-13 (finale)
 
 ---
 
@@ -9,9 +9,11 @@
 **claude-mem**: ✅ Fix S46 confermato attivo.
 **Mario Orefice**: ✅ WA DAY 1 INVIATO — 2026-03-13 ~12:00 | Account: +393281536308 (Very Mobile) | Message ID: `true_227002057543819@lid_3EB07A584C107FB7661C17` | ACK: 0
 **WhatsApp stack**: ✅ whatsapp-web.js su iMac | sessione `argosautomotive` persistente in `wa-sender/.wwebjs_auth/`
-**CI/CD**: ✅ `.github/workflows/ci.yml` + `cd.yml` | 3 test E2E passati | **PENDING: secrets IMAC_HOST/USER/KEY + SSH key deploy**
+**CI/CD**: ✅ CI verde su GitHub Actions | CD deploy iMac + Day7 cron attivo
+**Secrets GitHub**: ✅ `IMAC_HOST=100.79.153.61` | `IMAC_USER` | `IMAC_SSH_KEY` (ED25519 gh-deploy)
+**SSH deploy key**: ✅ `~/.ssh/gh_deploy_argos` — autorizzata su iMac
 **Skills**: ✅ `argos-outreach-automation` v2 + `argos-wa-debug` + `gh-actions`
-**gh CLI**: ✅ `~/bin/gh` v2.65.0 autenticato (lukeeterna)
+**gh CLI**: ✅ `~/bin/gh` v2.65.0 | `export PATH=$HOME/bin:$PATH`
 
 ---
 
@@ -37,10 +39,16 @@
 
 | Task | File | Note |
 |---|---|---|
-| WA Day 1 Mario inviato | `wa-sender/send_verified.js` su iMac | ACK 0, Message ID confermato |
+| WA Day 1 Mario inviato | `wa-sender/send_verified.js` su iMac | ACK 0, Message ID confermato, numero verificato |
 | WhatsApp stack operativo | `wa-sender/.wwebjs_auth/session-argosautomotive/` | Sessione Very Mobile +393281536308 |
 | Skill argos-outreach v2 | `.claude/skills/skill-argos/SKILL.md` | QR via HTTP, proof checklist, path fix |
 | Skill argos-wa-debug | `.claude/skills/skill-argos-debug/SKILL.md` | D1→D6 receipt verification |
+| Skill gh-actions | `.claude/skills/gh-actions/SKILL.md` | setup SSH key, secrets, troubleshooting |
+| CI workflow verde | `.github/workflows/ci.yml` | ubuntu-22.04, 3 test E2E passati |
+| CD workflow | `.github/workflows/cd.yml` | appleboy/ssh-action + Day7 cron |
+| SSH deploy key | `~/.ssh/gh_deploy_argos` | ED25519, autorizzata su iMac |
+| GitHub Secrets | repo settings | IMAC_HOST/USER/SSH_KEY configurati |
+| gh CLI | `~/bin/gh` v2.65.0 | autenticato lukeeterna |
 | CLAUDE.md skill rule | `configs/CLAUDE.md` | Framework ufficiale Anthropic `.claude/skills/` |
 
 ## ✅ COMPLETATO SESSION 47
@@ -58,7 +66,7 @@
 | Gap | Priorità | Stato |
 |---|---|---|
 | LangGraph orchestrator (8 nodi) | 🔴 ALTA | BACKLOG |
-| Skill architecture `.claude/skills/` | 🔴 ALTA | BACKLOG |
+| Skill architecture `.claude/skills/` | 🔴 ALTA | ✅ DONE S48 |
 | 4-layer context retrieval | 🟡 MEDIA | BACKLOG |
 
 **Nostri vantaggi da NON toccare**: CoVe Engine v4, Ollama locale, Tailscale proxy
