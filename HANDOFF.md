@@ -8,15 +8,17 @@
 
 **claude-mem**: ✅ Fix S46 confermato attivo.
 **Mario Orefice**: ✅ WA DAY 1 INVIATO — 2026-03-13 ~12:00 | Account: +393281536308 (Very Mobile) | Message ID: `true_227002057543819@lid_3EB07A584C107FB7661C17` | ACK: 0
-**WhatsApp stack**: ✅ whatsapp-web.js su iMac | sessione `argosautomotive` persistente in `wa-sender/.wwebjs_auth/`
+**WhatsApp stack**: ✅ whatsapp-web.js su iMac | sessione `wa-sender` persistente in `wa-sender/.wwebjs_auth/`
 **CI/CD**: ✅ CI verde su GitHub Actions | CD deploy iMac + Day7 cron attivo
-**WA Intelligence**: ✅ `wa-intelligence/` deployato | PM2 daemon + scheduler + telegram human-in-loop
-**Skill v3**: ✅ `.claude/skills/skill-argos-v3/` | 10 archetipi DISC×Cialdini | Recovery Mario Day7 pronto
+**WA Intelligence**: ✅ DEPLOYATO S49 | PM2 online: argos-wa-daemon + argos-tg-bot | LaunchAgent scheduler ogni 5min | health ✅ http://192.168.1.12:9191
+**WA Daemon sessione**: ⚠️ RICHIEDE RE-AUTH QR — usa `send_qr_server.js` da `wa-sender/`, poi copia session in `wa-intelligence/.wwebjs_auth/` | Telegram alert inviato
+**Skill argos**: ✅ v3 ATTIVA in `.claude/skills/skill-argos/` | v2 backup in `skill-argos-v2-backup/`
 **OUTREACH REVIEW**: ⚠️ Msg Day1 Mario troppo diretto per RAGIONIERE — Recovery Day7 corretto pronto
 **Secrets GitHub**: ✅ `IMAC_HOST=100.79.153.61` | `IMAC_USER` | `IMAC_SSH_KEY` (ED25519 gh-deploy)
 **SSH deploy key**: ✅ `~/.ssh/gh_deploy_argos` — autorizzata su iMac
-**Skills**: ✅ `argos-outreach-automation` v2 + `argos-wa-debug` + `gh-actions`
+**Skills**: ✅ `skill-argos` v3 (attiva) + `skill-argos-debug` + `gh-actions` | v2 backup in `skill-argos-v2-backup/`
 **gh CLI**: ✅ `~/bin/gh` v2.65.0 | `export PATH=$HOME/bin:$PATH`
+**PM2 PATH iMac**: `export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:$PATH`
 
 ---
 
@@ -104,28 +106,46 @@ tools/fee_calculator.py                    ← Fee calc (nuovo S47)
 
 ---
 
-## 🚀 PROSSIMA SESSIONE (S49)
+## ✅ COMPLETATO SESSION 49
+
+| Task | Stato | Note |
+|---|---|---|
+| Skill v3 attiva | ✅ | `skill-argos-v3` → `skill-argos` | v2 backup |
+| WA Intelligence deploy | ✅ | PM2 online, LaunchAgent scheduler ogni 5min |
+| Telegram bot | ✅ | Token configurato, alert sessione scaduta inviato |
+| deploy.sh bug fix | ✅ | REMOTE_BASE iMac path + PM2/npm PATH fix |
+| Mario Day 1 status | ⏳ | Inviato 2026-03-13, silenzio → Recovery Day 7 il 2026-03-17 |
+| WA Daemon QR auth | ⚠️ | HUMAN ACTION: ri-autenticare daemon (vedi S50) |
+
+---
+
+## 🚀 PROSSIMA SESSIONE (S50)
 
 ```
-Sessione 49 — ARGOS. Leggi HANDOFF.md.
+Sessione 50 — ARGOS. Leggi HANDOFF.md.
 
-STEP 1 — Mario risposta:
-  Verifica se Mario ha risposto al WA Day 1 (inviato 2026-03-13).
-  Se positivo → registra €800 pipeline su DuckDB. Usa RAGIONIERE v3 per risposta.
-  Se obiezione → skill argos-outreach-automation [E] PERSONA PROTOCOL.
-  Se silenzio 2026-03-17 → Recovery WA Day 7 RAGIONIERE (testo in HANDOFF).
-  USA telegram human-in-loop per approvazione prima di ogni invio.
+STEP 1 — WA Daemon re-auth (PRIORITÀ):
+  Il daemon argos-wa-daemon gira su PM2 ma ha sessione separata da wa-sender.
+  Sessione daemon: ~/Documents/app-antigravity-auto/wa-intelligence/.wwebjs_auth/
+  Sessione wa-sender: ~/Documents/app-antigravity-auto/wa-sender/.wwebjs_auth/
 
-STEP 2 — Deploy wa-intelligence su iMac:
-  bash wa-intelligence/deploy.sh (via SSH iMac).
-  PM2 + LaunchAgent per wa-daemon.js + telegram-handler.py.
-  Richiede TELEGRAM_TOKEN + TELEGRAM_CHAT_ID in .env iMac.
+  OPZIONE A (preferita): Avvia QR server da wa-intelligence dir, scansiona.
+    ssh imac "export PATH=... && cd ~/Documents/app-antigravity-auto/wa-intelligence && node ../wa-sender/send_qr_server.js"
+    open http://192.168.1.12:8765 → scansiona con Android
 
-STEP 3 — Skill v3 come versione attiva:
-  Rinomina .claude/skills/skill-argos-v3 → skill-argos (sostituisce v2).
-  Persona matrix 10 archetipi DISC×Cialdini è superiore.
+  OPZIONE B: Copia sessione da wa-sender a wa-intelligence:
+    ssh imac "cp -r ~/Documents/app-antigravity-auto/wa-sender/.wwebjs_auth/ ~/Documents/app-antigravity-auto/wa-intelligence/.wwebjs_auth/"
+    pm2 restart argos-wa-daemon
+
+STEP 2 — Mario Day 7 Recovery (2026-03-17):
+  Se silenzio da Mario al 2026-03-17 → invia Recovery Day 7 RAGIONIERE (testo in HANDOFF sopra).
+  Approvazione Telegram PRIMA di ogni invio.
+  Canale: WhatsApp (NON email — aggiornato da HANDOFF S48).
+
+STEP 3 — Mario risposta (se ha risposto):
+  Se positivo → registra €800 pipeline su DuckDB dealer_network.duckdb.
+  Se obiezione → skill argos [E] PERSONA PROTOCOL.
 
 STEP 4 — Nuovi lead se pipeline vuota:
   AutoScout24 / Carapis dealer target Sud Italia.
-  Riferimento: .taskmaster/tasks.yaml ARCH-001.
 ```

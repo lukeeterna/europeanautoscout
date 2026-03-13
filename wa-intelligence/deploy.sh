@@ -24,7 +24,8 @@ set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────
 IMAC="gianlucadistasi@192.168.1.12"
-REMOTE_BASE="$HOME/Documents/app-antigravity-auto"
+REMOTE_BASE="/Users/gianlucadistasi/Documents/app-antigravity-auto"
+IMAC_PATH="export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:\$PATH"
 REMOTE_INTEL="$REMOTE_BASE/wa-intelligence"
 LOCAL_INTEL="$(cd "$(dirname "$0")" && pwd)"
 
@@ -37,7 +38,7 @@ echo "════════════════════════�
 # ── 1. Connettività ──────────────────────────────────────────
 echo ""
 echo "▶ [1/7] Verifica connessione iMac..."
-ssh "$IMAC" "echo '✅ SSH OK' && node --version && python3 --version && pm2 --version" \
+ssh "$IMAC" "$IMAC_PATH && echo '✅ SSH OK' && node --version && python3 --version && pm2 --version" \
   || { echo "❌ Prerequisiti mancanti su iMac. Verifica SSH, Node.js, PM2."; exit 1; }
 
 # ── 2. Copia file ───────────────────────────────────────────
@@ -59,6 +60,7 @@ echo "  ✅ File copiati"
 echo ""
 echo "▶ [3/7] Installazione dipendenze npm..."
 ssh "$IMAC" "
+  $IMAC_PATH
   set -e
   cd $REMOTE_BASE/wa-sender 2>/dev/null || mkdir -p $REMOTE_BASE/wa-sender
   cd $REMOTE_BASE/wa-sender
@@ -96,6 +98,7 @@ ssh "$IMAC" "
 echo ""
 echo "▶ [6/7] Avvio PM2 stack..."
 ssh "$IMAC" "
+  $IMAC_PATH
   set -e
   cd $REMOTE_INTEL
   # Carica token da .env se esiste
@@ -145,6 +148,7 @@ echo "════════════════════════�
 echo " HEALTH CHECK"
 echo "═══════════════════════════════════════════"
 ssh "$IMAC" "
+  $IMAC_PATH
   echo '--- PM2 Status ---'
   pm2 list
 
