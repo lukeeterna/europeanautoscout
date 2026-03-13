@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.argos.scheduler.plist — LaunchAgent macOS
+  Esegue scheduler.py ogni 5 minuti (300 secondi)
+  
+  INSTALL:
+    cp com.argos.scheduler.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.argos.scheduler.plist
+    
+  UNINSTALL:
+    launchctl unload ~/Library/LaunchAgents/com.argos.scheduler.plist
+    
+  CHECK:
+    launchctl list | grep argos
+    cat /tmp/argos-scheduler.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.argos.scheduler</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/gianlucadistasi/Documents/app-antigravity-auto/wa-intelligence/scheduler.py</string>
+    </array>
+
+    <!-- Variabili d'ambiente (token letto da .env separato) -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>TZ</key>
+        <string>Europe/Rome</string>
+        <key>ARGOS_DB_PATH</key>
+        <string>/Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.duckdb</string>
+        <key>ARGOS_TELEGRAM_CHAT_ID</key>
+        <string>931063621</string>
+        <!-- ARGOS_TELEGRAM_TOKEN: impostato in .env, non qui -->
+    </dict>
+
+    <!-- Ogni 5 minuti (300 secondi) -->
+    <key>StartInterval</key>
+    <integer>300</integer>
+
+    <!-- Avvia al login e rimane attivo -->
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <false/>
+
+    <!-- Riavvia automaticamente in caso di crash -->
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
+
+    <!-- Log -->
+    <key>StandardOutPath</key>
+    <string>/tmp/argos-scheduler-launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/argos-scheduler-launchd-err.log</string>
+
+    <!-- Non avviare se batteria scarica (non applicabile su iMac) -->
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>

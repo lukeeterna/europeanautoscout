@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.argos.pm2.plist — LaunchAgent macOS
+  Avvia PM2 (e tutti i processi argos-*) al login/boot
+
+  INSTALL:
+    cp com.argos.pm2.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.argos.pm2.plist
+
+  PREREQUISITO:
+    pm2 start ecosystem.config.js
+    pm2 save   ← salva la lista processi
+    
+  VERIFICA:
+    pm2 list
+    pm2 logs argos-wa-daemon --lines 20
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.argos.pm2</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/pm2</string>
+        <string>resurrect</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>TZ</key>
+        <string>Europe/Rome</string>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/gianlucadistasi</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/argos-pm2-boot.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/argos-pm2-boot-err.log</string>
+</dict>
+</plist>
