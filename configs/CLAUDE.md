@@ -276,6 +276,23 @@ Scripts:      tools/scripts/                    ← Operational automation scrip
 6. Controlla `recommendation` / `analyzed_at` su ogni modulo DuckDB
 7. `/compact` manuale a 50% context window
 8. Commit atomici: `git add -A && git commit -m "tipo(scope): msg"`
+9. **FINE TASK/SESSIONE → PROTOCOLLO OBBLIGATORIO** (vedi sotto)
+
+---
+
+## PROTOCOLLO FINE TASK/SESSIONE — DEFAULT, SENZA CHIEDERE
+
+```
+ESEGUIRE AUTOMATICAMENTE DOPO OGNI TASK O FINE SESSIONE:
+1. Aggiorna HANDOFF.md — stato corrente + completati + prompt S+1
+2. Aggiorna memory/MEMORY.md — sezione stato corrente
+3. git commit + GH_TOKEN="ghp_..." git push origin master
+4. Output prompt prossima sessione pronto per copia-incolla
+
+NON aspettare istruzione. NON chiedere conferma. FARLO E BASTA.
+Push GitHub è parte del protocollo — non opzionale.
+Token: GH_TOKEN in env oppure ~/bin/gh con GH_TOKEN esportato.
+```
 
 ---
 
