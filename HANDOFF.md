@@ -1,35 +1,45 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session 47 — 2026-03-13
+**Aggiornato**: Session 48 — 2026-03-13
 
 ---
 
 ## ⚡ STATO CORRENTE
 
-**claude-mem**: ✅ Fix S46 confermato attivo. DB vuoto (expected post-fix — nuove sessioni catturate correttamente)
-**Mario Orefice**: ⏳ PENDING invio WhatsApp — template pronto, finestra oggi 14:00-17:00
-**Architettura S47**: ✅ `.taskmaster/` + OBJ-1/5 + fee calculator consegnati e testati
+**claude-mem**: ✅ Fix S46 confermato attivo.
+**Mario Orefice**: ✅ WA DAY 1 INVIATO — 2026-03-13 ~12:00 | Account: +393281536308 (Very Mobile) | Message ID: `true_227002057543819@lid_3EB07A584C107FB7661C17` | ACK: 0 (consegnato non appena apre WA)
+**WhatsApp stack**: ✅ whatsapp-web.js su iMac | sessione `argosautomotive` persistente in `wa-sender/.wwebjs_auth/`
+**Architettura S48**: ✅ skill `argos-outreach-automation` v2 + `argos-wa-debug` deployate in `.claude/skills/`
 
 ---
 
-## 🎯 MARIO EXECUTION — P0
+## 🎯 MARIO OREFICE — SEQUENZA ATTIVA
 
 | Campo | Valore |
 |---|---|
 | Contatto | +393336142544 |
 | Nome | Mario Orefice, Mariauto Srl |
-| Personalità | IMPRENDITORE |
-| Veicolo | BMW 330i 2020, 45.200 km, €27.800 |
+| Personalità | RAGIONIERE (confidence 0.85) |
+| Veicolo | BMW 330i G20 2020, km 45.200 (LOCKED), €27.800 franco DE |
+| Margine dealer | €3.100 netto dopo fee |
 | Fee | €800 success-only |
-| ROI dealer | 247% (€1.980 margine netto) |
-| Fattura svantaggiosa | ~€175 risparmio |
-| Template | `docs/dev/mario_collection_message_session38.md` |
-| Timing | 14:00-17:00 finestra ottimale |
-| Conversione attesa | 65-75% |
+| Day 1 WA | ✅ INVIATO 2026-03-13 ~12:00 | ACK 0 |
+| Day 7 Email | ⏳ 2026-03-17 — se silenzio |
+| Day 12 WA | ⏳ 2026-03-22 — follow-up finale |
 
-**OBJ pre-caricati**: OBJ-2 IMPRENDITORE pronto (`src/marketing/objection_handler.py`)
+**Trigger risposta**: silenzio >48h → Email Day 7 (2026-03-17)
 
 ---
+
+## ✅ COMPLETATO SESSION 48
+
+| Task | File | Note |
+|---|---|---|
+| WA Day 1 Mario inviato | `wa-sender/send_verified.js` su iMac | ACK 0, Message ID confermato |
+| WhatsApp stack operativo | `wa-sender/.wwebjs_auth/session-argosautomotive/` | Sessione Very Mobile +393281536308 |
+| Skill argos-outreach v2 | `.claude/skills/skill-argos/SKILL.md` | QR via HTTP, proof checklist, path fix |
+| Skill argos-wa-debug | `.claude/skills/skill-argos-debug/SKILL.md` | D1→D6 receipt verification |
+| CLAUDE.md skill rule | `configs/CLAUDE.md` | Framework ufficiale Anthropic `.claude/skills/` |
 
 ## ✅ COMPLETATO SESSION 47
 
@@ -68,21 +78,23 @@ tools/fee_calculator.py                    ← Fee calc (nuovo S47)
 
 ---
 
-## 🚀 PROSSIMA SESSIONE (S48)
+## 🚀 PROSSIMA SESSIONE (S49)
 
 ```
-Sessione 48 — ARGOS. Leggi HANDOFF.md.
+Sessione 49 — ARGOS. Leggi HANDOFF.md.
 
-STEP 1 — Mario follow-up:
-  Verifica risposta Mario (+393336142544).
-  Se positivo → registra €800 su DuckDB + log dealer_contacts.
-  Se silenzio → OBJ-2 follow-up (objection_handler.py OBJ-2 IMPRENDITORE).
-  Se obiezione → identifica OBJ code e usa objection_handler.py.
+STEP 1 — Mario risposta:
+  Verifica se Mario ha risposto al WA Day 1 (inviato 2026-03-13).
+  Se positivo → registra €800 pipeline su DuckDB + log dealer_contacts.
+  Se obiezione → skill argos-outreach-automation [E] PERSONA PROTOCOL (RAGIONIERE).
+  Se silenzio al 2026-03-17 → Email Day 7 via skill [B] EMAIL PROTOCOL.
 
-STEP 2 — Architettura:
-  Prossimo gap da attaccare: LangGraph orchestrator adattato Ollama.
-  Riferimento: .taskmaster/tasks.yaml ARCH-001.
+STEP 2 — WA sender persistente su iMac:
+  Configurare LaunchAgent o cron su iMac per riavvio automatico send_verified.js
+  se il processo muore (iMac sempre acceso = server persistente).
+  ssh gianlucadistasi@192.168.1.12 — sessione argosautomotive già attiva.
 
 STEP 3 — Nuovi lead:
-  Cerca nuovi dealer target su AutoScout24 / Carapis se pipeline vuota.
+  Pipeline vuota dopo Mario → cerca dealer target AutoScout24 / Carapis.
+  Riferimento: .taskmaster/tasks.yaml ARCH-001 LangGraph orchestrator.
 ```
