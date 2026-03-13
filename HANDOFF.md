@@ -1,6 +1,6 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session 48 — 2026-03-13 (finale)
+**Aggiornato**: Session 48 — 2026-03-13 (definitivo)
 
 ---
 
@@ -10,6 +10,9 @@
 **Mario Orefice**: ✅ WA DAY 1 INVIATO — 2026-03-13 ~12:00 | Account: +393281536308 (Very Mobile) | Message ID: `true_227002057543819@lid_3EB07A584C107FB7661C17` | ACK: 0
 **WhatsApp stack**: ✅ whatsapp-web.js su iMac | sessione `argosautomotive` persistente in `wa-sender/.wwebjs_auth/`
 **CI/CD**: ✅ CI verde su GitHub Actions | CD deploy iMac + Day7 cron attivo
+**WA Intelligence**: ✅ `wa-intelligence/` deployato | PM2 daemon + scheduler + telegram human-in-loop
+**Skill v3**: ✅ `.claude/skills/skill-argos-v3/` | 10 archetipi DISC×Cialdini | Recovery Mario Day7 pronto
+**OUTREACH REVIEW**: ⚠️ Msg Day1 Mario troppo diretto per RAGIONIERE — Recovery Day7 corretto pronto
 **Secrets GitHub**: ✅ `IMAC_HOST=100.79.153.61` | `IMAC_USER` | `IMAC_SSH_KEY` (ED25519 gh-deploy)
 **SSH deploy key**: ✅ `~/.ssh/gh_deploy_argos` — autorizzata su iMac
 **Skills**: ✅ `argos-outreach-automation` v2 + `argos-wa-debug` + `gh-actions`
@@ -31,7 +34,20 @@
 | Day 7 Email | ⏳ 2026-03-17 — se silenzio |
 | Day 12 WA | ⏳ 2026-03-22 — follow-up finale |
 
-**Trigger risposta**: silenzio >48h → Email Day 7 (2026-03-17)
+**Trigger risposta**: silenzio >48h → Recovery WA Day 7 (2026-03-17) — NON email
+
+**Recovery Day 7 APPROVATO (RAGIONIERE v3):**
+```
+Mario, le ho scritto qualche giorno fa in modo
+forse troppo diretto — mi scuso.
+
+Verifico veicoli in Europa per dealer con dati
+certificati. Zero anticipi, si paga solo
+a veicolo consegnato e approvato.
+
+Se serve una verifica su qualcosa di specifico,
+sono qui. — Luca
+```
 
 ---
 
@@ -95,16 +111,21 @@ Sessione 49 — ARGOS. Leggi HANDOFF.md.
 
 STEP 1 — Mario risposta:
   Verifica se Mario ha risposto al WA Day 1 (inviato 2026-03-13).
-  Se positivo → registra €800 pipeline su DuckDB + log dealer_contacts.
-  Se obiezione → skill argos-outreach-automation [E] PERSONA PROTOCOL (RAGIONIERE).
-  Se silenzio al 2026-03-17 → Email Day 7 via skill [B] EMAIL PROTOCOL.
+  Se positivo → registra €800 pipeline su DuckDB. Usa RAGIONIERE v3 per risposta.
+  Se obiezione → skill argos-outreach-automation [E] PERSONA PROTOCOL.
+  Se silenzio 2026-03-17 → Recovery WA Day 7 RAGIONIERE (testo in HANDOFF).
+  USA telegram human-in-loop per approvazione prima di ogni invio.
 
-STEP 2 — WA sender persistente su iMac:
-  Configurare LaunchAgent o cron su iMac per riavvio automatico send_verified.js
-  se il processo muore (iMac sempre acceso = server persistente).
-  ssh gianlucadistasi@192.168.1.12 — sessione argosautomotive già attiva.
+STEP 2 — Deploy wa-intelligence su iMac:
+  bash wa-intelligence/deploy.sh (via SSH iMac).
+  PM2 + LaunchAgent per wa-daemon.js + telegram-handler.py.
+  Richiede TELEGRAM_TOKEN + TELEGRAM_CHAT_ID in .env iMac.
 
-STEP 3 — Nuovi lead:
-  Pipeline vuota dopo Mario → cerca dealer target AutoScout24 / Carapis.
-  Riferimento: .taskmaster/tasks.yaml ARCH-001 LangGraph orchestrator.
+STEP 3 — Skill v3 come versione attiva:
+  Rinomina .claude/skills/skill-argos-v3 → skill-argos (sostituisce v2).
+  Persona matrix 10 archetipi DISC×Cialdini è superiore.
+
+STEP 4 — Nuovi lead se pipeline vuota:
+  AutoScout24 / Carapis dealer target Sud Italia.
+  Riferimento: .taskmaster/tasks.yaml ARCH-001.
 ```
