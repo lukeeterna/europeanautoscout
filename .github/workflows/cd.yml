@@ -1,0 +1,54 @@
+name: CD — Deploy iMac + Day7 Scheduler
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'wa-sender/**'
+      - 'tools/**'
+      - 'requirements.txt'
+  schedule:
+    # Day7 reminder check — ogni giorno alle 09:00 UTC (10:00 CET)
+    # Lo script Python verifica internamente se è il momento giusto via DuckDB
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy su iMac via SSH (Tailscale)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.IMAC_HOST }}       # Tailscale IP iMac (NON 192.168.1.12)
+          username: ${{ secrets.IMAC_USER }}   # gianlucadistasi
+          key: ${{ secrets.IMAC_SSH_KEY }}     # ED25519 chiave privata deploy
+          port: 22
+          script: |
+            export PATH=/usr/local/bin:$PATH
+            cd ~/Documents/combaretrovamiauto-enterprise
+            git pull origin master
+            cd wa-sender && npm ci --quiet
+            echo "✅ Deploy completato: $(date)"
+
+  day7-scheduler:
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'schedule'
+    needs: []
+
+    steps:
+      - name: Trigger Day7 email reminder su iMac
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.IMAC_HOST }}
+          username: ${{ secrets.IMAC_USER }}
+          key: ${{ secrets.IMAC_SSH_KEY }}
+          port: 22
+          script: |
+            export PATH=/usr/local/bin:$PATH
+            cd ~/Documents/combaretrovamiauto-enterprise
+            python3.11 tools/day7_reminder.py 2>&1 | tail -10
