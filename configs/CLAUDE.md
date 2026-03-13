@@ -311,6 +311,30 @@ marketing-agent  → lead → RAG → email → payment pipeline
 media-gen        → Replicate FLUX + Gemini image/video
 ```
 
+## REGOLA SKILL — IMMUTABILE
+
+```
+PER OGNI TASK SPECIFICO:
+1. Identifica se esiste una Claude Code Skill corrispondente
+2. Se esiste → usala tramite Skill tool
+3. Se NON esiste → CREALA seguendo il framework ufficiale Anthropic
+
+FORMATO UFFICIALE ANTHROPIC (Agent Skills open standard):
+  Path:      .claude/skills/<nome-skill>/SKILL.md
+  Frontmatter obbligatorio:
+    name:         nome-skill (lowercase, hyphens, max 64 chars)
+    description:  quando usarla (Claude usa questo per auto-invoke)
+  Opzionali:
+    allowed-tools / context: fork / agent: Explore|Plan / argument-hint
+  Argomenti: $ARGUMENTS o $0, $1...
+
+SKILL ESISTENTI ARGOS (da migrare a .claude/skills/):
+- cove-verify / scraping / vin-decode / marketing-agent / media-gen
+
+NON PROCEDERE con implementazione manuale se una skill copre il caso d'uso.
+Docs: https://code.claude.com/docs/en/skills.md
+```
+
 ---
 
 ## QUERY CLAUDE-MEM UTILI
