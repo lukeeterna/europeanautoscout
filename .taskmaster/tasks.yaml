@@ -1,0 +1,72 @@
+# TASKMASTER — ARGOS Automotive CoVe 2026
+# Persistent task tracking across Claude Code sessions
+# Last updated: 2026-03-13
+
+metadata:
+  project: combaretrovamiauto-enterprise
+  agent: ARGOS / Luca Ferretti
+  sprint: S47
+
+# ─────────────────────────────────────────
+# ACTIVE TASKS
+# ─────────────────────────────────────────
+active:
+
+  - id: MARIO-EXEC-001
+    title: Mario Orefice — WhatsApp collection execution
+    priority: P0
+    status: PENDING
+    created: "2026-03-13"
+    deadline: "2026-03-14"
+    context:
+      target: "+393336142544"
+      company: Mariauto Srl
+      personality: IMPRENDITORE
+      vehicle: "BMW 330i 2020 | 45.200 km | €27.800"
+      fee: "€800 success-only"
+      template: "docs/dev/mario_collection_message_session38.md"
+      timing: "14:00-17:00 finestra ottimale"
+    notes: "Fattura svantaggiosa €150-200 come leverage. Conversion 65-75%."
+
+  - id: ARCH-001
+    title: LangGraph orchestrator adattato Ollama
+    priority: P1
+    status: BACKLOG
+    created: "2026-03-13"
+    context:
+      gap: "Nessun orchestratore conversazione end-to-end"
+      reference: "sales-agent-enterprise analisi S46"
+      constraint: "Ollama mistral:7b locale, no Docker"
+    notes: "8 nodi: intake → personality → objection → proposal → followup → collection → close → log"
+
+  - id: ARCH-002
+    title: 4-layer context retrieval
+    priority: P2
+    status: BACKLOG
+    created: "2026-03-13"
+    notes: "ChromaDB già presente — da integrare con retrieval strutturato"
+
+# ─────────────────────────────────────────
+# COMPLETED (last 3 sessions)
+# ─────────────────────────────────────────
+completed:
+
+  - id: FIX-046
+    title: claude-mem fix definitivo
+    completed: "2026-03-12"
+    outcome: ".mcp.json svuotato, conflitto risolto"
+
+  - id: ARCH-TASKMASTER
+    title: .taskmaster/ setup
+    completed: "2026-03-13"
+    outcome: "tasks.yaml + AGENT.md creati"
+
+  - id: ARCH-OBJ
+    title: Objection handling OBJ-1/5
+    completed: "2026-03-13"
+    outcome: "src/marketing/objection_handler.py"
+
+  - id: ARCH-FEE
+    title: Fee calculator standalone
+    completed: "2026-03-13"
+    outcome: "tools/fee_calculator.py"
