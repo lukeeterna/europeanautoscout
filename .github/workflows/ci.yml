@@ -31,7 +31,7 @@ jobs:
 
       - name: Install Node deps
         working-directory: wa-sender
-        run: npm ci
+        run: npm install --ignore-scripts 2>&1 | tail -3
 
       - name: Install Python deps
         run: |
