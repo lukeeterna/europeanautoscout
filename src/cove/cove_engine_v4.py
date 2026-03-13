@@ -20,23 +20,27 @@ import os
 import sys
 import time
 from dataclasses import dataclass, field, asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 import duckdb
 import requests
 from dotenv import load_dotenv
 
-# Handle imports for both module and direct execution
-if __name__ == "__main__":
-    # When running as script, adjust path
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    from python.cove.fraud_flags import FraudFlagsChecker, FraudFlagsResult, FraudSeverity
-    from python.verification.market_verifier_enterprise import MarketVerifierEnterprise
-    from python.verification.vincario_free_client import VincarioFreeClient, VincarioPaidEndpointError
-else:
-    from python.cove.fraud_flags import FraudFlagsChecker, FraudFlagsResult, FraudSeverity
-    from python.verification.market_verifier_enterprise import MarketVerifierEnterprise
-    from python.verification.vincario_free_client import VincarioFreeClient, VincarioPaidEndpointError
+# Import path fix — funziona sia da script che da modulo
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _HERE)
+sys.path.insert(0, os.path.join(_HERE, '..'))
+
+from fraud_flags import FraudFlagsChecker, FraudFlagsResult, FraudSeverity
+
+try:
+    from market_verifier_enterprise import MarketVerifierEnterprise
+    from vincario_free_client import VincarioFreeClient, VincarioPaidEndpointError
+except ImportError:
+    # Graceful degradation — market_verifier non disponibile in questo contesto
+    MarketVerifierEnterprise = None
+    VincarioFreeClient = None
+    VincarioPaidEndpointError = Exception
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -66,10 +70,10 @@ def _get_lambda(price: float) -> float:
 UNCERTAINTY_LAMBDA: float = 0.25  # fallback per uso esterno a verify()
 
 # Pesi score components — [REVISED] calibrati su DeepResearch CoVe 2026
-WEIGHT_PRICE: float    = 0.40   # [REVISED] ↑ from 0.35 | Rosen 1974 Hedonic
-WEIGHT_KM: float       = 0.30   # [REVISED] ↑ from 0.25 | AAA Used Car 2023
+WEIGHT_PRICE: float    = 0.35   # [REVISED] ↓ from 0.40 | bilanciato fraud detection
+WEIGHT_KM: float       = 0.25   # [REVISED] ↓ from 0.30 | bilanciato fraud detection
 WEIGHT_AGE: float      = 0.20   # [VERIFIED] invariato
-WEIGHT_HISTORY: float  = 0.10   # [REVISED] ↓ from 0.20 | Gap coverage Vincario EU
+WEIGHT_HISTORY: float  = 0.20   # [REVISED] ↑ from 0.10 — RADDOPPIATO | odometer fraud principale rischio
 
 # VIN Trigger threshold km/anno — [REVISED] 4,500 | KBA 10th percentile | 2026-03-03
 VIN_TRIGGER_KM_ANNO: int = 4_500  # [REVISED] ↑ from 3,000 | KBA stats
@@ -108,7 +112,7 @@ class Listing:
     price: float
     vin: Optional[str]        = None
     source: str               = "autoscout24"
-    scraped_at: str           = field(default_factory=lambda: datetime.utcnow().isoformat())
+    scraped_at: str           = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     market_price_ref: Optional[float] = None
 
 
@@ -142,7 +146,7 @@ class CoVeResult:
     price_delta_pct: Optional[float]
     recommendation: str
     uncertainty_budget: float          # σ totale — quanto siamo incerti
-    analyzed_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    analyzed_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -528,7 +532,7 @@ class CoVeEngine:
                     listing.make, listing.model, listing.year,
                     listing.price, listing.km)
 
-        ref_year = datetime.utcnow().year
+        ref_year = datetime.now(timezone.utc).year
 
         # ── STEP 1: DRAFT ─────────────────────────────────────────────────────
         # Il listing scraped è il draft. Già disponibile.
@@ -772,7 +776,7 @@ class CoVeEngine:
                     result.fraud_flags.get("overall", "UNKNOWN"),
                     result.market_price_ref, result.price_delta_pct,
                     result.recommendation,
-                    datetime.utcnow(),
+                    datetime.now(timezone.utc),
                 ])
         except Exception as e:
             logger.error("DuckDB log error: %s", e)

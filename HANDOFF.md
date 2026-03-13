@@ -1,23 +1,20 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session 48 — 2026-03-13 (definitivo)
+**Aggiornato**: Session 49 — 2026-03-13 (definitivo)
 
 ---
 
-## ⚡ STATO CORRENTE (aggiornato S49 fine)
+## ⚡ STATO CORRENTE (aggiornato S50 fine)
 
 **claude-mem**: ✅ Fix S46 confermato attivo.
-**Mario Orefice**: ✅ WA DAY 1 INVIATO — 2026-03-13 ~12:00 | Account: +393281536308 (Very Mobile) | Message ID: `true_227002057543819@lid_3EB07A584C107FB7661C17` | ACK: 0
+**Mario Orefice**: ✅ WA DAY 1 INVIATO — 2026-03-13 ~12:00 | silenzio → Recovery Day 7 il 2026-03-17 se nessuna risposta
 **WhatsApp stack**: ✅ whatsapp-web.js su iMac | sessione `wa-sender` persistente in `wa-sender/.wwebjs_auth/`
 **CI/CD**: ✅ CI verde su GitHub Actions | CD deploy iMac + Day7 cron attivo
-**WA Intelligence**: ✅ DEPLOYATO S49 | PM2 online: argos-wa-daemon + argos-tg-bot | LaunchAgent scheduler ogni 5min | health ✅ http://192.168.1.12:9191
-**WA Daemon sessione**: ⚠️ RICHIEDE QR RE-AUTH — dataPath fix deployato, sessione condivisa con wa-sender ora OK; basta scansionare QR una volta
-**Telegram token**: ✅ CORRETTO — `8691360619:AAG_R9bKLtAtRuMS5VD-AP7E-CKt_o-xOmA` | @ArgosautomotivebotToken | salvato in memory permanente | iMac .env da aggiornare quando SSH torna online
-**Skill argos**: ✅ v3 ATTIVA in `.claude/skills/skill-argos/` | v2 backup in `skill-argos-v2-backup/`
-**OUTREACH REVIEW**: ⚠️ Msg Day1 Mario troppo diretto per RAGIONIERE — Recovery Day7 corretto pronto
-**Secrets GitHub**: ✅ `IMAC_HOST=100.79.153.61` | `IMAC_USER` | `IMAC_SSH_KEY` (ED25519 gh-deploy)
-**SSH deploy key**: ✅ `~/.ssh/gh_deploy_argos` — autorizzata su iMac
-**Skills**: ✅ `skill-argos` v3 (attiva) + `skill-argos-debug` + `gh-actions` | v2 backup in `skill-argos-v2-backup/`
+**WA Intelligence**: ✅ v2.1 ONLINE S50 | PM2 online: argos-wa-daemon + argos-tg-bot | health ✅ http://192.168.1.12:9191
+**WA Daemon sessione**: ⚠️ RICHIEDE QR RE-AUTH — basta scansionare QR una volta con Android
+**Telegram token**: ✅ AGGIORNATO S50 — `8691360619:AAG_R9bKLtAtRuMS5VD-AP7E-CKt_o-xOmA` in `.env` iMac
+**Codebase fixes S50**: ✅ T-01..T-06 completati — DBPool, OBJ canonici, PersonaEngine, weights, datetime, zombie files
+**Skills**: ✅ `skill-argos` v3 + `skill-argos-debug` + `gh-actions` + `skill-deep-research` + `skill-cove`
 **gh CLI**: ✅ `~/bin/gh` v2.65.0 | `export PATH=$HOME/bin:$PATH`
 **PM2 PATH iMac**: `export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:$PATH`
 
@@ -107,6 +104,20 @@ tools/fee_calculator.py                    ← Fee calc (nuovo S47)
 
 ---
 
+## ✅ COMPLETATO SESSION 50 — CRISIS RECOVERY
+
+| Task | Stato | Note |
+|---|---|---|
+| STEP 0 — Telegram token iMac | ✅ | `8691360619:AAG_R9...` aggiornato in .env + `pm2 restart argos-tg-bot` |
+| T-01 — Zombie files eliminati | ✅ | `cove_quantum_integration.py` + `cove_neural_crisis_prevention.py` → DELETE |
+| T-02 — cove_engine_v4.py fix | ✅ | Import path `_HERE` + `datetime.now(timezone.utc)` + Weights 0.35/0.25/0.20/0.20 |
+| T-03 — wa-daemon.js rewrite | ✅ | DBPool (duckdb npm) + prepared statements `?` + MessageQueue anti-ban | v2.1 online |
+| T-04 — Schema personalità unificato | ✅ | `objection_handler.py` → OBJ codes canonici + 5 archetipi | `PersonaEngine` in `dealer_personality_engine.py` |
+| T-05 — Keyword false positive fix | ✅ | `vediamo` → rimosso da POSITIVE | `PersonaEngine`+`ObjectionLibrary` aggiunti a `response-analyzer.py` |
+| T-06 — Deploy + health check | ✅ | v2.1 online — `"status":"OK"` su :9191 | Schema DB verificato da log |
+| WA Daemon QR auth | ⚠️ | HUMAN ACTION: scansionare QR una volta per ripristinare sessione WA |
+| Mario Day 7 Recovery | ⏳ | 2026-03-17 — se silenzio → Recovery RAGIONIERE v3 (testo in §MARIO OREFICE) |
+
 ## ✅ COMPLETATO SESSION 49
 
 | Task | Stato | Note |
@@ -138,36 +149,104 @@ Vedi analisi completa sotto. Issues prioritari da fixare in S50:
 
 ---
 
-## 🚀 PROSSIMA SESSIONE (S50)
+## ✅ COMPLETATO SESSION 49 — DEEP RESEARCH + CRITICAL REVIEW
+
+| Task | Stato | Note |
+|---|---|---|
+| Skill argos v3 promossa ad attiva | ✅ | `skill-argos-v3` → `skill-argos/` | v2 backup in `skill-argos-v2-backup/` |
+| WA Intelligence deploy | ✅ | PM2 online, LaunchAgent scheduler ogni 5min |
+| Telegram token fix (MacBook) | ✅ | `8691360619:AAG_R9bKLtAtRuMS5VD-AP7E-CKt_o-xOmA` salvato in memory permanente |
+| ecosystem.config.js fix | ✅ | Ora legge .env a runtime → ARGOS_TELEGRAM_TOKEN disponibile a PM2 |
+| deploy.sh bug fix | ✅ | REMOTE_BASE hardcoded iMac + IMAC_PATH per pm2/npm |
+| wa-daemon.js dataPath fix | ✅ | `LocalAuth` ora punta a `wa-sender/.wwebjs_auth/` — sessione condivisa |
+| Skill skill-deep-research | ✅ | `.claude/skills/skill-deep-research/SKILL.md` — dealer profiling, market, competitor, lead gen |
+| Skill skill-cove | ✅ | `.claude/skills/skill-cove/SKILL.md` — CoVe scoring, DB queries, field names enforced |
+| configs/CLAUDE.md skill registry | ✅ | Tabella skill attive + task history S38-S49 + pending |
+| Deep research critico S49 | ✅ | 9 critical issues trovati — tabella in §CRITICAL ISSUES |
+| Valutazione zip S49 | ✅ | 3 file valutati: ARGOS_HANDOFF_S50 (9/10) + ARGOS_SKILL (10/10) + ARGOS_TASKS_S50 (8/10) |
+| Mario Day 1 status | ⏳ | Inviato 2026-03-13, silenzio → Recovery Day 7 il 2026-03-17 |
+| WA Daemon QR auth | ⚠️ | HUMAN ACTION: ri-autenticare daemon — dataPath fix deployato, basta 1 QR scan |
+| iMac .env token update | ⚠️ | SSH offline in S49 — eseguire STEP 0 appena SSH torna online |
+
+---
+
+## 📋 REFERENCE — FILE ENTERPRISE S50
+
+I seguenti file (forniti dall'utente) sono il **ground truth** per i fix S50.
+Percorso locale: `/tmp/argos_review/`
+
+| File | Path | Contenuto | Voto |
+|---|---|---|---|
+| ARGOS_HANDOFF_S50.md | `/tmp/argos_review/ARGOS_HANDOFF_S50.md` | Schema canonico: 5 archetipi, OBJ-1..5, DB unificato, DBPool rewrite, PersonaEngine, ObjectionLibrary, keyword fix, test suite | 9/10 |
+| ARGOS_SKILL.md | `/tmp/argos_review/ARGOS_SKILL.md` | Claude Code skill: pattern DuckDB parametrizzati, pattern proibiti, checklist 12-punti, business rules immutabili | 10/10 |
+| ARGOS_TASKS_S50.md | `/tmp/argos_review/ARGOS_TASKS_S50.md` | 6 task ordinati per dipendenza, effort ~7h, verifica post-task per ciascuno | 8/10 |
+
+**IMPORTANTE**: Prima di ogni modifica al codebase in S50, leggere questi 3 file.
+`/tmp/argos_review/` NON è persistente tra reboot — se assente, chiedere all'utente di ri-fornire il zip.
+
+---
+
+## 🚀 PROSSIMA SESSIONE (S50) — PROMPT COMPLETO
 
 ```
-Sessione 50 — ARGOS. Leggi HANDOFF.md.
+Sessione 50 — ARGOS. Leggi HANDOFF.md + i 3 file enterprise in /tmp/argos_review/.
 
-STEP 0 — Fix token Telegram su iMac (quando SSH torna online):
-  ssh imac "sed -i '' 's|ARGOS_TELEGRAM_TOKEN=.*|ARGOS_TELEGRAM_TOKEN=8691360619:AAG_R9bKLtAtRuMS5VD-AP7E-CKt_o-xOmA|' ~/Documents/app-antigravity-auto/wa-intelligence/.env && pm2 restart argos-tg-bot --update-env"
+FILE ENTERPRISE S50 (ground truth per tutti i fix):
+  /tmp/argos_review/ARGOS_HANDOFF_S50.md  ← schema canonico + patterns
+  /tmp/argos_review/ARGOS_SKILL.md        ← skill Claude Code con checklist
+  /tmp/argos_review/ARGOS_TASKS_S50.md   ← 6 task ordinati con verifica
 
-STEP 1 — WA Daemon re-auth (PRIORITÀ):
-  Il daemon argos-wa-daemon gira su PM2 ma ha sessione separata da wa-sender.
-  Sessione daemon: ~/Documents/app-antigravity-auto/wa-intelligence/.wwebjs_auth/
-  Sessione wa-sender: ~/Documents/app-antigravity-auto/wa-sender/.wwebjs_auth/
+Se /tmp/argos_review/ è assente → chiedi all'utente il zip "files (4).zip" prima di procedere.
 
-  OPZIONE A (preferita): Avvia QR server da wa-intelligence dir, scansiona.
-    ssh imac "export PATH=... && cd ~/Documents/app-antigravity-auto/wa-intelligence && node ../wa-sender/send_qr_server.js"
+---
+
+STEP 0 — Fix token Telegram su iMac (prima di tutto, se SSH online):
+  ssh gianlucadistasi@192.168.1.12 "
+    export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:$PATH
+    sed -i '' 's|ARGOS_TELEGRAM_TOKEN=.*|ARGOS_TELEGRAM_TOKEN=8691360619:AAG_R9bKLtAtRuMS5VD-AP7E-CKt_o-xOmA|' \
+      ~/Documents/app-antigravity-auto/wa-intelligence/.env
+    pm2 restart argos-tg-bot --update-env
+    echo '✅ Token aggiornato'
+  "
+
+STEP 1 — WA Daemon re-auth (se daemon offline/non risponde su :9191):
+  Il daemon ha sessione separata da wa-sender — scansionare QR UNA volta.
+  OPZIONE A (preferita): QR via browser
+    ssh imac "export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:$PATH &&
+      cd ~/Documents/app-antigravity-auto/wa-sender &&
+      nohup node send_qr_server.js > /tmp/qr.log 2>&1 &"
     open http://192.168.1.12:8765 → scansiona con Android
+  OPZIONE B (rapida): Copia sessione wa-sender → wa-intelligence
+    ssh imac "cp -r ~/Documents/app-antigravity-auto/wa-sender/.wwebjs_auth/ \
+      ~/Documents/app-antigravity-auto/wa-intelligence/.wwebjs_auth/ &&
+      export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:$PATH &&
+      pm2 restart argos-wa-daemon"
 
-  OPZIONE B: Copia sessione da wa-sender a wa-intelligence:
-    ssh imac "cp -r ~/Documents/app-antigravity-auto/wa-sender/.wwebjs_auth/ ~/Documents/app-antigravity-auto/wa-intelligence/.wwebjs_auth/"
-    pm2 restart argos-wa-daemon
+STEP 2 — Fix codebase (esegui TASKS_S50.md in ordine):
+  T-01 (5min):  Elimina cove_quantum_integration.py + cove_neural_crisis_prevention.py
+                Verifica: grep -r "quantum_integration" src/ → output vuoto
+  T-02 (10min): Fix cove_engine_v4.py — import path + datetime.utcnow() + WEIGHT_HISTORY 0.10→0.20
+                Segui ARGOS_TASKS_S50.md §TASK-02 esattamente
+  T-03 (3-5h):  Rewrite wa-daemon.js DB layer — sostituisci dbExec/dbQuery con DBPool (§5 ARGOS_SKILL.md)
+                Pattern: duckdb npm, prepared statements "?", niente python subprocess
+  T-04 (2h):    Unifica schema personalità — dealer_personality_engine.py + objection_handler.py
+                importano PersonaEngine + ObjectionLibrary da response_analyzer.py
+  T-05 (1h):    Fix keyword false positive in response-analyzer.py
+                "vediamo" → UNKNOWN (non POSITIVE), split POSITIVE_STRONG/POSITIVE_WEAK
+  T-06 (30min): Deploy finale + health check
 
-STEP 2 — Mario Day 7 Recovery (2026-03-17):
-  Se silenzio da Mario al 2026-03-17 → invia Recovery Day 7 RAGIONIERE (testo in HANDOFF sopra).
-  Approvazione Telegram PRIMA di ogni invio.
-  Canale: WhatsApp (NON email — aggiornato da HANDOFF S48).
+STEP 3 — Mario Day 7 Recovery (se data ≥ 2026-03-17 e silenzio):
+  Invia Recovery RAGIONIERE v3 (testo in §MARIO OREFICE sopra).
+  OBBLIGATORIO: approvazione Telegram PRIMA di inviare.
+  Canale: WhatsApp via skill-argos [A] WA PROTOCOL.
 
-STEP 3 — Mario risposta (se ha risposto):
-  Se positivo → registra €800 pipeline su DuckDB dealer_network.duckdb.
-  Se obiezione → skill argos [E] PERSONA PROTOCOL.
+STEP 4 — Mario risposta (se ha risposto):
+  POSITIVO → registra €800 pipeline in dealer_network.duckdb
+             UPDATE conversations SET current_step='NEGOTIATION', close_reason='INTERESTED'
+  OBIEZIONE → skill-argos [E] PERSONA PROTOCOL (OBJ-1..5 RAGIONIERE templates)
+  NEGATIVO  → LOG CLOSED_NO, nessun recontact
 
-STEP 4 — Nuovi lead se pipeline vuota:
-  AutoScout24 / Carapis dealer target Sud Italia.
+STEP 5 — Nuovi lead se pipeline vuota:
+  AutoScout24 / Carapis — dealer target Sud Italia (Campania, Puglia, Sicilia)
+  Profilo: family-business, 30-80 auto, assenza partner EU → skill-deep-research [E]
 ```
