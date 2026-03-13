@@ -7,9 +7,11 @@
 ## ⚡ STATO CORRENTE
 
 **claude-mem**: ✅ Fix S46 confermato attivo.
-**Mario Orefice**: ✅ WA DAY 1 INVIATO — 2026-03-13 ~12:00 | Account: +393281536308 (Very Mobile) | Message ID: `true_227002057543819@lid_3EB07A584C107FB7661C17` | ACK: 0 (consegnato non appena apre WA)
+**Mario Orefice**: ✅ WA DAY 1 INVIATO — 2026-03-13 ~12:00 | Account: +393281536308 (Very Mobile) | Message ID: `true_227002057543819@lid_3EB07A584C107FB7661C17` | ACK: 0
 **WhatsApp stack**: ✅ whatsapp-web.js su iMac | sessione `argosautomotive` persistente in `wa-sender/.wwebjs_auth/`
-**Architettura S48**: ✅ skill `argos-outreach-automation` v2 + `argos-wa-debug` deployate in `.claude/skills/`
+**CI/CD**: ✅ `.github/workflows/ci.yml` + `cd.yml` | 3 test E2E passati | **PENDING: secrets IMAC_HOST/USER/KEY + SSH key deploy**
+**Skills**: ✅ `argos-outreach-automation` v2 + `argos-wa-debug` + `gh-actions`
+**gh CLI**: ✅ `~/bin/gh` v2.65.0 autenticato (lukeeterna)
 
 ---
 
