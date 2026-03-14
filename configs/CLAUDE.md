@@ -318,19 +318,65 @@ Token: GH_TOKEN in env oppure ~/bin/gh con GH_TOKEN esportato.
 
 ---
 
+## 🤖 AGENT REGISTRY — Team AI ARGOS (Claude Code Subagents)
+
+**Standard**: Anthropic Sub-Agents Official Format | **Path**: `.claude/agents/<nome>.md`
+**Principio**: ogni agente fa UNE cosa, usa tool minimi, escalation human per azioni irreversibili
+
+| Agent | Model | Tools | Trigger chiave | Stato |
+|-------|-------|-------|----------------|-------|
+| `agent-sales` | sonnet | Read,Write,Bash | "contatta dealer", "invia WA", "follow-up", "recovery" | ✅ S51 |
+| `agent-research` | sonnet | Read,Grep,WebSearch,WebFetch | "trova lead", "intel dealer", "battlecard", "scouting" | ✅ S51 |
+| `agent-cove` | haiku | Read,Bash | "score veicolo", "pipeline CoVe", "query DuckDB", "confidence" | ✅ S51 |
+| `agent-finance` | haiku | Read (ONLY) | "calcola ROI", "fee dealer", "P&L", "TD17/18/19", "margine" | ✅ S51 |
+| `agent-ops` | haiku | Bash,Read | "PM2 status", "WA daemon", "health iMac", "deploy", "SSH" | ✅ S51 |
+| `agent-recovery` | **opus** | Read,Write,Bash | "dealer silente", "recovery day 7", "lead freddo", "stallo" | ✅ S51 |
+| `agent-marketing` | sonnet | Read,Write | "contenuto brand", "landing page", "email sequence", "social" | ✅ S51 |
+
+**REGOLA DELEGA**: L'orchestratore (main conversation) delega sempre all'agente specifico.
+MAI fare lavoro di un agente specializzato nella conversazione principale.
+
+**HUMAN-IN-THE-LOOP** (obbligatorio per):
+- Qualsiasi invio WA/email a dealer nuovo → mostra bozza, attendi OK
+- Emissione fatture
+- Deploy production
+- QR re-auth WhatsApp
+
+---
+
 ## 🏆 SKILL REGISTRY — ENTERPRISE LEVEL (Anthropic Official Format)
 
 **Standard**: Anthropic Agent Skills Open Standard | **Path**: `.claude/skills/<nome>/SKILL.md`
+**Roadmap completa**: `docs/dev/ROADMAP.md`
+
+### ARCHITETTURA LAYER (non modificare ordine di precedenza)
+
+```
+Layer 3 — ARGOS Specialist (custom, prevale sempre su Layer 2)
+Layer 2 — Official Anthropic Plugins (foundation generica adattata)
+Layer 1 — Infrastruttura (DuckDB, WA daemon, Telegram, PM2)
+```
 
 ### SKILL ATTIVE (✅ deployate e testate)
 
-| Skill ID | Path | Trigger chiave | Ver | Stato |
-|---|---|---|---|---|
-| `argos-outreach-automation` | `.claude/skills/skill-argos/` | "invia whatsapp", "sequenza outreach", "contatta dealer", "QR whatsapp" | v3 | ✅ |
-| `argos-wa-debug` | `.claude/skills/skill-argos-debug/` | "messaggio non arrivato", "debug whatsapp", "sessione corrotta" | v1 | ✅ |
-| `gh-actions` | `.claude/skills/gh-actions/` | "github actions", "workflow ci/cd", "deploy imac", "secrets" | v1 | ✅ |
-| `deep-research` | `.claude/skills/skill-deep-research/` | "ricerca dealer", "deep research", "analisi mercato", "trova lead", "competitor" | v1 | ✅ S49 |
-| `cove-engine` | `.claude/skills/skill-cove/` | "cove score", "confidence dealer", "recommendation", "cove_tracker", "analyzed_at" | v1 | ✅ S49 |
+| Skill ID | Layer | Path | Trigger chiave | Ver | Stato |
+|---|---|---|---|---|---|
+| `argos-outreach-automation` | 3 | `.claude/skills/skill-argos/` | "invia whatsapp", "sequenza outreach", "contatta dealer", "QR whatsapp" | v3 | ✅ |
+| `argos-wa-debug` | 3 | `.claude/skills/skill-argos-debug/` | "messaggio non arrivato", "debug whatsapp", "sessione corrotta" | v1 | ✅ |
+| `gh-actions` | 3 | `.claude/skills/gh-actions/` | "github actions", "workflow ci/cd", "deploy imac", "secrets" | v1 | ✅ |
+| `deep-research` | 3 | `.claude/skills/skill-deep-research/` | "ricerca dealer", "deep research", "analisi mercato", "trova lead", "competitor" | v1 | ✅ S49 |
+| `cove-engine` | 3 | `.claude/skills/skill-cove/` | "cove score", "confidence dealer", "recommendation", "cove_tracker", "analyzed_at" | v1 | ✅ S49 |
+| `skill-sales-official` | 2 | `.claude/skills/skill-sales-official/` | "intel dealer", "account research", "battlecard", "competitor import", "pipeline review", "forecast revenue", "prep visita" | v1 | ✅ S51 |
+
+### SKILL IN BACKLOG (da creare per fasi successive)
+
+| Skill | Layer | Fase | Priorità |
+|-------|-------|------|----------|
+| `skill-data-official` | 2 | F1-02 | 🟡 MEDIA — upgrade CoVe reporting |
+| `skill-langgraph` | 3 | ARCH-001 | 🟡 dopo 3+ deal chiusi |
+| `skill-rag` | 3 | ARCH-002 | 🟡 dopo 3+ deal chiusi |
+| `skill-scraping` | 3 | ARCH-003 | 🟡 dopo pipeline validata |
+| `skill-vin` | 3 | ARCH-004 | 🟡 dopo pipeline validata |
 
 ### TASK COMPLETATI — STORICO SESSIONI
 
@@ -352,21 +398,11 @@ Token: GH_TOKEN in env oppure ~/bin/gh con GH_TOKEN esportato.
 
 | Task | Skill | Priorità | Scadenza |
 |---|---|---|---|
-| WA Daemon QR re-auth | argos-outreach [A1] | 🔴 | S50 immediato |
-| Token Telegram corretto da @BotFather | (config .env) | 🔴 | S50 immediato |
+| WA Daemon QR re-auth | argos-outreach [A1] | 🔴 | appena SSH torna |
 | Mario Recovery Day7 WA | argos-outreach + deep-research | 🔴 | 2026-03-17 |
-| LangGraph orchestrator 8 nodi | (creare: skill-langgraph) | 🟡 | BACKLOG |
-| 4-layer context retrieval | (creare: skill-rag) | 🟡 | BACKLOG |
-| Nuovi lead Sud Italia | deep-research [E] | 🟡 | se pipeline vuota |
-
-### SKILL DA CREARE (backlog)
-
-| Nome | Scope | Priorità |
-|---|---|---|
-| `skill-langgraph` | LangGraph 8 nodi + Ollama orchestrator | 🔴 ALTA |
-| `skill-rag` | 4-layer context retrieval + ChromaDB | 🟡 MEDIA |
-| `skill-scraping` | AutoScout24 EU + Carapis + proxy + anti-bot | 🟡 MEDIA |
-| `skill-vin` | VIN decode + Vincario + fraud check EU | 🟡 MEDIA |
+| Nuovi lead batch (5 dealer) | skill-sales-official [A] + deep-research | 🔴 | S51 oggi |
+| skill-data-official install | (Fase F1-02 ROADMAP) | 🟡 | S52 |
+| Pipeline review dashboard | skill-data-official [/build-dashboard] | 🟡 | S53 |
 
 ---
 
