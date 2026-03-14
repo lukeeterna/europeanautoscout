@@ -97,11 +97,11 @@ HUMAN-IN-THE-LOOP
 |------|--------|----------|-------|
 | QR re-auth WA daemon | agent-ops | 🔴 | ⚠️ HUMAN ACTION |
 | Mario Recovery Day 7 | agent-recovery | 🔴 | ⏳ 2026-03-17 |
-| gstack install (CEO/Eng/QA) | — | 🔴 | ⏳ S52 |
-| skill-marketing-official | — | 🟡 | ⏳ S52 |
-| Batch 5 nuovi lead | agent-research | 🔴 | ⏳ S52 |
-| Schede dealer qualificate | agent-research | 🔴 | ⏳ S52 |
-| Sequenza outreach 5 dealer | agent-sales | 🟡 | ⏳ S53 |
+| gstack install (CEO/Eng/QA) | — | 🔴 | ✅ S52 `.claude/skills/gstack/` |
+| skill-marketing-official | — | 🟡 | ✅ S52 `.claude/skills/skill-marketing-official/` |
+| Batch 5 nuovi lead | agent-research | 🔴 | ✅ S52 `docs/dev/leads_s52_batch1.md` |
+| Schede dealer qualificate | agent-research | 🔴 | ✅ S52 (5 schede con archetipo + OBJ + ROI pitch) |
+| Sequenza outreach 5 dealer | agent-sales | 🟡 | ⏳ S53 (max 2 dealer/giorno anti-ban) |
 
 **KPI Fase 2**: 5 dealer in sequenza attiva | Mario risposta o Recovery eseguito
 
@@ -175,7 +175,7 @@ HUMAN-IN-THE-LOOP
 | S49 | 2026-03-13 | WA Intelligence deploy, skill v3, deep-research | F0 |
 | S50 | 2026-03-13 | Crisis recovery: T-01..T-06, wa-daemon v2.1 | F0 ✅ |
 | S51 | 2026-03-14 | AI company arch: 7 agents + 2 skills + roadmap | F1 ✅ |
-| S52 | ⏳ | gstack + skill-marketing + 5 lead batch | F2 |
+| S52 | 2026-03-14 | PM2 restart, gstack + skill-marketing, lead batch 1 (5 dealer) | F2 🔄 |
 
 ---
 
