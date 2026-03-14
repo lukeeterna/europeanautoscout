@@ -119,40 +119,64 @@ Global MCP:    ~/.claude/claude_desktop_config.json
 
 ---
 
+## 🎭 TEST ARCHETIPI — DA RIPRENDERE IN S53
+
+**Stato test role play S52:**
+- Round 1 ✅ — WA Day 1 GENERICO inviato (stesso per tutti, nessun archetipo pre-assunto)
+- Round 2 ✅ — 3 risposte dealer raw analizzate → archetipi classificati correttamente:
+  - [A] Matteo Mazzilli → PERFORMANTE (confidence 0.82)
+  - [B] Mikael Faro → TECNICO (confidence 0.91)
+  - [C] Giuseppe Orefice → RAGIONIERE (confidence 0.87)
+- Round 3 ✅ — Risposte calibrate per archetipo
+- Round 3 ❌ — Errore su IVA Orefice: detto "TD18 il commercialista capisce" → sbagliato
+- **MEMORIZZATO**: regola IVA + regola fee fattura con dati normativi reali
+
+**S53 — RIPRENDERE IL TEST DALL'INIZIO:**
+- Messaggio Day 1 GENERICO → stesso testo per tutti
+- Dealer risponde raw (nessuna etichetta archetipo)
+- Agente analizza → classifica archetipo → risponde calibrato
+- Includere obbligatoriamente scenario "mi fate fattura?" per testare il nuovo script
+- Debrief finale con score
+
+---
+
 ## 🚀 PROSSIMA SESSIONE (S53) — PROMPT COMPLETO
 
 ```
 Sessione 53 — ARGOS. Leggi HANDOFF.md + ROADMAP.md (docs/dev/).
-Sei CTO AI di ARGOS Automotive. Lead pipeline batch 1 disponibile.
+Sei CTO AI di ARGOS Automotive.
 
 STATO S52:
 - PM2 iMac riavviato ✅ (daemon :9191 OK)
 - WA QR re-auth: ⚠️ HUMAN ACTION pendente — controlla Telegram @ArgosautomotivebotToken
 - Lead batch 1: 5 dealer qualificati in docs/dev/leads_s52_batch1.md ✅
-- Nuove skills: gstack + skill-marketing-official ✅
+- gstack + skill-marketing-official ✅
+- agent-sales aggiornato: protocollo fee (TD17, bonifico, no fattura) + IVA veicolo ✅
 - Mario Day 7: ⏳ 2026-03-17 se silenzio
 
-PRIORITY 1 — WA QR re-auth (se non fatto):
-  Controlla Telegram per QR → scansiona con Android (Very Mobile +393281536308)
-  Poi verifica: curl http://192.168.1.12:9191/health
+PRIORITY 0 — RICORDA: scansiona QR Telegram + WhatsApp (fallo subito se non fatto)
+
+PRIORITY 1 — TEST ARCHETIPI (ripartire dall'inizio, sessione dedicata):
+  Obiettivo: validare agent-sales prima di contattare dealer reali
+  REGOLE TEST:
+  - WA Day 1 GENERICO → stesso per tutti (nessun archetipo pre-assunto)
+  - Dealer risponde raw → agente analizza risposta → classifica archetipo
+  - Risposte calibrate per archetipo rilevato
+  - Includere scenario "mi fate fattura?" per testare script fee TD17
+  - Debrief finale con score pass/fail
+  STATO PRECEDENTE (S52): Round 1-3 completati ma errore su IVA Orefice → ora corretto
+  → Ricominciare dall'inizio con 3 nuovi dealer (o stessi personaggi, stesso script)
 
 PRIORITY 2 — Mario Recovery Day 7 (se data ≥ 2026-03-17):
   agent-recovery → Recovery RAGIONIERE v3 → approvazione umana → agent-sales → invio
-  Testo approvato in HANDOFF.md sezione Mario
 
-PRIORITY 3 — Outreach Batch 1 (max 2 dealer/giorno):
-  agent-sales → WA Day 1 per Mazzilli Auto (335 766 2842) + Prime Cars Italy (371 417 5649)
-  Vedi docs/dev/leads_s52_batch1.md per pitch personalizzato per archetipo
-  HUMAN-IN-THE-LOOP: mostra bozza WA → attendi OK → invia
+PRIORITY 3 — Outreach Batch 1 (SOLO dopo test archetipi superato):
+  agent-sales → WA Day 1 Mazzilli (335 766 2842) + Prime Cars (371 417 5649)
+  HUMAN-IN-THE-LOOP obbligatorio prima di inviare
 
 PRIORITY 4 — skill-finance:
-  Crea .claude/skills/skill-finance/SKILL.md
-  Comandi: /calcola-fee, /td17-template, /pl-dealer, /margine-veicolo
-  Basato su business rules ARGOS (TD17/18/19, reverse charge)
-
-PRIORITY 5 — Pipeline review dashboard:
-  skill-data-official → /build-dashboard → HTML Chart.js
-  Dati: cove_tracker.duckdb + leads_s52_batch1.md
+  .claude/skills/skill-finance/SKILL.md
+  Comandi: /calcola-fee, /bonifico-template, /margine-veicolo, /pl-dealer
 
 ROADMAP corrente: docs/dev/ROADMAP.md — FASE 2 in corso
 Fine sessione: aggiorna HANDOFF.md + ROADMAP.md + MEMORY.md + commit
