@@ -1,24 +1,25 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session 51 — 2026-03-14 (definitivo)
+**Aggiornato**: Session 52 — 2026-03-14 (definitivo)
 
 ---
 
-## ⚡ STATO CORRENTE (S51)
+## ⚡ STATO CORRENTE (S52)
 
 | Sistema | Stato | Note |
 |---------|-------|------|
 | CoVe Engine v4 | ✅ | Bayesian FACTORED, weights 0.35/0.25/0.20/0.20 |
 | WA Daemon v2.1 | ✅ online :9191 | DBPool + prepared statements |
-| WA Sessione daemon | ⚠️ QR richiesto | HUMAN ACTION: scansionare QR con Android |
+| WA Sessione daemon | ⚠️ QR richiesto | HUMAN ACTION: controlla Telegram @ArgosautomotivebotToken → scansiona QR con Android (+393281536308 Very Mobile) |
 | Telegram bot | ✅ | Token aggiornato, PM2 online |
-| PM2 iMac | ✅ | argos-wa-daemon + argos-tg-bot |
+| PM2 iMac | ✅ riavviato S52 | argos-wa-daemon + argos-tg-bot online |
 | Agent Team | ✅ S51 | 7 subagents in `.claude/agents/` |
-| Skill Layer 2 | ✅ S51 | skill-sales-official + skill-data-official |
+| Skill Layer 2 | ✅ S52 | skill-sales-official + skill-data-official + **gstack** + **skill-marketing-official** |
 | Skill Layer 3 | ✅ | skill-argos v3, skill-cove, skill-deep-research, gh-actions |
 | CI/CD | ✅ | GitHub Actions verde |
 | Mario Day 1 | ✅ INVIATO | 2026-03-13 ~12:00 |
 | Mario Recovery Day 7 | ⏳ | 2026-03-17 se silenzio — usa agent-recovery |
+| Lead Batch 1 | ✅ S52 | 5 dealer qualificati → `docs/dev/leads_s52_batch1.md` |
 
 ---
 
@@ -68,18 +69,33 @@ sono qui. — Luca
 
 ---
 
-## ✅ COMPLETATO SESSION 51 — AI COMPANY ARCHITECTURE
+## 📋 LEAD PIPELINE BATCH 1 — S52
+
+**File**: `docs/dev/leads_s52_batch1.md` (dati reali da WebSearch)
+
+| # | Dealer | Città | Archetipo | OBJ | WA | Priority |
+|---|--------|-------|-----------|-----|----|----------|
+| 1 | Mazzilli Auto | Gravina (BA) | PERFORMANTE | OBJ-3/2 | 335 766 2842 | ★★★★★ |
+| 2 | Prime Cars Italy | Mascalucia (CT) | TECNICO | OBJ-1/4 | 371 417 5649 | ★★★★★ |
+| 3 | Campania Sport Car | Melito (NA) | RAGIONIERE | OBJ-2/4 | 328 7078112 | ★★★★☆ |
+| 4 | Autosannino | Ponticelli (NA) | BARONE | OBJ-5/1 | 370 7125777 | ★★★☆☆ |
+| 5 | Magicar | Palermo (PA) | NARCISO | OBJ-4/2 | 333 8358858 | ★★★☆☆ |
+
+**Prossimo step**: agent-sales prepara WA Day 1 per Mazzilli + Prime Cars Italy
+
+---
+
+## ✅ COMPLETATO SESSION 52 — LEAD PIPELINE + SKILLS
 
 | Task | File/Path | Note |
 |------|-----------|------|
-| Deep research GSD + framework | agent deep-research | GSD = dev only, CC Subagents = prioritario |
-| Deep research stato arte AI company | agent deep-research | gstack, Paperclip, CLEO, VoltAgent analizzati |
-| Agent team (7 subagents) | `.claude/agents/` | sales/research/cove/finance/ops/recovery/marketing |
-| skill-sales-official | `.claude/skills/skill-sales-official/` | account-research, competitive-intel, pipeline |
-| skill-data-official | `.claude/skills/skill-data-official/` | /write-query DuckDB, /analyze, /validate |
-| ROADMAP rolling | `docs/dev/ROADMAP.md` | Fasi F0→ARCH, framework scelti, anti-hallucination |
-| Agent registry CLAUDE.md | `configs/CLAUDE.md` | 7 agenti + skill registry aggiornato |
-| Memory aggiornata | `memory/MEMORY.md` | Agent team + roadmap entry |
+| PM2 restart iMac | SSH → pm2 start ecosystem.config.js | argos-wa-daemon + argos-tg-bot online |
+| QR server avviato | :8765 attivo | QR inviato su Telegram — HUMAN ACTION scan |
+| gstack skill | `.claude/skills/gstack/` | CEO/Eng/QA cognitive roles |
+| skill-marketing-official | `.claude/skills/skill-marketing-official/` | /draft-content, /email-sequence, /brand-review, /campaign-plan |
+| configs/CLAUDE.md aggiornato | — | Skill registry + task log aggiornati |
+| Lead Batch 1 | `docs/dev/leads_s52_batch1.md` | 5 dealer reali, Campania/Puglia/Sicilia |
+| ROADMAP.md aggiornato | `docs/dev/ROADMAP.md` | S52 completato, F2 avanzata |
 
 ---
 
@@ -93,6 +109,9 @@ Agents:        .claude/agents/                    ← 7 subagents S51
 Skills L3:     .claude/skills/skill-argos/        ← MAI modificare struttura
 Skills L2:     .claude/skills/skill-sales-official/
                .claude/skills/skill-data-official/
+               .claude/skills/gstack/              ← NEW S52
+               .claude/skills/skill-marketing-official/ ← NEW S52
+Lead Batch 1:  docs/dev/leads_s52_batch1.md       ← NEW S52
 Roadmap:       docs/dev/ROADMAP.md
 MCP config:    .mcp.json                          ← TENERLO VUOTO
 Global MCP:    ~/.claude/claude_desktop_config.json
@@ -100,52 +119,53 @@ Global MCP:    ~/.claude/claude_desktop_config.json
 
 ---
 
-## 🚀 PROSSIMA SESSIONE (S52) — PROMPT COMPLETO
+## 🚀 PROSSIMA SESSIONE (S53) — PROMPT COMPLETO
 
 ```
-Sessione 52 — ARGOS. Leggi HANDOFF.md + ROADMAP.md (docs/dev/).
-Sei CTO AI di ARGOS Automotive. Agent team deployato in S51 (.claude/agents/).
+Sessione 53 — ARGOS. Leggi HANDOFF.md + ROADMAP.md (docs/dev/).
+Sei CTO AI di ARGOS Automotive. Lead pipeline batch 1 disponibile.
 
-STATO S51:
-- 7 subagents operativi + skill-sales-official + skill-data-official ✅
-- Mario Day 1 inviato 2026-03-13, Day 7 Recovery = 2026-03-17 se silenzio
-- WA daemon online :9191 ma ⚠️ QR re-auth pendente (HUMAN ACTION)
+STATO S52:
+- PM2 iMac riavviato ✅ (daemon :9191 OK)
+- WA QR re-auth: ⚠️ HUMAN ACTION pendente — controlla Telegram @ArgosautomotivebotToken
+- Lead batch 1: 5 dealer qualificati in docs/dev/leads_s52_batch1.md ✅
+- Nuove skills: gstack + skill-marketing-official ✅
+- Mario Day 7: ⏳ 2026-03-17 se silenzio
 
-PRIORITY 1 — QR re-auth (se SSH disponibile):
-  agent-ops → health check → QR re-auth via browser http://192.168.1.12:8765
-  Scansionare con Android (stessa SIM Very Mobile +393281536308)
+PRIORITY 1 — WA QR re-auth (se non fatto):
+  Controlla Telegram per QR → scansiona con Android (Very Mobile +393281536308)
+  Poi verifica: curl http://192.168.1.12:9191/health
 
 PRIORITY 2 — Mario Recovery Day 7 (se data ≥ 2026-03-17):
   agent-recovery → Recovery RAGIONIERE v3 → approvazione umana → agent-sales → invio
+  Testo approvato in HANDOFF.md sezione Mario
 
-PRIORITY 3 — Lead pipeline (se Mario è unico lead):
-  agent-research → batch 5 dealer Sud Italia (Campania/Puglia/Sicilia)
-  Criteri: family-business, 30-80 auto, BMW/Mercedes/Audi, no partner EU
-  Output: 5 schede dealer qualificate con archetipo + OBJ pre-caricato
+PRIORITY 3 — Outreach Batch 1 (max 2 dealer/giorno):
+  agent-sales → WA Day 1 per Mazzilli Auto (335 766 2842) + Prime Cars Italy (371 417 5649)
+  Vedi docs/dev/leads_s52_batch1.md per pitch personalizzato per archetipo
+  HUMAN-IN-THE-LOOP: mostra bozza WA → attendi OK → invia
 
-PRIORITY 4 — gstack install (roles cognitivi CEO/Eng/QA):
-  git clone https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
-  cd ~/.claude/skills/gstack && ./setup
-  Aggiungere sezione gstack a configs/CLAUDE.md
+PRIORITY 4 — skill-finance:
+  Crea .claude/skills/skill-finance/SKILL.md
+  Comandi: /calcola-fee, /td17-template, /pl-dealer, /margine-veicolo
+  Basato su business rules ARGOS (TD17/18/19, reverse charge)
 
-PRIORITY 5 — skill-marketing-official:
-  Crea .claude/skills/skill-marketing-official/SKILL.md
-  Basato su knowledge-work-plugins/marketing (Apache-2.0)
-  Comandi: /draft-content, /email-sequence, /brand-review, /campaign-plan
+PRIORITY 5 — Pipeline review dashboard:
+  skill-data-official → /build-dashboard → HTML Chart.js
+  Dati: cove_tracker.duckdb + leads_s52_batch1.md
 
-ROADMAP corrente: docs/dev/ROADMAP.md — FASE 1 ✅, FASE 2 in corso
+ROADMAP corrente: docs/dev/ROADMAP.md — FASE 2 in corso
 Fine sessione: aggiorna HANDOFF.md + ROADMAP.md + MEMORY.md + commit
 ```
 
 ---
 
-## 🔴 PENDENTI OPERATIVI (non bloccanti per S52)
+## 🔴 PENDENTI OPERATIVI
 
 | Task | Agente | Data |
 |------|--------|------|
-| WA QR re-auth daemon | agent-ops | Appena SSH torna |
+| WA QR re-auth daemon | HUMAN ACTION | Appena Telegram ricevuto |
 | Mario Recovery Day 7 | agent-recovery | 2026-03-17 |
-| Lead batch 5 dealer | agent-research | S52 |
-| gstack install | — | S52 |
-| skill-marketing-official | — | S52 |
+| WA Day 1 Mazzilli + Prime Cars | agent-sales | S53 (max 2/giorno) |
 | skill-finance | — | S53 |
+| Pipeline dashboard | skill-data-official | S54 |

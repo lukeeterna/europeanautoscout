@@ -367,12 +367,14 @@ Layer 1 — Infrastruttura (DuckDB, WA daemon, Telegram, PM2)
 | `deep-research` | 3 | `.claude/skills/skill-deep-research/` | "ricerca dealer", "deep research", "analisi mercato", "trova lead", "competitor" | v1 | ✅ S49 |
 | `cove-engine` | 3 | `.claude/skills/skill-cove/` | "cove score", "confidence dealer", "recommendation", "cove_tracker", "analyzed_at" | v1 | ✅ S49 |
 | `skill-sales-official` | 2 | `.claude/skills/skill-sales-official/` | "intel dealer", "account research", "battlecard", "competitor import", "pipeline review", "forecast revenue", "prep visita" | v1 | ✅ S51 |
+| `skill-data-official` | 2 | `.claude/skills/skill-data-official/` | "scrivi query DuckDB", "analisi dati pipeline", "dashboard dealer", "sql cove_tracker", "valida dati", "report statistico" | v1 | ✅ S51 |
+| `gstack` | 2 | `.claude/skills/gstack/` | "ruolo CEO", "modalità engineer", "review QA", "gstack ceo/eng/qa", "decisione strategica", "tech review", "quality check" | v1 | ✅ S52 |
+| `skill-marketing-official` | 2 | `.claude/skills/skill-marketing-official/` | "draft content", "email sequence", "brand review", "campaign plan", "testo marketing", "copy WA dealer", "nurture email" | v1 | ✅ S52 |
 
 ### SKILL IN BACKLOG (da creare per fasi successive)
 
 | Skill | Layer | Fase | Priorità |
 |-------|-------|------|----------|
-| `skill-data-official` | 2 | F1-02 | 🟡 MEDIA — upgrade CoVe reporting |
 | `skill-langgraph` | 3 | ARCH-001 | 🟡 dopo 3+ deal chiusi |
 | `skill-rag` | 3 | ARCH-002 | 🟡 dopo 3+ deal chiusi |
 | `skill-scraping` | 3 | ARCH-003 | 🟡 dopo pipeline validata |
@@ -393,16 +395,22 @@ Layer 1 — Infrastruttura (DuckDB, WA daemon, Telegram, PM2)
 | S49 | Fix ecosystem.config.js | — | dotenv loading PM2 |
 | S49 | deep-research skill | — | .claude/skills/skill-deep-research/ |
 | S49 | cove-engine skill | — | .claude/skills/skill-cove/ |
+| S51 | 7 agent team deploy | — | .claude/agents/ (sales/research/cove/finance/ops/recovery/marketing) |
+| S51 | skill-sales-official | — | .claude/skills/skill-sales-official/ |
+| S51 | skill-data-official | — | .claude/skills/skill-data-official/ |
+| S52 | PM2 restart iMac | agent-ops | argos-wa-daemon + argos-tg-bot online :9191 |
+| S52 | gstack skill | — | .claude/skills/gstack/ (CEO/Eng/QA roles) |
+| S52 | skill-marketing-official | — | .claude/skills/skill-marketing-official/ |
 
 ### TASK PENDING — PROSSIME SESSIONI
 
 | Task | Skill | Priorità | Scadenza |
 |---|---|---|---|
-| WA Daemon QR re-auth | argos-outreach [A1] | 🔴 | appena SSH torna |
-| Mario Recovery Day7 WA | argos-outreach + deep-research | 🔴 | 2026-03-17 |
-| Nuovi lead batch (5 dealer) | skill-sales-official [A] + deep-research | 🔴 | S51 oggi |
-| skill-data-official install | (Fase F1-02 ROADMAP) | 🟡 | S52 |
-| Pipeline review dashboard | skill-data-official [/build-dashboard] | 🟡 | S53 |
+| WA Daemon QR re-auth | argos-outreach [A1] | 🔴 | HUMAN ACTION: scansiona QR Telegram con Android |
+| Mario Recovery Day7 WA | agent-recovery | 🔴 | 2026-03-17 se silenzio |
+| Lead batch 5 dealer Sud IT | agent-research | 🔴 | S52 (in corso) |
+| Sequenza outreach 5 dealer | agent-sales | 🟡 | S53 dopo qualifica lead |
+| Pipeline review dashboard | skill-data-official [/build-dashboard] | 🟡 | S54 (F3) |
 
 ---
 
