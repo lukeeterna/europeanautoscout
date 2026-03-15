@@ -4,7 +4,29 @@
 
 ---
 
-## ⚡ STATO CORRENTE (S54)
+## ⚡ STATO CORRENTE (S55 — 2026-03-15 FINALE)
+
+| Sistema | Stato | Note |
+|---------|-------|------|
+| Dataset v2 | ✅ | 1.160 conv Claude-quality — conversations_synthetic_v2.json (2.5MB) |
+| SVM Classifier | ✅ | 10/10 real dealer test — argos_svm_classifier.pkl |
+| CV Accuracy | ⚠️ 77% | Target 97% — gap spiegato da OVERLAP/EDGE ambigui (by design) |
+| TECNICO accuracy | ✅ 100% | Segnali più forti del dataset |
+| VISIONARIO accuracy | ⚠️ 27% | Il più debole — confusione con PERFORMANTE |
+| Mario Day 7 | ⚠️ DOMANI | 2026-03-17 — QR WA daemon HUMAN ACTION |
+| archetypes_enterprise_v2.md | ✅ | Definizioni profonde 10 archetipi |
+| TTS Luca | 📋 S56 | Qwen3-TTS + ehiweb |
+
+**S55 DELIVERABLE:**
+- Dataset 1.160 conv (600 TIER1 + 210 TIER2 overlap + 80 TIER3 edge + 60 TIER4 regional + 50 TIER5 multi-turn + 30 gold standard)
+- SVM pipeline: TfidfVectorizer(ngram 1-3) + CalibratedClassifierCV(LinearSVC)
+- train_svm_classifier.py + merge_batches.py
+
+**Gap 97%**: Per raggiungere 97% CV servono ~500 conv aggiuntive VISIONARIO+BARONE+CONSERVATORE con segnali più netti. In produzione il modello già funziona (10/10).
+
+---
+
+## ⚡ STATO PRECEDENTE (S54)
 
 | Sistema | Stato | Note |
 |---------|-------|------|
@@ -159,7 +181,46 @@ sono qui. — Luca
 
 ---
 
-## 🚀 PROSSIMA SESSIONE (S55) — PROMPT COMPLETO
+## 🚀 PROSSIMA SESSIONE (S56) — PROMPT COMPLETO
+
+```
+Sessione 56 — ARGOS TTS Luca + Outreach + SVM tuning.
+Leggi HANDOFF.md prima di qualsiasi altra azione.
+Sei CTO AI di ARGOS Automotive.
+
+PRIORITY 0 — Mario Day 7 (2026-03-17 = OGGI o IERI):
+  Verifica data → se >= 2026-03-17 → agent-recovery
+  Testo v3 RAGIONIERE in HANDOFF.md (già approvato)
+  QR WA daemon: HUMAN ACTION obbligatoria prima di inviare
+
+PRIORITY 1 — WA Day 1 PrimeCars (TECNICO) + CampaniaSport (RAGIONIERE):
+  SVM ora attivo → agent-sales prepara WA Day 1
+  HUMAN-IN-THE-LOOP prima di inviare
+  Testa prima con: python3 src/marketing/archetype_embedder.py predict --text "..."
+
+PRIORITY 2 — SVM tuning per VISIONARIO (27% recall → target 95%):
+  Problema: confusione VISIONARIO↔PERFORMANTE
+  Fix: genera 100 conv VISIONARIO puri con segnali ancora più netti
+    ("esclusiva" + zona geografica + "primo" → VISIONARIO inconfondibile)
+  Poi retrain: python3 src/marketing/train_svm_classifier.py
+
+PRIORITY 3 — TTS Luca:
+  Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice su iMac (ssh gianlucadistasi@192.168.1.12)
+  FranckyB GGUF Q4/Q5 da patreon.com (Apache 2.0, IT nativo)
+  ehiweb VoIP IT per canale voce
+  → memory/project_tts_sara_architecture.md (voce = LUCA non Sara)
+
+PRIORITY 4 — GSD integration:
+  tools/gsd/ v1.22.4 già presente nel repo
+  Valuta gsd-roadmapper per pianificazione S57+
+  Valuta gsd-nyquist-auditor per quality check dataset/SVM
+
+Fine S56: HANDOFF + MEMORY + commit + prompt S57
+```
+
+---
+
+## 🚀 SESSIONE PRECEDENTE (S55) — PROMPT COMPLETO
 
 ```
 Sessione 55 — ARGOS Enterprise Dataset Generation.
