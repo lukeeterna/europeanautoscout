@@ -1,6 +1,6 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session 56 — 2026-03-15 (FINALE — hard test adversariale + SVM boost)
+**Aggiornato**: Session 56 — 2026-03-15 (FINALE + decisione strategica outreach)
 
 ---
 
@@ -31,12 +31,24 @@
 - data/hard_test_report_s56.json — report JSON completo
 - SVM retrained: 1.319 conv totali
 
-**S56 OUTREACH DECISION:**
-- ✅ GO: Prime Cars CT (TECNICO 0.906) — draft WA Day 1 pronto
-- ✅ GO: Autosannino NA (BARONE 0.874) — precedentemente NO-GO
-- ✅ GO: Magicar PA (NARCISO 0.879)
-- ⚠️ MARGINAL: Campania Sport Car NA (RAGIONIERE 0.673) — draft pronto, archetipo ora corretto
-- ⚠️ MARGINAL: Mazzilli Auto BA (PERFORMANTE 0.608)
+**S56 OUTREACH DECISION — AGGIORNATA:**
+
+⚠️ BATCH 1 IN ATTESA — NON INVIARE ANCORA
+
+Decisione strategica S56 fine sessione:
+Le confidence del classifier sono basate su messaggi simulati da noi,
+NON su conversazioni reali. Non abbiamo dati reali su nessuno dei 5 dealer.
+
+PIANO: testare sistema su zona sacrificabile prima di toccare Batch 1.
+→ Zona test = area non nel pipeline (candidati: Calabria, Sardegna, Brindisi/Taranto)
+→ 5-8 dealer test → conversazioni reali → calibrare classifier + messaggi → poi Batch 1
+
+Classificazioni Batch 1 attuali sono IPOTESI da ricerca S52, non dati verificati:
+- Prime Cars CT → TECNICO (ipotesi)
+- Autosannino NA → BARONE (ipotesi)
+- Magicar PA → NARCISO (ipotesi)
+- Campania Sport Car NA → RAGIONIERE (ipotesi)
+- Mazzilli Auto BA → PERFORMANTE (ipotesi)
 
 **DRAFT WA DAY 1 pronti (HUMAN approva prima di inviare):**
 
@@ -233,37 +245,51 @@ sono qui. — Luca
 ## 🚀 PROSSIMA SESSIONE (S57) — PROMPT COMPLETO
 
 ```
-Sessione 57 — ARGOS Outreach Reale + Mario Day 7 + SVM tuning finale.
+Sessione 57 — ARGOS Zona Test Strategia + Mario Day 7.
 Leggi HANDOFF.md prima di qualsiasi altra azione.
 Sei CTO AI di ARGOS Automotive.
 
-PRIORITY 0 — Mario Day 7 (2026-03-17):
+CONTESTO DECISIONE S56:
+  Il Batch 1 (5 dealer) NON viene toccato ancora.
+  Le classificazioni archetipo sono ipotesi, non dati verificati.
+  Strategia: testare su zona sacrificabile → calibrare → poi Batch 1.
+  Il founder conosce il mercato Sud Italia dall'interno (Basilicata).
+
+PRIORITY 0 — Mario Day 7:
   Verifica data con Bash: date
   Se >= 2026-03-17 → agent-recovery → testo v3 RAGIONIERE in HANDOFF.md
   QR WA daemon: HUMAN ACTION obbligatoria prima di inviare
 
-PRIORITY 1 — Outreach WA Day 1 (draft già approvati in HANDOFF S56):
-  Prime Cars Italy CT (TECNICO 0.906) — testo in HANDOFF.md
-  Campania Sport Car NA (RAGIONIERE 0.673) — testo in HANDOFF.md
-  HUMAN-IN-THE-LOOP prima di ogni invio
-  Anti-ban: max 2 invii/giorno, business hours, sleep 15s
+PRIORITY 1 — BRAINSTORM ZONA TEST (insieme al founder):
+  Candidati identificati in S56:
+    A) Calabria (RC/CZ/CS): stesso DNA culturale, zero pipeline, dealer motivati
+       sull'import perché mercato locale scarso
+    B) Sardegna (CA/SS/OT): dipendenza strutturale import = motivazione alta,
+       archetipo RAGIONIERE/TECNICO atteso, logistica è obiezione reale
+    C) Brindisi/Taranto: Puglia non-Bari, porto, familiar import, rischio che
+       diventi pipeline
 
-PRIORITY 2 — SVM tuning residui:
-  VISIONARIO recall 75% → target 95%: aggiungere 50 conv VISIONARIO con
-    negation traps ("non voglio essere il primo... solo guadagnare" = RAGIONIERE)
-    e overlap VISI/RAGI più netti
-  PERFORMANTE recall 81%: 20 conv PERFORMANTE puri senza CONS bait
-  → python3 src/marketing/train_svm_classifier.py dopo ogni batch
+  Domande da fare al founder per decidere:
+    - Calabria: conosce la densità dealer import in RC/CZ/CS?
+    - Sardegna: logistica è davvero un blocco o dealer sardi già risolvono?
+    - Ci sono zone con alta densità che non abbiamo considerato?
+    - Quale zona è più "bruciabile" senza rimpianti?
 
-PRIORITY 3 — TTS Luca (S56 posticipato):
-  Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice su iMac (ssh gianlucadistasi@192.168.1.12)
-  FranckyB GGUF Q4/Q5 da patreon.com (Apache 2.0, IT nativo)
-  → memory/project_tts_sara_architecture.md
+  Output atteso: scelta zona test + lista 5-8 dealer target con metodo
+  GMaps/AutoScout stesso del Batch 1
 
-PRIORITY 4 — Lead gen nuovi dealer:
-  agent-research: prospecting Sud Italia
-  Schema: area geografica → GMaps/AutoScout → archetipo stimato → pipeline
-  Focus: Puglia (Mazzilli follow-up) e Campania (dopo prime risposte)
+PRIORITY 2 — Research dealer zona test:
+  Una volta scelta la zona → agent-research
+  Stesso schema Batch 1: family business, 30-80 auto, BMW/Mercedes/Audi
+  Output: lista dealer con numero WA + archetipo stimato (ipotesi)
+
+PRIORITY 3 — Preparare Day 1 WA per zona test:
+  Messaggio neutro che sopravvive a archetipo sbagliato
+  Revisione draft S56 con questo filtro: "se archetipo sbagliato, crea attrito?"
+  → brand-review su ogni testo prima di inviare
+
+PRIORITY 4 — SVM: non toccare finché non arrivano dati reali dalla zona test
+  I dati reali varranno più di 100 conv sintetiche
 
 Fine S57: HANDOFF + MEMORY + commit + prompt S58
 ```
