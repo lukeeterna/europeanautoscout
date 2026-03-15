@@ -176,6 +176,7 @@ HUMAN-IN-THE-LOOP
 | S50 | 2026-03-13 | Crisis recovery: T-01..T-06, wa-daemon v2.1 | F0 ✅ |
 | S51 | 2026-03-14 | AI company arch: 7 agents + 2 skills + roadmap | F1 ✅ |
 | S52 | 2026-03-14 | PM2 restart, gstack + skill-marketing, lead batch 1 (5 dealer) | F2 🔄 |
+| S53 | 2026-03-14 | Test archetipi 3 dealer (8.1/9.2/8.7), archetipi 5→10, dataset v1+v2, classifier | F2 🔄 |
 
 ---
 
