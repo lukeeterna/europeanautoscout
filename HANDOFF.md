@@ -1,6 +1,6 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session 56 — 2026-03-15 (FINALE + decisione strategica outreach)
+**Aggiornato**: Session 56 — 2026-03-15 (FINALE — roadmap completa 4 track)
 
 ---
 
@@ -8,82 +8,168 @@
 
 | Sistema | Stato | Note |
 |---------|-------|------|
-| Dataset v2 | ✅ | 1.319 conv (1.160 + 124 adversarial S56) — 2.7MB |
-| SVM Classifier | ✅ | Retrained S56 — 7/10 archetipi GO |
-| CV Accuracy | ⚠️ 79.6% | +2.8% vs S55 — RAGIONIERE 93%, VISIONARIO 75% |
-| Hard Test S56 | ✅ | 7/10 GO (da 3/10 S55) — 1a adversarial GO 45% (da 0%) |
-| Real Dealer Test | ✅ 4/5 | 4 GO, 1 MARGINAL — 0 NO-GO (da 1 NO-GO S55) |
-| RAGIONIERE recall | ✅ 93% | Da 67% S55 — fix critico (campania sport car ora corretto) |
-| VISIONARIO recall | ⚠️ 75% | Da 19% S55 — +56pp, target 95% in S57 |
-| PERFORMANTE | ⚠️ MARGINAL | go_rate 62.5% — "CONS bait + deadline" ancora difficile |
-| RAGIONIERE | ⚠️ MARGINAL | "nega primo/guadagnare" ancora confuso con VISIONARIO |
-| Mario Day 7 | ⏳ 2026-03-17 | QR WA daemon: HUMAN ACTION obbligatoria |
-| Outreach WA Day 1 | 📋 HUMAN | Prime Cars CT + Campania Sport Car — draft pronti, NON inviati |
-| TTS Luca | 📋 S57 | Qwen3-TTS + ehiweb — posticipato da S56 |
-| tools/hard_test_svm.py | ✅ | S56 — 5 categorie adversariali, JSON report |
-| data/hard_test_report_s56.json | ✅ | Report completo ultima run |
+| Dataset v2 | ✅ | 1.319 conv totali — 2.7MB |
+| SVM Classifier | ✅ | Retrained S56 — 7/10 GO hard test |
+| CV Accuracy | ⚠️ 79.6% | Ceiling architetturale ~83% con TF-IDF |
+| RAGIONIERE recall | ✅ 93% | Da 67% S55 |
+| VISIONARIO recall | ⚠️ 75% | Da 19% S55 |
+| Hard Test S56 | ✅ | tools/hard_test_svm.py — 5 categorie |
+| Mario Day 7 | ⏳ 2026-03-17 | HUMAN ACTION QR WA daemon — URGENTE |
+| Batch 1 outreach | 🔴 IN ATTESA | Non inviare — confidenze basate su dati simulati |
+| Zona test | 📋 S57 | Candidati: Calabria / Sardegna / Brindisi-Taranto |
+| Sentence-transformers | 📋 S57-S58 | Migrazione classifier — +10-15pp stimato |
+| Email backup | 📋 S58 | SMTP + template per archetipo |
 
-**S56 DELIVERABLES:**
-- tools/hard_test_svm.py — hard test adversariale completo (5 categorie, 70+ test cases)
-- tools/generate_visionario_batch.py — generatore batch VISIONARIO puro
-- data/training/batch_adversarial_s56.json — 56 conv adversariali (RAGI/VISI/OPPO/BARO)
-- data/training/batch_visionario_s56.json — 68 conv VISIONARIO pure signal
-- data/hard_test_report_s56.json — report JSON completo
-- SVM retrained: 1.319 conv totali
+---
 
-**S56 OUTREACH DECISION — AGGIORNATA:**
+## 🔴 DECISIONE STRATEGICA CRITICA (S56 fine sessione)
 
-⚠️ BATCH 1 IN ATTESA — NON INVIARE ANCORA
+**Il Batch 1 NON viene contattato finché non abbiamo dati reali.**
 
-Decisione strategica S56 fine sessione:
-Le confidence del classifier sono basate su messaggi simulati da noi,
-NON su conversazioni reali. Non abbiamo dati reali su nessuno dei 5 dealer.
+Motivazione:
+- Le confidence SVM (0.906, 0.874 ecc.) sono calcolate su messaggi che abbiamo
+  scritto noi — validazione circolare, non reale
+- Le classificazioni archetipo Batch 1 sono ipotesi da desk research S52
+- Zero conversazioni reali nel training set
+- Una risposta reale vale più di 1.000 conv sintetiche
 
-PIANO: testare sistema su zona sacrificabile prima di toccare Batch 1.
-→ Zona test = area non nel pipeline (candidati: Calabria, Sardegna, Brindisi/Taranto)
-→ 5-8 dealer test → conversazioni reali → calibrare classifier + messaggi → poi Batch 1
-
-Classificazioni Batch 1 attuali sono IPOTESI da ricerca S52, non dati verificati:
-- Prime Cars CT → TECNICO (ipotesi)
-- Autosannino NA → BARONE (ipotesi)
-- Magicar PA → NARCISO (ipotesi)
-- Campania Sport Car NA → RAGIONIERE (ipotesi)
-- Mazzilli Auto BA → PERFORMANTE (ipotesi)
-
-**DRAFT WA DAY 1 pronti (HUMAN approva prima di inviare):**
-
-Prime Cars Italy CT (TECNICO):
+Piano:
 ```
-Buongiorno, sono Luca Ferretti — ARGOS Automotive.
-Selezioniamo veicoli BMW/Mercedes/Audi in Germania,
-Belgio e Austria per dealer italiani.
-
-Ogni veicolo: DAT Fahrzeughistorie originale +
-Gutachten DEKRA accreditato EU. Il contratto
-lo firma ARGOS come intermediario principale.
-
-Fee €900 success-only, zero anticipi.
-Posso mandarle un esempio documentale?
-
-— Luca
+Zona test sacrificabile → 5-8 dealer → WA Day 1
+→ Prima risposta reale → calibra classifier + messaggi
+→ Solo dopo: Batch 1
 ```
 
-Campania Sport Car NA (RAGIONIERE):
+Batch 1 — status ipotesi (NON verificate):
 ```
-Buongiorno, sono Luca Ferretti — ARGOS Automotive.
-Selezioniamo BMW/Mercedes/Audi in Germania per
-dealer del Sud Italia.
-
-Regime margine: IVA non esposta, netto dealer
-stimato €1.200-1.800 a veicolo. Fee €900
-success-only, zero anticipi.
-
-Vuole che le mando uno schema economico completo?
-
-— Luca
+Prime Cars Italy CT   → TECNICO     (ipotesi)
+Autosannino NA        → BARONE      (ipotesi)
+Magicar PA            → NARCISO     (ipotesi)
+Campania Sport Car NA → RAGIONIERE  (ipotesi)
+Mazzilli Auto BA      → PERFORMANTE (ipotesi)
 ```
 
-**Gap 97%**: Per raggiungere 97% CV servono ~500 conv aggiuntive VISIONARIO+BARONE+CONSERVATORE con segnali più netti. In produzione il modello già funziona (10/10).
+---
+
+## 🗺️ ROADMAP 4 TRACK (pianificata S56)
+
+```
+         S57             S58              S59              S60+
+TRACK A  zona+dealer──WA Day1 zona──prima risposta──prima trattativa──DEAL
+TRACK B  sent-transf──retrain+test──prod se GO
+TRACK C              SMTP setup───template×arch──email Day14 zona
+TRACK D  mario D7
+```
+
+---
+
+### TRACK A — Prima conversazione reale → Deal (business validation)
+
+**S57 (domani — BRAINSTORM con founder):**
+- Scelta zona test definitiva tra candidati:
+  - Calabria (RC/CZ/CS): stesso DNA Sud Italia, zero pipeline, dealer motivati
+  - Sardegna (CA/SS/OT): dipendenza strutturale import, archetipo RAGI/TECNICO
+  - Brindisi/Taranto: Puglia non-Bari, porto, rischio diventi pipeline
+- Fondatore dalla Basilicata: chiedere prima, non decidere da soli
+- agent-research: 5-8 dealer zona test, stesso metodo Batch 1
+
+**S58:**
+- QR WA verificato → invio 2 dealer/giorno zona test
+- Anti-ban: business hours, sleep 15s, max 2/giorno
+- Obiettivo: 1 risposta in 72 ore
+
+**S59:**
+- Analisi prima risposta reale
+- Archetipo reale vs ipotesi → delta classifier + aggiorna training
+- Se risposta positiva → follow-up calibrato su archetipo reale
+
+**S60+:**
+- Prima trattativa reale
+- Sourcing veicolo EU (DE/BE/NL)
+- Deal obiettivo: anche in perdita — valida il modello
+
+**Metriche:**
+```
+✅ S57: zona scelta + lista 5-8 dealer pronti
+✅ S58: 2+ WA Day 1 inviati, zero ban
+✅ S59: 1+ risposta reale
+✅ S60: 1 trattativa aperta
+✅ S61: 1 deal chiuso (qualsiasi margine)
+```
+
+---
+
+### TRACK B — Migrazione sentence-transformers (tecnico, parallelo)
+
+**Perché:** TF-IDF ceiling architetturale ~83%. Sentence-transformers capisce
+negazione, dialetto, fake signals — le cose che ci fanno sbagliare oggi.
+
+**S57/S58 — implementazione:**
+```python
+# src/marketing/train_svm_v2_sentence.py
+from sentence_transformers import SentenceTransformer
+# paraphrase-multilingual-MiniLM-L12-v2
+# 420MB offline, IT nativo, zero API
+encoder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+embeddings = encoder.encode(texts)  # 384dim, capisce semantica
+clf = CalibratedClassifierCV(LinearSVC(C=1.0))
+```
+
+**Stima miglioramento:**
+```
+TF-IDF attuale:       79.6% CV,  ~45% adversarial GO
+Sentence-transf:      ~90-93% CV, ~75%+ adversarial GO (stima)
+```
+
+**S58 deliverable:** hard test v2 su nuovo modello — confronto diretto
+**Se >85% CV:** sostituisce TF-IDF in produzione
+
+---
+
+### TRACK C — Email backup channel (infrastruttura)
+
+**Perché:** WA ban = zero canale. Email = rete di sicurezza strutturale.
+
+**S58 — setup:**
+```
+SMTP: Gmail business o Brevo free tier
+Da: luca@argosautomotive.it
+Formato: plain text, max 150 parole, zero allegati, 1 CTA
+```
+
+**S59 — template per archetipo:**
+
+| Archetipo | Oggetto | Leva principale |
+|-----------|---------|-----------------|
+| RAGIONIERE | "Schema economico veicoli EU — ARGOS" | ROI numerico |
+| TECNICO | "Documentazione DAT + DEKRA — verifica" | Certificazioni |
+| BARONE | "Referenza diretta — ARGOS Automotive" | Credibilità |
+| VISIONARIO | "Esclusiva zona — disponibilità limitata" | First-mover |
+| NARCISO | "Veicoli premium — standard showroom" | Immagine |
+
+**Flusso integrato:**
+```
+WA Day 1 → silenzio 7gg → WA Day 7 recovery
+         → silenzio 7gg → Email Day 14
+         → silenzio 14gg → chiudi lead (6 mesi freeze)
+```
+
+---
+
+### TRACK D — Mario Day 7 (bloccante, HUMAN)
+
+```
+Data: 2026-03-17 (dopodomani)
+Testo v3 RAGIONIERE approvato — vedi sezione Mario sotto
+HUMAN ACTION: QR WA daemon su iMac prima di S57
+  ssh gianlucadistasi@192.168.1.12
+  → verifica sessione argosautomotive
+  → agent-recovery → HUMAN approva → invio
+```
+
+---
+
+## 🎯 MARIO OREFICE — DAY 7 (2026-03-17)
 
 ---
 
@@ -245,51 +331,52 @@ sono qui. — Luca
 ## 🚀 PROSSIMA SESSIONE (S57) — PROMPT COMPLETO
 
 ```
-Sessione 57 — ARGOS Zona Test Strategia + Mario Day 7.
+Sessione 57 — ARGOS Zona Test + Sentence-Transformers + Mario Day 7.
 Leggi HANDOFF.md prima di qualsiasi altra azione.
 Sei CTO AI di ARGOS Automotive.
 
-CONTESTO DECISIONE S56:
-  Il Batch 1 (5 dealer) NON viene toccato ancora.
-  Le classificazioni archetipo sono ipotesi, non dati verificati.
-  Strategia: testare su zona sacrificabile → calibrare → poi Batch 1.
-  Il founder conosce il mercato Sud Italia dall'interno (Basilicata).
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ROADMAP 4 TRACK attiva (S56):
+  Track A: zona test → prima conversazione reale → deal
+  Track B: sentence-transformers migration
+  Track C: email backup channel
+  Track D: Mario Day 7 (bloccante)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PRIORITY 0 — Mario Day 7:
-  Verifica data con Bash: date
-  Se >= 2026-03-17 → agent-recovery → testo v3 RAGIONIERE in HANDOFF.md
+PRIORITY 0 — TRACK D: Mario Day 7
+  Verifica: date
+  Se >= 2026-03-17 → agent-recovery → testo v3 RAGIONIERE in HANDOFF
   QR WA daemon: HUMAN ACTION obbligatoria prima di inviare
 
-PRIORITY 1 — BRAINSTORM ZONA TEST (insieme al founder):
-  Candidati identificati in S56:
-    A) Calabria (RC/CZ/CS): stesso DNA culturale, zero pipeline, dealer motivati
-       sull'import perché mercato locale scarso
-    B) Sardegna (CA/SS/OT): dipendenza strutturale import = motivazione alta,
-       archetipo RAGIONIERE/TECNICO atteso, logistica è obiezione reale
-    C) Brindisi/Taranto: Puglia non-Bari, porto, familiar import, rischio che
-       diventi pipeline
+PRIORITY 1 — TRACK A: Scelta zona test (brainstorming CON founder)
+  NON decidere da soli — il founder conosce il Sud dall'interno (Basilicata)
+  Candidati:
+    A) Calabria (RC/CZ/CS): stesso DNA Sud Italia, zero pipeline
+    B) Sardegna (CA/SS): dipendenza strutturale import, logistica = OBJ reale
+    C) Brindisi/Taranto: Puglia non-Bari, porto
+  Domande al founder prima di decidere:
+    - Densità dealer import in Calabria RC/CZ/CS?
+    - Sardegna: logistica blocca o i dealer la gestiscono già?
+    - Zone non considerate con alta densità import?
+    - Quale zona è più sacrificabile?
+  Output: zona scelta → agent-research → lista 5-8 dealer
 
-  Domande da fare al founder per decidere:
-    - Calabria: conosce la densità dealer import in RC/CZ/CS?
-    - Sardegna: logistica è davvero un blocco o dealer sardi già risolvono?
-    - Ci sono zone con alta densità che non abbiamo considerato?
-    - Quale zona è più "bruciabile" senza rimpianti?
+PRIORITY 2 — TRACK B: Migrazione sentence-transformers
+  pip install sentence-transformers (iMac via SSH o MacBook)
+  Crea: src/marketing/train_svm_v2_sentence.py
+  Model: paraphrase-multilingual-MiniLM-L12-v2 (420MB, offline, IT nativo)
+  Confronto su dataset esistente vs TF-IDF attuale
+  Hard test v2 → se >85% CV → sostituisce in produzione
 
-  Output atteso: scelta zona test + lista 5-8 dealer target con metodo
-  GMaps/AutoScout stesso del Batch 1
+PRIORITY 3 — TRACK A: WA Day 1 neutro zona test
+  Draft che sopravvive ad archetipo sbagliato
+  Filtro: "se archetipo sbagliato, questo messaggio crea attrito?"
+  brand-review → HUMAN-IN-THE-LOOP prima di ogni invio
 
-PRIORITY 2 — Research dealer zona test:
-  Una volta scelta la zona → agent-research
-  Stesso schema Batch 1: family business, 30-80 auto, BMW/Mercedes/Audi
-  Output: lista dealer con numero WA + archetipo stimato (ipotesi)
-
-PRIORITY 3 — Preparare Day 1 WA per zona test:
-  Messaggio neutro che sopravvive a archetipo sbagliato
-  Revisione draft S56 con questo filtro: "se archetipo sbagliato, crea attrito?"
-  → brand-review su ogni testo prima di inviare
-
-PRIORITY 4 — SVM: non toccare finché non arrivano dati reali dalla zona test
-  I dati reali varranno più di 100 conv sintetiche
+PRIORITY 4 — TRACK C: Email backup (se tempo)
+  Setup SMTP (Brevo free o Gmail business)
+  1 email test inviata con successo
+  Template base per RAGIONIERE e TECNICO
 
 Fine S57: HANDOFF + MEMORY + commit + prompt S58
 ```
