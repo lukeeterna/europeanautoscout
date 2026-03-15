@@ -1,26 +1,75 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session 54 — 2026-03-15 (FINALE — architettura enterprise definitiva)
+**Aggiornato**: Session 56 — 2026-03-15 (FINALE — hard test adversariale + SVM boost)
 
 ---
 
-## ⚡ STATO CORRENTE (S55 — 2026-03-15 FINALE)
+## ⚡ STATO CORRENTE (S56 — 2026-03-15 FINALE)
 
 | Sistema | Stato | Note |
 |---------|-------|------|
-| Dataset v2 | ✅ | 1.160 conv Claude-quality — conversations_synthetic_v2.json (2.5MB) |
-| SVM Classifier | ✅ | 10/10 real dealer test — argos_svm_classifier.pkl |
-| CV Accuracy | ⚠️ 77% | Target 97% — gap spiegato da OVERLAP/EDGE ambigui (by design) |
-| TECNICO accuracy | ✅ 100% | Segnali più forti del dataset |
-| VISIONARIO accuracy | ⚠️ 27% | Il più debole — confusione con PERFORMANTE |
-| Mario Day 7 | ⚠️ DOMANI | 2026-03-17 — QR WA daemon HUMAN ACTION |
-| archetypes_enterprise_v2.md | ✅ | Definizioni profonde 10 archetipi |
-| TTS Luca | 📋 S56 | Qwen3-TTS + ehiweb |
+| Dataset v2 | ✅ | 1.319 conv (1.160 + 124 adversarial S56) — 2.7MB |
+| SVM Classifier | ✅ | Retrained S56 — 7/10 archetipi GO |
+| CV Accuracy | ⚠️ 79.6% | +2.8% vs S55 — RAGIONIERE 93%, VISIONARIO 75% |
+| Hard Test S56 | ✅ | 7/10 GO (da 3/10 S55) — 1a adversarial GO 45% (da 0%) |
+| Real Dealer Test | ✅ 4/5 | 4 GO, 1 MARGINAL — 0 NO-GO (da 1 NO-GO S55) |
+| RAGIONIERE recall | ✅ 93% | Da 67% S55 — fix critico (campania sport car ora corretto) |
+| VISIONARIO recall | ⚠️ 75% | Da 19% S55 — +56pp, target 95% in S57 |
+| PERFORMANTE | ⚠️ MARGINAL | go_rate 62.5% — "CONS bait + deadline" ancora difficile |
+| RAGIONIERE | ⚠️ MARGINAL | "nega primo/guadagnare" ancora confuso con VISIONARIO |
+| Mario Day 7 | ⏳ 2026-03-17 | QR WA daemon: HUMAN ACTION obbligatoria |
+| Outreach WA Day 1 | 📋 HUMAN | Prime Cars CT + Campania Sport Car — draft pronti, NON inviati |
+| TTS Luca | 📋 S57 | Qwen3-TTS + ehiweb — posticipato da S56 |
+| tools/hard_test_svm.py | ✅ | S56 — 5 categorie adversariali, JSON report |
+| data/hard_test_report_s56.json | ✅ | Report completo ultima run |
 
-**S55 DELIVERABLE:**
-- Dataset 1.160 conv (600 TIER1 + 210 TIER2 overlap + 80 TIER3 edge + 60 TIER4 regional + 50 TIER5 multi-turn + 30 gold standard)
-- SVM pipeline: TfidfVectorizer(ngram 1-3) + CalibratedClassifierCV(LinearSVC)
-- train_svm_classifier.py + merge_batches.py
+**S56 DELIVERABLES:**
+- tools/hard_test_svm.py — hard test adversariale completo (5 categorie, 70+ test cases)
+- tools/generate_visionario_batch.py — generatore batch VISIONARIO puro
+- data/training/batch_adversarial_s56.json — 56 conv adversariali (RAGI/VISI/OPPO/BARO)
+- data/training/batch_visionario_s56.json — 68 conv VISIONARIO pure signal
+- data/hard_test_report_s56.json — report JSON completo
+- SVM retrained: 1.319 conv totali
+
+**S56 OUTREACH DECISION:**
+- ✅ GO: Prime Cars CT (TECNICO 0.906) — draft WA Day 1 pronto
+- ✅ GO: Autosannino NA (BARONE 0.874) — precedentemente NO-GO
+- ✅ GO: Magicar PA (NARCISO 0.879)
+- ⚠️ MARGINAL: Campania Sport Car NA (RAGIONIERE 0.673) — draft pronto, archetipo ora corretto
+- ⚠️ MARGINAL: Mazzilli Auto BA (PERFORMANTE 0.608)
+
+**DRAFT WA DAY 1 pronti (HUMAN approva prima di inviare):**
+
+Prime Cars Italy CT (TECNICO):
+```
+Buongiorno, sono Luca Ferretti — ARGOS Automotive.
+Selezioniamo veicoli BMW/Mercedes/Audi in Germania,
+Belgio e Austria per dealer italiani.
+
+Ogni veicolo: DAT Fahrzeughistorie originale +
+Gutachten DEKRA accreditato EU. Il contratto
+lo firma ARGOS come intermediario principale.
+
+Fee €900 success-only, zero anticipi.
+Posso mandarle un esempio documentale?
+
+— Luca
+```
+
+Campania Sport Car NA (RAGIONIERE):
+```
+Buongiorno, sono Luca Ferretti — ARGOS Automotive.
+Selezioniamo BMW/Mercedes/Audi in Germania per
+dealer del Sud Italia.
+
+Regime margine: IVA non esposta, netto dealer
+stimato €1.200-1.800 a veicolo. Fee €900
+success-only, zero anticipi.
+
+Vuole che le mando uno schema economico completo?
+
+— Luca
+```
 
 **Gap 97%**: Per raggiungere 97% CV servono ~500 conv aggiuntive VISIONARIO+BARONE+CONSERVATORE con segnali più netti. In produzione il modello già funziona (10/10).
 
@@ -181,7 +230,47 @@ sono qui. — Luca
 
 ---
 
-## 🚀 PROSSIMA SESSIONE (S56) — PROMPT COMPLETO
+## 🚀 PROSSIMA SESSIONE (S57) — PROMPT COMPLETO
+
+```
+Sessione 57 — ARGOS Outreach Reale + Mario Day 7 + SVM tuning finale.
+Leggi HANDOFF.md prima di qualsiasi altra azione.
+Sei CTO AI di ARGOS Automotive.
+
+PRIORITY 0 — Mario Day 7 (2026-03-17):
+  Verifica data con Bash: date
+  Se >= 2026-03-17 → agent-recovery → testo v3 RAGIONIERE in HANDOFF.md
+  QR WA daemon: HUMAN ACTION obbligatoria prima di inviare
+
+PRIORITY 1 — Outreach WA Day 1 (draft già approvati in HANDOFF S56):
+  Prime Cars Italy CT (TECNICO 0.906) — testo in HANDOFF.md
+  Campania Sport Car NA (RAGIONIERE 0.673) — testo in HANDOFF.md
+  HUMAN-IN-THE-LOOP prima di ogni invio
+  Anti-ban: max 2 invii/giorno, business hours, sleep 15s
+
+PRIORITY 2 — SVM tuning residui:
+  VISIONARIO recall 75% → target 95%: aggiungere 50 conv VISIONARIO con
+    negation traps ("non voglio essere il primo... solo guadagnare" = RAGIONIERE)
+    e overlap VISI/RAGI più netti
+  PERFORMANTE recall 81%: 20 conv PERFORMANTE puri senza CONS bait
+  → python3 src/marketing/train_svm_classifier.py dopo ogni batch
+
+PRIORITY 3 — TTS Luca (S56 posticipato):
+  Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice su iMac (ssh gianlucadistasi@192.168.1.12)
+  FranckyB GGUF Q4/Q5 da patreon.com (Apache 2.0, IT nativo)
+  → memory/project_tts_sara_architecture.md
+
+PRIORITY 4 — Lead gen nuovi dealer:
+  agent-research: prospecting Sud Italia
+  Schema: area geografica → GMaps/AutoScout → archetipo stimato → pipeline
+  Focus: Puglia (Mazzilli follow-up) e Campania (dopo prime risposte)
+
+Fine S57: HANDOFF + MEMORY + commit + prompt S58
+```
+
+---
+
+## 🚀 SESSIONE PRECEDENTE (S56) — PROMPT COMPLETO
 
 ```
 Sessione 56 — ARGOS TTS Luca + Outreach + SVM tuning.

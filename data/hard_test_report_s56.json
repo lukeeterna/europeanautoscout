@@ -1,0 +1,1282 @@
+{
+  "1a_adversarial": {
+    "category": "1a",
+    "name": "Adversarial Traps",
+    "total": 11,
+    "counts": {
+      "MARGINAL": 5,
+      "GO": 5,
+      "NO-GO": 1
+    },
+    "go_rate": 45.5,
+    "cases": [
+      {
+        "text": "Non sono il tipo che guarda i numeri, voglio solo capire se conviene",
+        "expected": "RAGIONIERE",
+        "predicted": "RAGIONIERE",
+        "confidence": 0.549,
+        "top3": [
+          {
+            "archetype": "RAGIONIERE",
+            "prob": 0.549
+          },
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.11
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.103
+          }
+        ],
+        "status": "MARGINAL",
+        "description": "keyword_poison: nega interesse numeri ma chiede ROI → RAGIONIERE non OPPORTUNISTA"
+      },
+      {
+        "text": "Ho già i miei fornitori ma dimmi: esclusiva zona sì o no?",
+        "expected": "VISIONARIO",
+        "predicted": "VISIONARIO",
+        "confidence": 0.726,
+        "top3": [
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.726
+          },
+          {
+            "archetype": "BARONE",
+            "prob": 0.135
+          },
+          {
+            "archetype": "NARCISO",
+            "prob": 0.07
+          }
+        ],
+        "status": "GO",
+        "description": "keyword_poison: BARONE bait (fornitori) ma segnale netto VISIONARIO (esclusiva zona)"
+      },
+      {
+        "text": "Guarda ho fretta ma prima dimmi chi firma il contratto",
+        "expected": "TECNICO",
+        "predicted": "TECNICO",
+        "confidence": 0.778,
+        "top3": [
+          {
+            "archetype": "TECNICO",
+            "prob": 0.778
+          },
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.088
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.04
+          }
+        ],
+        "status": "GO",
+        "description": "keyword_poison: PERFORMANTE bait (fretta) ma priorità chi-firma → TECNICO"
+      },
+      {
+        "text": "Ne parlo col commercialista ma intanto mandami i numeri IVA",
+        "expected": "RAGIONIERE",
+        "predicted": "RAGIONIERE",
+        "confidence": 0.629,
+        "top3": [
+          {
+            "archetype": "RAGIONIERE",
+            "prob": 0.629
+          },
+          {
+            "archetype": "PERFORMANTE",
+            "prob": 0.112
+          },
+          {
+            "archetype": "DELEGATORE",
+            "prob": 0.067
+          }
+        ],
+        "status": "MARGINAL",
+        "description": "keyword_poison: DELEGATORE bait (commercialista) ma IVA/numeri → RAGIONIERE"
+      },
+      {
+        "text": "Non cambio quello che funziona però se mi dai l'esclusiva...",
+        "expected": "VISIONARIO",
+        "predicted": "VISIONARIO",
+        "confidence": 0.825,
+        "top3": [
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.825
+          },
+          {
+            "archetype": "CONSERVATORE",
+            "prob": 0.064
+          },
+          {
+            "archetype": "BARONE",
+            "prob": 0.061
+          }
+        ],
+        "status": "GO",
+        "description": "keyword_poison: CONSERVATORE bait (non cambio) ma esclusiva → VISIONARIO"
+      },
+      {
+        "text": "Ho sempre fatto così però ho bisogno entro fine mese",
+        "expected": "PERFORMANTE",
+        "predicted": "PERFORMANTE",
+        "confidence": 0.58,
+        "top3": [
+          {
+            "archetype": "PERFORMANTE",
+            "prob": 0.58
+          },
+          {
+            "archetype": "CONSERVATORE",
+            "prob": 0.251
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.062
+          }
+        ],
+        "status": "MARGINAL",
+        "description": "keyword_poison: CONSERVATORE bait (sempre fatto così) ma deadline → PERFORMANTE"
+      },
+      {
+        "text": "Non mi interessano i documenti, mi interessa solo il prezzo finale",
+        "expected": "OPPORTUNISTA",
+        "predicted": "OPPORTUNISTA",
+        "confidence": 0.68,
+        "top3": [
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.68
+          },
+          {
+            "archetype": "PERFORMANTE",
+            "prob": 0.125
+          },
+          {
+            "archetype": "NARCISO",
+            "prob": 0.064
+          }
+        ],
+        "status": "GO",
+        "description": "negation_trap: nega documenti (TECNICO vocab) → focus prezzo = OPPORTUNISTA"
+      },
+      {
+        "text": "Non voglio essere il primo, voglio solo guadagnare",
+        "expected": "RAGIONIERE",
+        "predicted": "VISIONARIO",
+        "confidence": 0.431,
+        "top3": [
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.431
+          },
+          {
+            "archetype": "RAGIONIERE",
+            "prob": 0.326
+          },
+          {
+            "archetype": "PERFORMANTE",
+            "prob": 0.102
+          }
+        ],
+        "status": "NO-GO",
+        "description": "negation_trap: nega primo (VISIONARIO vocab) → guadagnare/ROI = RAGIONIERE"
+      },
+      {
+        "text": "Non ho tempo per garanzie e certificazioni, parlami di tempi",
+        "expected": "PERFORMANTE",
+        "predicted": "PERFORMANTE",
+        "confidence": 0.822,
+        "top3": [
+          {
+            "archetype": "PERFORMANTE",
+            "prob": 0.822
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.089
+          },
+          {
+            "archetype": "BARONE",
+            "prob": 0.044
+          }
+        ],
+        "status": "GO",
+        "description": "negation_trap: nega garanzie (TECNICO vocab) → velocità/tempi = PERFORMANTE"
+      },
+      {
+        "text": "48 ore o chiudo. Ps: ma quanto rimane netto con l'IVA?",
+        "expected": "RAGIONIERE",
+        "predicted": "RAGIONIERE",
+        "confidence": 0.553,
+        "top3": [
+          {
+            "archetype": "RAGIONIERE",
+            "prob": 0.553
+          },
+          {
+            "archetype": "PERFORMANTE",
+            "prob": 0.263
+          },
+          {
+            "archetype": "NARCISO",
+            "prob": 0.068
+          }
+        ],
+        "status": "MARGINAL",
+        "description": "fake_signal: PERFORMANTE bait (48 ore) ma IVA/netto è segnale dominante → RAGIONIERE"
+      },
+      {
+        "text": "Sono il riferimento della zona. Comunque quanto costa?",
+        "expected": "OPPORTUNISTA",
+        "predicted": "OPPORTUNISTA",
+        "confidence": 0.556,
+        "top3": [
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.556
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.319
+          },
+          {
+            "archetype": "NARCISO",
+            "prob": 0.064
+          }
+        ],
+        "status": "MARGINAL",
+        "description": "fake_signal: BARONE bait (riferimento zona) ma 'quanto costa' = OPPORTUNISTA"
+      }
+    ]
+  },
+  "1b_noise": {
+    "category": "1b",
+    "name": "Noise + Dialect Stress",
+    "total": 7,
+    "counts": {
+      "MARGINAL": 4,
+      "GO": 3
+    },
+    "go_rate": 42.9,
+    "cases": [
+      {
+        "text": "cmq ho già i miei ke mi trovan tutto nn ho bisogno",
+        "expected": "BARONE",
+        "predicted": "BARONE",
+        "confidence": 0.568,
+        "top3": [
+          {
+            "archetype": "BARONE",
+            "prob": 0.568
+          },
+          {
+            "archetype": "NARCISO",
+            "prob": 0.208
+          },
+          {
+            "archetype": "RELAZIONALE",
+            "prob": 0.093
+          }
+        ],
+        "status": "MARGINAL",
+        "description": "noise: typo+abbr WA — 'già i miei' = BARONE"
+      },
+      {
+        "text": "dotto senziamoci ma prima mi dica i costi reali",
+        "expected": "RAGIONIERE",
+        "predicted": "RAGIONIERE",
+        "confidence": 0.56,
+        "top3": [
+          {
+            "archetype": "RAGIONIERE",
+            "prob": 0.56
+          },
+          {
+            "archetype": "PERFORMANTE",
+            "prob": 0.105
+          },
+          {
+            "archetype": "TECNICO",
+            "prob": 0.1
+          }
+        ],
+        "status": "MARGINAL",
+        "description": "dialect: campano 'dotto/senziamoci' + 'costi reali' = RAGIONIERE"
+      },
+      {
+        "text": "xché dovrei pagare 900€??? il mio importatore prende 600",
+        "expected": "OPPORTUNISTA",
+        "predicted": "OPPORTUNISTA",
+        "confidence": 0.567,
+        "top3": [
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.567
+          },
+          {
+            "archetype": "BARONE",
+            "prob": 0.185
+          },
+          {
+            "archetype": "DELEGATORE",
+            "prob": 0.119
+          }
+        ],
+        "status": "MARGINAL",
+        "description": "noise: typo+emoji — price comparison = OPPORTUNISTA"
+      },
+      {
+        "text": "👀 vediamo cosa ha... ma non è detto eh",
+        "expected": "CONSERVATORE",
+        "predicted": "CONSERVATORE",
+        "confidence": 0.657,
+        "top3": [
+          {
+            "archetype": "CONSERVATORE",
+            "prob": 0.657
+          },
+          {
+            "archetype": "RELAZIONALE",
+            "prob": 0.109
+          },
+          {
+            "archetype": "DELEGATORE",
+            "prob": 0.097
+          }
+        ],
+        "status": "GO",
+        "description": "noise: emoji+ellipsis — ambiguous resistance = CONSERVATORE"
+      },
+      {
+        "text": "MANDAMI SUBITO QUELLO CHE HAI DISPONIBILE ADESSO",
+        "expected": "PERFORMANTE",
+        "predicted": "PERFORMANTE",
+        "confidence": 0.624,
+        "top3": [
+          {
+            "archetype": "PERFORMANTE",
+            "prob": 0.624
+          },
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.201
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.122
+          }
+        ],
+        "status": "MARGINAL",
+        "description": "noise: ALL CAPS — urgency immediate = PERFORMANTE"
+      },
+      {
+        "text": "Interessante 🤔 però ne parlo col mio socio (lui sa più di me su ste cose)",
+        "expected": "DELEGATORE",
+        "predicted": "DELEGATORE",
+        "confidence": 0.819,
+        "top3": [
+          {
+            "archetype": "DELEGATORE",
+            "prob": 0.819
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.068
+          },
+          {
+            "archetype": "BARONE",
+            "prob": 0.037
+          }
+        ],
+        "status": "GO",
+        "description": "noise: emoji+parenth — deferral to socio = DELEGATORE"
+      },
+      {
+        "text": "boh... ci vediamo forse. vedremo 🙏",
+        "expected": "CONSERVATORE",
+        "predicted": "CONSERVATORE",
+        "confidence": 0.798,
+        "top3": [
+          {
+            "archetype": "CONSERVATORE",
+            "prob": 0.798
+          },
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.067
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.056
+          }
+        ],
+        "status": "GO",
+        "description": "dialect: sicilia flavor — extreme hedging = CONSERVATORE"
+      }
+    ]
+  },
+  "1c_minimal": {
+    "category": "1c",
+    "name": "Minimal Signal (expect low conf)",
+    "total": 14,
+    "counts": {
+      "AMBIGUOUS_OK": 10,
+      "AMBIGUOUS_OVERCONF": 4
+    },
+    "go_rate": 0.0,
+    "cases": [
+      {
+        "text": "Ok",
+        "expected": null,
+        "predicted": "OPPORTUNISTA",
+        "confidence": 0.402,
+        "top3": [
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.402
+          },
+          {
+            "archetype": "PERFORMANTE",
+            "prob": 0.31
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.164
+          }
+        ],
+        "status": "AMBIGUOUS_OK",
+        "description": "1w — ambiguous ack, expect conf <0.70"
+      },
+      {
+        "text": "Vedrò",
+        "expected": null,
+        "predicted": "CONSERVATORE",
+        "confidence": 0.721,
+        "top3": [
+          {
+            "archetype": "CONSERVATORE",
+            "prob": 0.721
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.127
+          },
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.055
+          }
+        ],
+        "status": "AMBIGUOUS_OVERCONF",
+        "description": "1w — hedging, expect conf <0.70"
+      },
+      {
+        "text": "Ci penso",
+        "expected": null,
+        "predicted": "CONSERVATORE",
+        "confidence": 0.426,
+        "top3": [
+          {
+            "archetype": "CONSERVATORE",
+            "prob": 0.426
+          },
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.269
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.22
+          }
+        ],
+        "status": "AMBIGUOUS_OK",
+        "description": "2w — defer, expect conf <0.70"
+      },
+      {
+        "text": "Mah",
+        "expected": null,
+        "predicted": "VISIONARIO",
+        "confidence": 0.318,
+        "top3": [
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.318
+          },
+          {
+            "archetype": "CONSERVATORE",
+            "prob": 0.275
+          },
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.178
+          }
+        ],
+        "status": "AMBIGUOUS_OK",
+        "description": "1w — doubt signal, expect conf <0.70"
+      },
+      {
+        "text": "Interessante",
+        "expected": null,
+        "predicted": "OPPORTUNISTA",
+        "confidence": 0.455,
+        "top3": [
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.455
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.201
+          },
+          {
+            "archetype": "RELAZIONALE",
+            "prob": 0.114
+          }
+        ],
+        "status": "AMBIGUOUS_OK",
+        "description": "1w — positive lean but weak, expect conf <0.70"
+      },
+      {
+        "text": "Forse",
+        "expected": null,
+        "predicted": "CONSERVATORE",
+        "confidence": 0.805,
+        "top3": [
+          {
+            "archetype": "CONSERVATORE",
+            "prob": 0.805
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.109
+          },
+          {
+            "archetype": "DELEGATORE",
+            "prob": 0.034
+          }
+        ],
+        "status": "AMBIGUOUS_OVERCONF",
+        "description": "1w — extreme hedge, expect conf <0.70"
+      },
+      {
+        "text": "Disponibile adesso?",
+        "expected": null,
+        "predicted": "PERFORMANTE",
+        "confidence": 0.438,
+        "top3": [
+          {
+            "archetype": "PERFORMANTE",
+            "prob": 0.438
+          },
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.299
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.139
+          }
+        ],
+        "status": "AMBIGUOUS_OK",
+        "description": "2w — urgency, expect conf <0.70"
+      },
+      {
+        "text": "Garanzie?",
+        "expected": null,
+        "predicted": "VISIONARIO",
+        "confidence": 0.304,
+        "top3": [
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.304
+          },
+          {
+            "archetype": "NARCISO",
+            "prob": 0.231
+          },
+          {
+            "archetype": "RAGIONIERE",
+            "prob": 0.195
+          }
+        ],
+        "status": "AMBIGUOUS_OK",
+        "description": "1w — TECNICO lean but weak, expect conf <0.70"
+      },
+      {
+        "text": "Esclusiva?",
+        "expected": null,
+        "predicted": "VISIONARIO",
+        "confidence": 0.983,
+        "top3": [
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.983
+          },
+          {
+            "archetype": "CONSERVATORE",
+            "prob": 0.009
+          },
+          {
+            "archetype": "NARCISO",
+            "prob": 0.006
+          }
+        ],
+        "status": "AMBIGUOUS_OVERCONF",
+        "description": "1w — VISIONARIO lean but weak, expect conf <0.70"
+      },
+      {
+        "text": "Sconto?",
+        "expected": null,
+        "predicted": "OPPORTUNISTA",
+        "confidence": 0.796,
+        "top3": [
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.796
+          },
+          {
+            "archetype": "BARONE",
+            "prob": 0.111
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.039
+          }
+        ],
+        "status": "AMBIGUOUS_OVERCONF",
+        "description": "1w — OPPORTUNISTA lean but weak, expect conf <0.70"
+      },
+      {
+        "text": "Ne parlo",
+        "expected": null,
+        "predicted": "RAGIONIERE",
+        "confidence": 0.216,
+        "top3": [
+          {
+            "archetype": "RAGIONIERE",
+            "prob": 0.216
+          },
+          {
+            "archetype": "DELEGATORE",
+            "prob": 0.201
+          },
+          {
+            "archetype": "BARONE",
+            "prob": 0.181
+          }
+        ],
+        "status": "AMBIGUOUS_OK",
+        "description": "2w — DELEGATORE lean but weak, expect conf <0.70"
+      },
+      {
+        "text": "Non so",
+        "expected": null,
+        "predicted": "DELEGATORE",
+        "confidence": 0.602,
+        "top3": [
+          {
+            "archetype": "DELEGATORE",
+            "prob": 0.602
+          },
+          {
+            "archetype": "CONSERVATORE",
+            "prob": 0.288
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.092
+          }
+        ],
+        "status": "AMBIGUOUS_OK",
+        "description": "2w — ambiguous, expect conf <0.70"
+      },
+      {
+        "text": "Ci sento",
+        "expected": null,
+        "predicted": "RELAZIONALE",
+        "confidence": 0.674,
+        "top3": [
+          {
+            "archetype": "RELAZIONALE",
+            "prob": 0.674
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.164
+          },
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.098
+          }
+        ],
+        "status": "AMBIGUOUS_OK",
+        "description": "2w — defer, expect conf <0.70"
+      },
+      {
+        "text": "Mandami qualcosa",
+        "expected": null,
+        "predicted": "PERFORMANTE",
+        "confidence": 0.51,
+        "top3": [
+          {
+            "archetype": "PERFORMANTE",
+            "prob": 0.51
+          },
+          {
+            "archetype": "OPPORTUNISTA",
+            "prob": 0.237
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.123
+          }
+        ],
+        "status": "AMBIGUOUS_OK",
+        "description": "3w — neutral interest, expect conf <0.70"
+      }
+    ]
+  },
+  "1d_real_dealer": {
+    "category": "1d",
+    "name": "Real Dealer Simulation",
+    "total": 5,
+    "counts": {
+      "MARGINAL": 1,
+      "GO": 4
+    },
+    "go_rate": 80.0,
+    "cases": [
+      {
+        "text": "Luca dimmi subito che BMW hai. Ho un cliente che aspetta. Entro giovedì o vado d...",
+        "expected": "PERFORMANTE",
+        "predicted": "PERFORMANTE",
+        "confidence": 0.608,
+        "top3": [
+          {
+            "archetype": "PERFORMANTE",
+            "prob": 0.608
+          },
+          {
+            "archetype": "NARCISO",
+            "prob": 0.269
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.095
+          }
+        ],
+        "status": "MARGINAL",
+        "description": "Mazzilli Auto BA — deadline esplicita + cliente che aspetta"
+      },
+      {
+        "text": "Buongiorno. Chi emette il Gutachten? È DEKRA accreditato EU? Il contratto lo fir...",
+        "expected": "TECNICO",
+        "predicted": "TECNICO",
+        "confidence": 0.906,
+        "top3": [
+          {
+            "archetype": "TECNICO",
+            "prob": 0.906
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.043
+          },
+          {
+            "archetype": "BARONE",
+            "prob": 0.019
+          }
+        ],
+        "status": "GO",
+        "description": "Prime Cars CT — domande tecniche certificazione + chi firma"
+      },
+      {
+        "text": "Dotto mi dica: con le sue auto quanto rimane in tasca netto? Come funziona l'IVA...",
+        "expected": "RAGIONIERE",
+        "predicted": "RAGIONIERE",
+        "confidence": 0.673,
+        "top3": [
+          {
+            "archetype": "RAGIONIERE",
+            "prob": 0.673
+          },
+          {
+            "archetype": "NARCISO",
+            "prob": 0.234
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.042
+          }
+        ],
+        "status": "GO",
+        "description": "Campania Sport Car NA — IVA regime margine + netto"
+      },
+      {
+        "text": "Ho già i miei contatti. Lavoro da 20 anni. Cosa mi dai che non ho.",
+        "expected": "BARONE",
+        "predicted": "BARONE",
+        "confidence": 0.874,
+        "top3": [
+          {
+            "archetype": "BARONE",
+            "prob": 0.874
+          },
+          {
+            "archetype": "RELAZIONALE",
+            "prob": 0.051
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.027
+          }
+        ],
+        "status": "GO",
+        "description": "Autosannino NA — status 20 anni + già fornitori"
+      },
+      {
+        "text": "I miei clienti sono esigenti. Com'è messa la vettura visivamente? Non voglio pro...",
+        "expected": "NARCISO",
+        "predicted": "NARCISO",
+        "confidence": 0.879,
+        "top3": [
+          {
+            "archetype": "NARCISO",
+            "prob": 0.879
+          },
+          {
+            "archetype": "VISIONARIO",
+            "prob": 0.043
+          },
+          {
+            "archetype": "CONSERVATORE",
+            "prob": 0.035
+          }
+        ],
+        "status": "GO",
+        "description": "Magicar PA — immagine clienti esigenti + aspetto visivo"
+      }
+    ]
+  },
+  "1e_confusion_pairs": {
+    "VISIONARIO_vs_PERFORMANTE": {
+      "pair": "VISIONARIO_vs_PERFORMANTE",
+      "total": 10,
+      "correct": 10,
+      "accuracy": 100.0,
+      "go": true,
+      "cases": [
+        {
+          "text": "Voglio essere il primo dealer della zona ad avere questo servizio",
+          "expected": "VISIONARIO",
+          "predicted": "VISIONARIO",
+          "confidence": 0.892,
+          "correct": true
+        },
+        {
+          "text": "Entro venerdì mi serve una risposta definitiva, non ho tempo da perder...",
+          "expected": "PERFORMANTE",
+          "predicted": "PERFORMANTE",
+          "confidence": 0.815,
+          "correct": true
+        },
+        {
+          "text": "Se mi garantisci l'esclusiva per tutta la Puglia sono dentro",
+          "expected": "VISIONARIO",
+          "predicted": "VISIONARIO",
+          "confidence": 0.791,
+          "correct": true
+        },
+        {
+          "text": "Ho già un acquirente. BMW Serie 5, 2021. Dimmi se ce l'hai entro doman...",
+          "expected": "PERFORMANTE",
+          "predicted": "PERFORMANTE",
+          "confidence": 0.693,
+          "correct": true
+        },
+        {
+          "text": "Nessun altro qui fa quello che fai tu? Voglio capire se posso diventar...",
+          "expected": "VISIONARIO",
+          "predicted": "VISIONARIO",
+          "confidence": 0.615,
+          "correct": true
+        },
+        {
+          "text": "Considera questo come ultimatum: o mi mandi l'offerta oggi o chiudo",
+          "expected": "PERFORMANTE",
+          "predicted": "PERFORMANTE",
+          "confidence": 0.441,
+          "correct": true
+        },
+        {
+          "text": "Mi interessa essere l'unico nella mia provincia ad avere veicoli tedes...",
+          "expected": "VISIONARIO",
+          "predicted": "VISIONARIO",
+          "confidence": 0.927,
+          "correct": true
+        },
+        {
+          "text": "Cliente aspetta risposta. Hai una Mercedes C 2022 disponibile adesso?",
+          "expected": "PERFORMANTE",
+          "predicted": "PERFORMANTE",
+          "confidence": 0.416,
+          "correct": true
+        },
+        {
+          "text": "Posso avere diritto di prelazione sulla zona? Prima di tutti gli altri...",
+          "expected": "VISIONARIO",
+          "predicted": "VISIONARIO",
+          "confidence": 0.791,
+          "correct": true
+        },
+        {
+          "text": "Non ho tempo per lunghe trattative. Dimmi sì o no entro oggi.",
+          "expected": "PERFORMANTE",
+          "predicted": "PERFORMANTE",
+          "confidence": 0.731,
+          "correct": true
+        }
+      ]
+    },
+    "BARONE_vs_CONSERVATORE": {
+      "pair": "BARONE_vs_CONSERVATORE",
+      "total": 10,
+      "correct": 7,
+      "accuracy": 70.0,
+      "go": true,
+      "cases": [
+        {
+          "text": "Ho i miei fornitori da 15 anni. Non ho bisogno di nessuno.",
+          "expected": "BARONE",
+          "predicted": "BARONE",
+          "confidence": 0.783,
+          "correct": true
+        },
+        {
+          "text": "Ho sempre lavorato così. Non cambio metodo adesso.",
+          "expected": "CONSERVATORE",
+          "predicted": "CONSERVATORE",
+          "confidence": 0.681,
+          "correct": true
+        },
+        {
+          "text": "Conosco già tutti nel settore. Non mi serve un nuovo contatto.",
+          "expected": "BARONE",
+          "predicted": "BARONE",
+          "confidence": 0.627,
+          "correct": true
+        },
+        {
+          "text": "Il rischio non fa per me. Preferisco quello che conosco.",
+          "expected": "CONSERVATORE",
+          "predicted": "BARONE",
+          "confidence": 0.403,
+          "correct": false
+        },
+        {
+          "text": "Il mio nome vale in questa zona. Mica ho bisogno di intermediari.",
+          "expected": "BARONE",
+          "predicted": "BARONE",
+          "confidence": 0.414,
+          "correct": true
+        },
+        {
+          "text": "Capisco ma ho paura di problemi. Mai avuto complicazioni finora.",
+          "expected": "CONSERVATORE",
+          "predicted": "CONSERVATORE",
+          "confidence": 0.418,
+          "correct": true
+        },
+        {
+          "text": "Ho costruito la mia rete da solo. Non la cambio certo adesso.",
+          "expected": "BARONE",
+          "predicted": "BARONE",
+          "confidence": 0.595,
+          "correct": true
+        },
+        {
+          "text": "Preferirei aspettare e vedere come va con altri prima di buttarmi.",
+          "expected": "CONSERVATORE",
+          "predicted": "VISIONARIO",
+          "confidence": 0.255,
+          "correct": false
+        },
+        {
+          "text": "Sono il punto di riferimento qui. Lo sanno tutti.",
+          "expected": "BARONE",
+          "predicted": "VISIONARIO",
+          "confidence": 0.488,
+          "correct": false
+        },
+        {
+          "text": "Non mi fido di cose nuove. Ho già abbastanza da gestire.",
+          "expected": "CONSERVATORE",
+          "predicted": "CONSERVATORE",
+          "confidence": 0.327,
+          "correct": true
+        }
+      ]
+    },
+    "OPPORTUNISTA_vs_RAGIONIERE": {
+      "pair": "OPPORTUNISTA_vs_RAGIONIERE",
+      "total": 10,
+      "correct": 10,
+      "accuracy": 100.0,
+      "go": true,
+      "cases": [
+        {
+          "text": "Quanto costa? Se faccio 3 operazioni mi fai uno sconto?",
+          "expected": "OPPORTUNISTA",
+          "predicted": "OPPORTUNISTA",
+          "confidence": 0.924,
+          "correct": true
+        },
+        {
+          "text": "Mi spieghi come funziona l'IVA sul regime margine? Voglio capire il ne...",
+          "expected": "RAGIONIERE",
+          "predicted": "RAGIONIERE",
+          "confidence": 0.576,
+          "correct": true
+        },
+        {
+          "text": "Il tuo concorrente mi ha offerto 700. Cosa fai?",
+          "expected": "OPPORTUNISTA",
+          "predicted": "OPPORTUNISTA",
+          "confidence": 0.625,
+          "correct": true
+        },
+        {
+          "text": "Voglio vedere un'analisi ROI completa prima di decidere.",
+          "expected": "RAGIONIERE",
+          "predicted": "RAGIONIERE",
+          "confidence": 0.621,
+          "correct": true
+        },
+        {
+          "text": "Prezzo finale tutto incluso. Dimmi solo quello.",
+          "expected": "OPPORTUNISTA",
+          "predicted": "OPPORTUNISTA",
+          "confidence": 0.772,
+          "correct": true
+        },
+        {
+          "text": "Quante tasse pago? Come si struttura fiscalmente l'operazione?",
+          "expected": "RAGIONIERE",
+          "predicted": "RAGIONIERE",
+          "confidence": 0.584,
+          "correct": true
+        },
+        {
+          "text": "Se prendo 5 auto in 3 mesi quanto mi fai pagare?",
+          "expected": "OPPORTUNISTA",
+          "predicted": "OPPORTUNISTA",
+          "confidence": 0.539,
+          "correct": true
+        },
+        {
+          "text": "Il commercialista vuole capire come si registra contabilmente.",
+          "expected": "RAGIONIERE",
+          "predicted": "RAGIONIERE",
+          "confidence": 0.639,
+          "correct": true
+        },
+        {
+          "text": "Ho trovato lo stesso veicolo a 200€ in meno. Pareggi?",
+          "expected": "OPPORTUNISTA",
+          "predicted": "OPPORTUNISTA",
+          "confidence": 0.795,
+          "correct": true
+        },
+        {
+          "text": "Parliamo di struttura: fee deducibile? Fattura italiana?",
+          "expected": "RAGIONIERE",
+          "predicted": "RAGIONIERE",
+          "confidence": 0.585,
+          "correct": true
+        }
+      ]
+    },
+    "RELAZIONALE_vs_DELEGATORE": {
+      "pair": "RELAZIONALE_vs_DELEGATORE",
+      "total": 10,
+      "correct": 7,
+      "accuracy": 70.0,
+      "go": true,
+      "cases": [
+        {
+          "text": "Prima di parlare di business voglio conoscerti. Vieni in concessionari...",
+          "expected": "RELAZIONALE",
+          "predicted": "RELAZIONALE",
+          "confidence": 0.61,
+          "correct": true
+        },
+        {
+          "text": "Ne devo parlare con il mio socio. Lui gestisce i fornitori.",
+          "expected": "DELEGATORE",
+          "predicted": "DELEGATORE",
+          "confidence": 0.798,
+          "correct": true
+        },
+        {
+          "text": "Con te mi trovo bene ma ho bisogno di fidarmi prima di comprare.",
+          "expected": "RELAZIONALE",
+          "predicted": "RELAZIONALE",
+          "confidence": 0.423,
+          "correct": true
+        },
+        {
+          "text": "Non posso decidere da solo su queste cose. Sento il titolare.",
+          "expected": "DELEGATORE",
+          "predicted": "DELEGATORE",
+          "confidence": 0.496,
+          "correct": true
+        },
+        {
+          "text": "Ti chiamo quando sei di persona in zona. Non faccio business a distanz...",
+          "expected": "RELAZIONALE",
+          "predicted": "RELAZIONALE",
+          "confidence": 0.624,
+          "correct": true
+        },
+        {
+          "text": "Mio fratello si occupa degli acquisti. Parla con lui.",
+          "expected": "DELEGATORE",
+          "predicted": "DELEGATORE",
+          "confidence": 0.515,
+          "correct": true
+        },
+        {
+          "text": "Ho bisogno di sentire una referenza, qualcuno che ti conosce già.",
+          "expected": "RELAZIONALE",
+          "predicted": "RELAZIONALE",
+          "confidence": 0.627,
+          "correct": true
+        },
+        {
+          "text": "Sì mi sembra interessante ma la parola finale ce l'ha il commercialist...",
+          "expected": "DELEGATORE",
+          "predicted": "OPPORTUNISTA",
+          "confidence": 0.663,
+          "correct": false
+        },
+        {
+          "text": "Non lavoro con persone che non vedo in faccia. Ci possiamo incontrare?",
+          "expected": "RELAZIONALE",
+          "predicted": "BARONE",
+          "confidence": 0.442,
+          "correct": false
+        },
+        {
+          "text": "Ne parliamo in famiglia, poi ti ricontatto noi.",
+          "expected": "DELEGATORE",
+          "predicted": "BARONE",
+          "confidence": 0.338,
+          "correct": false
+        }
+      ]
+    }
+  },
+  "archetype_verdicts": {
+    "RAGIONIERE": {
+      "go_rate": 50.0,
+      "stats": {
+        "go": 1,
+        "marginal": 4,
+        "nogo": 1,
+        "total": 6
+      },
+      "verdict": "MARGINAL"
+    },
+    "VISIONARIO": {
+      "go_rate": 100.0,
+      "stats": {
+        "go": 2,
+        "marginal": 0,
+        "nogo": 0,
+        "total": 2
+      },
+      "verdict": "GO"
+    },
+    "TECNICO": {
+      "go_rate": 100.0,
+      "stats": {
+        "go": 2,
+        "marginal": 0,
+        "nogo": 0,
+        "total": 2
+      },
+      "verdict": "GO"
+    },
+    "PERFORMANTE": {
+      "go_rate": 62.5,
+      "stats": {
+        "go": 1,
+        "marginal": 3,
+        "nogo": 0,
+        "total": 4
+      },
+      "verdict": "MARGINAL"
+    },
+    "OPPORTUNISTA": {
+      "go_rate": 66.7,
+      "stats": {
+        "go": 1,
+        "marginal": 2,
+        "nogo": 0,
+        "total": 3
+      },
+      "verdict": "GO"
+    },
+    "BARONE": {
+      "go_rate": 75.0,
+      "stats": {
+        "go": 1,
+        "marginal": 1,
+        "nogo": 0,
+        "total": 2
+      },
+      "verdict": "GO"
+    },
+    "CONSERVATORE": {
+      "go_rate": 100.0,
+      "stats": {
+        "go": 2,
+        "marginal": 0,
+        "nogo": 0,
+        "total": 2
+      },
+      "verdict": "GO"
+    },
+    "DELEGATORE": {
+      "go_rate": 100.0,
+      "stats": {
+        "go": 1,
+        "marginal": 0,
+        "nogo": 0,
+        "total": 1
+      },
+      "verdict": "GO"
+    },
+    "NARCISO": {
+      "go_rate": 100.0,
+      "stats": {
+        "go": 1,
+        "marginal": 0,
+        "nogo": 0,
+        "total": 1
+      },
+      "verdict": "GO"
+    }
+  },
+  "outreach_decisions": {
+    "Mazzilli Auto BA": "GO",
+    "Prime Cars CT": "GO",
+    "Campania Sport Car NA": "GO",
+    "Autosannino NA": "GO",
+    "Magicar PA": "GO"
+  }
+}

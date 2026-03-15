@@ -65,7 +65,13 @@ BATCH_FILES = [
     "batch8_edge_p2.json",
     "batch8_edge_cases.json",  # fallback
     "batch9_regional.json",
+    "batch9_regional_campania.json",
+    "batch9_regional_puglia.json",
+    "batch9_regional_sicilia.json",
     "batch10_multiturn.json",
+    # S56 — adversarial + VISIONARIO boost
+    "batch_adversarial_s56.json",
+    "batch_visionario_s56.json",
 ]
 
 def load_batch(path: Path) -> list[dict]:
