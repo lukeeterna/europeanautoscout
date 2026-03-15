@@ -193,27 +193,80 @@ PRIORITY 0 — Mario Day 7 (2026-03-17 = OGGI o IERI):
   Testo v3 RAGIONIERE in HANDOFF.md (già approvato)
   QR WA daemon: HUMAN ACTION obbligatoria prima di inviare
 
-PRIORITY 1 — WA Day 1 PrimeCars (TECNICO) + CampaniaSport (RAGIONIERE):
-  SVM ora attivo → agent-sales prepara WA Day 1
+PRIORITY 1 — HARD TEST SVM (NON SALTARE — prerequisito per outreach):
+  Il classificatore NON è stato testato in modo adversarial in S55. Farlo ora.
+
+  ════ HARD HARD TEST — 5 categorie brutali ════
+
+  1a) ADVERSARIAL TRAPS — messaggi costruiti per far sbagliare il classifier:
+      Categoria A — keyword poison (usa parole di archetipo X ma è archetipo Y):
+        "Non sono il tipo che guarda i numeri, voglio solo capire se conviene" → RAGIONIERE (non OPPORTUNISTA)
+        "Ho già i miei fornitori ma dimmi: esclusiva zona sì o no?" → VISIONARIO (non BARONE)
+        "Guarda ho fretta ma prima dimmi chi firma il contratto" → TECNICO (non PERFORMANTE)
+        "Ne parlo col commercialista ma intanto mandami i numeri IVA" → RAGIONIERE (non DELEGATORE)
+        "Non cambio quello che funziona però se mi dai l'esclusiva..." → VISIONARIO (non CONSERVATORE)
+        "Ho sempre fatto così però ho bisogno entro fine mese" → PERFORMANTE (non CONSERVATORE)
+
+      Categoria B — negation traps (usa vocab archetipo in negazione):
+        "Non mi interessano i documenti, mi interessa solo il prezzo finale" → OPPORTUNISTA (non TECNICO)
+        "Non voglio essere il primo, voglio solo guadagnare" → RAGIONIERE (non VISIONARIO)
+        "Non ho tempo per garanzie e certificazioni, parlami di tempi" → PERFORMANTE (non TECNICO)
+
+      Categoria C — fake signals (segnale forte sbagliato all'inizio):
+        "48 ore o chiudo. Ps: ma quanto rimane netto con l'IVA?" → RAGIONIERE (PERF è bait)
+        "Sono il riferimento della zona. Comunque quanto costa?" → OPPORTUNISTA (BARO è bait)
+
+  1b) NOISE + DIALECT STRESS TEST:
+      WA reale con typo e abbreviazioni:
+        "cmq ho già i miei ke mi trovan tutto nn ho bisogno" → BARONE
+        "dotto senziamoci ma prima mi dica i costi reali" → RAGIONIERE campano
+        "xché dovrei pagare 900€??? il mio importatore prende 600" → OPPORTUNISTA
+        "👀 vediamo cosa ha... ma non è detto eh" → CONSERVATORE
+        "MANDAMI SUBITO QUELLO CHE HAI DISPONIBILE ADESSO" → PERFORMANTE caps
+        "Interessante 🤔 però ne parlo col mio socio (lui sa più di me su ste cose)" → DELEGATORE
+        "boh... ci vediamo forse. vedremo 🙏" → CONSERVATORE (Sicilia flavor)
+
+  1c) MINIMAL SIGNAL TEST — 1-5 parole, classifier deve decidere:
+      "Ok" / "Vedrò" / "Ci penso" / "Mah" / "Interessante" / "Forse"
+      "Disponibile adesso?" / "Garanzie?" / "Esclusiva?" / "Sconto?"
+      "Ne parlo" / "Non so" / "Ci sento" / "Mandami qualcosa"
+      Expected: ogni risposta deve avere conf <0.70 (ambiguità dichiarata)
+
+  1d) REAL DEALER SIMULATION — 5 messaggi costruiti sui dealer Batch 1:
+      Mazzilli Auto BA (PERFORMANTE): "Luca dimmi subito che BMW hai. Ho un cliente che aspetta. Entro giovedì o vado da altri."
+      Prime Cars CT (TECNICO): "Buongiorno. Chi emette il Gutachten? È DEKRA accreditato EU? Il contratto lo firma ARGOS come principale?"
+      Campania Sport Car NA (RAGIONIERE): "Dotto mi dica: con le sue auto quanto rimane in tasca netto? Come funziona l'IVA sul regime margine?"
+      Autosannino NA (BARONE): "Ho già i miei contatti. Lavoro da 20 anni. Cosa mi dai che non ho."
+      Magicar PA (NARCISO): "I miei clienti sono esigenti. Com'è messa la vettura visivamente? Non voglio problemi di immagine."
+
+  1e) CONFUSION PAIR DEEP DIVE — genera 10 messaggi per ogni coppia critica:
+      VISIONARIO vs PERFORMANTE (peggio: 27% recall VISI)
+      BARONE vs CONSERVATORE (entrambi resistenti ma per ragioni diverse)
+      OPPORTUNISTA vs RAGIONIERE (entrambi parlano di numeri/soldi)
+      RELAZIONALE vs DELEGATORE (entrambi rimandano ma per ragioni diverse)
+      → Per ogni coppia: calcola accuracy separata, identifica il token discriminante
+
+  Script da creare: tools/hard_test_svm.py
+  Output: JSON report + GO/NO-GO per outreach per ogni dealer
+  GO = archetipo corretto con conf > 0.65
+  NO-GO = archetipo sbagliato o conf < 0.50 → genera più dati prima di contattare
+
+PRIORITY 2 — WA Day 1 PrimeCars (TECNICO) + CampaniaSport (RAGIONIERE):
+  SOLO SE hard test dà GO → agent-sales prepara WA Day 1
   HUMAN-IN-THE-LOOP prima di inviare
-  Testa prima con: python3 src/marketing/archetype_embedder.py predict --text "..."
 
-PRIORITY 2 — SVM tuning per VISIONARIO (27% recall → target 95%):
-  Problema: confusione VISIONARIO↔PERFORMANTE
-  Fix: genera 100 conv VISIONARIO puri con segnali ancora più netti
-    ("esclusiva" + zona geografica + "primo" → VISIONARIO inconfondibile)
-  Poi retrain: python3 src/marketing/train_svm_classifier.py
+PRIORITY 3 — SVM tuning VISIONARIO (27% recall → target 95%):
+  Genera 100 conv VISIONARIO puri con segnali netti post hard test
+  Retrain: python3 src/marketing/train_svm_classifier.py
 
-PRIORITY 3 — TTS Luca:
+PRIORITY 4 — TTS Luca:
   Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice su iMac (ssh gianlucadistasi@192.168.1.12)
   FranckyB GGUF Q4/Q5 da patreon.com (Apache 2.0, IT nativo)
-  ehiweb VoIP IT per canale voce
   → memory/project_tts_sara_architecture.md (voce = LUCA non Sara)
 
-PRIORITY 4 — GSD integration:
+PRIORITY 5 — GSD integration:
   tools/gsd/ v1.22.4 già presente nel repo
-  Valuta gsd-roadmapper per pianificazione S57+
-  Valuta gsd-nyquist-auditor per quality check dataset/SVM
+  Valuta gsd-nyquist-auditor per quality check dataset/SVM post hard test
 
 Fine S56: HANDOFF + MEMORY + commit + prompt S57
 ```
