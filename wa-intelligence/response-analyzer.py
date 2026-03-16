@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 response-analyzer.py — ARGOS™ Response Intelligence
-CoVe 2026 | Enterprise Grade
+CoVe 2026 | Enterprise Grade | S58 Rewrite
 
 RESPONSABILITÀ:
   Riceve un messaggio in arrivo da un dealer, carica il contesto completo
@@ -10,14 +10,16 @@ RESPONSABILITÀ:
 
   Chiamato in modo asincrono da wa-daemon.js.
   Non blocca mai il daemon.
+  ZERO dipendenze LLM — classificazione keyword + template.
 
-DIPENDENZE: duckdb, requests (Telegram), subprocess (Ollama locale)
+DIPENDENZE: duckdb, urllib (stdlib)
 """
 
 import argparse
 import duckdb
 import json
 import os
+import re
 import subprocess
 import sys
 import uuid
@@ -26,22 +28,20 @@ from datetime import datetime
 # ── Config ─────────────────────────────────────────────────
 TELEGRAM_BOT_TOKEN = os.environ.get('ARGOS_TELEGRAM_TOKEN', '')
 TELEGRAM_CHAT_ID   = os.environ.get('ARGOS_TELEGRAM_CHAT_ID', '931063621')
-OLLAMA_URL         = 'http://localhost:11434/api/generate'
-OLLAMA_MODEL       = 'mistral:7b'
 TIMEZONE           = 'Europe/Rome'
+
+# ── ARGOS Business Constants ──────────────────────────────
+ARGOS_FEE = '€1.000'
+ARGOS_FEE_RANGE = '€800-1.200'
+ARGOS_PERSONA = 'Luca Ferretti'
+ARGOS_BRAND = 'ARGOS Automotive'
 
 
 def now_it() -> str:
-    """Timestamp IT leggibile."""
-    import subprocess
     try:
-        return subprocess.check_output(
-            ['python3', '-c',
-             "import datetime; import zoneinfo; "
-             "tz=zoneinfo.ZoneInfo('Europe/Rome'); "
-             "print(datetime.datetime.now(tz).strftime('%d/%m/%Y %H:%M:%S'))"],
-            encoding='utf8'
-        ).strip()
+        import zoneinfo
+        tz = zoneinfo.ZoneInfo('Europe/Rome')
+        return datetime.now(tz).strftime('%d/%m/%Y %H:%M:%S')
     except Exception:
         return datetime.utcnow().isoformat()
 
@@ -64,244 +64,402 @@ def load_dealer_context(db_path: str, dealer_id: str) -> dict:
         ctx  = dict(zip(cols, rows[0]))
 
         # Ultimi 5 messaggi per context history
-        msgs = con.execute("""
-            SELECT direction, body, timestamp_iso
-            FROM messages
-            WHERE dealer_id = ?
-            ORDER BY created_at DESC
-            LIMIT 5
-        """, [dealer_id]).fetchall()
-        ctx['message_history'] = [
-            {'direction': r[0], 'body': r[1], 'ts': str(r[2])} for r in msgs
-        ]
+        try:
+            msgs = con.execute("""
+                SELECT direction, body, timestamp_it
+                FROM messages
+                WHERE dealer_id = ?
+                ORDER BY timestamp_it DESC
+                LIMIT 5
+            """, [dealer_id]).fetchall()
+            ctx['message_history'] = [
+                {'direction': r[0], 'body': r[1], 'ts': str(r[2])} for r in msgs
+            ]
+        except Exception:
+            ctx['message_history'] = []
         return ctx
     finally:
         con.close()
 
 
-# ── Classificatore keyword (no LLM per velocità) ──────────────
-POSITIVE_KEYWORDS = [
-    'sì', 'si', 'certo', 'ok', 'perfetto', 'interessante', 'interessato',
-    'mi interessa', 'procedi', 'dimmi', 'dimmi di più', 'manda', 'mandami',
-    'quando', 'come funziona', 'scheda', 'info', 'dati', 'vediamo',
-    'possiamo', 'volentieri', 'ottimo', 'bene', 'va bene', 'capisco',
-]
-OBJECTION_KEYWORDS = [
-    'ho già', 'uso già', 'lavoro già', 'non ho bisogno', 'troppo caro',
-    'il prezzo', 'la fee', 'quanto costa', 'non capisco', 'non mi convince',
-    'devo sentire', 'devo chiedere', 'mio socio', 'il titolare', 'aspetta',
-    'richiamo', 'ti richiamo', 'non ho tempo', 'occupato',
-]
-NEGATIVE_KEYWORDS = [
-    'non mi interessa', 'non interessa', 'no grazie', 'non grazie',
-    'non ho interesse', 'smettila', 'non scrivere', 'blocca', 'stop',
-    'rimuovi', 'cancella', 'non voglio',
-]
-CURIOSITY_KEYWORDS = [
-    'chi sei', 'come hai', 'come mi hai', 'da dove', 'sei di',
-    'quale azienda', 'che azienda', 'come funziona', 'spiegami',
-    'cos\'è', 'che cos\'è', 'come mai', 'dove hai preso',
-]
+# ── Classificatore keyword robusto (ZERO LLM) ────────────────
+# Ordine: NEGATIVE > OBJECTION > POSITIVE > CURIOSITY > UNKNOWN
+# Ogni pattern ha peso. Il tipo con score più alto vince.
+
+PATTERNS = {
+    'NEGATIVE': {
+        'exact': [
+            'no grazie', 'non mi interessa', 'non interessa', 'non ho interesse',
+            'smettila', 'non scrivere più', 'non scrivermi', 'blocca',
+            'stop', 'rimuovi', 'cancella', 'non voglio', 'non contattarmi',
+            'ma chi sei', 'ma chi ti conosce', 'vaffanculo', 'vai a cagare',
+            'spam', 'segnalo', 'segnalato',
+            'non mi convince', 'lascia perdere', 'lasci perdere',
+        ],
+        'weight': 1.0,
+    },
+    'POSITIVE': {
+        'exact': [
+            'sì', 'certo', 'ok', 'perfetto', 'interessante',
+            'mi interessa', 'procedi', 'dimmi', 'dimmi di più',
+            'manda', 'mandami', 'inviami', 'fammi vedere', 'vediamo',
+            'possiamo', 'volentieri', 'ottimo', 'bene', 'va bene',
+            'quando possiamo', 'ci sto', 'proviamo', 'facciamo',
+            'mi piace', 'buona idea', 'perché no', 'sono curioso',
+            'interessato', 'parliamone', 'mi dica', 'avanti',
+            'okay', 'okey', 'va benissimo', 'assolutamente',
+            'mandi pure', 'mi faccia sapere', 'aspetto',
+        ],
+        'weight': 0.85,
+    },
+    'CURIOSITY': {
+        'exact': [
+            'chi sei', 'chi è lei', 'come hai avuto', 'come ha avuto',
+            'da dove', 'sei di', 'è di', 'quale azienda', 'che azienda',
+            'come funziona', 'spiegami', 'mi spieghi', 'mi spiega',
+            "cos'è", "che cos'è", 'come mai', 'dove hai preso',
+            'dove ha preso', 'il mio numero', 'come ha trovato',
+            'ma cosa fate', 'che servizio', 'in cosa consiste',
+            'che tipo di', 'mi dica di più', 'vorrei capire',
+        ],
+        'weight': 0.80,
+    },
+    'OBJ-1': {  # Ho già fornitori
+        'exact': [
+            'ho già', 'uso già', 'lavoro già', 'abbiamo già',
+            'ho i miei', 'canali miei', 'faccio già import',
+            'importo già', 'ho il mio fornitore', 'sono a posto',
+            'non ho bisogno', 'non mi serve', 'non ne ho bisogno',
+        ],
+        'weight': 0.90,
+    },
+    'OBJ-2': {  # Prezzo/fee
+        'exact': [
+            'troppo caro', 'il prezzo', 'la fee', 'quanto costa',
+            'quanto viene', 'quanto mi costa', 'conviene',
+            'non conviene', 'costoso', 'caro', 'economico',
+            'risparmio', 'sconto', 'negoziare', 'trattare',
+            'margine', 'guadagno', 'ci guadagno', 'costa',
+        ],
+        'weight': 0.90,
+    },
+    'OBJ-3': {  # Tempo
+        'exact': [
+            'non ho tempo', 'occupato', 'richiamo', 'ti richiamo',
+            'la richiamo', 'adesso no', 'ora no', 'più tardi',
+            'settimana prossima', 'ne parliamo dopo', 'sono fuori',
+            'sono in fiera', 'periodo pieno', 'momento sbagliato',
+        ],
+        'weight': 0.85,
+    },
+    'OBJ-4': {  # Garanzie/fiducia/rischio
+        'exact': [
+            'garanzie', 'che garanzia', 'come mi tutelo',
+            'e se non va bene', 'se non va bene', 'non va bene',
+            'e se il veicolo', 'se il veicolo', 'fregatura',
+            'sicurezza', 'fidarmi', 'mi fido', 'non mi fido',
+            'referenze', 'altri clienti', 'chi ha lavorato',
+            'documenti', 'contratto', 'tutela', 'assicurazione',
+        ],
+        'weight': 0.85,
+    },
+    'OBJ-5': {  # Devo sentire socio/titolare
+        'exact': [
+            'devo sentire', 'devo chiedere', 'mio socio', 'il titolare',
+            'il proprietario', 'il capo', 'devo parlare con',
+            'non decido io', 'non sono io che', 'aspetta che chiedo',
+            'ne parlo con', 'sento il mio', 'devo confrontarmi',
+        ],
+        'weight': 0.90,
+    },
+}
 
 
 def classify_message(body: str) -> dict:
     """
-    Classifica il tipo di risposta con approccio a 2 stadi:
-    1. Keyword matching veloce (ms)
-    2. Se ambiguo → Ollama per analisi semantica
+    Classifica il tipo di risposta con keyword matching robusto.
+    Zero dipendenze LLM. Fallback a UNKNOWN con flag human-needed.
     """
     b_lower = body.lower().strip()
 
-    # Stage 1: keyword matching deterministico
-    for kw in NEGATIVE_KEYWORDS:
-        if kw in b_lower:
-            return {'type': 'NEGATIVE', 'confidence': 0.95, 'method': 'keyword'}
+    # Messaggi di 1 parola — check speciale
+    words = b_lower.split()
+    if len(words) <= 1:
+        if b_lower in ('ok', 'sì', 'si', 'va bene', 'certo', 'perfetto', 'ottimo', 'bene',
+                       'si grazie', 'sì grazie', 'ok grazie', 'certo grazie'):
+            return {'type': 'POSITIVE', 'confidence': 0.90, 'method': 'short_match'}
+        if b_lower in ('no', 'no grazie', 'stop'):
+            return {'type': 'NEGATIVE', 'confidence': 0.95, 'method': 'short_match'}
+        if '?' in body:
+            return {'type': 'CURIOSITY', 'confidence': 0.75, 'method': 'question_mark'}
 
-    for kw in POSITIVE_KEYWORDS:
-        if kw in b_lower:
-            return {'type': 'POSITIVE', 'confidence': 0.85, 'method': 'keyword'}
+    # Negation check: "non va bene" != "va bene"
+    negated_positives = [
+        'non va bene', 'non mi piace', 'non mi interessa',
+        'non ho interesse', 'non voglio', 'non mi convince',
+    ]
+    has_negated_positive = any(np in b_lower for np in negated_positives)
 
-    for kw in CURIOSITY_KEYWORDS:
-        if kw in b_lower:
-            return {'type': 'CURIOSITY', 'confidence': 0.80, 'method': 'keyword'}
+    # Score-based matching
+    scores = {}
+    for category, config in PATTERNS.items():
+        score = 0
+        matched = []
+        for kw in config['exact']:
+            if kw not in b_lower:
+                continue
+            # Skip positive matches if negation detected
+            if category == 'POSITIVE' and has_negated_positive:
+                negated = False
+                for np in negated_positives:
+                    if kw in np and np in b_lower:
+                        negated = True
+                        break
+                if negated:
+                    continue
+            score += config['weight']
+            matched.append(kw)
+        if score > 0:
+            scores[category] = {'score': score, 'matched': matched}
 
-    for kw in OBJECTION_KEYWORDS:
-        if kw in b_lower:
-            # Distingui OBJ-type
-            if any(k in b_lower for k in ['ho già', 'uso già', 'lavoro già']):
-                return {'type': 'OBJECTION', 'obj_code': 'OBJ-1', 'confidence': 0.90, 'method': 'keyword'}
-            if any(k in b_lower for k in ['caro', 'prezzo', 'fee', 'costa']):
-                return {'type': 'OBJECTION', 'obj_code': 'OBJ-2', 'confidence': 0.90, 'method': 'keyword'}
-            if any(k in b_lower for k in ['tempo', 'occupato', 'richiamo']):
-                return {'type': 'OBJECTION', 'obj_code': 'OBJ-3', 'confidence': 0.85, 'method': 'keyword'}
-            if any(k in b_lower for k in ['pagamento', 'garanzie', 'sicurezza', 'come funziona']):
-                return {'type': 'OBJECTION', 'obj_code': 'OBJ-4', 'confidence': 0.85, 'method': 'keyword'}
-            if any(k in b_lower for k in ['titolare', 'socio', 'sentire', 'chiedere']):
-                return {'type': 'OBJECTION', 'obj_code': 'OBJ-5', 'confidence': 0.90, 'method': 'keyword'}
-            return {'type': 'OBJECTION', 'obj_code': 'OBJ-UNKNOWN', 'confidence': 0.70, 'method': 'keyword'}
+    if not scores:
+        # Nessun match — check se contiene domanda
+        if '?' in body:
+            return {'type': 'CURIOSITY', 'confidence': 0.60, 'method': 'question_fallback'}
+        return {'type': 'UNKNOWN', 'confidence': 0.0, 'method': 'no_match',
+                'note': 'HUMAN_NEEDED — nessun pattern riconosciuto'}
 
-    # Stage 2: Ollama per messaggi ambigui (es: risposta breve "Ok" senza contesto)
-    return classify_with_ollama(body)
+    # NEGATIVE ha sempre priorità assoluta
+    if 'NEGATIVE' in scores:
+        return {'type': 'NEGATIVE', 'confidence': 0.95, 'method': 'keyword',
+                'matched': scores['NEGATIVE']['matched']}
 
+    # Tra i rimanenti, prendi il più alto
+    best = max(scores.items(), key=lambda x: x[1]['score'])
+    category = best[0]
+    matched = best[1]['matched']
 
-def classify_with_ollama(body: str) -> dict:
-    """Usa Ollama locale per classificazione semantica."""
-    prompt = f"""Classifica il seguente messaggio WhatsApp di un dealer automobilistico italiano
-che ha ricevuto un messaggio da uno scout veicoli EU.
+    # Map OBJ-X → OBJECTION type
+    if category.startswith('OBJ-'):
+        return {'type': 'OBJECTION', 'obj_code': category,
+                'confidence': 0.85, 'method': 'keyword', 'matched': matched}
 
-Messaggio: "{body}"
-
-Rispondi SOLO con un oggetto JSON in questo formato:
-{{"type": "POSITIVE|NEGATIVE|OBJECTION|CURIOSITY|UNKNOWN", "obj_code": "OBJ-1|OBJ-2|OBJ-3|OBJ-4|OBJ-5|OBJ-UNKNOWN|null", "confidence": 0.0-1.0, "reasoning": "breve spiegazione"}}
-
-Type:
-- POSITIVE = disponibile, interessato, vuole saperne di più
-- NEGATIVE = rifiuto chiaro, non vuole più contatti
-- OBJECTION = ha dubbi, obiezioni specifiche
-- CURIOSITY = vuole capire chi sei e cosa fai
-- UNKNOWN = impossibile classificare"""
-
-    try:
-        result = subprocess.run(
-            ['curl', '-s', '-X', 'POST', OLLAMA_URL,
-             '-H', 'Content-Type: application/json',
-             '-d', json.dumps({'model': OLLAMA_MODEL, 'prompt': prompt, 'stream': False})],
-            capture_output=True, text=True, timeout=30
-        )
-        data = json.loads(result.stdout)
-        raw  = data.get('response', '{}')
-        # Estrai JSON dalla risposta
-        import re
-        match = re.search(r'\{.*?\}', raw, re.DOTALL)
-        if match:
-            parsed = json.loads(match.group())
-            parsed['method'] = 'ollama'
-            return parsed
-    except Exception as e:
-        pass
-
-    return {'type': 'UNKNOWN', 'confidence': 0.0, 'method': 'fallback'}
+    return {'type': category, 'confidence': 0.85, 'method': 'keyword',
+            'matched': matched}
 
 
-# ── Generatore risposte calibrate per archetipo ──────────────
+# ── Template risposte per archetipo ──────────────────────────
+# REGOLE IMMUTABILI:
+#   - Fee: €1.000 (MAI €400, MAI "non possiamo fatturare")
+#   - MAI "CarFax EU" → "report DAT" / "DAT Fahrzeughistorie"
+#   - MAI "Händlergarantie" → "garanzia costruttore UE"
+#   - MAI "Vincario" → "report DAT"
+#   - Talk track: "€1.000 fisso vs €7-10k margine nascosto dei trader"
+#   - MAI menzionare: CoVe, Claude, AI, Anthropic, RAG, embedding
+
 REPLY_TEMPLATES = {
     'POSITIVE': {
         'RAGIONIERE': [
-            ("ACK_DOC",
-             "Buongiorno Mario, grazie per il riscontro.\n"
-             "Le mando la scheda tecnica completa: km certificati, "
-             "report Vincario e analisi mercato IT.\nLa contatto al più presto."),
-            ("ACK_PROCESS",
-             "Perfetto Mario.\nProcedo con la verifica documentale completa "
-             "— entro 48h ha tutto il necessario per valutare."),
+            ("ACK_DATA",
+             "Grazie per il riscontro.\n"
+             "Le preparo i numeri concreti: veicolo EU franco partenza, "
+             "costi trasporto e immatricolazione, confronto prezzo IT.\n"
+             "Entro 48h ha tutto documentato.\n— Luca"),
+            ("ACK_SPECIFIC",
+             "Perfetto.\nHa un modello specifico che sta cercando? "
+             "Così le faccio i conti precisi: prezzo EU, margine netto, "
+             "report DAT incluso.\n— Luca"),
         ],
         'BARONE': [
             ("ACK_RESPECT",
              "La ringrazio, [Nome].\nLe preparo un'analisi su misura "
-             "per il suo segmento — niente dati generici."),
-            ("ACK_SHORT",
-             "Ottimo [Nome]. Procedo e la richiamo "
-             "appena ho qualcosa di concreto da mostrarle."),
+             "per il suo segmento — niente proposte generiche.\n"
+             "La ricontatto appena ho qualcosa di concreto.\n— Luca"),
+            ("ACK_EXCLUSIVE",
+             "Ottimo, [Nome].\nProcedo con una selezione riservata "
+             "e la aggiorno personalmente.\n— Luca"),
         ],
         'PERFORMANTE': [
             ("ACK_FAST",
-             "Perfetto.\n48h: scheda tecnica + breakdown margini nel suo inbox.\n"
-             "Tutto verificato. Pronti."),
+             "Perfetto.\n48h: scheda tecnica completa + breakdown margini.\n"
+             "Report DAT e ispezione DEKRA inclusi. Pronti.\n— Luca"),
+            ("ACK_ACTION",
+             "Ricevuto. Mi dica modello e fascia prezzo — "
+             "le mando le opzioni disponibili entro domani.\n— Luca"),
         ],
         'NARCISO': [
-            ("ACK_EXCLUSIVE",
-             "[Nome], ottimo.\nLe mando un'anteprima — "
-             "questa opportunità va ad un dealer per area, massimo.\n"
-             "La ricontatto subito."),
+            ("ACK_PREMIUM",
+             "[Nome], ottimo.\nLe invio un'anteprima riservata — "
+             "lavoriamo con un dealer selezionato per area.\n"
+             "La ricontatto subito.\n— Luca"),
+        ],
+        'TECNICO': [
+            ("ACK_TECH",
+             "Grazie.\nLe mando la documentazione completa: "
+             "report DAT con storico tagliandi verificato, "
+             "ispezione DEKRA, km certificati.\n"
+             "Ha un modello o motorizzazione specifica in mente?\n— Luca"),
+        ],
+        'RELAZIONALE': [
+            ("ACK_WARM",
+             "Grazie, [Nome], fa piacere.\n"
+             "Mi dica pure con calma cosa sta cercando — "
+             "ci lavoriamo insieme senza fretta.\n— Luca"),
+        ],
+        'CONSERVATORE': [
+            ("ACK_SAFE",
+             "Grazie per la fiducia.\nLe mando tutto documentato: "
+             "nessuna sorpresa, verifica DAT e DEKRA incluse.\n"
+             "Zero anticipi — paga solo se il veicolo la convince.\n— Luca"),
+        ],
+        'DELEGATORE': [
+            ("ACK_EASY",
+             "Perfetto, [Nome].\nGestisco tutto io — lei mi dice "
+             "modello e budget, io le porto il veicolo verificato.\n"
+             "La aggiorno passo per passo.\n— Luca"),
+        ],
+        'OPPORTUNISTA': [
+            ("ACK_DEAL",
+             "Ottimo.\nLe mostro subito dove sta il margine: "
+             "prezzo EU vs prezzo IT dello stesso veicolo.\n"
+             "I numeri parlano da soli.\n— Luca"),
+        ],
+        'VISIONARIO': [
+            ("ACK_MODEL",
+             "Interessante che ci stia pensando.\n"
+             "Il nostro modello è diverso: fee fissa trasparente, "
+             "zero margini nascosti, verifica indipendente.\n"
+             "Le mando un caso studio concreto.\n— Luca"),
         ],
         'DEFAULT': [
             ("ACK_GENERIC",
              "Grazie per il riscontro.\n"
-             "Le mando i dettagli completi entro 48h.\nA presto,\nLuca"),
+             "Le mando i dettagli completi entro 48h — "
+             "report DAT e ispezione DEKRA inclusi.\n"
+             "Zero anticipi, paga solo a veicolo approvato.\n— Luca"),
         ],
     },
+
     'CURIOSITY': {
         'DEFAULT': [
             ("ID_FULL",
-             "Certo [Nome].\nSono Luca Ferretti — scouto veicoli premium "
-             "verificati in Germania, Austria, Olanda e altri mercati EU "
-             "per dealer italiani.\nOgni veicolo ha report Vincario, km certificati, "
-             "storico tagliandi. Nessun anticipo — pago solo a veicolo consegnato e approvato.\n"
-             "Vuole che le mando un esempio concreto?"),
+             "Certo, [Nome].\n"
+             "Sono Luca Ferretti di ARGOS Automotive — seleziono veicoli premium "
+             "verificati in Germania, Belgio e Olanda per concessionari italiani.\n\n"
+             "Come funziona:\n"
+             "• Lei mi dice modello e fascia — io cerco nei mercati EU\n"
+             "• Ogni veicolo ha report DAT + ispezione DEKRA\n"
+             "• Fee fissa {fee} a veicolo consegnato — zero anticipi\n"
+             "• Se il veicolo non la convince: non paga nulla\n\n"
+             "La differenza rispetto ai trader? Loro nascondono €7-10.000 "
+             "nel prezzo. Noi mettiamo tutto in chiaro.\n"
+             "Vuole che le faccia un esempio su un modello specifico?\n— Luca".format(fee=ARGOS_FEE)),
             ("ID_SHORT",
-             "Mi chiamo Luca Ferretti.\nIdentificare veicoli premium EU verificati "
-             "per dealer italiani che vogliono margini certi.\n"
-             "Come funziona: [Nome] indica modello/segmento → in 48h "
-             "verifico se c'è qualcosa di concreto in giro.\nZero anticipi."),
+             "Luca Ferretti, ARGOS Automotive.\n"
+             "Trovo veicoli premium EU verificati per dealer italiani.\n"
+             "Fee fissa {fee} — paga solo a veicolo consegnato e approvato.\n"
+             "Report DAT + DEKRA inclusi.\n"
+             "Posso mostrarle un esempio concreto?\n— Luca".format(fee=ARGOS_FEE)),
         ],
     },
+
     'OBJECTION': {
-        'OBJ-1': {
+        'OBJ-1': {  # Ho già fornitori
             'RAGIONIERE': [
                 ("OBJ1_DATA",
-                 "Capisco perfettamente — e non voglio sostituire i suoi fornitori.\n"
-                 "La differenza concreta: ogni veicolo che propongo ha km verificati "
-                 "con report Vincario, non 'circa X.000'.\n"
-                 "Quella differenza vale €1.500-2.000 sul valore di rivendita.\n"
-                 "Posso mandarle un esempio reale per confronto?"),
+                 "Non le chiedo di cambiare fornitori — capisco perfettamente.\n\n"
+                 "Una cosa concreta: i trader tradizionali incorporano €7-10.000 "
+                 "di margine nel prezzo senza dichiararlo.\n"
+                 "Con noi la fee è {fee} fissa e trasparente — "
+                 "il risparmio netto va tutto a lei.\n\n"
+                 "Le faccio un confronto su un modello che tratta? "
+                 "Prezzo EU vs prezzo del suo fornitore attuale.\n— Luca".format(fee=ARGOS_FEE)),
             ],
             'DEFAULT': [
                 ("OBJ1_GENERIC",
-                 "Capisco — e non le chiedo di cambiare fornitori.\n"
-                 "Le offro solo veicoli con verifica documentale che i canali "
-                 "standard non offrono. Vale valutare?"),
+                 "Capisco — e non le chiedo di cambiare nulla.\n"
+                 "Le offro un'opzione in più: veicoli con report DAT verificato "
+                 "e fee fissa {fee} dichiarata.\n"
+                 "Vale confrontare? Un esempio su un modello specifico "
+                 "non costa nulla.\n— Luca".format(fee=ARGOS_FEE)),
             ],
         },
-        'OBJ-2': {
-            'DEFAULT': [
+        'OBJ-2': {  # Prezzo/fee
+            'RAGIONIERE': [
                 ("OBJ2_CALC",
-                 "Le faccio i numeri precisi:\n"
-                 "• Veicolo EU: franco partenza\n"
-                 "• Trasporto + targhe IT: incluso nel mio costo\n"
-                 "• Mercato IT stesso veicolo: verificabile su AutoScout24\n"
-                 "• La mia fee pilot: €400 — solo a consegna avvenuta\n"
-                 "Vuole che glieli faccia su un veicolo specifico?"),
+                 "I numeri concreti:\n"
+                 "• Un trader prende €7-10.000 di margine nascosto per auto\n"
+                 "• La nostra fee: {fee} fissa, dichiarata prima\n"
+                 "• Differenza netta per lei: €6-9.000 in più di margine per veicolo\n\n"
+                 "Su un lotto di 5 auto sono €30-45.000 di differenza.\n"
+                 "Vuole che le faccia i conti su un modello preciso?\n— Luca".format(fee=ARGOS_FEE)),
+            ],
+            'DEFAULT': [
+                ("OBJ2_TRANSPARENT",
+                 "La nostra fee è {fee} a veicolo, tutto incluso.\n"
+                 "Nessun anticipo — paga solo quando il veicolo è da lei, "
+                 "verificato e approvato.\n\n"
+                 "Per confronto: i trader nascondono €7-10.000 nel prezzo.\n"
+                 "Con noi risparmia e sa esattamente quanto spende.\n"
+                 "Posso mostrarle un esempio reale?\n— Luca".format(fee=ARGOS_FEE)),
             ],
         },
-        'OBJ-3': {
+        'OBJ-3': {  # Tempo
             'DEFAULT': [
                 ("OBJ3_ASYNC",
-                 "Rispetto il suo tempo — ho già fatto tutto il lavoro.\n"
-                 "Le basta 1 minuto: le mando un PDF di 1 pagina con i dati.\n"
-                 "Non ho fretta — mi faccia sapere quando può dare un'occhiata."),
+                 "Nessun problema — rispetto il suo tempo.\n"
+                 "Le mando un riepilogo di 1 pagina via WhatsApp: "
+                 "lo guarda quando ha 2 minuti.\n"
+                 "Non c'è urgenza — mi faccia sapere lei.\n— Luca"),
             ],
         },
-        'OBJ-4': {
+        'OBJ-4': {  # Garanzie/fiducia
             'DEFAULT': [
                 ("OBJ4_RISK",
-                 "Funziona a successo totale: non paga nulla fino alla "
-                 "consegna fisica del veicolo.\nFee €400 — addebitata solo "
-                 "quando il veicolo è da lei, verificato e approvato.\n"
-                 "Se non corrisponde alle specifiche certificate: non deve nulla."),
+                 "Funziona a rischio zero per lei:\n"
+                 "• Non paga nulla fino alla consegna fisica\n"
+                 "• Report DAT (storico veicolo) + ispezione DEKRA prima dell'acquisto\n"
+                 "• Garanzia costruttore UE valida in Italia\n"
+                 "• Fee {fee} solo a veicolo approvato da lei\n"
+                 "• Se non corrisponde alle specifiche: non deve nulla\n\n"
+                 "Posso mandarle un esempio di report DAT?\n— Luca".format(fee=ARGOS_FEE)),
             ],
         },
-        'OBJ-5': {
+        'OBJ-5': {  # Socio/titolare
             'DEFAULT': [
                 ("OBJ5_ESCALATE",
                  "Naturalmente — è la cosa giusta da fare.\n"
-                 "Le mando una scheda di 1 pagina da girare direttamente: "
-                 "margine netto documentato, verifica km, condizioni pilot.\n"
-                 "Posso mandarla a lei o direttamente al titolare?"),
+                 "Le preparo un riepilogo di 1 pagina da girare direttamente: "
+                 "come funziona, fee {fee}, report DAT + DEKRA, zero anticipi.\n"
+                 "Lo mando a lei o preferisce che lo invii al titolare?\n— Luca".format(fee=ARGOS_FEE)),
             ],
         },
         'OBJ-UNKNOWN': {
             'DEFAULT': [
                 ("OBJ_UNKNOWN",
-                 "⚠️ OBIEZIONE NON CATALOGATA — RICHIEDE INTERVENTO UMANO\n"
-                 "Messaggio dealer: [MSG_BODY]\n"
-                 "NON rispondere automaticamente. Analizza e rispondi manualmente."),
+                 "⚠️ OBIEZIONE NON CATALOGATA — RICHIEDE APPROVAZIONE MANUALE\n\n"
+                 "Messaggio dealer:\n«[MSG_BODY]»\n\n"
+                 "Suggerimento: rispondi con empatia, riporta al valore concreto "
+                 "(fee {fee} fissa vs €7-10k nascosti).".format(fee=ARGOS_FEE)),
             ],
         },
     },
+
     'NEGATIVE': {
         'DEFAULT': [
             ("CLOSE_GRACEFUL",
-             "[internalmente: CHIUDI CONTATTO — non rispondere, log CLOSED_NO]"),
+             "— AZIONE: Non rispondere. Dealer chiuso con CLOSED_NO.\n"
+             "Porta aperta: il dealer potrebbe tornare in futuro."),
+        ],
+    },
+
+    'UNKNOWN': {
+        'DEFAULT': [
+            ("UNKNOWN_HUMAN",
+             "⚠️ MESSAGGIO NON CLASSIFICATO — APPROVAZIONE MANUALE RICHIESTA\n\n"
+             "Messaggio dealer:\n«[MSG_BODY]»\n\n"
+             "Il sistema non ha riconosciuto il pattern. "
+             "Scrivi la risposta manualmente con /modifica."),
         ],
     },
 }
@@ -323,6 +481,8 @@ def get_candidate_replies(
     # Naviga il template tree
     if msg_type == 'NEGATIVE':
         templates = REPLY_TEMPLATES['NEGATIVE']['DEFAULT']
+    elif msg_type == 'UNKNOWN':
+        templates = REPLY_TEMPLATES['UNKNOWN']['DEFAULT']
     elif msg_type == 'CURIOSITY':
         personas  = REPLY_TEMPLATES.get('CURIOSITY', {})
         templates = personas.get(persona, personas.get('DEFAULT', []))
@@ -334,17 +494,23 @@ def get_candidate_replies(
         obj_node  = obj_tree.get(obj_code or 'OBJ-UNKNOWN', {})
         templates = obj_node.get(persona, obj_node.get('DEFAULT', []))
     else:
-        templates = [('UNKNOWN_FALLBACK',
-                      '⚠️ Messaggio non classificabile. Analisi manuale richiesta.')]
+        templates = REPLY_TEMPLATES['UNKNOWN']['DEFAULT']
 
     # Personalizza con nome dealer e corpo messaggio
-    name = dealer.get('dealer_name', '[Nome]').split()[0] if dealer else '[Nome]'
+    name = '[Nome]'
+    if dealer:
+        full_name = dealer.get('dealer_name', '')
+        if full_name:
+            # Usa il nome dell'azienda (primo token significativo)
+            parts = full_name.replace('Srl', '').replace('S.r.l.', '').replace('srl', '').strip().split()
+            name = parts[0] if parts else full_name
+
     results = []
     for label, text in templates:
         personalized = (
             text
             .replace('[Nome]', name)
-            .replace('[MSG_BODY]', msg_body[:200])
+            .replace('[MSG_BODY]', msg_body[:300])
         )
         results.append({
             'label':          label,
@@ -358,19 +524,34 @@ def get_candidate_replies(
 def get_cialdini_note(msg_type: str, obj_code: str, persona: str) -> str:
     """Nota Cialdini per la risposta — aiuta il reviewer umano."""
     notes = {
-        ('POSITIVE', None, 'RAGIONIERE'): 'Commitment progressivo → dai dati, aspetta conferma',
-        ('POSITIVE', None, 'BARONE'):     'Authority → rispetta il suo tempo e status',
-        ('POSITIVE', None, 'PERFORMANTE'): 'Scarcity + velocità → consegna rapida',
-        ('OBJECTION', 'OBJ-1', '*'):      'Reciprocità → dai insight competitivo gratuito',
-        ('OBJECTION', 'OBJ-2', '*'):      'Commitment → micro-sì su calcolo specifico',
-        ('OBJECTION', 'OBJ-5', '*'):      'Authority procedurale → facilitare al titolare',
-        ('CURIOSITY', None, '*'):         'Liking + Reciprocità → racconta chi sei con valore',
-        ('NEGATIVE', None, '*'):          'STOP. Porta aperta implicita per il futuro.',
+        ('POSITIVE', None):    'Commitment progressivo → micro-sì verso azione concreta',
+        ('CURIOSITY', None):   'Reciprocità → dai valore (info concreta) prima di chiedere',
+        ('NEGATIVE', None):    'STOP — porta aperta implicita, zero insistenza',
+        ('UNKNOWN', None):     'HUMAN NEEDED — analizza il contesto e rispondi manualmente',
+        ('OBJECTION', 'OBJ-1'): 'Social proof + reciprocità → "non sostituisco, aggiungo"',
+        ('OBJECTION', 'OBJ-2'): 'Ancoraggio numerico → €1.000 vs €7-10k nascosti',
+        ('OBJECTION', 'OBJ-3'): 'Coerenza + rispetto → "quando ha tempo, zero urgenza"',
+        ('OBJECTION', 'OBJ-4'): 'Authority → DAT + DEKRA + garanzia costruttore UE',
+        ('OBJECTION', 'OBJ-5'): 'Facilitazione → prepara materiale per il decisore',
     }
-    for (t, o, p), note in notes.items():
-        if t == msg_type and (o is None or o == obj_code) and (p == '*' or p == persona):
+    for (t, o), note in notes.items():
+        if t == msg_type and (o is None or o == obj_code):
             return note
-    return 'Rispondere con calibrazione archetipo standard'
+
+    # Nota specifica per archetipo
+    persona_notes = {
+        'RAGIONIERE':    'Dati concreti, numeri precisi, zero fuffa',
+        'BARONE':        'Rispetto, esclusività, "su misura per lei"',
+        'PERFORMANTE':   'Velocità, risultati, "48h"',
+        'NARCISO':       'Esclusività, "selezionato", "riservato"',
+        'TECNICO':       'Documentazione, specifiche, report DAT',
+        'RELAZIONALE':   'Calore, "ci lavoriamo insieme", zero pressione',
+        'CONSERVATORE':  'Sicurezza, "nessuna sorpresa", garanzie',
+        'DELEGATORE':    'Semplicità, "gestisco tutto io"',
+        'OPPORTUNISTA':  'Margine concreto, "i numeri parlano"',
+        'VISIONARIO':    'Modello innovativo, trasparenza come valore',
+    }
+    return persona_notes.get(persona, 'Calibrazione archetipo standard')
 
 
 def save_pending_reply(db_path: str, dealer_id: str, dealer_name: str,
@@ -380,16 +561,19 @@ def save_pending_reply(db_path: str, dealer_id: str, dealer_name: str,
     con = duckdb.connect(db_path)
     try:
         con.execute("""
-            INSERT OR IGNORE INTO pending_replies
-                (id, dealer_id, dealer_name, inbound_msg_id,
-                 reply_text, reply_label, cialdini_trigger,
-                 approved, sent, scheduled_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, FALSE, CURRENT_TIMESTAMP)
+            INSERT INTO pending_replies
+                (id, dealer_id, dealer_name,
+                 reply_text, reply_label,
+                 approved, sent)
+            VALUES (?, ?, ?, ?, ?, NULL, FALSE)
         """, [
-            reply_id, dealer_id, dealer_name, inbound_msg_id,
-            reply['text'], reply['label'], reply.get('cialdini_note', ''),
+            reply_id, dealer_id, dealer_name,
+            reply['text'], reply['label'],
         ])
         con.commit()
+        return reply_id
+    except Exception as e:
+        print(f'[ERROR] save_pending_reply: {e}')
         return reply_id
     finally:
         con.close()
@@ -399,17 +583,13 @@ def send_telegram_for_approval(
     dealer: dict,
     msg_body: str,
     classification: dict,
-    candidates: list[dict],
-    reply_ids: list[str],
+    candidates: list,
+    reply_ids: list,
     time_ctx: dict,
 ):
-    """
-    Invia al Telegram human-in-loop le candidate replies con bottoni
-    APPROVA / MODIFICA / RIFIUTA per ogni candidata.
-    """
+    """Invia al Telegram human-in-loop le candidate replies."""
     if not TELEGRAM_BOT_TOKEN:
         print('[WARN] ARGOS_TELEGRAM_TOKEN non impostato — alert solo su console')
-        print('--- CANDIDATE REPLIES ---')
         for i, r in enumerate(candidates):
             print(f'\n[{i+1}] {r["label"]}: {r["text"][:200]}')
         return
@@ -424,12 +604,12 @@ def send_telegram_for_approval(
     obj_code = classification.get('obj_code', '')
 
     lines = [
-        f"🧠 *ANALISI RISPOSTA — {time_ctx.get('now_it', '')}*",
+        f"🧠 *RISPOSTA DEALER — {now_it()}*",
         f"",
-        f"👤 *{name}* | Archetipo: {persona} | Step: {step}",
-        f"📊 Classificazione: `{cls_type}` {f'({obj_code})' if obj_code else ''} — {cls_conf}% confidence",
+        f"👤 *{name}* | 🎭 {persona} | Step: {step}",
+        f"📊 `{cls_type}` {f'({obj_code})' if obj_code else ''} — {cls_conf}%",
         f"",
-        f"💬 Messaggio ricevuto:",
+        f"💬 *Messaggio ricevuto:*",
         f"_{msg_body[:400]}_",
         f"",
     ]
@@ -439,17 +619,9 @@ def send_telegram_for_approval(
             f"━━━ RISPOSTA #{i} — `{reply['label']}` ━━━",
             f"{reply['text'][:500]}",
             f"_💡 {reply.get('cialdini_note', '')}_",
-            f"Reply ID: `{rid}`",
+            f"`/approva {rid}` | `/modifica {rid} testo` | `/rifiuta {rid}`",
             f"",
         ]
-
-    lines += [
-        f"*Azione richiesta:*",
-        f"→ Approva: `/approva <reply_id>`",
-        f"→ Modifica: `/modifica <reply_id> <testo>`",
-        f"→ Rifiuta: `/rifiuta <reply_id>`",
-        f"→ Escalation umana: `/human`",
-    ]
 
     text = '\n'.join(lines)
 
@@ -475,7 +647,7 @@ def main():
     parser.add_argument('--msg-body',   required=True)
     parser.add_argument('--dealer-id',  required=True)
     parser.add_argument('--dealer-name', default='Sconosciuto')
-    parser.add_argument('--persona',    default='RAGIONIERE')
+    parser.add_argument('--persona',    default='DEFAULT')
     parser.add_argument('--step',       default='UNKNOWN')
     parser.add_argument('--db-path',    required=True)
     parser.add_argument('--time-ctx',   default='{}')
