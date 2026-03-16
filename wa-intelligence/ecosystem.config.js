@@ -42,6 +42,7 @@ const SHARED_ENV = {
     ARGOS_DB_PATH:          path.join(BASE, 'dealer_network.duckdb'),
     ARGOS_TELEGRAM_CHAT_ID: dotEnv.ARGOS_TELEGRAM_CHAT_ID || '931063621',
     ARGOS_TELEGRAM_TOKEN:   dotEnv.ARGOS_TELEGRAM_TOKEN   || '',
+    WA_CLIENT_ID:           dotEnv.WA_CLIENT_ID           || 'argos-business',
 };
 
 module.exports = {

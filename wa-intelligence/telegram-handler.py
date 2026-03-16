@@ -40,6 +40,7 @@ DB_PATH          = os.environ.get('ARGOS_DB_PATH',
     os.path.expanduser('~/Documents/app-antigravity-auto/dealer_network.duckdb'))
 WA_SENDER        = os.path.expanduser(
     '~/Documents/app-antigravity-auto/wa-sender/send_message.js')
+WA_CLIENT_ID     = os.environ.get('WA_CLIENT_ID', 'argos-business')
 LOG_FILE         = '/tmp/argos-tg-handler.log'
 POLL_OFFSET_FILE = '/tmp/argos-tg-offset.txt'
 
@@ -142,13 +143,15 @@ def cmd_approva(reply_id: str) -> str:
     )
 
     # Avvia invio in background (non blocca)
+    env = os.environ.copy()
+    env['CLIENT_ID'] = WA_CLIENT_ID
     subprocess.Popen(
         ['bash', '-c',
          f'sleep {sleep_s} && node {WA_SENDER} "{wa_id}" "{r["reply_text"].replace(chr(34), chr(39))}" '
          f'&& python3 -c "import duckdb; con=duckdb.connect(\'{DB_PATH}\'); '
          f'con.execute(\'UPDATE pending_replies SET sent=TRUE WHERE id=\\\'\\\'\\\'%s\\\'\\\'\\\'\'); '
          f'con.commit()"' % reply_id],
-        detached=True, close_fds=True
+        env=env, close_fds=True
     )
 
     return (
@@ -276,6 +279,77 @@ def cmd_human(dealer_id: str) -> str:
     )
 
 
+def cmd_outreach(dealer_id: str = '') -> str:
+    """Mostra dealer PENDING pronti per Day 1, o schedula invio per uno specifico."""
+    if not dealer_id:
+        # Lista dealer pronti
+        rows = db_query("""
+            SELECT dealer_id, dealer_name, city, phone_number, persona_type, score
+            FROM conversations
+            WHERE current_step = 'PENDING'
+            ORDER BY score DESC
+        """)
+        if not rows:
+            return '✅ Nessun dealer in stato PENDING.'
+        lines = ['*Dealer pronti per Day 1:*', '']
+        for r in rows:
+            phone = r.get('phone_number', '')
+            wa = '✅ WA' if phone.startswith('393') and len(phone) == 12 else '📞'
+            lines.append(
+                f'• `{r["dealer_id"]}` — *{r["dealer_name"]}* ({r["city"]})\n'
+                f'  {wa} | {r["persona_type"]} | {r["score"]}/10\n'
+                f'  `/outreach {r["dealer_id"]}`'
+            )
+        return '\n'.join(lines)
+
+    # Schedula invio Day 1 per dealer specifico
+    rows = db_query(
+        'SELECT * FROM conversations WHERE dealer_id = ?', [dealer_id]
+    )
+    if not rows:
+        return f'❌ Dealer `{dealer_id}` non trovato'
+    d = rows[0]
+    if d.get('current_step') != 'PENDING':
+        return f'⚠️ Dealer `{dealer_id}` non in stato PENDING (stato: `{d["current_step"]}`)'
+
+    phone = d.get('phone_number', '').replace('+', '').replace(' ', '')
+    if not phone.startswith('393') or len(phone) != 12:
+        return f'❌ Numero `{phone}` non è WA valido (serve 393XXXXXXXXX)'
+
+    wa_id = f'{phone}@c.us'
+    msg = d.get('day1_message', '')
+    if not msg:
+        return f'❌ Nessun messaggio Day 1 per `{dealer_id}`'
+
+    sleep_s = random.randint(SLEEP_MIN, SLEEP_MAX)
+
+    # Aggiorna stato
+    db_exec("""
+        UPDATE conversations
+        SET current_step = 'DAY1_SENT', last_contact_at = CURRENT_TIMESTAMP
+        WHERE dealer_id = ?
+    """, [dealer_id])
+
+    # Avvia invio in background
+    env = os.environ.copy()
+    env['CLIENT_ID'] = WA_CLIENT_ID
+    subprocess.Popen(
+        ['bash', '-c',
+         f'sleep {sleep_s} && node {WA_SENDER} "{wa_id}" '
+         f'"{msg.replace(chr(34), chr(39))}"'],
+        env=env, close_fds=True
+    )
+
+    return (
+        f'🚀 *Day 1 schedulato* — invio tra ~{sleep_s // 60}min\n'
+        f'👤 {d["dealer_name"]} ({d["city"]})\n'
+        f'📱 {phone}\n'
+        f'🎭 Archetipo: {d.get("persona_type", "?")}\n'
+        f'💬 Variante A (neutro)\n'
+        f'_Anti-ban sleep attivo_'
+    )
+
+
 def cmd_pending() -> str:
     rows = db_query("""
         SELECT id, dealer_name, reply_label, reply_text, created_at
@@ -298,6 +372,10 @@ def cmd_pending() -> str:
 
 # ── Router comandi ───────────────────────────────────────────
 HELP_TEXT = """*ARGOS™ Bot — Comandi disponibili*
+
+🚀 *Outreach*
+`/outreach` — lista dealer pronti per Day 1
+`/outreach <dealer_id>` — invia Day 1 a dealer
 
 📩 *Gestione risposte*
 `/pending` — lista risposte in attesa
@@ -341,6 +419,8 @@ def dispatch(text: str, chat_id: str):
         reply = cmd_close(args[0]) if args else '❌ Usage: `/close <dealer_id>`'
     elif cmd == '/human':
         reply = cmd_human(args[0]) if args else '❌ Usage: `/human <dealer_id>`'
+    elif cmd == '/outreach':
+        reply = cmd_outreach(args[0] if args else '')
     elif cmd == '/pending':
         reply = cmd_pending()
     elif cmd in ('/help', '/start'):
