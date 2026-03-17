@@ -14,7 +14,7 @@
 | **Pipeline Salerno 8 dealer** | ✅ | Loader pronto, 5 con WA mobile |
 | **WA Day 1 Variante A** | ✅ approvata | Messaggio neutro universale |
 | **Response Analyzer v2** | ✅ riscritto S58 | 20/20 test, zero Ollama, 10 archetipi |
-| **WA Business VOIP Ehiweb** | ⏳ attivazione | Numero 0972536918, in attesa |
+| **WA Business** | ✅ ATTIVO | Numero 328-1536308, su telefono personale |
 | **send_message.js generico** | ✅ | Session argos-business |
 | **auth_business.js** | ✅ | QR per WA Business |
 | **Comando /outreach** | ✅ | In telegram-handler.py |
@@ -189,21 +189,24 @@ STASERA IL SISTEMA CONTATTA DEALER VERI.
 Response analyzer riscritto S58 — 20/20 test.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PRIORITY 0 — WA Business Attivo?
-  Se WA Business su 0972536918 è attivo:
+PRIORITY 0 — Collegare WA Business all'iMac (ESEGUI SUBITO)
+  WA Business ATTIVO su 328-1536308.
+  Ora serve collegare a whatsapp-web.js sull'iMac:
     1. ssh gianlucadistasi@192.168.1.12
-    2. cd ~/Documents/app-antigravity-auto/wa-sender/
-    3. node auth_business.js → QR scan con WA Business
-    4. python3 ~/Documents/combaretrovamiauto-enterprise/tools/salerno_pipeline_loader.py
-    5. Deploy response-analyzer.py aggiornato su iMac
-    6. pm2 restart all
-    7. /outreach SALERNO_001 (Autovanny — score 8.5/10)
-    8. /outreach SALERNO_002 (FC Luxury — score 8.0/10)
-    9. Aspetta risposte → il sistema gestisce con Telegram approval
-
-  Se WA Business NON attivo:
-    Compra SIM Iliad €5 → WA Business sulla SIM → stessa procedura
-    OPPURE attendi attivazione VOIP Ehiweb
+    2. Copiare file aggiornati dal MacBook:
+       scp wa-intelligence/response-analyzer.py gianlucadistasi@192.168.1.12:~/Documents/app-antigravity-auto/wa-intelligence/
+       scp wa-intelligence/telegram-handler.py gianlucadistasi@192.168.1.12:~/Documents/app-antigravity-auto/wa-intelligence/
+       scp wa-intelligence/ecosystem.config.js gianlucadistasi@192.168.1.12:~/Documents/app-antigravity-auto/wa-intelligence/
+       scp ~/Documents/app-antigravity-auto/wa-sender/send_message.js gianlucadistasi@192.168.1.12:~/Documents/app-antigravity-auto/wa-sender/
+       scp ~/Documents/app-antigravity-auto/wa-sender/auth_business.js gianlucadistasi@192.168.1.12:~/Documents/app-antigravity-auto/wa-sender/
+    3. cd ~/Documents/app-antigravity-auto/wa-sender/
+    4. node auth_business.js → QR appare nel terminale
+    5. AZIONE UMANA: WA Business → Dispositivi collegati → Collega → Scansiona QR
+    6. python3 ~/Documents/combaretrovamiauto-enterprise/tools/salerno_pipeline_loader.py
+    7. pm2 restart all
+    8. /outreach SALERNO_001 (Autovanny — score 8.5/10)
+    9. /outreach SALERNO_002 (FC Luxury — score 8.0/10)
+    10. Aspetta risposte → il sistema gestisce con Telegram approval
 
 PRIORITY 1 — Sentence-Transformers: CHIUSO
   Testato S58: TF-IDF 76.5% vs sent-transf 66.3% → TF-IDF RESTA
