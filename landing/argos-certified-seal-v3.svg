@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#dbb85c"/>
+      <stop offset="50%" stop-color="#c8a446"/>
+      <stop offset="100%" stop-color="#8c6e28"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Anello esterno -->
+  <circle cx="120" cy="120" r="116" fill="none" stroke="url(#g1)" stroke-width="3"/>
+
+  <!-- Anello interno -->
+  <circle cx="120" cy="120" r="108" fill="none" stroke="#c8a446" stroke-width=".5" opacity=".4"/>
+
+  <!-- Background -->
+  <circle cx="120" cy="120" r="106" fill="#0a0a0c"/>
+
+  <!-- Linea orizzontale superiore -->
+  <line x1="40" y1="52" x2="200" y2="52" stroke="#c8a446" stroke-width=".4" opacity=".3"/>
+
+  <!-- EUROPEAN VEHICLE INTELLIGENCE — testo dritto in alto -->
+  <text x="120" y="44" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#c8a446" text-anchor="middle" letter-spacing="3.5" opacity=".8">EUROPEAN VEHICLE INTELLIGENCE</text>
+
+  <!-- Scudo centrale -->
+  <path d="M120 62 L156 78 L156 110 C156 130 140 144 120 152 C100 144 84 130 84 110 L84 78 Z"
+        fill="none" stroke="#c8a446" stroke-width="1.2" opacity=".5"/>
+  <path d="M120 66 L153 80 L153 109 C153 128 138 141 120 148 C102 141 87 128 87 109 L87 80 Z"
+        fill="rgba(200,164,70,.04)"/>
+
+  <!-- A dentro lo scudo -->
+  <text x="120" y="120" font-family="Georgia, 'Times New Roman', serif" font-size="48" font-weight="bold" fill="#c8a446" text-anchor="middle">A</text>
+
+  <!-- Linea divisoria -->
+  <line x1="60" y1="160" x2="180" y2="160" stroke="#c8a446" stroke-width=".6" opacity=".6"/>
+  <circle cx="60" cy="160" r="1.5" fill="#c8a446" opacity=".5"/>
+  <circle cx="180" cy="160" r="1.5" fill="#c8a446" opacity=".5"/>
+
+  <!-- CERTIFIED -->
+  <text x="120" y="180" font-family="Georgia, 'Times New Roman', serif" font-size="20" font-weight="bold" fill="#ffffff" text-anchor="middle" letter-spacing="6">CERTIFIED</text>
+
+  <!-- ™ -->
+  <text x="178" y="172" font-family="Arial, sans-serif" font-size="7" fill="#c8a446" opacity=".6">™</text>
+
+  <!-- AMSTERDAM · EST. 2024 -->
+  <text x="120" y="200" font-family="Arial, Helvetica, sans-serif" font-size="6.5" fill="#c8a446" text-anchor="middle" letter-spacing="2.5" opacity=".7">AMSTERDAM  ·  EST. 2024</text>
+
+  <!-- Linea orizzontale inferiore -->
+  <line x1="40" y1="210" x2="200" y2="210" stroke="#c8a446" stroke-width=".4" opacity=".3"/>
+
+</svg>

@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="outer-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#dbb85c"/>
+      <stop offset="50%" style="stop-color:#c8a446"/>
+      <stop offset="100%" style="stop-color:#8c6e28"/>
+    </linearGradient>
+    <radialGradient id="center-bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#141418"/>
+      <stop offset="100%" style="stop-color:#08080a"/>
+    </radialGradient>
+    <!-- Glow effect -->
+    <filter id="gold-glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Corona esterna a raggi (stile notarile/sigillo ufficiale) -->
+  <!-- 36 raggi alternati lungo/corto -->
+  <g opacity=".12">
+    <circle cx="100" cy="100" r="99" fill="none" stroke="#c8a446" stroke-width=".3"/>
+    <!-- Raggi decorativi -->
+    <g stroke="#c8a446" stroke-width=".6">
+      <line x1="100" y1="1" x2="100" y2="8"/>
+      <line x1="117" y1="2" x2="115" y2="7" />
+      <line x1="134" y1="6" x2="130" y2="11"/>
+      <line x1="149" y1="14" x2="144" y2="18"/>
+      <line x1="161" y1="25" x2="156" y2="29"/>
+      <line x1="171" y1="39" x2="165" y2="42"/>
+      <line x1="177" y1="55" x2="171" y2="57"/>
+      <line x1="180" y1="72" x2="174" y2="73"/>
+      <line x1="199" y1="100" x2="192" y2="100"/>
+      <line x1="180" y1="128" x2="174" y2="127"/>
+      <line x1="177" y1="145" x2="171" y2="143"/>
+      <line x1="171" y1="161" x2="165" y2="158"/>
+      <line x1="161" y1="175" x2="156" y2="171"/>
+      <line x1="149" y1="186" x2="144" y2="182"/>
+      <line x1="134" y1="194" x2="130" y2="189"/>
+      <line x1="117" y1="198" x2="115" y2="193"/>
+      <line x1="100" y1="199" x2="100" y2="192"/>
+      <line x1="83" y1="198" x2="85" y2="193"/>
+      <line x1="66" y1="194" x2="70" y2="189"/>
+      <line x1="51" y1="186" x2="56" y2="182"/>
+      <line x1="39" y1="175" x2="44" y2="171"/>
+      <line x1="29" y1="161" x2="35" y2="158"/>
+      <line x1="23" y1="145" x2="29" y2="143"/>
+      <line x1="20" y1="128" x2="26" y2="127"/>
+      <line x1="1" y1="100" x2="8" y2="100"/>
+      <line x1="20" y1="72" x2="26" y2="73"/>
+      <line x1="23" y1="55" x2="29" y2="57"/>
+      <line x1="29" y1="39" x2="35" y2="42"/>
+      <line x1="39" y1="25" x2="44" y2="29"/>
+      <line x1="51" y1="14" x2="56" y2="18"/>
+      <line x1="66" y1="6" x2="70" y2="11"/>
+      <line x1="83" y1="2" x2="85" y2="7"/>
+    </g>
+  </g>
+
+  <!-- Doppio anello dorato -->
+  <circle cx="100" cy="100" r="92" fill="none" stroke="url(#outer-gold)" stroke-width="2.5"/>
+  <circle cx="100" cy="100" r="86" fill="none" stroke="#c8a446" stroke-width=".4" stroke-opacity=".5"/>
+
+  <!-- Background centro -->
+  <circle cx="100" cy="100" r="84" fill="url(#center-bg)"/>
+
+  <!-- Testo circolare superiore -->
+  <path id="arc-top" d="M 100,100 m -68,0 a 68,68 0 1,1 136,0" fill="none"/>
+  <text font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#c8a446" letter-spacing="2.8" text-anchor="middle" font-weight="400">
+    <textPath href="#arc-top" startOffset="50%">EUROPEAN VEHICLE INTELLIGENCE</textPath>
+  </text>
+
+  <!-- Testo circolare inferiore -->
+  <path id="arc-bot" d="M 32,100 a 68,68 0 0,0 136,0" fill="none"/>
+  <text font-family="Arial, Helvetica, sans-serif" font-size="7.5" fill="#c8a446" letter-spacing="2.5" text-anchor="middle" font-weight="400">
+    <textPath href="#arc-bot" startOffset="50%">AMSTERDAM &#x2022; EST. 2024</textPath>
+  </text>
+
+  <!-- Diamanti separatori laterali -->
+  <polygon points="32,100 35,97 38,100 35,103" fill="#c8a446" opacity=".6"/>
+  <polygon points="162,100 165,97 168,100 165,103" fill="#c8a446" opacity=".6"/>
+
+  <!-- Cerchio interno decorativo -->
+  <circle cx="100" cy="100" r="56" fill="none" stroke="#c8a446" stroke-width=".3" stroke-opacity=".25"/>
+
+  <!-- Scudo interno (richiamo al brand shield) -->
+  <path d="M100 52 L130 66 L130 96 C130 112 118 124 100 132 C82 124 70 112 70 96 L70 66 Z"
+        fill="none" stroke="#c8a446" stroke-width="1" stroke-opacity=".4"/>
+  <path d="M100 56 L127 68 L127 95 C127 110 116 121 100 128 C84 121 73 110 73 95 L73 68 Z"
+        fill="rgba(200,164,70,.04)" stroke="none"/>
+
+  <!-- A dentro lo scudo -->
+  <text x="100" y="98" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="bold" fill="#c8a446" text-anchor="middle" filter="url(#gold-glow)">A</text>
+
+  <!-- CERTIFIED sotto lo scudo -->
+  <text x="100" y="148" font-family="Georgia, 'Times New Roman', serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle" letter-spacing="4.5">CERTIFIED</text>
+
+  <!-- Linea sotto certified -->
+  <line x1="68" y1="153" x2="132" y2="153" stroke="#c8a446" stroke-width=".5" stroke-opacity=".6"/>
+
+  <!-- ™ -->
+  <text x="140" y="143" font-family="Arial, sans-serif" font-size="5.5" fill="#c8a446" opacity=".7">™</text>
+
+</svg>
