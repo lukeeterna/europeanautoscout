@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 220" width="160" height="220">
+  <defs>
+    <!-- Scudo shape clip -->
+    <clipPath id="shield-clip">
+      <path d="M8,8 L152,8 L152,150 L80,212 L8,150 Z"/>
+    </clipPath>
+    <!-- Gradiente bordo dorato -->
+    <linearGradient id="gold-border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e8c96a;stop-opacity:1"/>
+      <stop offset="50%" style="stop-color:#c8a446;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#a07830;stop-opacity:1"/>
+    </linearGradient>
+    <!-- Gradiente background interno sottile -->
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#111111;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#0a0a0a;stop-opacity:1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Bordo esterno dorato (scudo più grande) -->
+  <path d="M4,4 L156,4 L156,152 L80,216 L4,152 Z"
+        fill="url(#gold-border)"
+        stroke="none"/>
+
+  <!-- Background scudo interno nero -->
+  <path d="M8,8 L152,8 L152,150 L80,212 L8,150 Z"
+        fill="url(#bg-gradient)"
+        stroke="none"/>
+
+  <!-- Linea decorativa interna dorata (sottile, 3px dal bordo) -->
+  <path d="M14,14 L146,14 L146,147 L80,207 L14,147 Z"
+        fill="none"
+        stroke="#c8a446"
+        stroke-width="0.6"
+        stroke-opacity="0.4"/>
+
+  <!-- === LETTERA A GRANDE === -->
+  <!-- Posizionata nella sezione superiore, circa 40% altezza badge -->
+  <text
+    x="80"
+    y="102"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="92"
+    font-weight="bold"
+    fill="#c8a446"
+    text-anchor="middle"
+    dominant-baseline="auto"
+    letter-spacing="-2">A</text>
+
+  <!-- Serifes decorativi della A — linea base -->
+  <!-- (inclusi nel carattere serif nativo) -->
+
+  <!-- === LINEA DIVISORIA DORATA === -->
+  <line x1="24" y1="114" x2="136" y2="114"
+        stroke="#c8a446"
+        stroke-width="0.8"
+        stroke-opacity="0.9"/>
+
+  <!-- Piccoli ornamenti sui lati della linea -->
+  <circle cx="24" cy="114" r="1.5" fill="#c8a446" opacity="0.7"/>
+  <circle cx="136" cy="114" r="1.5" fill="#c8a446" opacity="0.7"/>
+
+  <!-- === ARGOS™ === -->
+  <text
+    x="75"
+    y="136"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="22"
+    font-weight="bold"
+    fill="#ffffff"
+    text-anchor="middle"
+    letter-spacing="3">ARGOS</text>
+  <!-- TM piccolo in alto a destra di ARGOS -->
+  <text
+    x="115"
+    y="124"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="8"
+    font-weight="normal"
+    fill="#c8a446"
+    text-anchor="start">&#x2122;</text>
+
+  <!-- === APPROVED™ === -->
+  <text
+    x="80"
+    y="154"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="10"
+    font-weight="normal"
+    fill="#c8a446"
+    text-anchor="middle"
+    letter-spacing="4">APPROVED</text>
+  <!-- TM piccolo dopo APPROVED -->
+  <text
+    x="126"
+    y="148"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="6.5"
+    font-weight="normal"
+    fill="#c8a446"
+    text-anchor="start">&#x2122;</text>
+
+  <!-- === EUROPEAN VEHICLE INTELLIGENCE === -->
+  <!-- Posizionato nella punta dello scudo, molto piccolo -->
+  <text
+    x="80"
+    y="178"
+    font-family="'Courier New', Courier, monospace"
+    font-size="5.2"
+    font-weight="normal"
+    fill="#888888"
+    text-anchor="middle"
+    letter-spacing="2">EUROPEAN VEHICLE INTELLIGENCE</text>
+
+</svg>
