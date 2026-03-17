@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 60" width="48" height="60">
+  <defs>
+    <linearGradient id="gold-border-nav" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e8c96a;stop-opacity:1"/>
+      <stop offset="50%" style="stop-color:#c8a446;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#a07830;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="bg-nav" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#111111;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#0a0a0a;stop-opacity:1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Bordo esterno dorato -->
+  <path d="M1,1 L47,1 L47,40 L24,59 L1,40 Z"
+        fill="url(#gold-border-nav)"
+        stroke="none"/>
+
+  <!-- Background interno nero -->
+  <path d="M3,3 L45,3 L45,39 L24,57 L3,39 Z"
+        fill="url(#bg-nav)"
+        stroke="none"/>
+
+  <!-- Linea decorativa interna sottile -->
+  <path d="M6,6 L42,6 L42,37.5 L24,55 L6,37.5 Z"
+        fill="none"
+        stroke="#c8a446"
+        stroke-width="0.4"
+        stroke-opacity="0.35"/>
+
+  <!-- Lettera A centrata nel nav shield -->
+  <text
+    x="24"
+    y="38"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="34"
+    font-weight="bold"
+    fill="#c8a446"
+    text-anchor="middle"
+    dominant-baseline="auto">A</text>
+
+</svg>
