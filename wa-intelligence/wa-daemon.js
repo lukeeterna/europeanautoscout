@@ -274,13 +274,17 @@ async function handleInboundMessage(msg) {
     const now    = TC.nowIT();
     const timeCtx = TC.formatContextForLog(TC.buildAgentTimeContext());
 
+    // 1. Cerca dealer nel DB — SOLO dealer noti in pipeline
+    const dealer = lookupDealer(msg.from);
+    if (!dealer) {
+        log('INFO', `⏭️ Messaggio da numero non in pipeline: ${msg.from} — ignorato`);
+        return;
+    }
+
     log('INFO', `━━━ MESSAGGIO IN ARRIVO ━━━`);
-    log('INFO', `Da: ${msg.from}`);
+    log('INFO', `Da: ${msg.from} → ${dealer.dealer_name} (${dealer.dealer_id})`);
     log('INFO', `Corpo: ${msg.body.slice(0, 120)}`);
     log('INFO', timeCtx);
-
-    // 1. Cerca dealer nel DB
-    const dealer = lookupDealer(msg.from);
 
     // 2. Logga sul DB
     const msgId = persistInboundMessage(msg, dealer);
@@ -393,10 +397,14 @@ function initClient() {
 
     // ── Messaggi in arrivo ───────────────────────────────────
     client.on('message', async (msg) => {
-        // Ignora messaggi propri e di gruppo
+        // Ignora messaggi non rilevanti
         if (msg.fromMe)                        return;
         if (msg.from.endsWith('@g.us'))        return;  // gruppo WA
+        if (msg.from === 'status@broadcast')   return;  // stati WA (storie)
+        if (msg.from.endsWith('@newsletter'))  return;  // canali WA
+        if (msg.from.endsWith('@broadcast'))   return;  // broadcast generico
         if (msg.type === 'e2e_notification')   return;
+        if (!msg.from.endsWith('@c.us'))       return;  // solo chat 1:1 reali
 
         checkDailyReset();
         await handleInboundMessage(msg);
@@ -480,6 +488,45 @@ function initClient() {
                     res.end(JSON.stringify({ status: 'sent', msg_id: msgId, daily_sent: CONFIG.DAILY_SENT }));
                 } catch (err) {
                     log('ERROR', 'Send failed:', err.message);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
+            });
+            return;
+        }
+
+        // POST /send-voice — invia voice note WA via daemon
+        if (req.method === 'POST' && req.url === '/send-voice') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const { phone, audio_path, dealer_id } = JSON.parse(body);
+                    if (!phone || !audio_path) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'phone and audio_path required' }));
+                        return;
+                    }
+                    if (CONFIG.DAILY_SENT >= CONFIG.DAILY_LIMIT) {
+                        res.writeHead(429, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'daily limit reached', daily_sent: CONFIG.DAILY_SENT }));
+                        return;
+                    }
+
+                    const { MessageMedia } = require('whatsapp-web.js');
+                    const media = MessageMedia.fromFilePath(audio_path);
+                    const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
+                    await client.sendMessage(chatId, media, { sendAudioAsVoice: true });
+                    CONFIG.DAILY_SENT++;
+
+                    const msgId = `voice_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                    log('INFO', `🎤 VOICE NOTE INVIATO: ${chatId} (${dealer_id || 'manual'}) — ${audio_path}`);
+                    sendTelegramAlert(`🎤 *Voice Note INVIATO*\n👤 ${dealer_id || chatId}\n📱 ${chatId}\n📊 ${CONFIG.DAILY_SENT}/${CONFIG.DAILY_LIMIT}`);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ status: 'sent', msg_id: msgId, daily_sent: CONFIG.DAILY_SENT }));
+                } catch (err) {
+                    log('ERROR', 'Send-voice failed:', err.message);
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: err.message }));
                 }
