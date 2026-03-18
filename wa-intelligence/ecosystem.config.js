@@ -39,10 +39,12 @@ if (fs.existsSync(dotEnvPath)) {
 const SHARED_ENV = {
     NODE_ENV:               'production',
     TZ:                     'Europe/Rome',
-    ARGOS_DB_PATH:          path.join(BASE, 'dealer_network.duckdb'),
+    ARGOS_DB_PATH:          path.join(BASE, 'dealer_network.sqlite'),
     ARGOS_TELEGRAM_CHAT_ID: dotEnv.ARGOS_TELEGRAM_CHAT_ID || '931063621',
     ARGOS_TELEGRAM_TOKEN:   dotEnv.ARGOS_TELEGRAM_TOKEN   || '',
     WA_CLIENT_ID:           dotEnv.WA_CLIENT_ID           || 'argos-business',
+    OPENROUTER_API_KEY:     dotEnv.OPENROUTER_API_KEY     || '',
+    OPENROUTER_MODEL:       dotEnv.OPENROUTER_MODEL       || 'anthropic/claude-haiku-4-5',
 };
 
 module.exports = {

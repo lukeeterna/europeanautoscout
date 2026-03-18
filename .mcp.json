@@ -1,3 +1,13 @@
 {
-  "mcpServers": {}
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--headless"],
+      "timeout": 30000
+    },
+    "sqlite-argos": {
+      "command": "/tmp/mcp-sqlite-venv/bin/mcp-server-sqlite",
+      "args": ["--db-path", "/tmp/argos_dashboard_snapshot.db"]
+    }
+  }
 }

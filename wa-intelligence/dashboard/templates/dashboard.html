@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block page_title %}Overview{% endblock %}
+
+{% block content %}
+<!-- KPI Cards (auto-refresh ogni 30s via HTMX) -->
+<div id="kpi-section"
+     hx-get="/partials/kpi"
+     hx-trigger="every 30s"
+     hx-swap="innerHTML">
+  {% include "partials/_kpi_cards.html" %}
+</div>
+
+<!-- Charts Row -->
+<div class="row mt-4">
+  <!-- Pipeline Funnel -->
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title" style="color: var(--argos-gold);">Pipeline Funnel</h3>
+      </div>
+      <div class="card-body">
+        <div id="funnel-chart" style="height: 280px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Archetype Distribution -->
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title" style="color: var(--argos-gold);">Archetipi</h3>
+      </div>
+      <div class="card-body">
+        <div id="archetype-chart" style="height: 280px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Messages Feed -->
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title" style="color: var(--argos-gold);">
+          <span class="live-indicator"></span>
+          Ultimi Messaggi
+        </h3>
+        <span class="text-muted" style="font-size: 0.75rem;">auto-refresh 30s</span>
+      </div>
+      <div class="card-body p-0"
+           id="message-feed"
+           hx-get="/partials/messages"
+           hx-trigger="every 30s"
+           hx-swap="innerHTML">
+        {% include "partials/_message_feed.html" %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Pipeline Funnel Chart
+  (function() {
+    const funnelData = {{ funnel | safe }};
+    const chart = echarts.init(document.getElementById('funnel-chart'), 'dark');
+
+    const labels = {
+      'PENDING': 'In Attesa',
+      'DAY1_SENT': 'Day 1 Inviato',
+      'RESPONSE_RECEIVED': 'Risposta',
+      'NEGOTIATION': 'Trattativa',
+      'DEAL': 'Deal Chiuso',
+      'CLOSED_NO': 'Chiuso (No)'
+    };
+
+    const colors = {
+      'PENDING': '#555',
+      'DAY1_SENT': '#3498DB',
+      'RESPONSE_RECEIVED': '#2ECC71',
+      'NEGOTIATION': '#B8960C',
+      'DEAL': '#27AE60',
+      'CLOSED_NO': '#E74C3C'
+    };
+
+    const categories = Object.keys(funnelData);
+    const values = Object.values(funnelData);
+
+    chart.setOption({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      xAxis: {
+        type: 'category',
+        data: categories.map(k => labels[k] || k),
+        axisLabel: { color: '#888', fontSize: 10, rotate: 20 },
+        axisLine: { lineStyle: { color: '#2A2A2A' } }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: { color: '#888' },
+        splitLine: { lineStyle: { color: '#1A1A1A' } }
+      },
+      series: [{
+        type: 'bar',
+        data: values.map((v, i) => ({
+          value: v,
+          itemStyle: { color: colors[categories[i]] || '#B8960C' }
+        })),
+        barWidth: '50%',
+        label: {
+          show: true,
+          position: 'top',
+          color: '#E0E0E0',
+          fontWeight: 'bold'
+        }
+      }]
+    });
+
+    window.addEventListener('resize', () => chart.resize());
+  })();
+
+  // Archetype Donut Chart
+  (function() {
+    const archetypes = {{ archetypes | safe }};
+    const chart = echarts.init(document.getElementById('archetype-chart'), 'dark');
+
+    const colorMap = {
+      'BARONE': '#8B4513',
+      'NARCISO': '#9B59B6',
+      'PERFORMANTE': '#27AE60',
+      'RAGIONIERE': '#2980B9',
+      'TECNICO': '#7F8C8D',
+      'RELAZIONALE': '#E91E63',
+      'DELEGATORE': '#2D4739'
+    };
+
+    chart.setOption({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'item' },
+      series: [{
+        type: 'pie',
+        radius: ['45%', '75%'],
+        center: ['50%', '50%'],
+        itemStyle: { borderRadius: 6, borderColor: '#0D0D0D', borderWidth: 2 },
+        label: {
+          color: '#E0E0E0',
+          fontSize: 11
+        },
+        data: archetypes.map(a => ({
+          name: a.persona_type,
+          value: a.count,
+          itemStyle: { color: colorMap[a.persona_type] || '#B8960C' }
+        }))
+      }]
+    });
+
+    window.addEventListener('resize', () => chart.resize());
+  })();
+</script>
+{% endblock %}

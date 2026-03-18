@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block page_title %}{{ dealer.dealer_name or 'Dealer' }} — Chat{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Dealer Info -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title" style="color: var(--argos-gold);">{{ dealer.dealer_name or '—' }}</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-sm" style="font-size: 0.85rem;">
+          <tr>
+            <td style="color: var(--tblr-muted);">Citta'</td>
+            <td>{{ dealer.city or '—' }}</td>
+          </tr>
+          <tr>
+            <td style="color: var(--tblr-muted);">Telefono</td>
+            <td>{{ dealer.phone_number or '—' }}</td>
+          </tr>
+          <tr>
+            <td style="color: var(--tblr-muted);">Stock</td>
+            <td>{{ dealer.stock_size or '—' }} auto</td>
+          </tr>
+          <tr>
+            <td style="color: var(--tblr-muted);">Archetipo</td>
+            <td>
+              {% if dealer.persona_type %}
+                <span class="badge badge-archetype badge-{{ dealer.persona_type }}">{{ dealer.persona_type }}</span>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td style="color: var(--tblr-muted);">Score</td>
+            <td style="color: var(--argos-gold); font-weight: 600;">{{ "%.1f"|format(dealer.score) if dealer.score else '—' }}</td>
+          </tr>
+          <tr>
+            <td style="color: var(--tblr-muted);">Step</td>
+            <td>
+              <span class="badge badge-{{ (dealer.current_step or 'PENDING').split('_')[0] }}">
+                {{ dealer.current_step or 'PENDING' }}
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td style="color: var(--tblr-muted);">Fonte</td>
+            <td style="font-size: 0.8rem;">{{ dealer.source or '—' }}</td>
+          </tr>
+        </table>
+
+        <!-- Notes -->
+        <div id="dealer-notes" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--tblr-border-color);">
+          <div style="font-size: 0.7rem; color: var(--tblr-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">Note</div>
+          <div id="note-display" style="font-size: 0.8rem; color: var(--tblr-body-color); min-height: 2rem;">
+            {{ dealer.notes or 'Nessuna nota.' }}
+          </div>
+          <div x-data="{ editing: false, note: '{{ (dealer.notes or '')|e }}', saving: false }" style="margin-top: 0.5rem;">
+            <template x-if="!editing">
+              <button class="btn btn-outline-argos btn-sm" @click="editing = true">Modifica nota</button>
+            </template>
+            <template x-if="editing">
+              <div>
+                <textarea x-model="note" class="form-control form-control-sm mb-2" rows="3"
+                          style="background: var(--argos-input-bg); border-color: var(--tblr-border-color); color: var(--tblr-body-color); font-size: 0.8rem;"></textarea>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-argos btn-sm" :disabled="saving"
+                          @click="saving=true; fetch('/api/actions/add-note', {
+                            method:'POST', headers:{'Content-Type':'application/json'},
+                            body: JSON.stringify({dealer_id:'{{ dealer.dealer_id }}', note: note})
+                          }).then(r=>r.json()).then(d=>{
+                            if(d.ok){document.getElementById('note-display').textContent=note; editing=false;}
+                            saving=false;
+                          })">Salva</button>
+                  <button class="btn btn-outline-argos btn-sm" @click="editing=false">Annulla</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Day 1 Action -->
+        {% if (dealer.current_step or 'PENDING') == 'PENDING' %}
+        <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--tblr-border-color);"
+             x-data="{ sending: false, sent: false, error: '' }">
+          <button class="btn btn-argos btn-sm w-100" :disabled="sending || sent"
+                  @click="sending=true; error='';
+                    fetch('/api/actions/send-day1', {
+                      method:'POST', headers:{'Content-Type':'application/json'},
+                      body: JSON.stringify({dealer_id:'{{ dealer.dealer_id }}'})
+                    }).then(r=>r.json()).then(d=>{
+                      if(d.ok){sent=true;} else {error=d.error||'Errore';}
+                      sending=false;
+                    }).catch(()=>{error='Errore di rete'; sending=false;})">
+            <template x-if="!sent">
+              <span x-text="sending ? 'Invio...' : 'Invia Day 1'"></span>
+            </template>
+            <template x-if="sent">
+              <span style="color: #000;">Day 1 Inviato</span>
+            </template>
+          </button>
+          <div x-show="error" x-text="error" style="color: var(--argos-danger); font-size: 0.75rem; margin-top: 0.25rem;"></div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Pending Replies for this dealer -->
+    {% if pending %}
+    <div class="card mt-3">
+      <div class="card-header">
+        <h3 class="card-title" style="color: var(--argos-warning);">
+          Risposte in Attesa ({{ pending|length }})
+        </h3>
+      </div>
+      <div class="card-body p-0">
+        {% for p in pending %}
+        <div style="padding: 0.75rem; border-bottom: 1px solid var(--tblr-border-color);"
+             x-data="{ actioned: false }" x-show="!actioned">
+          <div style="font-size: 0.8rem; color: var(--tblr-body-color); margin-bottom: 0.5rem;">
+            "{{ p.reply_text[:200] }}"
+          </div>
+          <div style="font-size: 0.7rem; color: var(--tblr-muted); margin-bottom: 0.5rem;">
+            {{ p.reply_label or '' }} {% if p.cialdini_trigger %}| {{ p.cialdini_trigger }}{% endif %}
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm" style="background: var(--argos-success); color: #000; font-weight: 600;"
+                    @click="fetch('/api/actions/approve-reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reply_id:{{ p.id }}})}).then(r=>r.json()).then(d=>{if(d.ok)actioned=true;})">
+              Approva
+            </button>
+            <button class="btn btn-sm" style="background: var(--tblr-border-color); color: var(--tblr-muted);"
+                    @click="fetch('/api/actions/skip-reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reply_id:{{ p.id }}})}).then(r=>r.json()).then(d=>{if(d.ok)actioned=true;})">
+              Skip
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <a href="/conversations" class="btn btn-outline-argos btn-sm mt-2">&larr; Tutti i dealer</a>
+  </div>
+
+  <!-- Chat Timeline -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title" style="color: var(--argos-gold);">
+          <span class="live-indicator"></span>
+          Timeline
+        </h3>
+        <span class="text-muted" style="font-size: 0.75rem;">{{ messages|length }} messaggi</span>
+      </div>
+      <div class="card-body" style="max-height: 65vh; overflow-y: auto;" id="chat-area">
+        <div id="chat-messages">
+          {% if messages %}
+            {% for msg in messages %}
+            <div class="d-flex {% if msg.direction == 'OUTBOUND' %}justify-content-end{% endif %} mb-2">
+              <div class="chat-message {% if msg.direction == 'OUTBOUND' %}chat-outbound{% else %}chat-inbound{% endif %}">
+                <div style="font-size: 0.85rem;">{{ msg.body or '' }}</div>
+                <div class="chat-timestamp mt-1">
+                  {{ msg.timestamp_it or msg.created_at or '' }}
+                  {% if msg.direction == 'OUTBOUND' %}
+                    — <span style="color: var(--argos-gold-dim);">Luca</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center text-muted" style="padding: 3rem;">
+              Nessun messaggio ancora per questo dealer.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const chatArea = document.getElementById('chat-area');
+  if (chatArea) chatArea.scrollTop = chatArea.scrollHeight;
+</script>
+{% endblock %}

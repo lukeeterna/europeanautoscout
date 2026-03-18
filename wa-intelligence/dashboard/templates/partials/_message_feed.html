@@ -1,0 +1,46 @@
+<!-- Message feed partial — refreshed via HTMX -->
+<div class="table-responsive">
+  <table class="table table-vcenter card-table">
+    <thead>
+      <tr>
+        <th>Orario</th>
+        <th>Dealer</th>
+        <th>Dir</th>
+        <th>Messaggio</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if recent_msgs %}
+        {% for msg in recent_msgs %}
+        <tr>
+          <td class="text-nowrap" style="font-size: 0.8rem; color: var(--tblr-muted);">
+            {{ msg.timestamp_it or msg.created_at or '—' }}
+          </td>
+          <td>
+            <a href="/conversations/{{ msg.dealer_id }}"
+               style="color: var(--argos-gold); text-decoration: none; font-weight: 500;">
+              {{ msg.dealer_name or msg.dealer_id or '?' }}
+            </a>
+          </td>
+          <td>
+            {% if msg.direction == 'INBOUND' %}
+              <span style="color: var(--argos-info);">IN</span>
+            {% else %}
+              <span style="color: var(--argos-gold);">OUT</span>
+            {% endif %}
+          </td>
+          <td style="font-size: 0.85rem; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            {{ msg.body[:120] if msg.body else '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="4" class="text-center text-muted" style="padding: 2rem;">
+            Nessun messaggio ancora. Il feed si aggiornera' automaticamente.
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>

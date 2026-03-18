@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """
 salerno_pipeline_loader.py — ARGOS™ CoVe 2026
-Carica 8 dealer Salerno nella pipeline DuckDB + prepara outreach Day 1.
+Carica 8 dealer Salerno nella pipeline SQLite + prepara outreach Day 1.
 
 Usage: python3 tools/salerno_pipeline_loader.py
        python3 tools/salerno_pipeline_loader.py --dry-run  (solo preview)
+
+S60: Migrato da DuckDB a SQLite (WAL mode, multi-processo nativo).
 """
 
-import duckdb
+import sqlite3
 import os
 import sys
 import json
 from datetime import datetime
 
 DB_PATH = os.path.expanduser(
-    '~/Documents/app-antigravity-auto/dealer_network.duckdb'
+    '~/Documents/app-antigravity-auto/dealer_network.sqlite'
 )
 DRY_RUN = '--dry-run' in sys.argv
 
@@ -125,47 +127,80 @@ DEALERS = [
 
 
 def ensure_tables(con):
-    """Crea tabella conversations se non esiste."""
+    """Crea tutte le tabelle se non esistono. WAL mode per multi-processo."""
+    con.execute("PRAGMA journal_mode=WAL")
     con.execute("""
         CREATE TABLE IF NOT EXISTS conversations (
-            dealer_id       VARCHAR PRIMARY KEY,
-            dealer_name     VARCHAR,
-            city            VARCHAR,
-            phone_number    VARCHAR,
+            dealer_id       TEXT PRIMARY KEY,
+            dealer_name     TEXT,
+            city            TEXT,
+            phone_number    TEXT,
             stock_size      INTEGER,
-            persona_type    VARCHAR,
-            score           DOUBLE,
-            source          VARCHAR,
-            notes           VARCHAR,
-            current_step    VARCHAR DEFAULT 'PENDING',
-            day1_message    VARCHAR,
-            recommendation  VARCHAR DEFAULT 'PENDING',
-            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_contact_at TIMESTAMP,
-            analyzed_at     TIMESTAMP
+            persona_type    TEXT,
+            score           REAL,
+            source          TEXT,
+            notes           TEXT,
+            current_step    TEXT DEFAULT 'PENDING',
+            day1_message    TEXT,
+            recommendation  TEXT DEFAULT 'PENDING',
+            created_at      TEXT DEFAULT (datetime('now')),
+            last_contact_at TEXT,
+            analyzed_at     TEXT
         )
     """)
     con.execute("""
         CREATE TABLE IF NOT EXISTS pending_replies (
-            id           VARCHAR PRIMARY KEY,
-            dealer_id    VARCHAR,
-            dealer_name  VARCHAR,
-            reply_text   VARCHAR,
-            reply_label  VARCHAR,
-            approved     BOOLEAN,
-            sent         BOOLEAN DEFAULT FALSE,
-            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            id              TEXT PRIMARY KEY,
+            dealer_id       TEXT,
+            dealer_name     TEXT,
+            inbound_msg_id  TEXT,
+            reply_text      TEXT,
+            reply_label     TEXT,
+            cialdini_trigger TEXT,
+            approved        INTEGER DEFAULT NULL,
+            sent            INTEGER DEFAULT 0,
+            scheduled_at    TEXT,
+            created_at      TEXT DEFAULT (datetime('now'))
         )
     """)
     con.execute("""
         CREATE TABLE IF NOT EXISTS messages (
-            id           INTEGER PRIMARY KEY,
-            dealer_id    VARCHAR,
-            direction    VARCHAR,
-            body         VARCHAR,
-            timestamp_it TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            id              TEXT PRIMARY KEY,
+            dealer_id       TEXT,
+            dealer_name     TEXT,
+            phone_number    TEXT,
+            direction       TEXT,
+            body            TEXT,
+            timestamp_it    TEXT,
+            timestamp_iso   TEXT,
+            wa_msg_id       TEXT,
+            processed       INTEGER DEFAULT 0,
+            created_at      TEXT DEFAULT (datetime('now'))
         )
     """)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS scheduled_actions (
+            id              TEXT PRIMARY KEY,
+            dealer_id       TEXT,
+            dealer_name     TEXT,
+            action_type     TEXT,
+            due_at          TEXT,
+            status          TEXT DEFAULT 'PENDING',
+            fired_at        TEXT,
+            created_at      TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id              TEXT PRIMARY KEY,
+            event_type      TEXT,
+            dealer_id       TEXT,
+            payload         TEXT,
+            timestamp_it    TEXT,
+            created_at      TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    con.commit()
 
 
 def load_dealers(con):
@@ -200,7 +235,7 @@ def load_dealers(con):
 
 def main():
     print("=" * 60)
-    print("ARGOS™ — Salerno Pipeline Loader (S58)")
+    print("ARGOS™ — Salerno Pipeline Loader (S60 — SQLite)")
     print("=" * 60)
     print(f"DB: {DB_PATH}")
     print(f"Dealer da caricare: {len(DEALERS)}")
@@ -216,7 +251,7 @@ def main():
         print(MSG_DAY1[:200] + "...")
         return
 
-    con = duckdb.connect(DB_PATH)
+    con = sqlite3.connect(DB_PATH)
     ensure_tables(con)
     loaded, skipped = load_dealers(con)
     con.commit()
@@ -224,7 +259,8 @@ def main():
 
     print(f"\n{'=' * 60}")
     print(f"✅ Caricati: {loaded} | ⏭️ Skippati: {skipped}")
-    print(f"Prossimo step: attivare WA Business → auth_business.js → invio Day 1")
+    print(f"DB: {DB_PATH} (SQLite WAL mode)")
+    print(f"Prossimo step: deploy su iMac → pm2 restart all → /status")
     print(f"{'=' * 60}")
 
 

@@ -1,0 +1,27 @@
+<!-- KPI Cards partial — refreshed via HTMX ogni 30s -->
+<div class="row g-3">
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ stats.total_dealers }}</div>
+      <div class="kpi-label">Dealer Totali</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ stats.active_dealers }}</div>
+      <div class="kpi-label">Dealer Attivi</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ stats.pending_replies }}</div>
+      <div class="kpi-label">Risposte Pending</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card">
+      <div class="kpi-value">${{ "%.3f"|format(cost_total.total_cost) }}</div>
+      <div class="kpi-label">Costi LLM</div>
+    </div>
+  </div>
+</div>

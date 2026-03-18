@@ -1,0 +1,311 @@
+{
+  "version": "2.0",
+  "updated": "2026-03-14",
+  "description": "ARGOS Automotive — Archetype Framework v2. 10 archetipi + overlap handling.",
+
+  "archetypes": {
+    "RAGIONIERE": {
+      "core_drive": "ROI e precisione fiscale",
+      "signal_triggers": [
+        "Prima domanda su numeri, IVA, margini",
+        "Chiede regime fiscale prima del servizio",
+        "Vuole voci separate nel preventivo",
+        "Usa termini come 'consuntivo', 'TD18', 'reverse charge'"
+      ],
+      "obj_primary": ["OBJ-2", "OBJ-4"],
+      "response_principles": [
+        "Numeri prima, contesto dopo",
+        "Mai stime — solo range documentabili",
+        "Specificare sempre: IVA inclusa/esclusa, voci separate",
+        "ROI in percentuale sul margine, non sul fee"
+      ],
+      "trap_behaviors": [
+        "Narrativa senza numeri → fa un'altra domanda",
+        "Stima approssimativa → OBJ-2 immediato",
+        "Fee difesa con qualità generica → non convinto"
+      ],
+      "closing_signal": "Chiede il foglio su carta / consuntivo reale",
+      "avg_rounds_to_close": 4,
+      "south_italy_frequency": 0.28
+    },
+
+    "BARONE": {
+      "core_drive": "Status e controllo del territorio",
+      "signal_triggers": [
+        "Prima risposta difensiva/territoriale",
+        "Riferimento a fornitori storici ('ho già chi mi serve')",
+        "Tono condiscendente o di valutazione",
+        "Non risponde subito — aspetta che tu ti presenti"
+      ],
+      "obj_primary": ["OBJ-5", "OBJ-1"],
+      "response_principles": [
+        "Non chiedere permesso — proponi da pari",
+        "Esclusività e selezione: 'non è per tutti'",
+        "Referenza implicita alla scarsità",
+        "Mai mostrare urgenza"
+      ],
+      "trap_behaviors": [
+        "Troppa disponibilità → percepisce debolezza",
+        "Pitch commerciale standard → lo ignora",
+        "Chiedere di parlare col titolare → lui è il titolare"
+      ],
+      "closing_signal": "Inizia a fare domande operative (non più difensive)",
+      "avg_rounds_to_close": 6,
+      "south_italy_frequency": 0.22
+    },
+
+    "PERFORMANTE": {
+      "core_drive": "Velocità e vantaggio competitivo",
+      "signal_triggers": [
+        "Deadline esplicita e non negoziabile",
+        "Richiede foglio completo, non pitch",
+        "Vuole numeri verificabili, non stime",
+        "Confronta con alternative in real-time"
+      ],
+      "obj_primary": ["OBJ-3", "OBJ-2"],
+      "response_principles": [
+        "Meno parole, più dati",
+        "Ammettere errori immediatamente — non difenderli",
+        "Ogni risposta deve avanzare, non spiegare",
+        "Risposta a deadline: confermare o rifiutare — no via di mezzo"
+      ],
+      "trap_behaviors": [
+        "Spiegazioni non richieste → risposta più corta e più dura",
+        "Errore non ammesso → perde fiducia totale",
+        "Promessa non mantenuta → chiude senza drammi"
+      ],
+      "closing_signal": "Dà specifiche precise (modello, km, optional, deadline)",
+      "avg_rounds_to_close": 2,
+      "south_italy_frequency": 0.16
+    },
+
+    "NARCISO": {
+      "core_drive": "Immagine e percezione del brand",
+      "signal_triggers": [
+        "Chiede come appare il veicolo in showroom",
+        "Menziona il 'cliente finale' e cosa pensa",
+        "Interesse per optional visibili (colore, interni, cerchi)",
+        "Attento alla propria reputazione come dealer"
+      ],
+      "obj_primary": ["OBJ-4", "OBJ-2"],
+      "response_principles": [
+        "Il veicolo deve 'fare bella figura' — linguaggio estetico",
+        "ARGOS è invisibile al cliente finale",
+        "Usare 'esclusivo', 'configurazione premium', 'non replicabile'",
+        "Mai far sentire il dealer un intermediario"
+      ],
+      "trap_behaviors": [
+        "Parlare di logistica o burocrazia → disinteresse immediato",
+        "Veicolo comune/standard → non convinto",
+        "Fee esposta come costo visibile → OBJ-2"
+      ],
+      "closing_signal": "Chiede foto del veicolo o configurazione colore/optional",
+      "avg_rounds_to_close": 3,
+      "south_italy_frequency": 0.12
+    },
+
+    "TECNICO": {
+      "core_drive": "Precisione procedurale e documentazione",
+      "signal_triggers": [
+        "Smonta terminologia imprecisa alla prima risposta",
+        "Chiede chi firma cosa e con quale responsabilità",
+        "Distingue standard tecnici (TÜV vs DEKRA vs CarFax)",
+        "Vuole sequenza temporale degli eventi documentata"
+      ],
+      "obj_primary": ["OBJ-1", "OBJ-4"],
+      "response_principles": [
+        "Correggersi immediatamente se imprecisi",
+        "Usare terminologia tecnica corretta (DAT, HU, Gutachten, Regelbesteuerung)",
+        "Ammettere vulnerabilità strutturali prima che le trovi lui",
+        "Offrire struttura che elimina il conflitto, non che lo spiega"
+      ],
+      "trap_behaviors": [
+        "Terminologia vaga → filtro immediato, conversazione chiusa",
+        "Difendere un errore tecnico → perde credibilità totale",
+        "Processo non documentabile → non procede"
+      ],
+      "closing_signal": "Accetta la struttura proposta e chiede VIN + contatti operativi",
+      "avg_rounds_to_close": 4,
+      "south_italy_frequency": 0.08
+    },
+
+    "RELAZIONALE": {
+      "core_drive": "Fiducia personale e referral",
+      "signal_triggers": [
+        "'Come ci siamo conosciuti?' o 'Chi ti ha mandato?'",
+        "Risponde in modo caloroso ma non si sbilancia",
+        "Menziona conoscenze comuni o il territorio",
+        "Vuole 'parlare' prima di 'fare'"
+      ],
+      "obj_primary": ["OBJ-5"],
+      "response_principles": [
+        "Costruire connessione personale prima del pitch",
+        "Referenza geografica o comune se disponibile",
+        "Non affrettare la proposta commerciale",
+        "Incontro fisico o videochiamata come step naturale"
+      ],
+      "trap_behaviors": [
+        "Pitch commerciale al primo contatto → muro immediato",
+        "Tono impersonale/aziendale → non si fida",
+        "Fretta → si chiude"
+      ],
+      "closing_signal": "Propone lui di sentirsi/vedersi",
+      "avg_rounds_to_close": 5,
+      "south_italy_frequency": 0.20
+    },
+
+    "CONSERVATORE": {
+      "core_drive": "Risk-aversion e continuità",
+      "signal_triggers": [
+        "'Ho sempre fatto così'",
+        "'Non è il momento giusto'",
+        "Risponde ma non si espone",
+        "Chiede garanzie prima di qualsiasi altra informazione"
+      ],
+      "obj_primary": ["OBJ-3", "OBJ-4"],
+      "response_principles": [
+        "Social proof: altri dealer simili che hanno già fatto",
+        "Ridurre il rischio percepito al minimo (zero upfront aiuta)",
+        "Proposta pilota: un'operazione di prova, nessun impegno",
+        "Non spingere — lasciare che arrivi da solo"
+      ],
+      "trap_behaviors": [
+        "Urgenza o scarsità → si irrigidisce",
+        "Troppa innovazione nel pitch → paura del cambiamento",
+        "Nessun case study → non si muove"
+      ],
+      "closing_signal": "Chiede 'ma altri dealer come me lo hanno fatto?'",
+      "avg_rounds_to_close": 7,
+      "south_italy_frequency": 0.18
+    },
+
+    "DELEGATORE": {
+      "core_drive": "Consenso familiare/sociale — non decide da solo",
+      "signal_triggers": [
+        "'Ne parlo col mio socio/commercialista/fratello'",
+        "Risponde con disponibilità ma senza decisione",
+        "Titolare assente — parla un dipendente o familiare",
+        "OBJ-5 a ogni round, anche dopo spiegazioni complete"
+      ],
+      "obj_primary": ["OBJ-5"],
+      "response_principles": [
+        "Identificare il vero decision maker entro round 2",
+        "Coinvolgere il DM direttamente: 'posso mandarle il foglio per il commercialista?'",
+        "Non investire più di 2 round senza DM contact",
+        "Proporre materiale da condividere internamente"
+      ],
+      "trap_behaviors": [
+        "Convincere il delegatore senza raggiungere il DM → ciclo infinito",
+        "Pressare per decisione → 'ne parlo e ti faccio sapere' eterno",
+        "Spiegare troppo → porta al DM a pezzi, male"
+      ],
+      "closing_signal": "Ti mette in contatto diretto col DM",
+      "avg_rounds_to_close": 8,
+      "south_italy_frequency": 0.15
+    },
+
+    "OPPORTUNISTA": {
+      "core_drive": "Prezzo minimo, volume massimo",
+      "signal_triggers": [
+        "Prima domanda: 'quanto costa?'",
+        "Chiede sconto o fee ridotta immediatamente",
+        "Confronta con alternative più economiche",
+        "Parla di volumi alti come leva negoziale"
+      ],
+      "obj_primary": ["OBJ-2"],
+      "response_principles": [
+        "Non cedere sul prezzo — cedere è segnale di debolezza",
+        "Spostare dal prezzo assoluto al ROI percentuale",
+        "Volume: proporre accordo quadro se volume garantito (>3 deal/anno)",
+        "Se vuole solo prezzo basso, non è il cliente target"
+      ],
+      "trap_behaviors": [
+        "Sconto immediato → chiede altro sconto al round dopo",
+        "Giustificare il fee con qualità → non interessa, vuole numero",
+        "Promettere volume senza accordo scritto → non si concretizza"
+      ],
+      "closing_signal": "Chiede le condizioni per un accordo continuativo",
+      "avg_rounds_to_close": 3,
+      "south_italy_frequency": 0.10
+    },
+
+    "VISIONARIO": {
+      "core_drive": "First-mover, innovazione, leadership locale",
+      "signal_triggers": [
+        "'Voglio essere il primo nella mia zona a farlo'",
+        "Secondo/terza generazione giovane",
+        "Già usa strumenti digitali avanzati",
+        "Parla di crescita e espansione, non di consolidamento"
+      ],
+      "obj_primary": ["OBJ-3_INVERTED"],
+      "response_principles": [
+        "Esclusività geografica come leva principale",
+        "Urgency reale: 'la finestra si chiude quando apro il secondo dealer'",
+        "Dati competitivi: cosa fanno i dealer del Nord che il Sud non fa ancora",
+        "Prima operazione come pilot veloce, non impegno a lungo termine"
+      ],
+      "trap_behaviors": [
+        "Processo lento o burocratico → perde interesse",
+        "Nessun angolo competitivo → non motivato",
+        "Proposta standard → si aspetta qualcosa di esclusivo"
+      ],
+      "closing_signal": "Chiede quando possiamo iniziare, non se",
+      "avg_rounds_to_close": 2,
+      "south_italy_frequency": 0.08
+    }
+  },
+
+  "overlap_system": {
+    "description": "Probability vector per dealer reali. Primary + secondary archetype.",
+    "rules": {
+      "pure": "primary_confidence > 0.70 → usa template primary puro",
+      "blended": "primary 0.50-0.70 AND secondary > 0.25 → template primary + hook secondary in chiusura",
+      "uncertain": "primary < 0.50 → domanda di qualificazione prima di rispondere",
+      "shift": "archetype può shiftare in-conversation → aggiorna vector, non sovrascrivere (media pesata 0.7 new + 0.3 old)"
+    },
+    "common_overlaps": [
+      {
+        "combo": "RAGIONIERE+CONSERVATORE",
+        "frequency": 0.18,
+        "description": "Vuole i numeri MA non cambia sistema — il rischio blocca anche ROI positivo",
+        "blend_principle": "ROI prima, poi social proof altri dealer simili"
+      },
+      {
+        "combo": "BARONE+DELEGATORE",
+        "frequency": 0.14,
+        "description": "Comanda lui ma decide col fratello/socio — ego alto, autonomia bassa",
+        "blend_principle": "Rispettare il suo status, poi chiedere di coinvolgere il DM senza sminuirlo"
+      },
+      {
+        "combo": "PERFORMANTE+VISIONARIO",
+        "frequency": 0.12,
+        "description": "Vuole subito E primo della zona — giovane, aggressivo, digitale",
+        "blend_principle": "Velocità + esclusività geografica = chiusura rapida"
+      },
+      {
+        "combo": "TECNICO+RAGIONIERE",
+        "frequency": 0.10,
+        "description": "Processo corretto E ROI documentato — il più difficile da convincere, il più fedele se convinto",
+        "blend_principle": "Documentazione prima, ROI dopo — mai invertire"
+      },
+      {
+        "combo": "NARCISO+BARONE",
+        "frequency": 0.09,
+        "description": "Immagine E territorio — vuole essere il dealer premium della zona",
+        "blend_principle": "Veicolo esclusivo + posizionamento competitivo locale"
+      },
+      {
+        "combo": "RELAZIONALE+CONSERVATORE",
+        "frequency": 0.16,
+        "description": "Non ti conosce E non vuole rischiare — South Italy classic",
+        "blend_principle": "Referral + case study locale + proposta pilota a zero rischio"
+      },
+      {
+        "combo": "OPPORTUNISTA+DELEGATORE",
+        "frequency": 0.08,
+        "description": "Chiede sconto ma decide il socio — doppio blocco",
+        "blend_principle": "Spostare sul ROI, raggiungere DM direttamente"
+      }
+    ]
+  }
+}

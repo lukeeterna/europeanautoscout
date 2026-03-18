@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block page_title %}System Health{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <!-- PM2 Processes -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title" style="color: var(--argos-gold);">Processi PM2</h3>
+        <span class="text-muted" style="font-size: 0.75rem;">
+          <span class="live-indicator"></span> auto-refresh 30s
+        </span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+          <thead>
+            <tr>
+              <th>Processo</th>
+              <th>Status</th>
+              <th>RAM (MB)</th>
+              <th>Restarts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if pm2_status %}
+              {% for proc in pm2_status %}
+              <tr>
+                <td style="font-weight: 600;">{{ proc.name }}</td>
+                <td>
+                  {% if proc.status == 'online' %}
+                    <span style="color: var(--argos-success);">ONLINE</span>
+                  {% elif proc.status == 'stopped' %}
+                    <span style="color: var(--tblr-muted);">STOPPED</span>
+                  {% else %}
+                    <span style="color: var(--argos-danger);">{{ proc.status|upper }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ proc.memory }} MB</td>
+                <td>{{ proc.restarts }}</td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="4" class="text-center text-muted">PM2 non raggiungibile</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Database Stats -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title" style="color: var(--argos-gold);">Database SQLite</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-sm" style="font-size: 0.85rem;">
+          <tr>
+            <td style="color: var(--tblr-muted);">Journal Mode</td>
+            <td style="font-weight: 600; color: var(--argos-success);">{{ db_stats.journal_mode|upper }}</td>
+          </tr>
+          <tr>
+            <td style="color: var(--tblr-muted);">Dimensione</td>
+            <td>{{ db_stats.size_kb }} KB</td>
+          </tr>
+          {% for table_name, count in db_stats.tables.items() %}
+          <tr>
+            <td style="color: var(--tblr-muted);">{{ table_name }}</td>
+            <td>{{ count }} record</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sessioni -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title" style="color: var(--argos-gold);">Sessioni</h3>
+      </div>
+      <div class="card-body">
+        <table class="table table-sm" style="font-size: 0.85rem;">
+          <tr>
+            <td style="color: var(--tblr-muted);">WA Business</td>
+            <td>328-1536308</td>
+          </tr>
+          <tr>
+            <td style="color: var(--tblr-muted);">OpenRouter</td>
+            <td>Haiku 4.5</td>
+          </tr>
+          <tr>
+            <td style="color: var(--tblr-muted);">Telegram Bot</td>
+            <td>Attivo</td>
+          </tr>
+          <tr>
+            <td style="color: var(--tblr-muted);">Landing</td>
+            <td><a href="https://argos-automotive.pages.dev" target="_blank" style="color: var(--argos-gold);">argos-automotive.pages.dev</a></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- WA Auth -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title" style="color: var(--argos-gold);">WhatsApp Auth</h3>
+        <span id="wa-session-badge">
+          {% if wa_session_active %}
+            <span class="badge" style="background: var(--argos-success); color: #000;">SESSIONE ATTIVA</span>
+          {% else %}
+            <span class="badge" style="background: var(--argos-danger); color: #fff;">SESSIONE SCADUTA</span>
+          {% endif %}
+        </span>
+      </div>
+      <div class="card-body">
+        <div id="wa-auth-container">
+          {% if wa_auth_running %}
+            <p style="color: var(--argos-gold); margin-bottom: 1rem;">QR Auth in corso — scansiona dal telefono:</p>
+            <div style="text-align: center;">
+              <iframe id="wa-qr-frame" src="http://192.168.1.2:8765"
+                      style="width: 400px; height: 500px; border: 2px solid var(--argos-gold); border-radius: 8px; background: #08080A;">
+              </iframe>
+            </div>
+            <div style="text-align: center; margin-top: 1rem;">
+              <button onclick="stopWaAuth()" class="btn" style="background: var(--argos-danger); color: #fff; border: none;">
+                Ferma Auth
+              </button>
+            </div>
+          {% elif not wa_session_active %}
+            <p style="color: var(--tblr-muted); margin-bottom: 1rem;">
+              Sessione WA scaduta. Clicca per generare il QR e scansionarlo con WhatsApp Business.
+            </p>
+            <div style="text-align: center;">
+              <button onclick="startWaAuth()" id="wa-auth-btn" class="btn"
+                      style="background: var(--argos-gold); color: #000; border: none; font-weight: 600; padding: 0.75rem 2rem; font-size: 1rem;">
+                Autentica WhatsApp
+              </button>
+            </div>
+          {% else %}
+            <p style="color: var(--argos-success);">
+              Sessione WA attiva e funzionante. Nessuna azione richiesta.
+            </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audit Log -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title" style="color: var(--argos-gold);">Audit Log</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+          <thead>
+            <tr>
+              <th>Orario</th>
+              <th>Evento</th>
+              <th>Dealer</th>
+              <th>Dettagli</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if audit %}
+              {% for a in audit %}
+              <tr>
+                <td style="font-size: 0.8rem; color: var(--tblr-muted); white-space: nowrap;">{{ a.timestamp_it or a.created_at or '—' }}</td>
+                <td>
+                  <span class="badge" style="background: var(--argos-gold-glow); color: var(--argos-gold); font-size: 0.7rem;">
+                    {{ a.event_type }}
+                  </span>
+                </td>
+                <td style="font-size: 0.85rem;">{{ a.dealer_id or '—' }}</td>
+                <td style="font-size: 0.8rem; color: var(--tblr-muted); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  {{ a.payload or '' }}
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="4" class="text-center text-muted" style="padding: 1.5rem;">Nessun evento registrato.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function startWaAuth() {
+  const btn = document.getElementById('wa-auth-btn');
+  btn.disabled = true;
+  btn.textContent = 'Avvio in corso...';
+
+  try {
+    const res = await fetch('/api/actions/wa-auth-start', {method: 'POST'});
+    const data = await res.json();
+    if (data.ok) {
+      const container = document.getElementById('wa-auth-container');
+      container.innerHTML = `
+        <p style="color: var(--argos-gold); margin-bottom: 1rem;">
+          QR Auth in corso — scansiona dal telefono (WA Business > Dispositivi collegati > Collega):
+        </p>
+        <div style="text-align: center;">
+          <p id="wa-loading" style="color: var(--tblr-muted); padding: 2rem;">Avvio Chromium (~15s)...</p>
+          <iframe id="wa-qr-frame" src="about:blank"
+                  style="width: 400px; height: 520px; border: 2px solid var(--argos-gold); border-radius: 8px; background: #08080A; display: none;">
+          </iframe>
+        </div>
+        <div style="text-align: center; margin-top: 1rem;">
+          <button onclick="stopWaAuth()" class="btn" style="background: var(--argos-danger); color: #fff; border: none;">
+            Ferma Auth
+          </button>
+          <button onclick="checkWaSession()" class="btn" style="background: var(--argos-gold); color: #000; border: none; margin-left: 0.5rem;">
+            Verifica Sessione
+          </button>
+        </div>
+      `;
+      // Retry loading iframe until QR server is ready
+      let retries = 0;
+      const tryLoad = setInterval(() => {
+        retries++;
+        fetch('http://192.168.1.2:8765', {mode: 'no-cors'}).then(() => {
+          clearInterval(tryLoad);
+          const frame = document.getElementById('wa-qr-frame');
+          const loading = document.getElementById('wa-loading');
+          if (frame) { frame.src = 'http://192.168.1.2:8765'; frame.style.display = 'block'; }
+          if (loading) loading.style.display = 'none';
+        }).catch(() => {});
+        if (retries > 30) clearInterval(tryLoad);
+      }, 2000);
+      document.getElementById('wa-session-badge').innerHTML =
+        '<span class="badge" style="background: var(--argos-gold); color: #000;">AUTH IN CORSO</span>';
+    } else {
+      btn.textContent = 'Errore: ' + (data.error || 'riprova');
+      btn.disabled = false;
+    }
+  } catch (e) {
+    btn.textContent = 'Errore connessione';
+    btn.disabled = false;
+  }
+}
+
+async function stopWaAuth() {
+  await fetch('/api/actions/wa-auth-stop', {method: 'POST'});
+  location.reload();
+}
+
+async function checkWaSession() {
+  const res = await fetch('/api/wa-session-status');
+  const data = await res.json();
+  if (data.session_active) {
+    document.getElementById('wa-session-badge').innerHTML =
+      '<span class="badge" style="background: var(--argos-success); color: #000;">SESSIONE ATTIVA</span>';
+    const container = document.getElementById('wa-auth-container');
+    container.innerHTML = '<p style="color: var(--argos-success); font-size: 1.1em;">Sessione WA autenticata con successo!</p>';
+    setTimeout(() => location.reload(), 2000);
+  }
+}
+</script>
+{% endblock %}

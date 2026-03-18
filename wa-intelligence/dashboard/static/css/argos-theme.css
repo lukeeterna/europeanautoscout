@@ -1,0 +1,366 @@
+/*
+ * ARGOS Automotive — Dashboard Theme
+ * CoVe 2026 | Enterprise Grade
+ *
+ * Override Tabler dark theme: nero #0D0D0D + oro #B8960C
+ * Brand consistency con landing page argos-automotive.pages.dev
+ */
+
+:root {
+  --tblr-body-bg: #0D0D0D;
+  --tblr-body-color: #E0E0E0;
+  --tblr-card-bg: #1A1A1A;
+  --tblr-card-border-color: #2A2A2A;
+  --tblr-border-color: #2A2A2A;
+  --tblr-muted: #888;
+
+  --argos-gold: #B8960C;
+  --argos-gold-light: #D4AF37;
+  --argos-gold-dim: #8B7209;
+  --argos-gold-glow: rgba(184, 150, 12, 0.15);
+
+  --argos-success: #2ECC71;
+  --argos-danger: #E74C3C;
+  --argos-warning: #F39C12;
+  --argos-info: #3498DB;
+
+  --argos-card-bg: #1A1A1A;
+  --argos-card-hover: #222222;
+  --argos-sidebar-bg: #111111;
+  --argos-input-bg: #1E1E1E;
+}
+
+/* ── Body ────────────────────────────── */
+body {
+  background: var(--tblr-body-bg);
+  color: var(--tblr-body-color);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ── Navbar ──────────────────────────── */
+.navbar {
+  background: #111 !important;
+  border-bottom: 1px solid var(--argos-gold-dim);
+}
+
+.navbar-brand {
+  color: var(--argos-gold) !important;
+  font-weight: 700;
+  letter-spacing: 2px;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+}
+
+.navbar-brand img {
+  height: 28px;
+  margin-right: 8px;
+}
+
+/* ── Sidebar ─────────────────────────── */
+.navbar-vertical {
+  background: var(--argos-sidebar-bg) !important;
+  border-right: 1px solid var(--tblr-border-color);
+}
+
+.nav-link {
+  color: var(--tblr-muted) !important;
+  padding: 0.6rem 1rem;
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--tblr-body-color) !important;
+  background: rgba(255,255,255,0.03);
+}
+
+.nav-link.active {
+  color: var(--argos-gold) !important;
+  border-left: 3px solid var(--argos-gold);
+  background: var(--argos-gold-glow);
+}
+
+/* ── Cards ───────────────────────────── */
+.card {
+  background: var(--argos-card-bg);
+  border: 1px solid var(--tblr-card-border-color);
+  border-radius: 8px;
+  transition: border-color 0.2s;
+}
+
+.card:hover {
+  border-color: var(--argos-gold-dim);
+  box-shadow: 0 0 20px rgba(184, 150, 12, 0.06);
+}
+
+.card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--tblr-border-color);
+  color: var(--tblr-body-color);
+}
+
+/* ── KPI Cards (glassmorphism) ───────── */
+.kpi-card {
+  background: rgba(184, 150, 12, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(184, 150, 12, 0.15);
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.kpi-card:hover {
+  border-color: var(--argos-gold-dim);
+  box-shadow: 0 0 24px rgba(184, 150, 12, 0.12);
+  transform: translateY(-2px);
+}
+
+.kpi-card .kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--argos-gold-light);
+  line-height: 1.2;
+}
+
+.kpi-card .kpi-label {
+  font-size: 0.75rem;
+  color: var(--tblr-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 0.25rem;
+}
+
+/* ── Buttons ─────────────────────────── */
+.btn-primary,
+.btn-argos {
+  background: var(--argos-gold);
+  border-color: var(--argos-gold);
+  color: #000;
+  font-weight: 600;
+}
+
+.btn-primary:hover,
+.btn-argos:hover {
+  background: var(--argos-gold-light);
+  border-color: var(--argos-gold-light);
+  color: #000;
+}
+
+.btn-outline-argos {
+  border-color: var(--argos-gold-dim);
+  color: var(--argos-gold);
+}
+
+.btn-outline-argos:hover {
+  background: var(--argos-gold);
+  color: #000;
+}
+
+/* ── Tables ──────────────────────────── */
+.table {
+  color: var(--tblr-body-color);
+}
+
+.table thead th {
+  background: var(--argos-sidebar-bg);
+  color: var(--tblr-muted);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--tblr-border-color);
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--tblr-border-color);
+  transition: background 0.15s;
+}
+
+.table tbody tr:hover {
+  background: var(--argos-card-hover);
+}
+
+/* ── Badges per archetipi ────────────── */
+.badge-archetype {
+  font-size: 0.65rem;
+  padding: 0.25em 0.6em;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.badge-BARONE      { background: #8B4513; color: #FFD700; }
+.badge-NARCISO     { background: #4B0082; color: #DDA0DD; }
+.badge-PERFORMANTE { background: #1B4332; color: #52B788; }
+.badge-RAGIONIERE  { background: #1A365D; color: #63B3ED; }
+.badge-TECNICO     { background: #3D3D3D; color: #E0E0E0; }
+.badge-RELAZIONALE { background: #5B2333; color: #FFB4C2; }
+.badge-DELEGATORE  { background: #2D4739; color: #95D5B2; }
+
+/* ── Step badges ─────────────────────── */
+.badge-PENDING         { background: var(--tblr-border-color); color: var(--tblr-muted); }
+.badge-DAY1_SENT       { background: rgba(52, 152, 219, 0.2); color: var(--argos-info); }
+.badge-RESPONSE        { background: rgba(46, 204, 113, 0.2); color: var(--argos-success); }
+.badge-NEGOTIATION     { background: rgba(184, 150, 12, 0.2); color: var(--argos-gold); }
+.badge-DEAL            { background: rgba(46, 204, 113, 0.3); color: var(--argos-success); }
+.badge-CLOSED_NO       { background: rgba(231, 76, 60, 0.2); color: var(--argos-danger); }
+
+/* ── Chat timeline ───────────────────── */
+.chat-message {
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+.chat-outbound {
+  background: var(--argos-gold-glow);
+  border: 1px solid rgba(184, 150, 12, 0.2);
+  margin-left: auto;
+}
+
+.chat-inbound {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--tblr-border-color);
+}
+
+.chat-timestamp {
+  font-size: 0.7rem;
+  color: var(--tblr-muted);
+}
+
+/* ── Login page ──────────────────────── */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0D0D0D;
+}
+
+.login-card {
+  background: rgba(26, 26, 26, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(184, 150, 12, 0.2);
+  border-radius: 16px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-card .login-title {
+  color: var(--argos-gold);
+  font-weight: 700;
+  font-size: 1.8rem;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 30px rgba(184, 150, 12, 0.3);
+}
+
+/* ── Forms ────────────────────────────── */
+.form-control {
+  background: var(--argos-input-bg);
+  border-color: var(--tblr-border-color);
+  color: var(--tblr-body-color);
+}
+
+.form-control:focus {
+  background: var(--argos-input-bg);
+  border-color: var(--argos-gold);
+  color: var(--tblr-body-color);
+  box-shadow: 0 0 0 0.2rem rgba(184, 150, 12, 0.15);
+}
+
+/* ── Scrollbar ───────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--tblr-body-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tblr-border-color);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--argos-gold-dim);
+}
+
+/* ── Responsive ──────────────────────── */
+@media (max-width: 768px) {
+  .kpi-card .kpi-value {
+    font-size: 1.5rem;
+  }
+
+  .chat-message {
+    max-width: 95%;
+  }
+}
+
+/* ── HTMX loading indicator ─────────── */
+.htmx-indicator {
+  display: none;
+}
+
+.htmx-request .htmx-indicator {
+  display: inline-block;
+}
+
+.htmx-request.htmx-indicator {
+  display: inline-block;
+}
+
+/* ── Pulse animation for live data ──── */
+@keyframes pulse-gold {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.live-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--argos-success);
+  animation: pulse-gold 2s infinite;
+  margin-right: 6px;
+}
+
+/* ── Page wrapper ────────────────────── */
+.page-wrapper {
+  background: var(--tblr-body-bg);
+}
+
+.page-header .page-title {
+  color: var(--tblr-body-color);
+}
+
+/* ── List group (conversations sidebar) */
+.list-group-item-action:hover {
+  background: var(--argos-card-hover) !important;
+  border-color: var(--argos-gold-dim) !important;
+}
+
+/* ── Select dropdowns ────────────────── */
+.form-select {
+  background-color: var(--argos-input-bg);
+  border-color: var(--tblr-border-color);
+  color: var(--tblr-body-color);
+}
+
+/* ── Alert overrides ─────────────────── */
+.alert {
+  border-radius: 8px;
+}
+
+/* ── Footer ──────────────────────────── */
+.footer {
+  border-top: 1px solid var(--tblr-border-color);
+}

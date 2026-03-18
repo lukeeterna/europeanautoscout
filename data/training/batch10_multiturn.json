@@ -1,0 +1,2308 @@
+{
+  "version": "2.0-enterprise",
+  "generated_by": "Claude Sonnet 4.6",
+  "generated_at": "2026-03-15",
+  "total_conversations": 50,
+  "conversations": [
+    {
+      "id": "MULTI-CONS-001",
+      "primary_archetype": "CONSERVATORE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono BMW, Mercedes, Audi 2018-2023 dal mercato tedesco per concessionari italiani. Fee solo a chiusura, zero anticipi. Ha senso parlarsi cinque minuti?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Guardi, ho sempre lavorato con i miei fornitori storici. Non vedo perché dovrei cambiare qualcosa che funziona."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capisco perfettamente — chi ha un sistema che funziona non lo cambia senza motivo. Non le chiedo di cambiare niente. Le chiedo solo di confrontare un numero: su una 530d 2021 da 40.000 km, quanto le costa adesso vs quanto arriverebbe con noi. Se il delta non c'è, non la disturbo più."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Beh... i numeri mi interessano sempre. Su che tipo di veicoli lavora principalmente? E i chilometraggi come sono?"
+        }
+      ],
+      "dealer_message": "Beh... i numeri mi interessano sempre. Su che tipo di veicoli lavora principalmente? E i chilometraggi come sono?",
+      "signals": [
+        "shift da chiusura a curiosità",
+        "chiede dettagli tecnici specifici",
+        "non menziona più i fornitori storici"
+      ],
+      "archetype_confidence": 0.82,
+      "cot_reasoning": "Il CONSERVATORE parte da muro difensivo (turn 2). Luca non attacca il sistema esistente ma propone un confronto numerico neutro (turn 3). Al turn 4 la logica pratica vince: 'i numeri mi interessano sempre' è la voce del CONSERVATORE razionale che abbassa le difese. Il pivot avviene perché Luca ha rispettato il sistema esistente anziché sminuirlo.",
+      "optimal_response": "Lavoro principalmente su berlina e SUV premium: BMW Serie 3/5, Mercedes Classe C/E, Audi A4/A6/Q5. Chilometraggi tipici 30.000-60.000 km, 2019-2022. Le mando un foglio con tre esempi concreti — prezzo Germania, costo trasporto+omologazione, margine netto dealer stimato. Lo vede e mi dice se i numeri la convincono.",
+      "trap_response": "Ottimo! Lavoriamo con tantissimi modelli, abbiamo un catalogo enorme, possiamo trovare qualsiasi cosa lei cerchi nel mercato europeo...",
+      "why_trap": "Il CONSERVATORE si è appena aperto con una domanda specifica. Rispondere con genericità e entusiasmo eccessivo rompe la fiducia appena guadagnata — sembra un venditore, non un partner affidabile.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il CONSERVATORE italiano tende ad aprirsi tramite la logica dei numeri, non delle emozioni. Una volta che i dati parlano, la resistenza si allenta gradualmente.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-CONS-003",
+      "primary_archetype": "CONSERVATORE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-2",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Importo veicoli premium selezionati da Germania e Nord Europa per concessionari italiani. Fee solo a chiusura, zero anticipi. Posso mostrarle un esempio concreto?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Ho già sentito di questi servizi. Poi i veicoli arrivano con problemi nascosti e sei da solo."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capisco la preoccupazione — è fondata. Per questo ogni veicolo che propongo ha DAT Fahrzeughistorie verificata e report TÜV aggiornato. Se vuole, le mostro come leggo questi documenti prima di selezionare un veicolo. Non compri a scatola chiusa — veda prima cosa c'è dentro la scatola."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Il DAT lo conosco. Ma chi garantisce che il report non sia manipolato? E chi paga se dopo la vendita emerge qualcosa?"
+        }
+      ],
+      "dealer_message": "Il DAT lo conosco. Ma chi garantisce che il report non sia manipolato? E chi paga se dopo la vendita emerge qualcosa?",
+      "signals": [
+        "riconosce DAT — dealer esperto",
+        "fa domande legali/contrattuali — CONSERVATORE profondo",
+        "non rifiuta più, vuole capire le garanzie"
+      ],
+      "archetype_confidence": 0.85,
+      "cot_reasoning": "Il CONSERVATORE evolve dall'obiezione generica ('ho già sentito') a domande specifiche e legittime sulla catena di responsabilità. Questo è un segnale positivo: il dealer sta valutando seriamente. Le domande su manipolazione e responsabilità post-vendita sono tipiche del CONSERVATORE che vuole proteggere il proprio sistema.",
+      "optimal_response": "Domande giuste. Sul DAT: lo verifico direttamente tramite portale certificato, non tramite intermediari — le mostro il processo live se vuole. Sulla responsabilità: nel contratto ARGOS c'è una clausola di conformità documentale — se emerge discrepanza tra DAT e stato reale del veicolo, la fee non è dovuta e partecipo al danno documentato. Lo metto per iscritto prima di qualsiasi acquisto.",
+      "trap_response": "Stia tranquillo, abbiamo anni di esperienza e non abbiamo mai avuto problemi con nessun cliente!",
+      "why_trap": "Il CONSERVATORE chiede garanzie concrete, non rassicurazioni generiche. 'Non abbiamo mai avuto problemi' è non verificabile e suona come marketing vuoto.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il CONSERVATORE italiano evolve attraverso la catena di responsabilità — vuole sapere chi paga se qualcosa va storto. È la sua forma di due diligence.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-RELAZ-001",
+      "primary_archetype": "RELAZIONALE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-5",
+      "regional_variant": "Campania",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium tedeschi per concessionari campani. Ho sentito parlare bene della sua concessionaria. Posso presentarmi brevemente?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Non la conosco. E in questo settore non lavoro con chi non conosco."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Ha ragione — la fiducia si costruisce nel tempo. Non le chiedo di lavorare subito. Le chiedo solo di conoscerci: una chiamata di 10 minuti, nessun impegno. Se dopo non ha senso, mi ricorda tra sei mesi. Lavoro con Russo Automobili a Caserta e Napoli Auto Import — se preferisce, può chiamare direttamente Gennaro Russo e chiedergli come mi trovo."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Gennaro Russo lo conosco, è una persona seria. Come mai non me ne ha mai parlato di lei? Senta, mi dica come lavora."
+        }
+      ],
+      "dealer_message": "Gennaro Russo lo conosco, è una persona seria. Come mai non me ne ha mai parlato di lei? Senta, mi dica come lavora.",
+      "signals": [
+        "riconosce la referenza — fiducia trasferita",
+        "chiede spiegazione della mancata presentazione — curiosità relazionale",
+        "invita Luca a spiegarsi — apertura completa"
+      ],
+      "archetype_confidence": 0.93,
+      "cot_reasoning": "Il RELAZIONALE campano non compra il servizio — compra la persona. La referenza a Gennaro Russo (nome credibile nel settore campano) trasferisce la fiducia relazionale. La domanda 'come mai non me ne ha mai parlato' è il RELAZIONALE che verifica la coerenza della rete — se Russo è serio e non ha citato Luca, c'è una spiegazione da dare. L'invito 'mi dica come lavora' è apertura totale.",
+      "optimal_response": "Con Gennaro ci siamo conosciuti tramite una fiera a Bari l'anno scorso — lavoriamo insieme da nove mesi. Non fa pubblicità in giro, è fatto così. Il mio servizio: seleziono veicoli premium in Germania, Belgio, Olanda — DAT Fahrzeughistorie e TÜV su tutto. Fee €800-1.200 solo a chiusura, zero anticipi. Posso farle parlare con Gennaro direttamente se vuole sentire dalla sua voce.",
+      "trap_response": "Ottimo! Conosce Russo! Sì, lavoriamo benissimo insieme, siamo partner da tantissimo tempo, grandi risultati!",
+      "why_trap": "Il RELAZIONALE sta costruendo la fiducia su una referenza specifica. Rispondere con entusiasmo generico distrugge l'autenticità — sembra che Luca stia gonfiando il rapporto.",
+      "outcome_predicted": "CONVERTED",
+      "cultural_note": "In Campania la rete relazionale è più vincolante del contratto. Una referenza verificabile vale più di qualsiasi pitch. Luca deve essere preciso sui dettagli della referenza — il dealer potrebbe verificare.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-RELAZ-002",
+      "primary_archetype": "RELAZIONALE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "generico",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Porto veicoli premium tedeschi per concessionari selezionati. Le ho mandato un messaggio la settimana scorsa — ha avuto modo di leggerlo?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Sì l'ho visto. Ma guardi, lavoro solo con persone che conosco da tempo. Non è una cosa personale."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capisco, e la rispetto. Anche io preferisco lavorare con persone di cui mi fido. Per questo non chiedo un salto nel buio: le propongo di sentirci 15 minuti, mi conosce un po', e poi decide lei se ha senso andare avanti. Nessun impegno. Se dopo non le ispiro fiducia, non mi risenta più."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Va bene, mi dica — la ascolto. Quindici minuti, però."
+        }
+      ],
+      "dealer_message": "Va bene, mi dica — la ascolto. Quindici minuti, però.",
+      "signals": [
+        "accetta la chiamata — fiducia iniziale concessa",
+        "pone il limite temporale — RELAZIONALE vuole controllare l'investimento emotivo",
+        "tono più caldo rispetto al turn 2"
+      ],
+      "archetype_confidence": 0.8,
+      "cot_reasoning": "Il RELAZIONALE non chiude mai definitivamente — la sua obiezione è sul tempo necessario per fidarsi. Luca rispecchia il valore della fiducia (turn 3) e propone un investimento minimo: 15 minuti per conoscersi. Il RELAZIONALE accetta perché l'approccio di Luca è congruente con i suoi valori — non vende, propone una relazione.",
+      "optimal_response": "Perfetto. ARGOS Automotive — seleziono BMW, Mercedes, Audi 2018-2023 dal mercato tedesco e nordeuropeo per concessionari italiani. Fee €800-1.200 pagata solo a chiusura, zero anticipi. Ogni veicolo ha DAT Fahrzeughistorie e report TÜV allegati. Mi parli lei: che tipo di veicoli cerca di più adesso? Capisco cosa le serve e vedo se posso essere utile.",
+      "trap_response": "Perfetto! Allora le spiego tutto il nostro servizio: abbiamo un catalogo di veicoli europei, lavoriamo con Germania Belgio Olanda, i nostri prezzi sono competitivi, la fee è solo a successo...",
+      "why_trap": "Il RELAZIONALE ha concesso 15 minuti per conoscersi, non per sentire un pitch. Elencare caratteristiche del servizio trasforma la chiamata in una vendita — il RELAZIONALE si chiude.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il RELAZIONALE vuole capire chi è Luca prima di capire cosa fa. La chiamata di 15 minuti va usata per ascoltare, non per vendere.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-RELAZ-003",
+      "primary_archetype": "RELAZIONALE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-3",
+      "regional_variant": "Campania",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Ho saputo della sua concessionaria da un collega del settore. Lavoro con alcuni dealer campani — seleziono veicoli premium tedeschi, fee solo a chiusura. Posso presentarmi?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Chi è questo collega? Perché non mi ha chiamato lui direttamente?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capisco la domanda — ha senso. Il collega è Mario Esposito di Esposito Auto a Salerno. Mi ha detto che lei è una persona seria con cui vale la pena parlarsi. Se vuole, lo chiamo io adesso e le passo il telefono — o la chiama lui direttamente?"
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Mario lo conosco bene. È una persona onesta. Senta, mi dica lei cosa fa esattamente — così mi faccio un'idea."
+        }
+      ],
+      "dealer_message": "Mario lo conosco bene. È una persona onesta. Senta, mi dica lei cosa fa esattamente — così mi faccio un'idea.",
+      "signals": [
+        "valida la referenza — fiducia parziale trasferita",
+        "chiede spiegazione diretta — apertura genuina",
+        "tono cambiato: da sospettoso a disponibile"
+      ],
+      "archetype_confidence": 0.87,
+      "cot_reasoning": "Il RELAZIONALE campano sospetta quando arriva un contatto indiretto non verificato. Luca al turn 3 non difende ma offre verifica immediata (chiamata a tre). Questo è il gesto chiave: chi ha qualcosa da nascondere non offre la verifica. La validazione di Mario al turn 4 trasferisce la fiducia. Ora il RELAZIONALE chiede di capire — siamo in modalità ascolto aperto.",
+      "optimal_response": "ARGOS Automotive seleziona veicoli premium — BMW, Mercedes, Audi 2019-2022 — dal mercato tedesco, belga e olandese. Ogni veicolo arriva con DAT Fahrzeughistorie completa e report TÜV. Porto il veicolo in Italia, gestisco l'omologazione. Il dealer paga solo la fee a chiusura — €800-1.200 — nessun anticipo. Con Mario stiamo lavorando bene da sei mesi. Cosa cerca lei in questo periodo?",
+      "trap_response": "Ottimo! Mario è un ottimo cliente! Allora le spiego tutto: abbiamo un catalogo enorme, possiamo trovare qualsiasi modello...",
+      "why_trap": "Il RELAZIONALE ha appena concesso fiducia — ora vuole capire davvero. Eccessivo entusiasmo su Mario + pitch generico suona falso e perde il momento.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "La rete di referenze campana è densa e verificabile. Chi usa referenze false viene scoperto rapidamente. Luca offre verifica immediata — questo è il gesto di rispetto che apre il RELAZIONALE.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-NARCISO-001",
+      "primary_archetype": "NARCISO",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium tedeschi per concessionari che curano la qualità del parco auto. Ho visto il suo showroom online — ha un posizionamento distintivo nel mercato locale."
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Sì, siamo noti per la qualità. Ma non abbiamo bisogno di intermediari — i nostri clienti ci cercano direttamente."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "I concessionari con il suo posizionamento hanno già tutto. L'unica cosa che posso aggiungere è accesso a veicoli tedeschi di fascia alta che raramente passano per i canali standard — configurazioni particolari, colori su richiesta, optional esclusivi. Non è per tutti — lavoro con tre concessionari nel suo segmento in Italia. Se non è interessato capisco perfettamente."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Tre concessionari — chi sono? E che tipo di configurazioni esclusive riesce a trovare?"
+        }
+      ],
+      "dealer_message": "Tre concessionari — chi sono? E che tipo di configurazioni esclusive riesce a trovare?",
+      "signals": [
+        "chiede chi sono i tre concessionari — vuole sentirsi selezionato",
+        "interesse per 'esclusivo' — leva NARCISO attivata",
+        "abbandona la postura di autosufficienza"
+      ],
+      "archetype_confidence": 0.91,
+      "cot_reasoning": "Il NARCISO al turn 2 usa l'identità di qualità come scudo. Luca al turn 3 ha usato la scarsità ('tre concessionari') e l'esclusività come leva. Il NARCISO non può resistere alla domanda implicita: 'sono abbastanza buono per essere tra i tre?' La domanda sui nomi e le configurazioni esclusive al turn 4 è il NARCISO che vuole essere scelto.",
+      "optimal_response": "I nomi dei clienti li mantengo riservati — è parte del servizio. Quello che posso dire è che sono concessionari che curano il posizionamento premium come lei. Per le configurazioni: colori Individual BMW (Frozen, Dravite Grey), pacchetti M Performance raramente disponibili in Italia, Mercedes AMG con optional europei non omologati di serie. Desidera che verifichi la disponibilità di qualcosa di specifico nel suo segmento?",
+      "trap_response": "I clienti preferisco non nominarli. Ma le configurazioni sono bellissime! Abbiamo tantissima scelta, trovo tutto quello che cerca!",
+      "why_trap": "Il NARCISO vuole sentirsi parte di un club esclusivo. 'Tantissima scelta' e 'trovo tutto' distruggono la narrativa di esclusività che lo ha attirato.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il NARCISO italiano risponde all'identità e all'appartenenza esclusiva. La scarcità reale (o percepita) è la leva più potente.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-NARCISO-002",
+      "primary_archetype": "NARCISO",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-3",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Porto veicoli premium tedeschi per concessionari selezionati. Ho sentito parlare molto bene della sua concessionaria nel segmento luxury. Posso presentarmi?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Certo, ma le dico subito: lavoriamo solo con il top del mercato. Non ci interessano veicoli di importazione genericI."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Perfettamente allineati. I veicoli che seleziono non sono importazione generica — sono pezzi specifici con configurazioni che in Italia non arrivano per i canali standard. Colori esclusivi, pacchetti unici, storie documentate. Esattamente il tipo di prodotto che un posizionamento come il suo valorizza. Posso mostrarle un esempio concreto?"
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Me ne mostri uno. Ma deve essere davvero qualcosa di speciale — non il solito nero o grigio metallizzato."
+        }
+      ],
+      "dealer_message": "Me ne mostri uno. Ma deve essere davvero qualcosa di speciale — non il solito nero o grigio metallizzato.",
+      "signals": [
+        "apre alla dimostrazione — supera la resistenza iniziale",
+        "pone standard di esclusività — NARCISO che si protegge",
+        "chiede qualcosa di 'speciale' — leva identitaria attiva"
+      ],
+      "archetype_confidence": 0.88,
+      "cot_reasoning": "Il NARCISO al turn 2 usa lo standard del 'top del mercato' come filtro. Luca ha giocato sullo stesso registro (turn 3) — non ha difeso l'importazione generica ma ha posizionato i suoi veicoli come esclusivi. Al turn 4 il NARCISO chiede la dimostrazione ma con uno standard elevato — è un test, non un rifiuto.",
+      "optimal_response": "Le mando entro oggi: BMW M340i Frozen Pure Grey Individual — colore non disponibile di serie in Italia, 1 proprietario, 28.000 km, full M Sport Plus. Oppure Mercedes E450 4MATIC Cavansite Blue — colore raro, Burmester sound system, tetto panoramico. Due pezzi fuori dal normale. Guardi le schede e mi dica se è il tipo di prodotto che cercava.",
+      "trap_response": "Certo! Ho tantissime opzioni speciali! Posso trovare qualsiasi configurazione, qualsiasi colore!",
+      "why_trap": "'Tantissime opzioni' nega l'esclusività che il NARCISO cerca. Se ci sono tantissime opzioni, non è speciale. Luca deve nominare pezzi specifici rarissimi.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il NARCISO italiano è attratto dall'identità del prodotto come estensione della propria identità di concessionario. Un colore Individual BMW è più convincente di qualsiasi argomento di prezzo.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-RAGI-001",
+      "primary_archetype": "RAGIONIERE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-2",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Su una BMW 530d 2021 da 40.000 km il margine netto per il dealer dopo la nostra fee è €4.000-5.500. Fee pagata solo a chiusura. Ha senso approfondire?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Buongiorno. I numeri sembrano interessanti. Ma come fa a garantire il margine? Dipende molto dal prezzo di vendita finale."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Ha ragione — il margine finale dipende dalla sua capacità commerciale, non dalla mia. Quello che garantisco è il prezzo di acquisto certificato e il costo totale trasparente: veicolo + logistica + fee tutto scritto prima dell'acquisto. Il margine che cita è basato su valore di mercato AutoScout24/Subito medio — lei conosce meglio di me il suo mercato locale. Se vuole vediamo un caso specifico con i numeri reali."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Sì, mi faccia vedere un caso specifico con tutti i numeri — prezzo acquisto, logistica, fee, valore mercato stimato. Voglio fare i miei calcoli."
+        }
+      ],
+      "dealer_message": "Sì, mi faccia vedere un caso specifico con tutti i numeri — prezzo acquisto, logistica, fee, valore mercato stimato. Voglio fare i miei calcoli.",
+      "signals": [
+        "chiede caso specifico con tutti i numeri — RAGIONIERE vuole fare i propri conti",
+        "non discute più il meccanismo — accetta la struttura",
+        "tono professionale collaborativo"
+      ],
+      "archetype_confidence": 0.9,
+      "cot_reasoning": "Il RAGIONIERE al turn 2 non contesta — chiede la logica. Luca al turn 3 risponde in modo onesto: non garantisce il margine finale, garantisce i costi certi. Questo è esattamente il frame mentale del RAGIONIERE — separare i costi certi dalle variabili commerciali. Al turn 4 il dealer è pronto a fare i propri calcoli: Luca ha guadagnato credibilità con la trasparenza.",
+      "optimal_response": "Caso reale BMW 530d xDrive 2021: prezzo acquisto Germania €24.800, logistica+omologazione €950, fee ARGOS €1.000 — totale costo dealer €26.750. Valore AutoScout24 medio veicolo simile IT: €32.500-34.000. Margine lordo: €5.750-7.250. Tasse e prep dealer a parte — queste le conosce lei. Le mando il foglio Excel con tutti i numeri editabili così inserisce le sue variabili.",
+      "trap_response": "Perfetto! Le mando subito una presentazione del nostro servizio con tutti i vantaggi e le opportunità di margine!",
+      "why_trap": "Il RAGIONIERE vuole dati da elaborare, non una presentazione. Una 'presentazione dei vantaggi' suona come marketing — lui vuole il foglio con i numeri.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il RAGIONIERE italiano non compra la storia — compra il modello finanziario. Chi gli dà i dati grezzi da elaborare vince la fiducia.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-RAGI-002",
+      "primary_archetype": "RAGIONIERE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-4",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Scouting veicoli premium tedeschi per dealer italiani. Margine medio dealer sui veicoli ARGOS: €4.000-6.000 netto per veicolo. Fee solo a chiusura, zero anticipi. Posso mostrarle i dati di dettaglio?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Come calcola il netto? Al lordo o dopo IVA? Perché qui il regime fiscale cambia tutto."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Ottima domanda — la più importante. I numeri che cito sono lordi margine commerciale prima di IVA e tasse dealer. Dipende molto dal regime: se lavora in regime margine, l'IVA non è detraibile ma il prezzo di vendita è più competitivo. Le mando un documento con tre scenari fiscali diversi — regime margine, regime IVA ordinaria, e misto. Vede quale si applica al suo caso."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Lavoriamo in regime margine. Mi mandi il documento con i calcoli — voglio capire come si comporta la fee nella mia situazione fiscale."
+        }
+      ],
+      "dealer_message": "Lavoriamo in regime margine. Mi mandi il documento con i calcoli — voglio capire come si comporta la fee nella mia situazione fiscale.",
+      "signals": [
+        "dichiara il regime fiscale — si espone con informazioni operative",
+        "chiede documento specifico per la sua situazione — interesse reale",
+        "vuole capire la fee nel suo contesto — valutazione seria"
+      ],
+      "archetype_confidence": 0.93,
+      "cot_reasoning": "Il RAGIONIERE al turn 2 fa la domanda chiave: lordo o netto, IVA? Luca al turn 3 non semplifica ma presenta la complessità onestamente con tre scenari. Al turn 4 il dealer dichiara il suo regime — un'informazione operativa che si condivide solo con chi si sta valutando seriamente come partner. La fee nel regime margine è il tema chiave.",
+      "optimal_response": "Regime margine: la fee ARGOS (€800-1.200) è un costo di acquisto — abbassa la base imponibile del margine. Esempio: acquisto a €25.000, fee €1.000, vendiamo a €31.000 — margine lordo €5.000, su cui si applica il regime. La fee non è IVA separata — è inclusa nel prezzo di acquisto per voi. Le mando il documento con calcolo specifico regime margine entro oggi.",
+      "trap_response": "Certo! Il regime margine non è un problema! La fee si gestisce facilmente, non si preoccupi dell'IVA!",
+      "why_trap": "Il RAGIONIERE ha fatto una domanda fiscale specifica. 'Non si preoccupi' è una non-risposta che dimostra che Luca non conosce il regime margine — e quindi non si fida di lui per cifre importanti.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "In Italia il regime margine è il cuore del business dei concessionari auto usate. Chi dimostra di conoscerlo guadagna credibilità immediata con il RAGIONIERE.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-OPPO-001",
+      "primary_archetype": "OPPORTUNISTA",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-2",
+      "regional_variant": "generico",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Ho una BMW 530d 2021 disponibile a €28.500 — margine dealer stimato €5.000+. Interessato?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Sì mi interessa! Quanto scende il prezzo? Posso avere 30 giorni per decidere?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Il prezzo è fisso — è basato sul DAT tedesco. Sui 30 giorni: posso tenerlo in opzione 72 ore, non 30 giorni. I veicoli buoni si muovono velocemente — se aspetta 30 giorni probabilmente non c'è più. Se le interessa davvero, serve una decisione rapida."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "72 ore è poco. Ma il veicolo mi interessa. Se mi manda tutto entro oggi vedo se riesco a decidere in settimana."
+        }
+      ],
+      "dealer_message": "72 ore è poco. Ma il veicolo mi interessa. Se mi manda tutto entro oggi vedo se riesco a decidere in settimana.",
+      "signals": [
+        "negozia sulla timeline — tipico OPPORTUNISTA",
+        "interesse rimane nonostante il no — segnale positivo",
+        "propone 'in settimana' — compromesso cercato"
+      ],
+      "archetype_confidence": 0.82,
+      "cot_reasoning": "L'OPPORTUNISTA al turn 2 chiede sconto e 30 giorni — test classico per vedere quanto è flessibile Luca. Luca al turn 3 tiene il prezzo fisso e la timeline rigida senza essere aggressivo. Al turn 4 l'OPPORTUNISTA non si ritira ma propone un compromesso — 'in settimana'. Il dealer vuole il veicolo ma cerca spazio di manovra.",
+      "optimal_response": "Capito — entro le 18:00 le arriva tutto: DAT originale, Gutachten, scheda tecnica, foto. Sull'opzione: 72 ore sono ferme — lunedì mattina devo avere un'indicazione, positiva o negativa. Se decide di procedere, nessun anticipo — fee solo a chiusura. Non la voglio spingere, ma su un veicolo così il rischio è che sparisca nel weekend.",
+      "trap_response": "Va bene, le do la settimana! Capisco che ha bisogno di tempo! Le mando tutto subito!",
+      "why_trap": "Cedere sulla timeline segnala che anche il prezzo fisso è negoziabile. L'OPPORTUNISTA interpreta ogni cedimento come un'apertura e tornerà con nuove richieste.",
+      "outcome_predicted": "PROCEED_SLOW",
+      "cultural_note": "L'OPPORTUNISTA italiano testa sistematicamente i limiti. Chi mantiene i confini con calma — senza aggressività — viene rispettato e preso più sul serio.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-DELEGATORE-001",
+      "primary_archetype": "DELEGATORE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium tedeschi per dealer italiani selezionati. Posso presentarmi brevemente?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Certo. Senta però, di queste cose si occupa il mio responsabile acquisti — Marco. Le passo il numero."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Perfetto, grazie. Prima di contattare Marco, può dirmi: ha già un sistema di approvvigionamento estero, o cercate qualcosa di nuovo? Così quando parlo con lui so già il contesto."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Qualcosa di estero ci interessa. Marco lo saprebbe dire meglio — ma in linea di massima sì, siamo aperti. Il numero di Marco è 335 XXX XXXX."
+        }
+      ],
+      "dealer_message": "Qualcosa di estero ci interessa. Marco lo saprebbe dire meglio — ma in linea di massima sì, siamo aperti. Il numero di Marco è 335 XXX XXXX.",
+      "signals": [
+        "conferma interesse prima di passare il contatto — endorsement implicito",
+        "dà il numero direttamente — facilitatore",
+        "dice 'siamo aperti' — segnale positivo per Marco"
+      ],
+      "archetype_confidence": 0.76,
+      "cot_reasoning": "Il DELEGATORE non è un ostacolo — è un filtro. Luca al turn 3 chiede il contesto prima di essere trasferito — questo dimostra professionalità e ottiene un endorsement informale ('siamo aperti'). Al turn 4 il titolare ha già preparato il terreno con Marco. La conversione avverrà con Marco, non con lui.",
+      "optimal_response": "Grazie. Quando contatto Marco posso dirgli che ne ha parlato con lei e che c'è interesse? Così non parto da zero. Le faccio sapere come va — se ci sono decisioni importanti, immagino che le passi comunque per lei.",
+      "trap_response": "Ottimo! Grazie per il numero! Contatto subito Marco senza disturbarla oltre!",
+      "why_trap": "Il DELEGATORE vuole rimanere nel loop decisionale anche se non gestisce il dettaglio. Ignorarlo completamente dopo la delega è un errore — le decisioni finali spesso tornano a lui.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "In Italia il DELEGATORE spesso è il titolare che ha costruito l'azienda — vuole essere coinvolto nelle decisioni strategiche anche se delega l'operativo. Mai saltarlo completamente.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-VISIONARIO-001",
+      "primary_archetype": "VISIONARIO",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-5",
+      "regional_variant": "generico",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium tedeschi per dealer visionari che vogliono differenziarsi. Ho qualcosa che potrebbe interessarle."
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Bello. Ma sa, sto ripensando tutta la concessionaria — voglio fare qualcosa di completamente diverso. Forse digitale, forse elettrico puro, non so ancora."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Interessante. Qualsiasi direzione prenda, avrà bisogno di veicoli di qualità per finanziare la transizione. I margini sui veicoli tedeschi premium che seleziono possono aiutare a costruire il capitale per l'evoluzione che immagina. Non è un 'invece di' — è un 'intanto che'."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ha ragione. Intanto che costruisco la visione ho bisogno di fare cassa. Cosa ha adesso di concreto?"
+        }
+      ],
+      "dealer_message": "Ha ragione. Intanto che costruisco la visione ho bisogno di fare cassa. Cosa ha adesso di concreto?",
+      "signals": [
+        "accetta il frame 'intanto che' — pragmatismo attivato",
+        "chiede il concreto — il VISIONARIO si atterrisce momentaneamente",
+        "tono cambiato: dalla visione alla necessità operativa"
+      ],
+      "archetype_confidence": 0.84,
+      "cot_reasoning": "Il VISIONARIO è spesso paralizzato dalla grandiosità dei propri progetti. Luca al turn 3 usa un frame intelligente: i margini attuali finanziano la visione futura. Questo non contraddice la visione — la supporta. Al turn 4 il VISIONARIO atterrisce sul pratico: 'fare cassa'. È un momento raro e va sfruttato.",
+      "optimal_response": "Adesso ho: BMW 530d xDrive 2021 €28.500 — margine €5.000+. Mercedes E220d 2020 €23.800 — margine €4.200. Audi Q5 40 TDI 2021 €26.500 — margine €4.800. Tre veicoli con documentazione completa, pronti. Le mando le schede entro un'ora — scelga quello che la convince di più e partiamo.",
+      "trap_response": "Ottimo! Possiamo anche parlare di veicoli elettrici per il futuro! Abbiamo molte opzioni per la sua visione...",
+      "why_trap": "Il VISIONARIO si è appena atterrito sul pragmatico. Tornare alla visione del futuro lo fa rientrare nel loop onirico — non decide nulla.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il VISIONARIO italiano ha momenti di pragmatismo che vanno sfruttati subito. Quando chiede 'cosa hai adesso' è un'apertura temporanea — non sprecarla.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-RELAZ-004",
+      "primary_archetype": "RELAZIONALE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "generico",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium tedeschi. Ho sentito parlare molto bene di lei nel settore. Ha senso parlarsi?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "In questo settore non lavoro con chi non conosco. È una questione di principio."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Principio assolutamente condivisibile. Non le chiedo di lavorare — le chiedo solo 10 minuti per conoscerci. Se dopo non le ispiro fiducia, non mi risente. La conosco di persona è meglio: sono in zona giovedì, possiamo prendere un caffè?"
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Giovedì sono libero alle 10. Va bene un caffè."
+        }
+      ],
+      "dealer_message": "Giovedì sono libero alle 10. Va bene un caffè.",
+      "signals": [
+        "accetta l'incontro fisico — RELAZIONALE si fida della persona prima del servizio",
+        "dà ora precisa — risponde seriamente",
+        "abbandona il principio del 'non lavoro con sconosciuti'"
+      ],
+      "archetype_confidence": 0.88,
+      "cot_reasoning": "Il RELAZIONALE non può costruire fiducia per telefono o WhatsApp — ha bisogno di vedere la persona. Luca al turn 3 offre l'incontro fisico (caffè) — questo è il gesto giusto per il RELAZIONALE. L'accettazione al turn 4 è la conversione: il RELAZIONALE ha deciso di investire del tempo fisico.",
+      "optimal_response": "Perfetto — giovedì alle 10. Mi dica dove preferisce — vengo io da lei o c'è un bar di zona che preferisce? Le confermo giovedì mattina presto.",
+      "trap_response": "Ottimo! Allora intanto che ci vediamo le mando la presentazione del servizio, il catalogo, le schede tecniche...",
+      "why_trap": "Il RELAZIONALE ha detto sì all'incontro perché vuole conoscere Luca come persona. Mandare materiale commerciale prima del caffè trasforma l'incontro in una riunione di vendita — il RELAZIONALE potrebbe ripensarci.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il RELAZIONALE italiano decide al tavolo, con il caffè in mano, guardando negli occhi. L'incontro fisico è la vera milestone — non il contratto.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-NARCISO-003",
+      "primary_archetype": "NARCISO",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-5",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli tedeschi esclusivi per concessionari con posizionamento premium. Ho sentito parlare della sua come una delle più curate nel settore."
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Sì, siamo leader nel segmento luxury nel nostro territorio. Cosa propone?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Veicoli con configurazioni che raramente arrivano in Italia dai canali normali — colori Individual, pacchetti sportivi esclusivi, combinazioni su richiesta. Il tipo di stock che distingue chi vende auto da chi cura il prodotto. Posso mostrarle un esempio specifico?"
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Sì, mi mostri. Ma voglio qualcosa che i miei competitor non riescano a trovare facilmente. Qualcosa di davvero unico."
+        }
+      ],
+      "dealer_message": "Sì, mi mostri. Ma voglio qualcosa che i miei competitor non riescano a trovare facilmente. Qualcosa di davvero unico.",
+      "signals": [
+        "chiede esclusività competitiva — identità NARCISO piena",
+        "apre alla dimostrazione senza obiezioni",
+        "il frame 'unico' è la leva principale"
+      ],
+      "archetype_confidence": 0.92,
+      "cot_reasoning": "Il NARCISO al turn 2 è già aperto — il complimento sull'essere leader ha rimosso la resistenza. Luca al turn 3 usa il frame di esclusività ('il tipo di stock che distingue chi vende auto da chi cura il prodotto'). Al turn 4 il NARCISO aggiunge la leva competitiva: vuole qualcosa che i competitor non trovino. Luca deve rispondere con un esempio concreto e raro.",
+      "optimal_response": "Le mando entro oggi: BMW M3 Competition Frozen Dark Yellow — colore Individual rarissimo, 1 proprietario, 19.000 km. Mercedes AMG C63 S Cavansite Blue metallizzato — non ordinabile di serie in Italia, pacchetto Night completo. Due pezzi che i competitor non trovano nei canali standard. Le schede arrivano entro le 15.",
+      "trap_response": "Certo! Ho tantissime opzioni esclusive! Posso trovare qualsiasi colore, qualsiasi configurazione, tutto quello che vuole!",
+      "why_trap": "'Tantissime opzioni' e 'qualsiasi cosa' negano l'esclusività. Se ci sono tantissime opzioni, non è più raro. Il NARCISO vuole sentire che stai portando qualcosa che non esiste per chiunque.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il NARCISO italiano compra l'identità prima del prodotto. Un BMW M3 Frozen Dark Yellow non è solo un'auto — è uno statement che i competitor non possono copiare facilmente.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-RAGI-003",
+      "primary_archetype": "RAGIONIERE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-3",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Su una BMW 530d 2021 da 40.000 km, il margine netto dealer dopo fee è €4.000-5.500. Fee pagata solo a chiusura. Ha senso parlarne?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Come calcola il margine? Dipende dal prezzo di vendita che riesco a ottenere io sul mercato locale."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Esatto — il margine finale dipende da lei. Quello che garantisco io: costo di acquisto certificato, logistica trasparente, fee fissa. Il resto lo calcola lei. Se vuole le mando il foglio Excel con i costi certi e un campo libero per il suo prezzo di vendita stimato."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Sì, mi mandi il foglio. Voglio inserire i miei dati di vendita degli ultimi 6 mesi e vedere se i numeri reggono."
+        }
+      ],
+      "dealer_message": "Sì, mi mandi il foglio. Voglio inserire i miei dati di vendita degli ultimi 6 mesi e vedere se i numeri reggono.",
+      "signals": [
+        "vuole usare i propri dati storici — RAGIONIERE in piena modalità analisi",
+        "non chiede più garanzie — vuole verificare autonomamente",
+        "commitment alla valutazione — segnale serio"
+      ],
+      "archetype_confidence": 0.91,
+      "cot_reasoning": "Il RAGIONIERE al turn 2 fa la domanda giusta sul margine variabile. Luca al turn 3 risponde onestamente: i costi certi sono suoi, il prezzo di vendita è del dealer. Al turn 4 il RAGIONIERE vuole il foglio per inserire i propri dati storici — un gesto di analisi autonoma che dimostra interesse reale. Chi usa i propri dati per verificare è molto più vicino alla decisione di chi chiede garanzie generiche.",
+      "optimal_response": "Le mando il foglio entro l'ora. Struttura: colonna A = costi certi ARGOS (veicolo, logistica, fee); colonna B = campo libero per il suo prezzo di vendita; colonna C = margine lordo automatico; colonna D = margine al netto delle sue spese operative (prepara lei i valori). Inserisce i 6 mesi e vede il confronto con il suo margine attuale.",
+      "trap_response": "Ottimo! Le mando la presentazione completa con i numeri e i casi di successo dei nostri clienti!",
+      "why_trap": "Il RAGIONIERE ha chiesto uno strumento per fare i propri calcoli, non una presentazione di successi altrui. Mandare la presentazione è rispondere a una domanda che non ha fatto.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il RAGIONIERE italiano si convince solo con i propri numeri — non con i numeri di Luca. Chi gli dà lo strumento per fare i conti autonomamente è percepito come onesto e professionale.",
+      "sequence_type": "objection_to_interest"
+    },
+    {
+      "id": "MULTI-CONS-002",
+      "primary_archetype": "CONSERVATORE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-3",
+      "regional_variant": "Sicilia",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, sono Luca Ferretti di ARGOS Automotive. Seleziono veicoli premium tedeschi per concessionari del Sud Italia. Posso mandarle qualche dato su come lavoriamo?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Vedrò. Adesso ho da fare."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capito, non la disturbo. Le lascio solo questo: su una Mercedes E220d 2020 da 45.000 km, il margine netto medio per il dealer è €3.800-4.500 dopo la nostra fee. Se vuole i dettagli la ricontatto giovedì — o preferisce che le mandi qualcosa per messaggio?"
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ma i prezzi come sono rispetto al mercato di qua? Perché qui in Sicilia le cose funzionano in un certo modo..."
+        }
+      ],
+      "dealer_message": "Ma i prezzi come sono rispetto al mercato di qua? Perché qui in Sicilia le cose funzionano in un certo modo...",
+      "signals": [
+        "abbandona il 'ho da fare'",
+        "chiede prezzi — segnale interesse reale",
+        "introduce contesto locale — vuole capire adattabilità"
+      ],
+      "archetype_confidence": 0.79,
+      "cot_reasoning": "Il CONSERVATORE siciliano apre con il classico 'vedrò' — forma di resistenza passiva, non rifiuto definitivo. Luca non insiste ma pianta un seme numerico concreto (turn 3). Al turn 4 il dealer rivela interesse reale chiedendo un confronto prezzi locale. La menzione 'qui in Sicilia le cose funzionano in un certo modo' è un invito a dimostrare comprensione del territorio.",
+      "optimal_response": "Il mercato siciliano lo conosco — clienti che cercano veicoli tedeschi ben tenuti, diffidenza verso km non verificati, preferenza per storico documentato. I prezzi che porto sono competitivi anche contro aste online: la differenza è che ogni veicolo viene selezionato su DAT Fahrzeughistorie e report TÜV. Le mando tre esempi con prezzi reali — confronta con quello che trova lei e mi dice.",
+      "trap_response": "Certo, i nostri prezzi sono sempre competitivi! Lavoriamo in tutta Italia, il mercato siciliano lo serviamo regolarmente...",
+      "why_trap": "Il dealer vuole sentirsi capito nel suo contesto specifico, non rassicurato con generalità. La risposta trap dimostra che Luca non conosce davvero la Sicilia.",
+      "outcome_predicted": "PROCEED_SLOW",
+      "cultural_note": "In Sicilia la fiducia si costruisce dimostrando conoscenza del territorio locale, non solo competenza tecnica. Il dealer testa se Luca capisce le sue dinamiche prima di aprirsi.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-BARONE-001",
+      "primary_archetype": "BARONE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "Puglia",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Ho una selezione di BMW e Mercedes 2019-2022 dal mercato tedesco. Lavoro solo con concessionari selezionati in Puglia. Posso mostrarle qualcosa di concreto?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Ho già i miei canali. Non ho bisogno di niente."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Rispetto. I concessionari che conosco meglio hanno tutti ottimi canali — e usano me in parallelo per i modelli che i loro canali non trovano velocemente. Non sono alternativo, sono complementare. Comunque capisco — non è il momento giusto."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Aspetti. Che modelli ha adesso disponibili?"
+        }
+      ],
+      "dealer_message": "Aspetti. Che modelli ha adesso disponibili?",
+      "signals": [
+        "'aspetti' — inversione totale",
+        "chiede disponibilità — interesse operativo immediato",
+        "abbandona la postura di chiusura"
+      ],
+      "archetype_confidence": 0.91,
+      "cot_reasoning": "Il BARONE pugliese usa il 'non ho bisogno di niente' come test di resistenza. Luca non insiste e anzi si ritira con eleganza (turn 3) — questo rompe il copione del venditore insistente che il BARONE si aspetta. La frase 'non è il momento giusto' attiva il meccanismo del BARONE: nessuno si ritira da lui, e questo crea curiosità. 'Aspetti' al turn 4 è la resa del BARONE.",
+      "optimal_response": "In questo momento ho: BMW 530d xDrive 2021, 38.000 km, nero metallizzato, full optional — prezzo selezionato €28.500. Mercedes E350d 2020, 42.000 km, argento, tetto panoramico. Audi Q5 40 TDI 2021, 35.000 km, grigio Nardò. Le mando le schede tecniche con DAT Fahrzeughistorie allegata. Quale la interessa di più?",
+      "trap_response": "Certo! Abbiamo tantissimi modelli disponibili, possiamo trovare qualsiasi cosa, il catalogo è molto ampio...",
+      "why_trap": "Il BARONE ha appena fatto un'apertura — vuole dettagli specifici e concreti, non una lista vaga. La vaghezza lo fa sentire di aver perso tempo.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il BARONE pugliese testa la resistenza del venditore. Chi si ritira con dignità (senza sminuire il dealer) genera curiosità. È un meccanismo di rispetto reciproco tipico del Sud.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-BARONE-002",
+      "primary_archetype": "BARONE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-4",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium tedeschi per concessionari selezionati. Ha qualche modello nel suo stock che fatica a reperire dai canali abituali?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Nella mia concessionaria non ho problemi di approvvigionamento. Lavoro con partner di alto livello da vent'anni."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Vent'anni di relazioni solide sono un patrimonio. I miei migliori clienti sono concessionari così — sanno già come funziona il mercato tedesco e capiscono subito il valore di una selezione documentata. Se mai dovesse cercare qualcosa di specifico che i canali abituali non hanno in tempi brevi, sono qui. Buona giornata."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Senta, ho un cliente che cerca una BMW M340i 2022 con specifiche particolari. I miei canali hanno tempi lunghi. Come funziona il suo servizio esattamente?"
+        }
+      ],
+      "dealer_message": "Senta, ho un cliente che cerca una BMW M340i 2022 con specifiche particolari. I miei canali hanno tempi lunghi. Come funziona il suo servizio esattamente?",
+      "signals": [
+        "introduce un cliente reale — si espone",
+        "chiede meccanismo operativo — valutazione seria",
+        "abbandona la postura di autosufficienza"
+      ],
+      "archetype_confidence": 0.88,
+      "cot_reasoning": "Il BARONE ha resistito con la postura di superiorità (turn 2). Luca ha validato la sua esperienza e si è ritirato senza servilismo (turn 3). La presenza di un cliente reale con bisogno urgente abbatte le difese ideologiche del BARONE — il pragmatismo vince sull'orgoglio quando c'è un affare concreto in gioco.",
+      "optimal_response": "Funziona così: mi dica le specifiche esatte — motorizzazione, anno, colore, optional, chilometraggio massimo. Ricerco nel mercato tedesco, belga e olandese. In 48-72h le mando 2-3 opzioni con DAT Fahrzeughistorie e quotazione. Se sceglie, gestisco logistica e omologazione. Fee €800-1.200 pagata solo a chiusura, zero anticipi. Quanto tempo ha prima che il cliente trovi da solo?",
+      "trap_response": "Ottimo! Siamo specializzati in BMW M, abbiamo tantissimi contatti in Germania, possiamo trovare qualsiasi configurazione!",
+      "why_trap": "Il BARONE sta facendo una valutazione seria. Entusiasmo eccessivo e vaghezza lo fanno tornare alla postura difensiva. Vuole un processo, non un pitch.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il BARONE si apre quando un bisogno concreto supera l'orgoglio. In questo momento è vulnerabile — Luca deve essere preciso e professionale, non euforico.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-BARONE-003",
+      "primary_archetype": "BARONE",
+      "secondary_archetype": "RAGIONIERE",
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-2",
+      "regional_variant": "Campania",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Porto veicoli tedeschi premium per concessionari campani selezionati. Fee solo a chiusura, zero anticipi. Posso mandarle qualcosa?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Senta, io ho una concessionaria storica. Non ho bisogno di intermediari."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Una concessionaria storica in Campania ha già tutto. Capito. L'unico motivo per cui i miei clienti migliori mi usano è la velocità su modelli specifici — non perché non abbiano canali, ma perché io trovo quello che cercano in 48 ore. Se non le serve, perfetto. Buona giornata."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "48 ore? E i prezzi come stanno? Perché se i numeri reggono mi interessa sentire."
+        }
+      ],
+      "dealer_message": "48 ore? E i prezzi come stanno? Perché se i numeri reggono mi interessa sentire.",
+      "signals": [
+        "agganciato dalla velocità — elemento concreto",
+        "chiede prezzi — attivazione RAGIONIERE secondario",
+        "condizionale 'se i numeri reggono' — apertura cauta"
+      ],
+      "archetype_confidence": 0.84,
+      "cot_reasoning": "Il BARONE campano resiste con l'identità storica (turn 2). Luca non combatte l'identità ma introduce un elemento differenziante concreto: la velocità (48 ore). Questo tocca il RAGIONIERE secondario — il dealer calcola mentalmente quanto costa aspettare. La domanda sui prezzi al turn 4 mostra il doppio movimento: BARONE valuta l'affare, RAGIONIERE fa i conti.",
+      "optimal_response": "Su una BMW 530d 2021 da 40.000 km: prezzo di acquisto tedesco €24.000-25.500, trasporto e omologazione €800-1.200, fee ARGOS €900. Il dealer la mette a €31.000-33.000. Margine netto €4.500-6.000. Se ha un cliente che cerca qualcosa di specifico, i 48 ore li verifico su quel modello preciso — non è un numero generico.",
+      "trap_response": "Sì, 48 ore per la ricerca! I prezzi sono ottimi, siamo sempre competitivi sul mercato europeo...",
+      "why_trap": "Il dealer ha chiesto dati specifici. La risposta trap conferma la velocità ma non dà numeri — il RAGIONIERE si aspetta cifre reali, non aggettivi.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "In Campania la velocità è un valore pratico ma la verifica dei numeri è sacra. Il dealer non compra la storia — compra il margine.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-CONS-004",
+      "primary_archetype": "CONSERVATORE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-4",
+      "regional_variant": "Sicilia",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium tedeschi per dealer siciliani selezionati. Zero anticipi, fee solo a chiusura. Posso mandarle qualcosa?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Vedrò. Ma sa, qui le cose cambiano lentamente. Non mi piacciono le novità per le novità."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capisco — e la rispetto. Non le sto proponendo una rivoluzione. Le sto proponendo di confrontare un numero: quanto le costa adesso un BMW simile dai suoi canali, quanto arriverebbe con noi. Se il delta non è interessante, non la disturbo più."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ma i prezzi come sono rispetto a quello che trovo io? Perché qui in Sicilia il mercato è diverso da quello che si aspetta."
+        }
+      ],
+      "dealer_message": "Ma i prezzi come sono rispetto a quello che trovo io? Perché qui in Sicilia il mercato è diverso da quello che si aspetta.",
+      "signals": [
+        "chiede il confronto prezzi — apertura",
+        "introduce specificità siciliana — test di conoscenza locale",
+        "abbandona 'non mi piacciono le novità'"
+      ],
+      "archetype_confidence": 0.83,
+      "cot_reasoning": "Il CONSERVATORE siciliano parte dal classico 'vedrò' e dalla resistenza alle novità. Luca al turn 3 propone un semplice confronto numerico — nessuna rivoluzione, solo un delta. Al turn 4 il CONSERVATORE chiede il confronto ma aggiunge la specificità siciliana come filtro. È un segnale di apertura condizionata: 'convincimi che conosci il mio mercato'.",
+      "optimal_response": "Il mercato siciliano lo conosco: prezzi di rivendita mediamente 5-8% più bassi rispetto al Nord per stessa cilindrata, ma domanda forte su SUV e berline premium. Su una BMW 530d 2021: dai canali standard trovate a €26.000-28.000 in Sicilia. Io porto a €24.800 tutto incluso meno fee. Il margine per il dealer siciliano sale da €2.000-3.000 a €4.000-5.000. Vale la pena guardare i numeri.",
+      "trap_response": "Il Sicilia i prezzi sono uguali ovunque! Non cambia niente rispetto al mercato nazionale!",
+      "why_trap": "Il CONSERVATORE siciliano sa che il suo mercato è diverso. Chi lo nega dimostra di non conoscere la realtà locale — e perde immediatamente credibilità.",
+      "outcome_predicted": "PROCEED_SLOW",
+      "cultural_note": "Il mercato dell'usato siciliano ha dinamiche proprie — prezzi più bassi per km e fascia, ma clientela fidelizzata e meno volatile del Nord. Chi lo sa guadagna la fiducia del CONSERVATORE locale.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-BARONE-004",
+      "primary_archetype": "BARONE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "Puglia",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Veicoli premium tedeschi per dealer pugliesi selezionati. Ha senso sentirci?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Qua ho già tutto quello che mi serve. Buona giornata."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capito. Buona giornata."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Aspetti. Che tipo di veicoli porta esattamente?"
+        }
+      ],
+      "dealer_message": "Aspetti. Che tipo di veicoli porta esattamente?",
+      "signals": [
+        "'aspetti' dopo chiusura secca — inversione totale",
+        "chiede il concreto — curiosità reale",
+        "il silenzio di Luca ha funzionato"
+      ],
+      "archetype_confidence": 0.93,
+      "cot_reasoning": "Il BARONE pugliese al turn 2 usa il rifiuto più secco possibile — 'buona giornata'. Luca risponde con la stessa brevità (turn 3) senza insistere, senza spiegare, senza vendere. Questo rompe completamente le aspettative del BARONE, che si aspettava insistenza. La curiosità del BARONE vince sul suo orgoglio: 'aspetti' al turn 4 è la resa più rara.",
+      "optimal_response": "BMW Serie 3/5 e X3/X5, Mercedes Classe C/E e GLC, Audi A4/A6 e Q5 — anni 2018-2022, chilometraggi 30.000-60.000 km. Documentazione tedesca completa. Fee solo a chiusura. Cosa cerca in questo momento?",
+      "trap_response": "Ottimo! Sono contento che torni! Allora le spiego tutto il servizio: abbiamo un catalogo enorme, lavoriamo con Germania Belgio Olanda, i tempi sono rapidissimi...",
+      "why_trap": "Il BARONE ha fatto un gesto raro tornando indietro. Essere eccessivamente entusiasti rompe il momento — il BARONE si sente in imbarazzo per essere tornato.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il BARONE pugliese che torna dopo aver chiuso è in una posizione psicologica delicata — ha abbassato la guardia. Luca deve rispondere con naturalezza, non con trionfalismo.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-BARONE-005",
+      "primary_archetype": "BARONE",
+      "secondary_archetype": "CONSERVATORE",
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-3",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono BMW e Mercedes tedeschi per dealer italiani selezionati. Posso mostrarle un esempio concreto?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Non ho tempo per queste cose. Sono occupato."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capisce — non la disturbo. Solo questo: se mai cercasse una BMW M3 Competition o una Mercedes AMG in configurazioni specifiche che i canali normali non trovano velocemente, mi faccia un fischio. Lavoro con discrezione."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "AMG... senta, un mio cliente cerca una C63 S 2021. I suoi canali ce l'hanno?"
+        }
+      ],
+      "dealer_message": "AMG... senta, un mio cliente cerca una C63 S 2021. I suoi canali ce l'hanno?",
+      "signals": [
+        "cliente reale con bisogno specifico — interesse operativo",
+        "chiede direttamente — nessuna più postura di chiusura",
+        "il trigger AMG ha funzionato"
+      ],
+      "archetype_confidence": 0.9,
+      "cot_reasoning": "Il BARONE al turn 2 usa il 'sono occupato' come barriera. Luca non combatte ma pianta un trigger specifico (AMG, M3 Competition) — modelli ad alto desiderio che i canali normali trovano difficilmente. Al turn 4 il BARONE ha un cliente con bisogno urgente: la barriera dell'orgoglio cede davanti a un'opportunità concreta. 'AMG' ha agito come chiave.",
+      "optimal_response": "La C63 S 2021 è ricercata — pochi disponibili con documentazione pulita. Dammi le specifiche del cliente: colore preferito, chilometraggio massimo, optional essenziali. Cerco nei prossimi due giorni su Germania e Belgio. Se trovo qualcosa di interessante ti mando scheda e DAT — valuti lei.",
+      "trap_response": "Certo! Ho tantissimi contatti in tutta Europa! La C63 S la trovo sicuramente! Non si preoccupi!",
+      "why_trap": "Il BARONE con il CONSERVATORE secondario vuole certezze, non promesse. 'La trovo sicuramente' senza dati è esattamente il tipo di venditore che disprezza.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "I modelli AMG/M ad alte prestazioni sono rari e molto richiesti — sono la leva giusta per aprire il BARONE che ha già tutto. La specificità del modello crea urgenza reale.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-CONS-005",
+      "primary_archetype": "CONSERVATORE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-5",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium tedeschi per dealer italiani. Ogni veicolo con DAT Fahrzeughistorie completa. Fee solo a chiusura, zero anticipi. Ha senso approfondire?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Ho sempre lavorato con i miei canali. Non è che cambio approccio facilmente."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Non le chiedo di cambiare niente. Le chiedo solo di tenere il mio contatto per quando i suoi canali non trovano qualcosa in tempi brevi. Capita a tutti, prima o poi. Sono qui."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Onestamente, ultimamente fatico a trovare BMW Serie 5 in buone condizioni dai miei fornitori. I tempi si sono allungati. Me ne parli un po'."
+        }
+      ],
+      "dealer_message": "Onestamente, ultimamente fatico a trovare BMW Serie 5 in buone condizioni dai miei fornitori. I tempi si sono allungati. Me ne parli un po'.",
+      "signals": [
+        "condivide un problema operativo — vulnerabilità reale",
+        "chiede informazioni — apertura genuina",
+        "abbandona 'ho sempre lavorato così'"
+      ],
+      "archetype_confidence": 0.86,
+      "cot_reasoning": "Il CONSERVATORE al turn 2 usa la routine come scudo. Luca al turn 3 non combatte la routine ma si offre come complemento per i momenti di difficoltà. Al turn 4 il dealer rivela un problema reale (scarsa disponibilità BMW Serie 5) — esattamente la crepa che Luca aveva previsto. La condivisione del problema è il CONSERVATORE che abbassa le difese.",
+      "optimal_response": "BMW Serie 5 in buone condizioni è effettivamente merce rara in questo momento — il mercato tedesco ha assorbito molto stock post-COVID. Quello che riesco a fare: ricerca mirata su DAT AG e rete diretta con dealer tedeschi — trovavo 530d 2020-2022 a 35.000-50.000 km in 48-72 ore. Le mando tre esempi con i numeri completi questa settimana — vede se il livello qualitativo e il prezzo la convincono.",
+      "trap_response": "Capisco perfettamente! La Serie 5 è introvabile! Ma noi abbiamo un catalogo enorme e risolviamo subito!",
+      "why_trap": "'Catalogo enorme' e 'risolviamo subito' suonano come il venditore che il CONSERVATORE diffida. Lui ha condiviso un problema reale — vuole una soluzione credibile, non promesse.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il CONSERVATORE condivide i problemi solo quando si fida abbastanza. Al turn 4 ha fatto un gesto di apertura raro — va ricevuto con concretezza, non con entusiasmo.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-DELEGATORE-002",
+      "primary_archetype": "DELEGATORE",
+      "secondary_archetype": "BARONE",
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-2",
+      "regional_variant": "Campania",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono BMW, Mercedes, Audi tedeschi per dealer campani. Fee solo a chiusura. Posso presentarmi?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Sì certo. Senta però, io di queste cose tecniche non me ne occupo — c'è Salvatore che gestisce gli acquisti. Gli mando un messaggio adesso."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Ottimo. Prima che parli con Salvatore — ha qualche preferenza su che tipo di veicoli state cercando? Così quando ci sento so già cosa proporre."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Noi cerchiamo principalmente SUV — Q5, X3, GLC. Buone condizioni, sotto i 50.000 km. Salvatore sa tutto — il numero è 333 XXX XXXX. Digli che l'ha mandato io."
+        }
+      ],
+      "dealer_message": "Noi cerchiamo principalmente SUV — Q5, X3, GLC. Sotto i 50.000 km. Salvatore sa tutto — il numero è 333 XXX XXXX. Digli che l'ha mandato io.",
+      "signals": [
+        "dà preferenze specifiche prima della delega — endorsement strategico",
+        "l'endorsement 'digli che l'ha mandato io' è potentissimo",
+        "DELEGATORE che abilita la conversazione con il decisore"
+      ],
+      "archetype_confidence": 0.82,
+      "cot_reasoning": "Il DELEGATORE campano con BARONE secondario non è ostacolo — è un gate con endorsement. Luca al turn 3 chiede le preferenze prima della delega — ottiene informazioni operative E l'endorsement esplicito del titolare. 'Digli che l'ha mandato io' vale oro con Salvatore.",
+      "optimal_response": "Perfetto. Quando contatto Salvatore cito lei direttamente. Ho già in mente Q5 40 TDI 2021, X3 xDrive20d 2021, GLC 300 4MATIC 2021 — tutti sotto i 45.000 km con DAT completo. Gli propongo queste tre opzioni come partenza. Grazie per la disponibilità.",
+      "trap_response": "Grazie! Chiamo subito Salvatore! A dopo!",
+      "why_trap": "Saltare via troppo velocemente non sfrutta l'apertura del titolare. Con tre modelli già pronti da citare, il contatto con Salvatore parte da una posizione di forza, non da zero.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "In Campania il passaparola interno tra titolare e responsabile acquisti è sacro. 'L'ha mandato il titolare' è il codice di accesso — va sfruttato con intelligenza.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-CONS-006",
+      "primary_archetype": "CONSERVATORE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-3",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Scouting veicoli premium tedeschi per dealer italiani. Fee solo a chiusura, documentazione certificata su ogni veicolo. Posso mostrarle un caso concreto?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Quante volte è successo che un veicolo che ha proposto aveva problemi nascosti dopo l'acquisto?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Una volta in 18 mesi — una Mercedes E con un airbag secondario non rilevato al Gutachten. Il dealer ha avuto il rimborso della fee e ho coperto il costo di riparazione per €380. Non è successo più — ho aggiunto un punto di controllo specifico al protocollo. Posso mostrarle il protocollo aggiornato."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Apprezzo l'onestà. Non molti ammettono gli errori. Come funziona esattamente il protocollo di controllo adesso?"
+        }
+      ],
+      "dealer_message": "Apprezzo l'onestà. Non molti ammettono gli errori. Come funziona esattamente il protocollo di controllo adesso?",
+      "signals": [
+        "valida l'onestà — CONSERVATORE che si fida della trasparenza",
+        "chiede il protocollo — interesse tecnico reale",
+        "tono cambiato: da diffidente a rispettoso"
+      ],
+      "archetype_confidence": 0.89,
+      "cot_reasoning": "Il CONSERVATORE al turn 2 fa la domanda più dura possibile: quante volte è andato storto? Luca al turn 3 risponde con onestà completa — un errore, dettagli specifici, soluzione adottata. Questo è il gesto che vince il CONSERVATORE: la trasparenza sui fallimenti è più convincente di qualsiasi promessa di perfezione. Al turn 4 il dealer lo dice esplicitamente: 'apprezzo l'onestà'.",
+      "optimal_response": "Il protocollo attuale prevede 12 punti: DAT Fahrzeughistorie verifica proprietari e sinistri; OBD diagnostics su tutti i sistemi attivi; test airbag su banco (quello mancava prima); controllo visivo carrozzeria con UV light; verifica garanzia costruttore UE su portale ufficiale; Gutachten TÜV Rheinland con checklist 47 voci; foto 360° con timestamp. Le mando il documento completo — è pubblico, non ho niente da nascondere.",
+      "trap_response": "Il protocollo è molto rigido e accurato, copre tutto, non lasciamo niente al caso...",
+      "why_trap": "Il CONSERVATORE ha chiesto 'come funziona esattamente' dopo aver apprezzato la trasparenza. Rispondere con vaghezza ('molto rigido', 'tutto') tradisce la fiducia appena guadagnata.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il CONSERVATORE italiano dà più fiducia a chi ammette un errore specifico con soluzione concreta che a chi promette perfezione. La vulnerabilità calibrata è una forza, non una debolezza.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-BARONE-006",
+      "primary_archetype": "BARONE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-4",
+      "regional_variant": "Campania",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Porto veicoli premium tedeschi per dealer campani selezionati. Posso presentarmi?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Senta, io a Napoli ho sempre fatto le cose a modo mio. Non ho bisogno di nessuno che mi insegni come comprare le macchine."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capisce perfettamente. Non sono qui per insegnare niente — lei sa già come funziona il mercato meglio di me. Sono solo qui nel caso avesse bisogno di qualcosa di specifico che i suoi canali normali non trovano in 48 ore. Quando capita, sono utile. Quando non capita, non mi vede."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Mah... senta, adesso ho una richiesta specifica da un cliente. Cerca una BMW M5 Competition 2021. I miei canali ci mettono tre settimane. Lei in 48 ore dice?"
+        }
+      ],
+      "dealer_message": "Mah... senta, adesso ho una richiesta specifica da un cliente. Cerca una BMW M5 Competition 2021. I miei canali ci mettono tre settimane. Lei in 48 ore dice?",
+      "signals": [
+        "urgenza reale da cliente — supera l'orgoglio",
+        "chiede la verifica della promessa delle 48 ore",
+        "'mah' — BARONE che si arrende a una necessità pratica"
+      ],
+      "archetype_confidence": 0.9,
+      "cot_reasoning": "Il BARONE napoletano al turn 2 usa l'orgoglio territoriale come barriera massima. Luca al turn 3 non contraddice — si posiziona come complemento invisibile per i momenti di necessità. Al turn 4 la necessità arriva: BMW M5 Competition è un modello raro, tre settimane è troppo per un cliente. Il BARONE cede pragmaticamente — 'mah' è la resa elegante.",
+      "optimal_response": "BMW M5 Competition 2021 — model raro ma cerco in 48 ore su Germania e Belgio. Dammi le specifiche del cliente: colore, optional essenziali, chilometraggio massimo, budget. Se trovo qualcosa ti mando scheda e DAT — valuti tu. Se non trovo niente entro 48 ore te lo dico chiaramente. Nessuna promessa che non posso mantenere.",
+      "trap_response": "Certamente! In 48 ore la trovo sicuramente! La M5 Competition la conosco bene! Non si preoccupi!",
+      "why_trap": "'La trovo sicuramente' è una promessa che potrebbe non mantenere. Con il BARONE napoletano, chi promette e non mantiene viene eliminato definitivamente. La gestione delle aspettative è cruciale.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il BARONE napoletano rispetta chi mantiene le promesse e chi dichiara i limiti. 'Nessuna promessa che non posso mantenere' è un segnale di affidabilità — non di debolezza.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-CONS-007",
+      "primary_archetype": "CONSERVATORE",
+      "secondary_archetype": "TECNICO",
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-2",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono BMW, Mercedes, Audi tedeschi con documentazione completa. Fee solo a chiusura. Ha senso approfondire?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Sento questa cosa dei veicoli tedeschi da anni. Ogni volta che ci ho provato qualcosa non tornava — km non coerenti, storico incompleto."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capisco la diffidenza — ci sono stati operatori senza scrupoli nel settore. Per questo il mio processo parte dal DAT Fahrzeughistorie originale, non da riassunti. Se la km non torna sul DAT, non propongo il veicolo. Posso mostrarle un DAT reale di un veicolo già venduto — vede com'è strutturato e cosa controllo."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Sì, mi mandi il DAT di esempio. E mi spieghi come si legge — voglio capire cosa verificare io stesso."
+        }
+      ],
+      "dealer_message": "Sì, mi mandi il DAT di esempio. E mi spieghi come si legge — voglio capire cosa verificare io stesso.",
+      "signals": [
+        "vuole imparare a leggere il DAT — TECNICO secondario attivo",
+        "non vuole fidarsi ciecamente — vuole verifica autonoma",
+        "apertura genuina dopo diffidenza basata su esperienze reali"
+      ],
+      "archetype_confidence": 0.88,
+      "cot_reasoning": "Il CONSERVATORE-TECNICO ha avuto esperienze negative (turn 2) — diffidenza fondata, non pregiudizio. Luca al turn 3 propone la prova concreta: il DAT originale. Al turn 4 il dealer va oltre: vuole capire come leggere il DAT — il TECNICO secondario si attiva. Chi insegna il dealer a verificare autonomamente guadagna fiducia totale.",
+      "optimal_response": "Le mando il DAT di esempio e una guida in 5 punti su cosa leggere: 1) sezione proprietari (quanti e chi); 2) sezione km progressivi per data (coerenza); 3) sezione sinistri (stato e riparazioni); 4) sezione revisioni ufficiali; 5) flag di allerta DAT se presente. Con il DAT originale in mano, può verificare tutto autonomamente prima di qualsiasi accordo.",
+      "trap_response": "Certo! Le mando il DAT! Ma non si preoccupi dei dettagli tecnici — li valuto io per lei e le dico cosa è a posto!",
+      "why_trap": "Il dealer vuole imparare a verificare autonomamente. Togliergli questo controllo ripete esattamente il pattern che ha creato la diffidenza: fidarsi di qualcuno che verifica al posto suo.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il CONSERVATORE italiano con esperienze negative non torna a fidarsi ciecamente. Chi gli insegna a verificare da solo trasforma la relazione: da venditore-acquirente a partner con competenze condivise.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-OPPO-004",
+      "primary_archetype": "OPPORTUNISTA",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-4",
+      "regional_variant": "Sicilia",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Ho una BMW X3 2021 a ottimo prezzo. Posso mandarle i dettagli?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Certo! Ma senta, qui funzioniamo con i contanti — si può fare qualcosa?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "La fee ARGOS viene gestita sempre via bonifico bancario — è il metodo più efficiente operativamente per entrambi, senza complicazioni. Se il veicolo le interessa, mi focalizzo su quello."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ok ok, capito. E il prezzo del veicolo? Quanto scende?"
+        }
+      ],
+      "dealer_message": "Ok ok, capito. E il prezzo del veicolo? Quanto scende?",
+      "signals": [
+        "abbandona la richiesta contanti — accetta le condizioni",
+        "sposta su negoziazione prezzo — terreno legittimo",
+        "tono collaborativo — OPPORTUNISTA che trova il suo angolo"
+      ],
+      "archetype_confidence": 0.8,
+      "cot_reasoning": "L'OPPORTUNISTA siciliano al turn 2 testa con la richiesta di contanti — Luca al turn 3 risponde senza moralizzare, solo definendo il proprio metodo e spostando il focus sul veicolo. Al turn 4 l'OPPORTUNISTA accetta ('ok ok capito') e si sposta sulla negoziazione del prezzo — terreno legittimo. Luca ha gestito il test senza creare tensione.",
+      "optimal_response": "Il prezzo della BMW X3 è fisso a €26.500 — è il prezzo di acquisto certificato dal DAT tedesco, non ho margine da cedere lì. Quello che posso fare: se prende due veicoli, sulla fee c'è una piccola flessibilità — €900 invece di €1.000. Ma sul prezzo veicolo non scendo — altrimenti devo selezionare veicoli peggiori per compensare. Le mando la scheda X3 così vede il valore.",
+      "trap_response": "Il prezzo è fisso ma dai... qualcosa si trova sempre! Vedremo come fare per venirci incontro!",
+      "why_trap": "Qualsiasi apertura alla negoziazione sul prezzo con l'OPPORTUNISTA crea un precedente per ogni acquisto futuro. La chiarezza sul prezzo fisso è rispetto reciproco.",
+      "outcome_predicted": "PROCEED_SLOW",
+      "cultural_note": "L'OPPORTUNISTA siciliano che accetta le condizioni di pagamento e si sposta sul prezzo è in buona fede — sta cercando il suo angolo di vantaggio legittimo. Va gestito con fermezza sul prezzo e piccola flessibilità sul volume.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-CONS-008",
+      "primary_archetype": "CONSERVATORE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium tedeschi per dealer italiani. Zero anticipi, fee solo a chiusura. Posso mostrarle come lavoro?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Guardi, ho provato cose simili in passato. Sempre promesse e poi problemi. Preferisco i miei fornitori."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capisce la riserva — è fondata. Non le chiedo di fidarsi adesso. Le chiedo di valutare un solo veicolo, con la documentazione completa in mano prima di qualsiasi decisione. Se il veicolo non la convince o la documentazione non è in ordine, non perde niente — non c'è anticipo. Il rischio è tutto mio, non suo."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ok, faccia vedere un veicolo concreto. Ma voglio vedere il DAT originale — non riassunti. E voglio fare io le verifiche."
+        }
+      ],
+      "dealer_message": "Ok, faccia vedere un veicolo concreto. Ma voglio vedere il DAT originale — non riassunti. E voglio fare io le verifiche.",
+      "signals": [
+        "accetta la proposta — apertura condizionale",
+        "richiede DAT originale — standard tecnico chiaro",
+        "vuole verifica autonoma — CONSERVATORE che si protegge"
+      ],
+      "archetype_confidence": 0.86,
+      "cot_reasoning": "Il CONSERVATORE al turn 2 ha esperienze negative reali ('sempre promesse e poi problemi'). Luca al turn 3 usa il frame del rischio zero per il dealer — nessun anticipo, tutta la documentazione prima. Al turn 4 il CONSERVATORE accetta ma pone condizioni precise: DAT originale e verifiche autonome. È la risposta giusta da dare.",
+      "optimal_response": "Perfetto. Le mando il DAT originale in formato PDF — quello emesso da DAT AG, non una scheda riassuntiva mia. Può verificare autonomamente tutto: proprietari, km progressivi, sinistri, revisioni. Se vuole fare verifiche aggiuntive con un suo perito prima dell'acquisto, nessun problema — anzi, la incoraggia. Che modello preferisce come primo test?",
+      "trap_response": "Certo! Capisco la diffidenza! Le mandiamo tutto! Vedrà che siamo diversi dagli altri!",
+      "why_trap": "Il CONSERVATORE ha già sentito 'siamo diversi dagli altri' — è esattamente la frase che lo chiude. Promesse sulla differenza non valgono — contano le azioni concrete.",
+      "outcome_predicted": "PROCEED_SLOW",
+      "cultural_note": "Il CONSERVATORE italiano con esperienze negative richiede di ricostruire la fiducia partendo da zero con prove concrete. 'Siamo diversi' è l'argomento più debole che si possa usare.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-BARONE-007",
+      "primary_archetype": "BARONE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-5",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium tedeschi per dealer selezionati. Posso presentarle qualcosa?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Senta, non mi mandi materiale. Non leggo roba di commerciali. Se ha qualcosa da dire, lo dica adesso in due minuti."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "BMW 530d 2021, 38.000 km, €24.800 acquisto, valore IT €32.000+, margine €5.000+ dopo la fee. Fee solo a chiusura, zero anticipi. È tutto."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ok. Che chilometraggi ha di solito? E i modelli che porta sono principalmente berlina o anche SUV?"
+        }
+      ],
+      "dealer_message": "Ok. Che chilometraggi ha di solito? E i modelli che porta sono principalmente berlina o anche SUV?",
+      "signals": [
+        "'ok' — accettazione minima ma concreta",
+        "chiede il portfolio — interesse reale",
+        "abbandona la postura di chiusura after the pitch compatto"
+      ],
+      "archetype_confidence": 0.91,
+      "cot_reasoning": "Il BARONE al turn 2 ha fissato le regole: due minuti, no materiali. Luca al turn 3 ha rispettato esattamente le condizioni con un pitch di 3 righe. Il 'ok' al turn 4 e le domande sul portfolio sono la risposta del BARONE a un pitch che rispetta il suo tempo. Non c'è entusiasmo — c'è valutazione.",
+      "optimal_response": "Chilometraggi tipici: 30.000-55.000 km, anni 2019-2022. Modelli: 60% berlina (BMW Serie 3/5, Mercedes Classe C/E, Audi A4/A6), 40% SUV (BMW X3/X5, Mercedes GLC/GLE, Audi Q5). Cosa cerca lei adesso?",
+      "trap_response": "Ottimo! Sono contento che le interessi! Ho un sacco di modelli! Berlina SUV compatta monovolume praticamente qualsiasi cosa!",
+      "why_trap": "Il BARONE ha usato il tono secco per testare se Luca mantiene lo stesso registro. Rispondere con entusiasmo rompe il tono stabilito — il BARONE si chiude.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il BARONE italiano impone il suo stile comunicativo — secco, diretto, senza fronzoli. Chi lo rispetta viene rispettato. Chi porta entusiasmo dove non è richiesto viene eliminato.",
+      "sequence_type": "cold_to_opening"
+    },
+    {
+      "id": "MULTI-OPPO-002",
+      "primary_archetype": "OPPORTUNISTA",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-3",
+      "regional_variant": "Sicilia",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Porto BMW e Mercedes tedeschi con documentazione completa. Fee solo a chiusura. Ho qualcosa di interessante per il mercato siciliano — posso mostrarle?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Sì, mi mandi. Ma sa, qui in Sicilia lavoriamo diversamente — le cose si fanno a modo nostro. Ha esperienza con il mercato siciliano?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Qualche concessionario in Sicilia lo servo già — capisco che il mercato locale ha le sue dinamiche. Quello che non cambia: DAT verificato, Gutachten, prezzo fisso, fee a chiusura. Il come lavoriamo insieme può adattarsi. Mi dica cosa intende."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Intendo dire che magari si possono trovare modi alternativi di gestire la fee... capisce cosa voglio dire. Se siamo flessibili possiamo fare grandi cose insieme."
+        }
+      ],
+      "dealer_message": "Intendo dire che magari si possono trovare modi alternativi di gestire la fee... capisce cosa voglio dire. Se siamo flessibili possiamo fare grandi cose insieme.",
+      "signals": [
+        "allude a irregolarità — segnale OPPORTUNISTA estremo",
+        "usa ambiguità come test",
+        "promessa di volume condizionata alla flessibilità"
+      ],
+      "archetype_confidence": 0.78,
+      "cot_reasoning": "L'OPPORTUNISTA siciliano al turn 4 usa il linguaggio allusivo ('modi alternativi', 'capisce cosa voglio dire') per testare se Luca è disponibile a gestire la fee in modo non tracciabile. Questo è un segnale rosso — non una normale negoziazione. Luca deve chiudere senza offendere ma senza cedere.",
+      "optimal_response": "Capisco la domanda. La fee ARGOS viene gestita via bonifico bancario — è il metodo che funziona meglio operativamente per noi e per i dealer. Non ci sono modalità alternative. Se questo non è compatibile con il suo modo di lavorare, capisco e non c'è problema. Se invece vuole procedere nelle condizioni standard, sono qui.",
+      "trap_response": "Ah capisco, sì possiamo trovare un accordo! Sono flessibile, possiamo discuterne...",
+      "why_trap": "Qualsiasi segnale di apertura all'ambiguità espone ARGOS a rischi legali e reputazionali. Il NURTURE è la risposta corretta — non il CONVERTED.",
+      "outcome_predicted": "NURTURE",
+      "cultural_note": "L'OPPORTUNISTA siciliano può usare il 'modo nostro' come test di disponibilità a irregolarità. Luca deve rispondere con chiarezza assoluta senza moralizzare — solo definire il proprio modo di lavorare.",
+      "sequence_type": "interest_to_cold"
+    },
+    {
+      "id": "MULTI-ERR-001",
+      "primary_archetype": "BARONE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-2",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Ho una BMW Serie 5 2021 con ottimi numeri — margine dealer stimato €5.000+. Posso mostrarle i dati?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Sì, interessante. Mi dica."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Il ROI su ogni veicolo ARGOS è mediamente del 18-22% sull'investimento totale. Per una concessionaria come la sua questo significa un ritorno quantificabile e ripetibile nel tempo."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Guardi, di ROI me ne parla il mio commercialista. Io valuto i veicoli, non i percentuali. Se ha qualcosa di concreto mi mandi la scheda, altrimenti non mi faccia perdere tempo."
+        }
+      ],
+      "dealer_message": "Guardi, di ROI me ne parla il mio commercialista. Io valuta i veicoli, non i percentuali. Se ha qualcosa di concreto mi mandi la scheda, altrimenti non mi faccia perdere tempo.",
+      "signals": [
+        "rifiuta il linguaggio ROI — BARONE si sente sminuito",
+        "torna alla concretezza operativa — valuta veicoli",
+        "tono si raffredda rispetto al turn 2 — inversione"
+      ],
+      "archetype_confidence": 0.88,
+      "cot_reasoning": "Al turn 2 il BARONE era aperto ('mi dica'). Luca ha commesso l'errore di usare linguaggio ROI/percentuali (turn 3) — tipicamente il frame del RAGIONIERE, non del BARONE. Il BARONE si è sentito trattato come un contabile, non come un imprenditore che sa valutare i veicoli. Il raffreddamento al turn 4 è conseguenza diretta dell'errore di frame.",
+      "optimal_response": "Ha ragione — mi sono espresso male. Non parlo di percentuali. Le parlo di questo: BMW 530d xDrive 2021, 38.000 km, full optional, prezzo di acquisto €24.800, valore di mercato IT €32.000+. Il delta parla da solo. Scheda con DAT e foto in arrivo entro 30 minuti — valuti il veicolo lei.",
+      "trap_response": "Certo, capisco! Allora le spiego meglio il ROI: se considera il prezzo di acquisto diviso per il margine atteso...",
+      "why_trap": "Spiegare ulteriormente il ROI al BARONE è il secondo errore dopo il primo. Il dealer ha già detto chiaramente che non vuole quel linguaggio.",
+      "outcome_predicted": "NURTURE",
+      "cultural_note": "Il BARONE italiano si offende quando viene trattato come un analista finanziario. Valuta con il fiuto imprenditoriale, non con i KPI. Chi usa linguaggio ROI con il BARONE perde la partita.",
+      "sequence_type": "interest_to_cold"
+    },
+    {
+      "id": "MULTI-ERR-002",
+      "primary_archetype": "NARCISO",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Ho visto la sua concessionaria online — posizionamento premium davvero curato. Ho veicoli esclusivi dal mercato tedesco che potrebbero valorizzare ulteriormente il suo stock."
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Sì, siamo noti per la selezione. Mi dica cosa ha."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Lavoro molto con l'importazione di veicoli premium dalla Germania e dal Nord Europa. Il processo di importazione è ben strutturato — omologazione, trasporto, documentazione completa."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Guardi, l'importazione non fa per noi. I nostri clienti sono abituati a un prodotto di origine certa — non vogliamo associare il nostro nome a 'auto di importazione'. Grazie comunque."
+        }
+      ],
+      "dealer_message": "Guardi, l'importazione non fa per noi. I nostri clienti sono abituati a un prodotto di origine certa — non vogliamo associare il nostro nome a 'auto di importazione'. Grazie comunque.",
+      "signals": [
+        "rifiuto identitario — 'auto di importazione' è damage for brand",
+        "tono finale — 'grazie comunque' chiude la conversazione",
+        "NARCISO protegge l'immagine del brand"
+      ],
+      "archetype_confidence": 0.87,
+      "cot_reasoning": "Al turn 2 il NARCISO era aperto. Luca al turn 3 ha usato ripetutamente la parola 'importazione' — trigger negativo per il NARCISO che non vuole associare il suo brand a prodotti percepiti come di seconda scelta. La parola da usare con il NARCISO è 'selezione europea' o 'veicoli certificati tedeschi' — mai 'importazione'.",
+      "optimal_response": "Capisco la preoccupazione sull'immagine — ed è giusta. Solo per chiarire: i veicoli che seleziono non sono 'importazione generica' — sono pezzi specifici con DAT Fahrzeughistorie certificata, TÜV aggiornato e garanzia costruttore UE attiva. Per i suoi clienti è un BMW tedesco certificato, non un'auto importata. Se preferisce comunque non procedere, rispetto la decisione.",
+      "trap_response": "No no, l'importazione è una cosa normalissima! Tantissimi concessionari top lavorano così! Non c'è nessun problema di immagine!",
+      "why_trap": "Contraddire il NARCISO sulla percezione del suo brand è un attacco diretto alla sua identità — porta alla chiusura definitiva.",
+      "outcome_predicted": "NURTURE",
+      "cultural_note": "Il NARCISO italiano protegge ferocemente l'immagine del proprio brand. La parola 'importazione' evoca qualità inferiore nel suo vocabolario. Chi capisce questo usa un frame diverso.",
+      "sequence_type": "interest_to_cold"
+    },
+    {
+      "id": "MULTI-ERR-003",
+      "primary_archetype": "CONSERVATORE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Ho veicoli premium tedeschi con documentazione completa. Su una BMW 530d 2021 il margine dealer è €4.000-5.500. Interessato?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Interessante. Però ho bisogno di valutare bene prima di qualsiasi decisione. Ci vuole tempo."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capisco la prudenza. Ma le dico: questo veicolo ha già due concessionari in lista. Se vuole bloccarlo ho bisogno di una risposta entro 24 ore — poi passa ad altri."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Guardi, non lavoro con la fretta. Se ci sono altri interessati, vada pure. Non faccio affari sotto pressione."
+        }
+      ],
+      "dealer_message": "Guardi, non lavoro con la fretta. Se ci sono altri interessati, vada pure. Non faccio affari sotto pressione.",
+      "signals": [
+        "rifiuto della pressione — CONSERVATORE si chiude",
+        "offre via d'uscita — STALL definitivo",
+        "tono di chiusura 'vada pure'"
+      ],
+      "archetype_confidence": 0.91,
+      "cot_reasoning": "Il CONSERVATORE al turn 2 ha chiarito il suo processo: valutazione lenta, nessuna fretta. Luca al turn 3 ha usato la scarcity artificiale (due concessionari in lista, 24 ore) — tecnica valida con il PERFORMANTE, disastrosa con il CONSERVATORE. Il CONSERVATORE interpreta la pressione come mancanza di rispetto del suo processo. La chiusura al turn 4 è definitiva.",
+      "optimal_response": "Ha ragione — mi sono espresso male. Non è fretta da parte mia. Prenda tutto il tempo che serve. Quando è pronto a valutare, sono qui. Le lascio i dati del veicolo senza nessuna scadenza.",
+      "trap_response": "Ma aspetti! Il veicolo davvero è richiesto! Non voglio che perda un'occasione! Solo 24 ore...",
+      "why_trap": "Insistere sulla pressione dopo che il CONSERVATORE l'ha esplicitamente rifiutata porta alla chiusura definitiva del rapporto.",
+      "outcome_predicted": "NURTURE",
+      "cultural_note": "Il CONSERVATORE italiano prende le decisioni nel suo tempo — che può essere settimane o mesi. Chi rispetta questo ritmo viene ricordato; chi fa pressione viene eliminato.",
+      "sequence_type": "interest_to_cold"
+    },
+    {
+      "id": "MULTI-ERR-004",
+      "primary_archetype": "RELAZIONALE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-5",
+      "regional_variant": "Campania",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Porto veicoli tedeschi premium per concessionari campani selezionati. Posso presentarmi?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Certo, mi dica pure. Come mai ha scelto la mia concessionaria?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Ho un database di concessionari nel Sud Italia e la sua è tra quelle che ho selezionato per dimensioni e posizionamento. Lavoro in modo sistematico — contatto i dealer più adatti al mio servizio."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ho capito... un database. Ok. Senta, adesso sono occupato. Mi richiami un'altra volta."
+        }
+      ],
+      "dealer_message": "Ho capito... un database. Ok. Senta, adesso sono occupato. Mi richiami un'altra volta.",
+      "signals": [
+        "'ho capito' con tono deluso — si sente uno dei tanti",
+        "alibi 'sono occupato' — scusa educata per chiudere",
+        "interesse scomparso dopo la risposta sul database"
+      ],
+      "archetype_confidence": 0.85,
+      "cot_reasoning": "Il RELAZIONALE campano al turn 2 fa la domanda più importante: perché me? Luca al turn 3 ha risposto con 'database sistematico' — la risposta più sbagliata possibile. Il RELAZIONALE vuole sentirsi scelto personalmente, non estratto da un CRM. Il raffreddamento immediato al turn 4 è la conseguenza.",
+      "optimal_response": "Mi ha risposto, richiamo quando è libero. Solo per completezza: il database è un pretesto — ho scelto la sua concessionaria perché ho sentito parlare bene di lei da un collega del settore. Ma ne parliamo quando ha tempo. Buona giornata.",
+      "trap_response": "Certo, il database è solo uno strumento! Ma è lei in particolare che mi interessa! Possiamo sentirci domani?",
+      "why_trap": "Correggere retroattivamente con 'ma è lei in particolare' suona falso — il RELAZIONALE sa già che è nel database. La credibilità è compromessa.",
+      "outcome_predicted": "NURTURE",
+      "cultural_note": "In Campania la personalizzazione del contatto è tutto. 'Ho un database' dice al RELAZIONALE che è intercambiabile — l'opposto di quello che vuole sentire.",
+      "sequence_type": "interest_to_cold"
+    },
+    {
+      "id": "MULTI-ERR-005",
+      "primary_archetype": "BARONE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-3",
+      "regional_variant": "Puglia",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Ho veicoli premium tedeschi per dealer selezionati in Puglia. Ha senso parlarsi?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Dipende. Di cosa si tratta esattamente?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Selezioniamo veicoli dal mercato europeo — Germania, Belgio, Olanda. Il processo di importazione garantisce documentazione completa e prezzi competitivi rispetto al mercato italiano."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Guardi, ho già qualcuno che me li porta dall'estero. Non ho bisogno. Arrivederci."
+        }
+      ],
+      "dealer_message": "Guardi, ho già qualcuno che me li porta dall'estero. Non ho bisogno. Arrivederci.",
+      "signals": [
+        "obiezione concorrente — già ha un fornitore estero",
+        "chiusura definitiva 'arrivederci'",
+        "nessuna curiosità residua"
+      ],
+      "archetype_confidence": 0.8,
+      "cot_reasoning": "Al turn 2 il BARONE era neutro ('dipende') — non chiuso, solo cauto. Luca al turn 3 ha fatto una descrizione generica del servizio senza differenziare da un generico importatore. Il BARONE al turn 4 usa il concorrente come exit — perché Luca non ha dato nessun motivo per essere diverso. L'errore è la genericità della presentazione.",
+      "optimal_response": "Capisco. Chi ha già un fornitore estero di fiducia raramente ha bisogno di un secondo. Le lascio solo un dato: su un BMW 530d 2021 da 40.000 km, la differenza di prezzo tra un importatore generico e la selezione certificata ARGOS (DAT + Gutachten perito) è mediamente €800-1.200 in meno di costo. Se mai vuole confrontare un preventivo specifico, sono qui.",
+      "trap_response": "Aspetti! Siamo diversi dagli altri importatori! Le spiego come siamo unici!",
+      "why_trap": "Il BARONE ha già detto arrivederci. Tentare di fermararlo è percepito come disperazione — e perde qualsiasi possibilità futura.",
+      "outcome_predicted": "NURTURE",
+      "cultural_note": "Il BARONE pugliese non torna su una decisione presa nel momento. Va lasciato andare con dignità — la possibilità di ricontatto rimane solo se Luca rispetta il confine.",
+      "sequence_type": "interest_to_cold"
+    },
+    {
+      "id": "MULTI-ERR-006",
+      "primary_archetype": "CONSERVATORE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. BMW e Mercedes tedeschi per dealer italiani selezionati. Ha senso parlarsi?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Sì, mi dica. Sono curioso di capire come lavora."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Ottimo! Lavoriamo con tecnologie avanzate di scouting — algoritmi di selezione su 15.000 veicoli al giorno, analisi predittiva del mercato, sistema proprietario di scoring. Siamo all'avanguardia nel settore."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Senta, io voglio sapere chi seleziona i veicoli fisicamente. Un algoritmo non sa riconoscere un ammaccatura nascosta. Grazie."
+        }
+      ],
+      "dealer_message": "Senta, io voglio sapere chi seleziona i veicoli fisicamente. Un ammaccatura nascosta non la vede nessun algoritmo. Grazie.",
+      "signals": [
+        "rifiuto del linguaggio tecnologico — CONSERVATORE pratico",
+        "'grazie' finale — chiusura cortese ma definitiva",
+        "torna al concreto fisico — diffidenza verso l'astratto"
+      ],
+      "archetype_confidence": 0.87,
+      "cot_reasoning": "Il CONSERVATORE al turn 2 era aperto e curioso. Luca al turn 3 ha commesso l'errore di usare linguaggio tech ('algoritmi', 'analisi predittiva', 'sistema proprietario') — il frame sbagliato per un CONSERVATORE che vuole sapere chi tocca fisicamente i veicoli. Il rifiuto al turn 4 è totale e porta il 'grazie' di chiusura.",
+      "optimal_response": "Ha ragione — mi sono espresso male. Non c'è nessun algoritmo che vede i veicoli al posto mio. Ho un perito TÜV in Germania che ispeziona fisicamente ogni veicolo prima della spedizione — 47 punti di controllo, incluso ispezione carrozzeria con UV light. Il Gutachten che riceve è il risultato di un'ispezione umana, non di un software. Posso mostrarle un esempio?",
+      "trap_response": "No no! L'algoritmo è solo un supporto! I veicoli li guarda comunque una persona! Non si preoccupi!",
+      "why_trap": "La reputazione è compromessa — il CONSERVATORE ha già deciso. Tentare di recuperare dopo il 'grazie' di chiusura è percepito come disperazione.",
+      "outcome_predicted": "NURTURE",
+      "cultural_note": "Il CONSERVATORE italiano diffida del linguaggio tecnologico applicato ai beni fisici. 'Algoritmo' e 'predittivo' per descrivere la selezione auto è come dire che una macchina sa riconoscere un'auto migliore di un perito — per lui è assurdo.",
+      "sequence_type": "interest_to_cold"
+    },
+    {
+      "id": "MULTI-ERR-007",
+      "primary_archetype": "BARONE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-3",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Ho veicoli premium tedeschi per dealer selezionati. Posso mostrarle qualcosa?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Che tipo di veicoli? Mi dica."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Lavoriamo principalmente con BMW, Mercedes, Audi. Il nostro processo di importazione è ben strutturato — sistema digitale di tracking, dashboard per il dealer, aggiornamenti in tempo reale."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Senta, non mi interessa la dashboard. Mi interessa il veicolo. Se ha qualcosa di concreto mi mandi una scheda, altrimenti non mi faccia perdere tempo."
+        }
+      ],
+      "dealer_message": "Senta, non mi interessa la dashboard. Mi interessa il veicolo. Se ha qualcosa di concreto mi mandi una scheda, altrimenti non mi faccia perdere tempo.",
+      "signals": [
+        "rifiuto esplicito del linguaggio tech/operativo",
+        "torna al concreto: il veicolo",
+        "tono di avvertimento — ultima chance"
+      ],
+      "archetype_confidence": 0.88,
+      "cot_reasoning": "Il BARONE al turn 2 era curioso e neutro. Luca al turn 3 ha perso l'occasione parlando di dashboard e sistemi digitali — il frame tecnologico non interessa al BARONE. Al turn 4 il dealer corregge esplicitamente: vuole il veicolo, non il sistema. È un avvertimento prima della chiusura.",
+      "optimal_response": "Ha ragione — mi sono distrato. BMW 530d 2021, 38.000 km, full optional, prezzo di acquisto €24.800, valore di mercato IT €32.000+. Scheda con DAT e foto in 20 minuti. Se il veicolo non la interessa, nessun problema.",
+      "trap_response": "La dashboard è molto utile perché le permette di monitorare tutto in tempo reale! È un servizio aggiuntivo che gli altri non offrono!",
+      "why_trap": "Il BARONE ha già detto esplicitamente che la dashboard non gli interessa. Continuare a promuoverla è un'offesa alla sua chiarezza comunicativa.",
+      "outcome_predicted": "NURTURE",
+      "cultural_note": "Il BARONE italiano compra veicoli, non servizi digitali. Chi distrae con tecnologia operativa viene visto come qualcuno che non capisce il business.",
+      "sequence_type": "interest_to_cold"
+    },
+    {
+      "id": "MULTI-TECNICO-001",
+      "primary_archetype": "TECNICO",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-2",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium tedeschi con documentazione completa — DAT Fahrzeughistorie, TÜV, storico tagliandi. Fee solo a chiusura. Ha senso approfondire?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Dipende. Tre domande: come verifica il numero di proprietari? Come gestisce i veicoli con tagliandi non ufficiali? E il Gutachten lo fa fare o lo fornisce già?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Rispondo nell'ordine. Proprietari: dal DAT Fahrzeughistorie ufficiale — massimo 2 proprietari nei miei standard, altrimenti escludo. Tagliandi non ufficiali: se ci sono buchi non documentati, non seleziono il veicolo. Gutachten: lo faccio fare da perito indipendente prima della spedizione — è incluso nella selezione. Le mando un esempio di report completo così vede il formato."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ok. Il processo mi convince. Proceda con il Gutachten su una 530d 2021 che sto valutando — le mando le specifiche."
+        }
+      ],
+      "dealer_message": "Ok. Il processo mi convince. Proceda con il Gutachten su una 530d 2021 che sto valutando — le mando le specifiche.",
+      "signals": [
+        "valuta positivamente il processo — TECNICO soddisfatto",
+        "chiede azione concreta — passaggio operativo",
+        "condivide specifiche — commitment reale"
+      ],
+      "archetype_confidence": 0.95,
+      "cot_reasoning": "Il TECNICO testa con tre domande precise al turn 2 — non è diffidenza, è protocollo di qualifica. Luca risponde in ordine, preciso, senza fronzoli (turn 3). Il TECNICO al turn 4 bypassa qualsiasi ulteriore negoziazione e chiede di procedere — la risposta tecnica corretta ha convertito immediatamente. Il Gutachten citato da Luca è stato il fattore decisivo.",
+      "optimal_response": "Perfetto. Mi mandi: targa o VIN, chilometraggio attuale, data immatricolazione, optional principali. Entro 48 ore ho il Gutachten da perito indipendente e le mando il report completo con valutazione DAT. Se il veicolo passa, le propongo le condizioni per procedere all'acquisto.",
+      "trap_response": "Ottimo! Sono contento che il processo la convinca! Allora facciamo così: mi chiami domani mattina e organizziamo tutto...",
+      "why_trap": "Il TECNICO ha dato un'istruzione operativa precisa. Chiedere di richiamare domani è una perdita di tempo nel suo schema mentale — vuole che le cose si muovano ora.",
+      "outcome_predicted": "CONVERTED",
+      "cultural_note": "Il TECNICO italiano non distingue tra Nord e Sud — il protocollo è il protocollo. La precisione tecnica è l'unica valuta accettata.",
+      "sequence_type": "test_to_converted"
+    },
+    {
+      "id": "MULTI-TECNICO-002",
+      "primary_archetype": "TECNICO",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-4",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Scouting veicoli premium tedeschi per dealer italiani selezionati. Ogni veicolo selezionato ha DAT Fahrzeughistorie completa e Gutachten perito indipendente. Posso mostrarle un esempio?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Che software usa per leggere il DAT? E il Gutachten è secondo normativa DEKRA o TÜV Rheinland? Ultima cosa: come gestisce l'omologazione per veicoli con optional non standard italiani?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "DAT: accesso diretto al portale DAT AG — non uso aggregatori terzi. Gutachten: preferisco TÜV Rheinland per i veicoli premium, DEKRA su richiesta specifica — le mando la procedura documentata. Omologazione optional non standard: mi appoggio a un tecnico omologatore con sede a Torino che gestisce retrofit e conformità — non è mai stata un'emissione bloccante nei 18 mesi di attività. Vuole i riferimenti del tecnico?"
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Sì, mi mandi i riferimenti dell'omologatore. E mi mostri un esempio di DAT reale — voglio vedere il formato originale, non una scheda riassuntiva."
+        }
+      ],
+      "dealer_message": "Sì, mi mandi i riferimenti dell'omologatore. E mi mostri un esempio di DAT reale — voglio vedere il formato originale, non una scheda riassuntiva.",
+      "signals": [
+        "chiede verifica diretta — non si fida dei riassunti",
+        "vuole i riferimenti del tecnico — due diligence attiva",
+        "tono professionale e non ostile — valutazione seria"
+      ],
+      "archetype_confidence": 0.92,
+      "cot_reasoning": "Il TECNICO non si ferma alle risposte — vuole la documentazione originale. Al turn 4 chiede il DAT formato originale (non riassunto) e i riferimenti dell'omologatore. Questo non è sospetto — è il suo standard di validazione. Luca ha risposto correttamente al turn 3, ora deve consegnare i materiali promessi.",
+      "optimal_response": "Le mando entro oggi: 1) Riferimenti Ing. Paolo Marchetti, omologatore Torino — numero diretto e portfolio normativo. 2) Esempio DAT Fahrzeughistorie originale su veicolo già venduto (dati anonimizzati). 3) Esempio Gutachten TÜV Rheinland formato completo. Preferisce via email o WhatsApp?",
+      "trap_response": "Certo! Le mando tutto! Abbiamo tutta la documentazione pronta, non si preoccupi per i dettagli tecnici...",
+      "why_trap": "Il TECNICO ha chiesto materiali specifici. 'Non si preoccupi per i dettagli tecnici' è un'offesa alla sua professionalità — i dettagli tecnici sono esattamente quello che conta.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il TECNICO vuole la fonte primaria, non l'interpretazione. Chi fornisce documenti originali senza resistenza guadagna credibilità immediata.",
+      "sequence_type": "test_to_converted"
+    },
+    {
+      "id": "MULTI-TECNICO-003",
+      "primary_archetype": "TECNICO",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-3",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium dal mercato tedesco con documentazione certificata. Su che tipo di stock sta lavorando adesso?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Sto cercando una Mercedes GLC 300 4MATIC 2021 con pacchetto AMG Line. Tetto apribile. Chilometraggio sotto i 40.000. Ha qualcosa?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Ho qualcosa di simile in valutazione — non le confermo specifiche prima di aver verificato il DAT completo. Le faccio sapere entro domani con dati certi. Nel frattempo: importa il colore? E ha preferenze sulla trasmissione — solo automatica o anche manuale?"
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Solo automatica, 9G-TRONIC. Colore: preferibilmente grigio polare o nero ossidiana. Niente bianco. E voglio il DAT originale prima di qualsiasi accordo — non i riassunti."
+        }
+      ],
+      "dealer_message": "Solo automatica, 9G-TRONIC. Colore: preferibilmente grigio polare o nero ossidiana. Niente bianco. E voglio il DAT originale prima di qualsiasi accordo — non i riassunti.",
+      "signals": [
+        "specifica trasmissione esatta — competenza tecnica alta",
+        "preferenze colore precise — sa cosa vende",
+        "richiede DAT originale — standard tecnico elevato"
+      ],
+      "archetype_confidence": 0.94,
+      "cot_reasoning": "Il TECNICO ha già un brief preciso al turn 2. Al turn 4 aggiunge specifiche tecniche avanzate (9G-TRONIC) e ribadisce il requisito DAT originale. Non è diffidenza verso Luca — è il suo standard operativo. Luca al turn 3 ha guadagnato credibilità non confermando prima di verificare (gesto professionale). Ora deve consegnare.",
+      "optimal_response": "9G-TRONIC, grigio polare o nero ossidiana, sotto 40.000 km, AMG Line, tetto — cerco su DAT AG direttamente. Le confermo disponibilità entro domani mattina con DAT originale allegato. Se trovo più opzioni le mando tutte — lei sceglie. Fee €1.000-1.200 a chiusura, dipende dal prezzo finale. Confermo domani.",
+      "trap_response": "Perfetto! Ho già qualcosa in mente! La GLC 300 è un'ottima scelta, molto richiesta, la trovo sicuramente!",
+      "why_trap": "Il TECNICO ha dato specifiche precise e richiesto DAT originale. Entusiasmo generico e 'la trovo sicuramente' senza dati è esattamente il comportamento da venditore che il TECNICO disprezza.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il TECNICO misura la competenza di Luca dalla precisione delle risposte. Chi chiede chiarimenti prima di confermare è percepito come affidabile.",
+      "sequence_type": "test_to_converted"
+    },
+    {
+      "id": "MULTI-PERF-001",
+      "primary_archetype": "PERFORMANTE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "generico",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Ho una BMW 530d xDrive 2021, 38.000 km, pieno optional — €28.500. Valore di mercato italiano €34.000+. Interessato?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Se non mi manda la scheda completa entro mezzogiorno non mi interessa più."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Scheda con DAT Fahrzeughistorie, optional completi e foto in arrivo entro le 11:30."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ricevuto. La 530d mi interessa. Mi mandi le specifiche tecniche complete e il prezzo finale con fee inclusa oggi — decido entro 48 ore."
+        }
+      ],
+      "dealer_message": "Ricevuto. La 530d mi interessa. Mi mandi le specifiche tecniche complete e il prezzo finale con fee inclusa oggi — decido entro 48 ore.",
+      "signals": [
+        "interesse confermato — niente più test",
+        "chiede prezzo finale tutto incluso — pronto a decidere",
+        "deadline 48 ore — PERFORMANTE nel suo ritmo"
+      ],
+      "archetype_confidence": 0.96,
+      "cot_reasoning": "Il PERFORMANTE al turn 2 ha posto un ultimatum (mezzogiorno) — non era una minaccia, è il suo modo di lavorare. Luca ha rispettato il ritmo promettendo consegna prima del limite (turn 3). Al turn 4 il dealer è in modalità operativa: vuole il prezzo finale e le specifiche, dà la sua timeline di decisione. La conversione è vicina.",
+      "optimal_response": "Specifiche complete in arrivo entro le 14:00. Prezzo finale: veicolo €28.500 + logistica €950 + fee ARGOS €1.000 = totale €30.450. Valore mercato IT stimato €34.500-36.000. Margine lordo dealer €4.000-5.500. Per la fee: pagamento a chiusura, nessun anticipo. Se le schede la convincono, mi conferma entro 48h e blocchiamo il veicolo.",
+      "trap_response": "Ottimo! Sono contento che la interessi! Le mando tutto subito! Possiamo anche vederci di persona se preferisce...",
+      "why_trap": "Il PERFORMANTE ha dato una timeline precisa (48 ore) e richiesto materiali specifici. Entusiasmo eccessivo e proposta di incontro non richiesta rompono il ritmo — il PERFORMANTE vuole efficienza, non calore umano.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il PERFORMANTE opera per deadline e numeri. Chi rispetta le sue scadenze e fornisce dati precisi guadagna rispetto — non simpatia.",
+      "sequence_type": "test_to_converted"
+    },
+    {
+      "id": "MULTI-PERF-002",
+      "primary_archetype": "PERFORMANTE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-5",
+      "regional_variant": "generico",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Luca Ferretti — ARGOS Automotive. Mercedes E220d 2020, 44.000 km, tetto panoramico, pacchetto AMG. Prezzo €23.800 + logistica. Margine stimato €4.200. Scheda disponibile subito."
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Prezzi, chilometraggi, documentazione — tutto entro oggi. Se non arriva oggi non ci sento."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Entro le 17:00: DAT Fahrzeughistorie, Gutachten TÜV, scheda tecnica completa, foto 360°, breakdown costi totali. Confermo."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ho ricevuto. La documentazione è in ordine. Mandami le specifiche complete della E220d e dimmi se hai altri modelli simili disponibili adesso."
+        }
+      ],
+      "dealer_message": "Ho ricevuto. La documentazione è in ordine. Mandami le specifiche complete della E220d e dimmi se hai altri modelli simili disponibili adesso.",
+      "signals": [
+        "valida la documentazione — processo approvato",
+        "chiede altri modelli — interesse espanso oltre il singolo veicolo",
+        "tono collaborativo — non più testante"
+      ],
+      "archetype_confidence": 0.94,
+      "cot_reasoning": "Il PERFORMANTE aveva dato un ultimatum (oggi). Luca ha consegnato nei tempi (turn 3). Al turn 4 il dealer non solo valida la documentazione ma chiede altri modelli — il comportamento di un acquirente che vuole costruire un rapporto operativo, non solo fare un singolo acquisto. La conversione è avvenuta sulla puntualità e qualità del materiale.",
+      "optimal_response": "E220d specifica completa: AMG Line, tetto panoramico, ambient light, 9G-TRONIC, grigio selenite. DAT: 1 proprietario, tagliandi ufficiali Mercedes, nessun sinistro. Costo totale con fee: €25.700. Altri modelli disponibili ora: BMW 320d 2022 36.000 km €22.400 + log, Audi A6 40 TDI 2021 41.000 km €27.800 + log. Schede in arrivo entro 30 minuti.",
+      "trap_response": "Sono contento che la documentazione sia in ordine! Certo che ho altri modelli! Ne ho tantissimi, possiamo trovare quello che vuole!",
+      "why_trap": "Il PERFORMANTE ha fatto una richiesta operativa precisa. Vaghezza ('tantissimi') e calore non richiesto disturbano il suo flusso di lavoro.",
+      "outcome_predicted": "CONVERTED",
+      "cultural_note": "Il PERFORMANTE che chiede altri modelli è già in modalità acquirente. Ogni risposta deve essere concreta e immediata — non ci sono più test.",
+      "sequence_type": "test_to_converted"
+    },
+    {
+      "id": "MULTI-PERF-003",
+      "primary_archetype": "PERFORMANTE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-2",
+      "regional_variant": "Puglia",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Luca Ferretti — ARGOS Automotive. BMW X3 xDrive20d 2021, 33.000 km, M Sport, prezzo Germania €29.500. Margine dealer stimato €5.000+. Scheda in 10 minuti se vuole."
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Queste BMW arrivano sempre con qualche problema. Mi mandi tutto e vedo."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Capisco la riserva — ci sono stati casi brutti nel mercato. Per questo ogni veicolo ARGOS ha DAT Fahrzeughistorie, Gutachten perito indipendente e garanzia costruttore UE residua verificata. Le mando scheda completa entro 15 minuti."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "L'X3 mi interessa. Quanti km esatti? E la garanzia costruttore UE fino a quando è valida? Mandami le specifiche oggi."
+        }
+      ],
+      "dealer_message": "L'X3 mi interessa. Quanti km esatti? E la garanzia costruttore UE fino a quando è valida? Mandami le specifiche oggi.",
+      "signals": [
+        "interesse esplicito — abbandona la riserva",
+        "chiede km esatti e garanzia — dettagli operativi",
+        "deadline 'oggi' — PERFORMANTE in azione"
+      ],
+      "archetype_confidence": 0.89,
+      "cot_reasoning": "Il PERFORMANTE pugliese aveva una riserva generica sulle BMW di importazione (turn 2). Luca ha risposto con la struttura di garanzia specifica — non con promesse generali. Al turn 4 il dealer abbandona la riserva e chiede dettagli operativi specifici. La menzione della garanzia costruttore UE è stata il fattore decisivo.",
+      "optimal_response": "X3 specifiche: 33.247 km esatti da DAT. Garanzia costruttore BMW UE: scade novembre 2024 — ancora 8 mesi residui trasferibili. M Sport full: cerchi 19', cockpit digitale, sedili sport. DAT: 1 proprietario, tagliandi BMW ufficiali, nessun sinistro. Le mando il DAT originale e il certificato garanzia entro l'ora.",
+      "trap_response": "Ottimo che la interessa! I km sono circa 33.000, la garanzia dovrebbe esserci ancora, le mando tutto...",
+      "why_trap": "'Circa' e 'dovrebbe' non esistono nel vocabolario del PERFORMANTE. Vuole dati precisi — km esatti, data precisa della garanzia. L'approssimazione distrugge la credibilità.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "In Puglia il PERFORMANTE combina l'efficienza operativa del profilo con una certa diffidenza verso l'importazione. La garanzia costruttore UE è la risposta alla paura — non la simpatia.",
+      "sequence_type": "test_to_converted"
+    },
+    {
+      "id": "MULTI-TECNICO-004",
+      "primary_archetype": "TECNICO",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-2",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. BMW, Mercedes, Audi tedeschi con DAT Fahrzeughistorie e Gutachten perito indipendente. Fee solo a chiusura. Posso mostrarle un esempio?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Come verifica lo stato degli iniettori su un diesel ad alto chilometraggio? E il particolato DPF — controlla anche quello?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Iniettori: il Gutachten include test di pressione su banco — se c'è usura anomala, escludo il veicolo. DPF: verifico la capacità residua tramite OBD diagnostics prima della spedizione — se è sotto l'80%, il veicolo non parte. Le mando la checklist completa dei punti di controllo."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "OBD su DPF è standard. Ma chi fa il test iniettori su banco? È in loco in Germania o spedisce il veicolo a un perito esterno?"
+        }
+      ],
+      "dealer_message": "OBD su DPF è standard. Ma chi fa il test iniettori su banco? È in loco in Germania o spedisce il veicolo a un perito esterno?",
+      "signals": [
+        "conosce la differenza tra test OBD e banco — expertise alta",
+        "chiede la catena di fornitura del servizio perito — due diligence profonda",
+        "non si è opposto — vuole capire la struttura"
+      ],
+      "archetype_confidence": 0.95,
+      "cot_reasoning": "Il TECNICO al turn 2 fa domande che un dealer comune non farebbe. Luca al turn 3 risponde correttamente ma il TECNICO al turn 4 approfondisce ulteriormente: vuole sapere se il test iniettori è fatto in loco o se c'è un passaggio aggiuntivo. Non è sfiducia — è verifica della catena di competenza.",
+      "optimal_response": "Il perito con cui lavoro è basato a Monaco — opera in loco sui veicoli prima della spedizione. Il test iniettori su banco viene fatto dal suo partner officina certificata BMW, con risultati integrati nel Gutachten. Non spedisco il veicolo a un perito esterno — il perito va dal veicolo, non viceversa. Le mando il nome del perito e il suo portfolio se vuole verificare.",
+      "trap_response": "Il processo esatto dipende dal veicolo... ci sono diversi metodi, organizziamo in base alle esigenze...",
+      "why_trap": "Il TECNICO ha fatto una domanda specifica sulla logistica del servizio. Vaghezza è una risposta che ammette incompetenza — il TECNICO non procede.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il TECNICO italiano con alta expertise testa la catena di competenza, non solo la competenza di Luca. Chi sa descrivere la struttura del proprio servizio con precisione passa il test.",
+      "sequence_type": "test_to_converted"
+    },
+    {
+      "id": "MULTI-PERF-004",
+      "primary_archetype": "PERFORMANTE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-1",
+      "regional_variant": "generico",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Luca Ferretti — ARGOS Automotive. BMW X5 xDrive40d 2021, 41.000 km, M Sport, prezzo €36.500 Germania. Margine stimato €6.000+. Interesse?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Prezzi e scheda entro stamattina. Ho un cliente che aspetta."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Scheda, DAT e foto entro le 10:30. Confermo."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ho ricevuto. Il veicolo è ok. Mandami le specifiche complete e il prezzo finale con tutta la fee inclusa oggi. Decido entro domani."
+        }
+      ],
+      "dealer_message": "Ho ricevuto. Il veicolo è ok. Mandami le specifiche complete e il prezzo finale con tutta la fee inclusa oggi. Decido entro domani.",
+      "signals": [
+        "valida la documentazione ricevuta",
+        "chiede prezzo finale all-in — pronto alla decisione",
+        "timeline 'domani' — PERFORMANTE nel suo ritmo normale"
+      ],
+      "archetype_confidence": 0.97,
+      "cot_reasoning": "Il PERFORMANTE funziona su scadenze e consegne. Al turn 2 ha fissato la deadline mattina. Luca ha consegnato (turn 3). Al turn 4 il dealer è in modalità acquisto: valida il veicolo e chiede il prezzo finale. La conversione è imminente — Luca deve solo consegnare i numeri.",
+      "optimal_response": "X5 xDrive40d specifiche complete: M Sport, cerchi 21', sedili comfort ventilati, tetto panoramico, Head-Up Display. DAT: 1 proprietario, tagliandi BMW ufficiali, zero sinistri. Prezzo all-in: €36.500 veicolo + €1.100 logistica + €1.200 fee ARGOS = €38.800 totale. Valore AutoScout24 equivalente: €45.000-47.000. Margine dealer lordo: €6.200-8.200. Confermo entro le 17:00.",
+      "trap_response": "Ottimo! Sono contento che il veicolo le piaccia! Le mando i prezzi ma mi può dire anche lei cosa pensa? Potremmo anche vederci di persona...",
+      "why_trap": "Il PERFORMANTE ha chiesto dati specifici per decidere. Fare domande e proporre incontri non richiesti rallenta il suo processo decisionale — è percepito come incompetenza.",
+      "outcome_predicted": "CONVERTED",
+      "cultural_note": "Il PERFORMANTE che dice 'decido domani' è già nella fase di commitment. Ogni secondo che Luca non consegna i dati è un rischio che il dealer si raffreddi.",
+      "sequence_type": "test_to_converted"
+    },
+    {
+      "id": "MULTI-PERF-005",
+      "primary_archetype": "PERFORMANTE",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-4",
+      "regional_variant": "generico",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Luca Ferretti — ARGOS Automotive. Audi Q5 40 TDI 2021, 37.000 km, S Line, prezzo €26.500 Germania. Margine dealer stimato €5.000. Scheda disponibile subito."
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Mandi la scheda. Se non rispondo entro un'ora non ci sono."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Scheda con DAT e foto in 10 minuti."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Visto. Q5 ok. Mandami specifiche complete e prezzo finale all-in oggi. Ti faccio sapere domani mattina."
+        }
+      ],
+      "dealer_message": "Visto. Q5 ok. Mandami specifiche complete e prezzo finale all-in oggi. Ti faccio sapere domani mattina.",
+      "signals": [
+        "valida il veicolo — interesse confermato",
+        "chiede prezzo all-in — pronto a decidere",
+        "timeline chiara: domani mattina"
+      ],
+      "archetype_confidence": 0.96,
+      "cot_reasoning": "Il PERFORMANTE usa il silenzio come filtro (turn 2 — se non rispondo entro un'ora non ci sono). Luca ha consegnato in 10 minuti. Al turn 4 il dealer è in modalità decisione: vuole il prezzo finale e dà la sua timeline. Il processo è fluito perfettamente perché Luca ha rispettato i ritmi del PERFORMANTE senza rallentare.",
+      "optimal_response": "Q5 40 TDI S Line completo: matrix LED, virtual cockpit, cerchi 20' grigio titanio, sedili sport, adattive cruise. DAT: 1 proprietario, tagliandi Audi, zero sinistri. All-in: €26.500 + €950 logistica + €1.000 fee = €28.450. AutoScout IT equivalente: €33.500-35.000. Margine lordo €5.050-6.550. Scheda tecnica completa in arrivo entro 30 min.",
+      "trap_response": "Perfetto! Sono contento che il Q5 le piaccia! Aspetto domani la sua risposta! Speriamo bene!",
+      "why_trap": "'Speriamo bene' trasmette incertezza — il PERFORMANTE ha già deciso di procedere se i numeri reggono. Incertezza da parte di Luca è un segnale negativo inutile.",
+      "outcome_predicted": "CONVERTED",
+      "cultural_note": "Con il PERFORMANTE ogni parola in eccesso è rumore. Il brevettismo comunicativo è un segnale di rispetto del suo tempo.",
+      "sequence_type": "test_to_converted"
+    },
+    {
+      "id": "MULTI-TECNICO-005",
+      "primary_archetype": "TECNICO",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-5",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono BMW, Mercedes, Audi tedeschi con documentazione certificata completa. Ha un modello specifico in mente?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Sto cercando una BMW 320i 2022, garanzia costruttore residua, maximal 25.000 km. Ha i criteri per la selezione che usa?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Criteri di selezione ARGOS: massimo 2 proprietari DAT, garanzia costruttore UE attiva verificata su portale BMW, chilometraggi coerenti con anno (25.000 su 2022 è ottimo), Gutachten TÜV senza rilievi critici, tagliandi ufficiali senza buchi. Per la 320i 2022 sono criteri raggiungibili — la cerco."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ok. La garanzia costruttore UE — si trasferisce automaticamente o serve documentazione specifica? E il portale BMW per verifica è accessibile anche a me come dealer?"
+        }
+      ],
+      "dealer_message": "La garanzia costruttore UE — si trasferisce automaticamente o serve documentazione specifica? E il portale BMW per verifica è accessibile anche a me come dealer?",
+      "signals": [
+        "chiede il meccanismo legale della garanzia — TECNICO preciso",
+        "vuole accesso autonomo alla verifica — non si fida solo di Luca",
+        "domande operative che presuppongono l'acquisto"
+      ],
+      "archetype_confidence": 0.93,
+      "cot_reasoning": "Il TECNICO al turn 2 ha già le specifiche pronte. Luca al turn 3 risponde con i criteri esatti — il TECNICO li valuta positivamente. Al turn 4 il dealer fa domande che presuppongono già l'acquisto: vuole capire il meccanismo legale della garanzia e vuole accesso diretto alla verifica. Non è sfiducia — è il suo standard di due diligence autonoma.",
+      "optimal_response": "Garanzia costruttore BMW UE: si trasferisce automaticamente con il veicolo — non serve documentazione specifica aggiuntiva oltre al libretto. Il portale BMW per dealer (BMW Partner Portal) è accessibile con le credenziali dealer BMW — se è BMW dealer ufficiale, ha già l'accesso. Se non è BMW dealer ufficiale, posso fare la verifica live durante la chiamata e registrarle lo schermo. Come preferisce?",
+      "trap_response": "La garanzia si trasferisce, non si preoccupi! Il portale BMW lo gestisco io, non serve che lei ci acceda!",
+      "why_trap": "Il TECNICO vuole capire il meccanismo e vuole accesso diretto. 'Non si preoccupi' e 'lo gestisco io' sono esattamente il tipo di risposta che fa scattare la sfiducia.",
+      "outcome_predicted": "PROCEED",
+      "cultural_note": "Il TECNICO italiano in concessionaria sa già molte cose — testa Luca per vedere se le sue risposte sono coerenti con ciò che già conosce. Chi risponde correttamente passa la qualifica.",
+      "sequence_type": "test_to_converted"
+    },
+    {
+      "id": "MULTI-NARCISO-004",
+      "primary_archetype": "NARCISO",
+      "secondary_archetype": null,
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-4",
+      "regional_variant": "generico",
+      "linguistic_register": "formale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Buongiorno, Luca Ferretti — ARGOS Automotive. Seleziono veicoli premium esclusivi per concessionari con identità forte. Ho qualcosa che potrebbe interessarle."
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Cosa ha esattamente di esclusivo?"
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "BMW M3 Competition Frozen Dark Yellow Individual, 19.000 km. Colore che non esiste nelle concessionarie italiane — ordinabile solo su Individual su specifiche del cliente. Uno. Mercedes AMG E63 S Verde Esmeralda — rarissimo, 2 proprietari, 31.000 km. Due. Le interessano?"
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Il Frozen Dark Yellow mi interessa molto. Mandami la scheda completa con tutte le foto. Quanto tempo ha il veicolo?"
+        }
+      ],
+      "dealer_message": "Il Frozen Dark Yellow mi interessa molto. Mandami la scheda completa con tutte le foto. Quanto tempo ha il veicolo?",
+      "signals": [
+        "interesse specifico sul colore Individual — leva NARCISO perfetta",
+        "chiede scheda e foto — commitment operativo",
+        "domanda sulla disponibilità temporale — valutazione seria"
+      ],
+      "archetype_confidence": 0.94,
+      "cot_reasoning": "Il NARCISO al turn 2 va diretto: 'cosa ha di esclusivo?' — non vuole il pitch, vuole la sostanza. Luca al turn 3 fornisce due esempi molto specifici con rarità documentata. Il NARCISO al turn 4 risponde al Frozen Dark Yellow — colore Individual è il massimo dell'esclusività per BMW. La domanda sulla disponibilità temporale indica che sta valutando seriamente.",
+      "optimal_response": "Frozen Dark Yellow: la M3 Competition ha 3 settimane di disponibilità stimata nel mercato tedesco — un colore così non rimane a lungo. Scheda completa in arrivo entro l'ora: specifiche tecniche, 40 foto HD con luce naturale, DAT Fahrzeughistorie originale, Gutachten TÜV. Se la scheda la convince, posso bloccare il veicolo con una comunicazione formale in 48 ore.",
+      "trap_response": "Ottimo! Il Frozen Dark Yellow è bellissimo! Ha tutto il tempo che vuole per decidere! Non c'è fretta!",
+      "why_trap": "Il NARCISO che ha mostrato interesse su un pezzo esclusivo va alimentato con la scarcità reale — 'ha tutto il tempo che vuole' nega l'esclusività. Se è facile avere, non è esclusivo.",
+      "outcome_predicted": "CONVERTED",
+      "cultural_note": "Il NARCISO italiano risponde all'esclusività visiva — i colori Individual BMW sono il codice linguistico perfetto. Chi conosce questi dettagli è un partner credibile, non un venditore generico.",
+      "sequence_type": "test_to_converted"
+    },
+    {
+      "id": "MULTI-PERF-006",
+      "primary_archetype": "PERFORMANTE",
+      "secondary_archetype": "RAGIONIERE",
+      "context": "multi_turn_sequence",
+      "obj_triggered": "OBJ-3",
+      "regional_variant": "generico",
+      "linguistic_register": "informale",
+      "turn": 4,
+      "sequence": [
+        {
+          "turn": 1,
+          "speaker": "luca",
+          "message": "Luca Ferretti — ARGOS Automotive. Mercedes C220d 2022, 28.000 km, AMG Line, prezzo €26.000. Margine dealer stimato €4.500. Scheda subito?"
+        },
+        {
+          "turn": 2,
+          "speaker": "dealer",
+          "message": "Mandami la scheda. Hai 30 minuti."
+        },
+        {
+          "turn": 3,
+          "speaker": "luca",
+          "message": "Scheda con DAT e foto entro 20 minuti. Confermo."
+        },
+        {
+          "turn": 4,
+          "speaker": "dealer",
+          "message": "Ricevuto. Veicolo ok. Dimmi il prezzo finale tutto incluso e il breakdown dei costi. Voglio capire come si compone."
+        }
+      ],
+      "dealer_message": "Ricevuto. Veicolo ok. Dimmi il prezzo finale tutto incluso e il breakdown dei costi. Voglio capire come si compone.",
+      "signals": [
+        "valida il veicolo",
+        "chiede breakdown dettagliato — RAGIONIERE secondario attivo",
+        "non solo il totale: vuole la composizione"
+      ],
+      "archetype_confidence": 0.9,
+      "cot_reasoning": "Il PERFORMANTE al turn 2 usa l'ultimatum (30 minuti). Luca consegna prima (20 minuti). Al turn 4 il PERFORMANTE-RAGIONIERE mostra il doppio profilo: vuole il prezzo finale (PERFORMANTE) MA anche il breakdown dettagliato (RAGIONIERE). Chi sa dare entrambi — velocità E trasparenza analitica — vince questo profilo ibrido.",
+      "optimal_response": "Breakdown completo C220d: veicolo acquisto Germania €26.000 / trasporto Monaco-Milano €420 / dogana e documenti €180 / omologazione €350 / fee ARGOS €900 / totale all-in €27.850. AutoScout IT equivalente: €32.000-33.500. Margine lordo dealer: €4.150-5.650. Ogni voce è documentata — le mando la ricevuta di ogni costo a chiusura.",
+      "trap_response": "Il totale è €27.850. È così composto: veicolo, logistica, fee. Sono numeri competitivi!",
+      "why_trap": "Il RAGIONIERE secondario ha chiesto il breakdown dettagliato — 'veicolo, logistica, fee' senza cifre è esattamente la vaghezza che il profilo ibrido non tollera.",
+      "outcome_predicted": "CONVERTED",
+      "cultural_note": "Il profilo PERFORMANTE-RAGIONIERE è il più difficile da soddisfare: vuole velocità E precisione analitica contemporaneamente. Chi riesce in entrambi ottiene la fiducia totale.",
+      "sequence_type": "test_to_converted"
+    }
+  ]
+}
