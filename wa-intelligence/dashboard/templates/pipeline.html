@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block page_title %}Pipeline Dealer{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h3 class="card-title" style="color: var(--argos-gold);">
+      {{ dealers|length }} Dealer in Pipeline
+    </h3>
+    <div x-data="{ filter: 'all' }">
+      <select class="form-select form-select-sm" style="width: auto; background: var(--argos-input-bg);"
+              x-model="filter"
+              @change="document.querySelectorAll('[data-archetype]').forEach(el => {
+                el.style.display = (filter === 'all' || el.dataset.archetype === filter) ? '' : 'none';
+              })">
+        <option value="all">Tutti gli archetipi</option>
+        <option value="BARONE">Barone</option>
+        <option value="NARCISO">Narciso</option>
+        <option value="PERFORMANTE">Performante</option>
+        <option value="RAGIONIERE">Ragioniere</option>
+        <option value="TECNICO">Tecnico</option>
+        <option value="RELAZIONALE">Relazionale</option>
+        <option value="DELEGATORE">Delegatore</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Dealer</th>
+          <th>Citta'</th>
+          <th>Stock</th>
+          <th>Archetipo</th>
+          <th>Score</th>
+          <th>Step</th>
+          <th>Ultimo Contatto</th>
+          <th>Messaggi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in dealers %}
+        <tr data-archetype="{{ d.persona_type or '' }}"
+            style="cursor: pointer;"
+            onclick="window.location='/conversations/{{ d.dealer_id }}'">
+          <td style="color: var(--tblr-muted);">{{ loop.index }}</td>
+          <td>
+            <span style="font-weight: 600;">{{ d.dealer_name or '—' }}</span>
+          </td>
+          <td style="color: var(--tblr-muted);">{{ d.city or '—' }}</td>
+          <td>{{ d.stock_size or '—' }}</td>
+          <td>
+            {% if d.persona_type %}
+              <span class="badge badge-archetype badge-{{ d.persona_type }}">
+                {{ d.persona_type }}
+              </span>
+            {% else %}
+              <span style="color: var(--tblr-muted);">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if d.score %}
+              <span style="color: var(--argos-gold); font-weight: 600;">{{ "%.1f"|format(d.score) }}</span>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% set step = d.current_step or 'PENDING' %}
+            {% set step_short = step.split('_')[0] if '_' in step else step %}
+            <span class="badge badge-{{ step_short }}">{{ step[:20] }}</span>
+          </td>
+          <td style="font-size: 0.8rem; color: var(--tblr-muted);">
+            {{ d.last_contact_at or '—' }}
+          </td>
+          <td style="text-align: center;">
+            {{ d.msg_count or 0 }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

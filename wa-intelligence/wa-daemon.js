@@ -2,10 +2,12 @@
  * wa-daemon.js — ARGOS™ WA Intelligence Daemon
  * CoVe 2026 | Enterprise Grade | PM2 Managed
  *
+ * S60: Migrato da DuckDB a SQLite (WAL mode, multi-processo nativo).
+ *
  * RESPONSABILITÀ:
  *   - Mantiene la sessione WhatsApp SEMPRE attiva (non si chiude mai)
  *   - Ascolta TUTTI gli eventi WA in real-time
- *   - Su ogni messaggio in arrivo: log → DuckDB → analyzer → Telegram alert
+ *   - Su ogni messaggio in arrivo: log → SQLite → analyzer → Telegram alert
  *   - Gestisce la coda di invio (anti-ban sleep obbligatorio)
  *
  * AVVIO: pm2 start wa-daemon.js --name argos-wa-daemon
@@ -25,9 +27,9 @@ const TC = require('./time-context.js');
 
 // ── Configurazione ────────────────────────────────────────────
 const CONFIG = {
-    SESSION_ID:    'argosautomotive',
+    SESSION_ID:    process.env.WA_CLIENT_ID || 'argos-business',
     DB_PATH:       process.env.DB_PATH
-                   || `${process.env.HOME}/Documents/app-antigravity-auto/dealer_network.duckdb`,
+                   || `${process.env.HOME}/Documents/app-antigravity-auto/dealer_network.sqlite`,
     TELEGRAM_SCRIPT: path.join(__dirname, 'telegram-handler.py'),
     ANALYZER_SCRIPT: path.join(__dirname, 'response-analyzer.py'),
     PYTHON_BIN:    'python3',
@@ -48,12 +50,12 @@ function log(level, ...args) {
     } catch (_) {}
 }
 
-// ── DuckDB helpers (via python3 one-liner) ─────────────────
+// ── SQLite helpers (via python3 one-liner) ───────────────────
 function dbExec(sql, params = {}) {
     const paramStr = JSON.stringify(params).replace(/"/g, '\\"');
     const script = `
-import duckdb, json, sys
-con = duckdb.connect("${CONFIG.DB_PATH}")
+import sqlite3, json, sys
+con = sqlite3.connect("${CONFIG.DB_PATH}", timeout=10)
 try:
     params = json.loads('${paramStr}') if '${paramStr}' != '{}' else {}
     con.execute("""${sql}""", list(params.values()) if params else [])
@@ -76,11 +78,12 @@ finally:
 
 function dbQuery(sql) {
     const script = `
-import duckdb, json
-con = duckdb.connect("${CONFIG.DB_PATH}")
+import sqlite3, json
+con = sqlite3.connect("${CONFIG.DB_PATH}", timeout=10)
 try:
-    rows = con.execute("""${sql}""").fetchall()
-    cols = [d[0] for d in con.description] if con.description else []
+    cur = con.execute("""${sql}""")
+    rows = cur.fetchall()
+    cols = [d[0] for d in cur.description] if cur.description else []
     result = [dict(zip(cols, row)) for row in rows]
     print(json.dumps(result, default=str))
 except Exception as e:
@@ -99,55 +102,75 @@ finally:
 
 // ── Inizializza schema DB se non esiste ──────────────────────
 function ensureSchema() {
+    // Enable WAL mode for concurrent access
+    dbExec('PRAGMA journal_mode=WAL');
+
     const ddl = `
+        CREATE TABLE IF NOT EXISTS conversations (
+            dealer_id       TEXT PRIMARY KEY,
+            dealer_name     TEXT,
+            city            TEXT,
+            phone_number    TEXT,
+            stock_size      INTEGER,
+            persona_type    TEXT,
+            score           REAL,
+            source          TEXT,
+            notes           TEXT,
+            current_step    TEXT DEFAULT 'PENDING',
+            day1_message    TEXT,
+            recommendation  TEXT DEFAULT 'PENDING',
+            created_at      TEXT DEFAULT (datetime('now')),
+            last_contact_at TEXT,
+            analyzed_at     TEXT
+        );
         CREATE TABLE IF NOT EXISTS messages (
-            id              VARCHAR PRIMARY KEY,
-            dealer_id       VARCHAR,
-            dealer_name     VARCHAR,
-            phone_number    VARCHAR,
-            direction       VARCHAR,   -- INBOUND | OUTBOUND
+            id              TEXT PRIMARY KEY,
+            dealer_id       TEXT,
+            dealer_name     TEXT,
+            phone_number    TEXT,
+            direction       TEXT,
             body            TEXT,
-            timestamp_it    TIMESTAMP,
-            timestamp_iso   VARCHAR,
-            wa_msg_id       VARCHAR,
-            processed       BOOLEAN DEFAULT FALSE,
-            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            timestamp_it    TEXT,
+            timestamp_iso   TEXT,
+            wa_msg_id       TEXT,
+            processed       INTEGER DEFAULT 0,
+            created_at      TEXT DEFAULT (datetime('now'))
         );
         CREATE TABLE IF NOT EXISTS pending_replies (
-            id              VARCHAR PRIMARY KEY,
-            dealer_id       VARCHAR,
-            dealer_name     VARCHAR,
-            inbound_msg_id  VARCHAR,
+            id              TEXT PRIMARY KEY,
+            dealer_id       TEXT,
+            dealer_name     TEXT,
+            inbound_msg_id  TEXT,
             reply_text      TEXT,
-            reply_label     VARCHAR,   -- es. POSITIVE_ACK, OBJECTION_OBJ2
-            cialdini_trigger VARCHAR,
-            approved        BOOLEAN DEFAULT NULL,   -- NULL=pendente
-            sent            BOOLEAN DEFAULT FALSE,
-            scheduled_at    TIMESTAMP,
-            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            reply_label     TEXT,
+            cialdini_trigger TEXT,
+            approved        INTEGER DEFAULT NULL,
+            sent            INTEGER DEFAULT 0,
+            scheduled_at    TEXT,
+            created_at      TEXT DEFAULT (datetime('now'))
         );
         CREATE TABLE IF NOT EXISTS scheduled_actions (
-            id              VARCHAR PRIMARY KEY,
-            dealer_id       VARCHAR,
-            dealer_name     VARCHAR,
-            action_type     VARCHAR,   -- WA_DAY7, EMAIL_DAY7, WA_DAY12 ...
-            due_at          TIMESTAMP,
-            status          VARCHAR DEFAULT 'PENDING',  -- PENDING|FIRED|CANCELLED
-            fired_at        TIMESTAMP,
-            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            id              TEXT PRIMARY KEY,
+            dealer_id       TEXT,
+            dealer_name     TEXT,
+            action_type     TEXT,
+            due_at          TEXT,
+            status          TEXT DEFAULT 'PENDING',
+            fired_at        TEXT,
+            created_at      TEXT DEFAULT (datetime('now'))
         );
         CREATE TABLE IF NOT EXISTS audit_log (
-            id              VARCHAR PRIMARY KEY,
-            event_type      VARCHAR,
-            dealer_id       VARCHAR,
-            payload         JSON,
-            timestamp_it    TIMESTAMP,
-            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            id              TEXT PRIMARY KEY,
+            event_type      TEXT,
+            dealer_id       TEXT,
+            payload         TEXT,
+            timestamp_it    TEXT,
+            created_at      TEXT DEFAULT (datetime('now'))
         );
     `;
     // Esegui statement per statement
     ddl.split(';').map(s => s.trim()).filter(Boolean).forEach(stmt => dbExec(stmt));
-    log('INFO', 'Schema DB verificato.');
+    log('INFO', 'Schema DB verificato (SQLite WAL mode).');
 }
 
 // ── Reset contatore giornaliero se è un nuovo giorno ────────
@@ -189,10 +212,10 @@ function persistInboundMessage(msg, dealer) {
              '${msg.from}',
              'INBOUND',
              '${msg.body.replace(/'/g, "''")}',
-             CURRENT_TIMESTAMP,
+             datetime('now'),
              '${now.toISOString()}',
              '${msg.id?.id || id}',
-             FALSE)
+             0)
     `);
     return id;
 }
@@ -202,8 +225,8 @@ function updateConversationState(dealerId, newStep) {
     dbExec(`
         UPDATE conversations
         SET current_step     = '${newStep}',
-            last_contact_at  = CURRENT_TIMESTAMP,
-            analyzed_at      = CURRENT_TIMESTAMP
+            last_contact_at  = datetime('now'),
+            analyzed_at      = datetime('now')
         WHERE dealer_id = '${dealerId}'
     `);
 }
@@ -270,7 +293,7 @@ async function handleInboundMessage(msg) {
             'INBOUND_MESSAGE',
             '${dealer?.dealer_id || 'UNKNOWN'}',
             '${JSON.stringify({from: msg.from, body: msg.body.slice(0,200), msgId}).replace(/'/g,"''")}',
-            CURRENT_TIMESTAMP
+            datetime('now')
         )
     `);
 
@@ -308,7 +331,7 @@ async function handleInboundMessage(msg) {
 // ── Inizializza client WA ────────────────────────────────────
 function initClient() {
     log('INFO', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    log('INFO', 'ARGOS™ WA Intelligence Daemon v2.0');
+    log('INFO', 'ARGOS™ WA Intelligence Daemon v2.1 (SQLite)');
     log('INFO', `Avvio: ${TC.formatIT(TC.nowIT())}`);
     log('INFO', `DB: ${CONFIG.DB_PATH}`);
     log('INFO', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -365,8 +388,6 @@ function initClient() {
     client.on('disconnected', (reason) => {
         log('ERROR', 'Disconnesso:', reason);
         sendTelegramAlert(`🔴 *WA Daemon disconnesso*: ${reason}\nPM2 riavvierà automaticamente.`);
-        // PM2 gestisce il restart — non chiamiamo process.exit() qui
-        // per permettere il cleanup. PM2 vede il crash e restarta.
         setTimeout(() => process.exit(1), 3000);
     });
 
@@ -389,7 +410,7 @@ function initClient() {
             log('INFO', `✓✓ LETTO: ${msg.to} — ${now}`);
             dbExec(`
                 UPDATE messages
-                SET processed = TRUE
+                SET processed = 1
                 WHERE wa_msg_id = '${msg.id?.id || ''}'
             `);
             dbExec(`
@@ -399,21 +420,80 @@ function initClient() {
                     'MSG_READ_ACK',
                     'UNKNOWN',
                     '{"to":"${msg.to}","ack":3}',
-                    CURRENT_TIMESTAMP
+                    datetime('now')
                 )
             `);
         }
     });
 
-    // ── Health check HTTP (porta 9191) ───────────────────────
-    http.createServer((req, res) => {
-        const ctx = TC.buildAgentTimeContext();
+    // ── HTTP Server (porta 9191): health + send ─────────────
+    http.createServer(async (req, res) => {
         checkDailyReset();
+
+        // POST /send — invia messaggio WA via daemon
+        if (req.method === 'POST' && req.url === '/send') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const { phone, message, dealer_id } = JSON.parse(body);
+                    if (!phone || !message) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'phone and message required' }));
+                        return;
+                    }
+                    if (CONFIG.DAILY_SENT >= CONFIG.DAILY_LIMIT) {
+                        res.writeHead(429, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'daily limit reached', daily_sent: CONFIG.DAILY_SENT }));
+                        return;
+                    }
+
+                    const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
+                    await client.sendMessage(chatId, message);
+                    CONFIG.DAILY_SENT++;
+
+                    const msgId = `out_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                    const now = TC.nowIT();
+
+                    // Logga su DB
+                    dbExec(`INSERT OR IGNORE INTO messages
+                        (id, dealer_id, dealer_name, phone_number, direction, body,
+                         timestamp_it, timestamp_iso, wa_msg_id, processed)
+                        VALUES ('${msgId}', '${dealer_id || 'MANUAL'}', '',
+                                '${chatId}', 'OUTBOUND',
+                                '${message.replace(/'/g, "''")}',
+                                datetime('now'), '${now.toISOString()}', '${msgId}', 1)`);
+
+                    // Aggiorna step se dealer_id fornito
+                    if (dealer_id) {
+                        dbExec(`UPDATE conversations
+                                SET current_step = 'DAY1_SENT',
+                                    last_contact_at = datetime('now'),
+                                    analyzed_at = datetime('now')
+                                WHERE dealer_id = '${dealer_id}'`);
+                    }
+
+                    log('INFO', `✅ INVIATO via HTTP: ${chatId} (${dealer_id || 'manual'})`);
+                    sendTelegramAlert(`📤 *Day 1 INVIATO*\n👤 ${dealer_id || chatId}\n📱 ${chatId}\n📊 ${CONFIG.DAILY_SENT}/${CONFIG.DAILY_LIMIT}`);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ status: 'sent', msg_id: msgId, daily_sent: CONFIG.DAILY_SENT }));
+                } catch (err) {
+                    log('ERROR', 'Send failed:', err.message);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
+            });
+            return;
+        }
+
+        // GET / — health check
+        const ctx = TC.buildAgentTimeContext();
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
             status:           'OK',
             daemon:           'argos-wa-daemon',
-            version:          '2.0',
+            version:          '2.2-sqlite',
             now_it:           ctx.now_it,
             is_business_hours: ctx.is_business_hours,
             daily_sent:       CONFIG.DAILY_SENT,
@@ -422,7 +502,7 @@ function initClient() {
             uptime_sec:       Math.round(process.uptime()),
         }, null, 2));
     }).listen(9191, '127.0.0.1', () => {
-        log('INFO', 'Health check HTTP su http://127.0.0.1:9191');
+        log('INFO', 'HTTP server su http://127.0.0.1:9191 (health + /send)');
     });
 
     client.initialize();

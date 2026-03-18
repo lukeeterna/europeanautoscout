@@ -1,0 +1,42 @@
+<!-- Dealer table partial — HTMX refresh -->
+<div class="table-responsive">
+  <table class="table table-vcenter card-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Dealer</th>
+        <th>Citta'</th>
+        <th>Stock</th>
+        <th>Archetipo</th>
+        <th>Score</th>
+        <th>Step</th>
+        <th>Messaggi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in dealers %}
+      <tr style="cursor: pointer;"
+          onclick="window.location='/conversations/{{ d.dealer_id }}'">
+        <td style="color: var(--tblr-muted);">{{ loop.index }}</td>
+        <td style="font-weight: 600;">{{ d.dealer_name or '—' }}</td>
+        <td style="color: var(--tblr-muted);">{{ d.city or '—' }}</td>
+        <td>{{ d.stock_size or '—' }}</td>
+        <td>
+          {% if d.persona_type %}
+            <span class="badge badge-archetype badge-{{ d.persona_type }}">{{ d.persona_type }}</span>
+          {% endif %}
+        </td>
+        <td style="color: var(--argos-gold); font-weight: 600;">
+          {{ "%.1f"|format(d.score) if d.score else '—' }}
+        </td>
+        <td>
+          <span class="badge badge-{{ (d.current_step or 'PENDING').split('_')[0] }}">
+            {{ (d.current_step or 'PENDING')[:20] }}
+          </span>
+        </td>
+        <td style="text-align: center;">{{ d.msg_count or 0 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

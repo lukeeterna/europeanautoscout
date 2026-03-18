@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block page_title %}Conversazioni WA{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Dealer list (sidebar) -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title" style="color: var(--argos-gold);">Dealer</h3>
+      </div>
+      <div class="list-group list-group-flush" style="max-height: 70vh; overflow-y: auto;">
+        {% for d in dealers %}
+        <a href="/conversations/{{ d.dealer_id }}"
+           class="list-group-item list-group-item-action"
+           style="background: var(--argos-card-bg); border-color: var(--tblr-border-color); color: var(--tblr-body-color);">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div style="font-weight: 600;">{{ d.dealer_name or d.dealer_id }}</div>
+              <div style="font-size: 0.75rem; color: var(--tblr-muted);">
+                {{ d.city or '' }}
+                {% if d.persona_type %}
+                  — <span class="badge badge-archetype badge-{{ d.persona_type }}" style="font-size: 0.6rem;">{{ d.persona_type }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 0.75rem; color: var(--tblr-muted);">{{ d.msg_count or 0 }} msg</div>
+              <span class="badge badge-{{ (d.current_step or 'PENDING').split('_')[0] }}" style="font-size: 0.6rem;">
+                {{ (d.current_step or 'PENDING')[:12] }}
+              </span>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Pending Replies -->
+    {% if pending %}
+    <div class="card mt-3">
+      <div class="card-header">
+        <h3 class="card-title" style="color: var(--argos-warning);">
+          Risposte in Attesa ({{ pending|length }})
+        </h3>
+      </div>
+      <div class="card-body p-0">
+        {% for p in pending %}
+        <div style="padding: 0.75rem; border-bottom: 1px solid var(--tblr-border-color);"
+             x-data="{ actioned: false }" x-show="!actioned">
+          <div style="font-weight: 600; font-size: 0.85rem;">
+            <a href="/conversations/{{ p.dealer_id }}" style="color: var(--argos-gold); text-decoration: none;">
+              {{ p.dealer_name or p.dealer_id }}
+            </a>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--tblr-body-color); margin: 0.25rem 0;">
+            "{{ p.reply_text[:100] }}{% if p.reply_text|length > 100 %}...{% endif %}"
+          </div>
+          <div style="font-size: 0.7rem; color: var(--tblr-muted); margin-bottom: 0.5rem;">
+            {{ p.reply_label or '' }} {% if p.cialdini_trigger %}| {{ p.cialdini_trigger }}{% endif %}
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm" style="background: var(--argos-success); color: #000; font-weight: 600; font-size: 0.75rem;"
+                    @click="fetch('/api/actions/approve-reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reply_id:{{ p.id }}})}).then(r=>r.json()).then(d=>{if(d.ok)actioned=true;})">
+              Approva
+            </button>
+            <button class="btn btn-sm" style="background: var(--tblr-border-color); color: var(--tblr-muted); font-size: 0.75rem;"
+                    @click="fetch('/api/actions/skip-reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reply_id:{{ p.id }}})}).then(r=>r.json()).then(d=>{if(d.ok)actioned=true;})">
+              Skip
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Chat area (placeholder) -->
+  <div class="col-lg-8">
+    <div class="card" style="min-height: 60vh;">
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <div class="text-center text-muted">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="color: var(--argos-gold-dim);">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <p class="mt-3">Seleziona un dealer per visualizzare la conversazione</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

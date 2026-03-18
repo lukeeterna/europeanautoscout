@@ -3,6 +3,8 @@
 telegram-handler.py — ARGOS™ Human-in-Loop Telegram Bot
 CoVe 2026 | Enterprise Grade | PM2 Managed
 
+S60: Migrato da DuckDB a SQLite (WAL mode, multi-processo nativo).
+
 RESPONSABILITÀ:
   - Riceve comandi da Luke via Telegram
   - /approva <reply_id>       → schedula invio WA (anti-ban sleep)
@@ -21,7 +23,7 @@ RESPONSABILITÀ:
 AVVIO daemon: pm2 start telegram-handler.py --name argos-tg-bot --interpreter python3
 """
 
-import duckdb
+import sqlite3
 import json
 import os
 import random
@@ -37,7 +39,7 @@ TIMEZONE         = zoneinfo.ZoneInfo('Europe/Rome')
 TELEGRAM_TOKEN   = os.environ.get('ARGOS_TELEGRAM_TOKEN', '')
 TELEGRAM_CHAT_ID = os.environ.get('ARGOS_TELEGRAM_CHAT_ID', '931063621')
 DB_PATH          = os.environ.get('ARGOS_DB_PATH',
-    os.path.expanduser('~/Documents/app-antigravity-auto/dealer_network.duckdb'))
+    os.path.expanduser('~/Documents/app-antigravity-auto/dealer_network.sqlite'))
 WA_SENDER        = os.path.expanduser(
     '~/Documents/app-antigravity-auto/wa-sender/send_message.js')
 WA_CLIENT_ID     = os.environ.get('WA_CLIENT_ID', 'argos-business')
@@ -71,7 +73,7 @@ def tg_post(method: str, payload: dict) -> dict:
     url  = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/{method}'
     try:
         req  = urllib.request.Request(url, data=data, method='POST')
-        resp = urllib.request.urlopen(req, timeout=10)
+        resp = urllib.request.urlopen(req, timeout=40)
         return json.loads(resp.read())
     except Exception as e:
         log(f'TG error [{method}]: {e}')
@@ -88,9 +90,10 @@ def send(text: str, chat_id: str = TELEGRAM_CHAT_ID):
 
 def db_query(sql: str, params: list = None) -> list:
     try:
-        con  = duckdb.connect(DB_PATH)
-        rows = con.execute(sql, params or []).fetchall()
-        cols = [d[0] for d in con.description] if con.description else []
+        con = sqlite3.connect(DB_PATH)
+        cur = con.execute(sql, params or [])
+        rows = cur.fetchall()
+        cols = [d[0] for d in cur.description] if cur.description else []
         con.close()
         return [dict(zip(cols, r)) for r in rows]
     except Exception as e:
@@ -99,15 +102,17 @@ def db_query(sql: str, params: list = None) -> list:
 
 
 def db_exec(sql: str, params: list = None):
-    try:
-        con = duckdb.connect(DB_PATH)
-        con.execute(sql, params or [])
-        con.commit()
-        con.close()
-        return True
-    except Exception as e:
-        log(f'db_exec error: {e}')
-        return False
+    for attempt in range(3):
+        try:
+            con = sqlite3.connect(DB_PATH, timeout=10)
+            con.execute(sql, params or [])
+            con.commit()
+            con.close()
+            return True
+        except Exception as e:
+            log(f'db_exec error (attempt {attempt+1}): {e}')
+            time.sleep(1)
+    return False
 
 
 # ── Comandi ──────────────────────────────────────────────────
@@ -117,9 +122,9 @@ def cmd_approva(reply_id: str) -> str:
         return f'❌ Reply ID non trovato: `{reply_id}`'
 
     r = rows[0]
-    if r.get('approved') is True:
+    if r.get('approved') == 1:
         return f'⚠️ Reply `{reply_id}` già approvata.'
-    if r.get('sent') is True:
+    if r.get('sent') == 1:
         return f'⚠️ Reply `{reply_id}` già inviata.'
 
     # Carica numero telefono dal dealer
@@ -138,7 +143,7 @@ def cmd_approva(reply_id: str) -> str:
     log(f'Approvata reply {reply_id} — sleep {sleep_s}s prima dell\'invio')
 
     db_exec(
-        'UPDATE pending_replies SET approved = TRUE WHERE id = ?',
+        'UPDATE pending_replies SET approved = 1 WHERE id = ?',
         [reply_id]
     )
 
@@ -148,9 +153,9 @@ def cmd_approva(reply_id: str) -> str:
     subprocess.Popen(
         ['bash', '-c',
          f'sleep {sleep_s} && node {WA_SENDER} "{wa_id}" "{r["reply_text"].replace(chr(34), chr(39))}" '
-         f'&& python3 -c "import duckdb; con=duckdb.connect(\'{DB_PATH}\'); '
-         f'con.execute(\'UPDATE pending_replies SET sent=TRUE WHERE id=\\\'\\\'\\\'%s\\\'\\\'\\\'\'); '
-         f'con.commit()"' % reply_id],
+         f'&& python3 -c "import sqlite3; c=sqlite3.connect(\'{DB_PATH}\'); '
+         f'c.execute(\'UPDATE pending_replies SET sent=1 WHERE id=\\\'{reply_id}\\\'\'); '
+         f'c.commit(); c.close()"'],
         env=env, close_fds=True
     )
 
@@ -166,19 +171,45 @@ def cmd_modifica(reply_id: str, new_text: str) -> str:
     if not rows:
         return f'❌ Reply ID non trovato: `{reply_id}`'
 
+    r = rows[0]
+    original_text = r.get('reply_text', '')
+
+    # Salva coppia originale→corretto per training dataset
+    db_exec("""
+        CREATE TABLE IF NOT EXISTS training_corrections (
+            id TEXT PRIMARY KEY,
+            reply_id TEXT,
+            dealer_id TEXT,
+            original_label TEXT,
+            original_text TEXT,
+            corrected_text TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    import uuid
+    db_exec("""
+        INSERT INTO training_corrections (id, reply_id, dealer_id, original_label, original_text, corrected_text)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, [
+        f'tc_{uuid.uuid4().hex[:8]}', reply_id,
+        r.get('dealer_id', ''), r.get('reply_label', ''),
+        original_text, new_text
+    ])
+
     db_exec(
         'UPDATE pending_replies SET reply_text = ?, reply_label = ? WHERE id = ?',
         [new_text, 'MANUAL_EDIT', reply_id]
     )
     return (
         f'✏️ *Testo aggiornato* per reply `{reply_id}`\n'
+        f'📊 _Correzione salvata per training_\n'
         f'Ora usa `/approva {reply_id}` per inviare.'
     )
 
 
 def cmd_rifiuta(reply_id: str) -> str:
     db_exec(
-        'UPDATE pending_replies SET approved = FALSE WHERE id = ?',
+        'UPDATE pending_replies SET approved = 0 WHERE id = ?',
         [reply_id]
     )
     return f'🚫 Reply `{reply_id}` rifiutata. Nessun messaggio inviato.'
@@ -195,7 +226,7 @@ def cmd_status() -> str:
 
     pending = db_query("""
         SELECT COUNT(*) as cnt FROM pending_replies
-        WHERE approved IS NULL AND sent = FALSE
+        WHERE approved IS NULL AND sent = 0
     """)
     p_count = pending[0]['cnt'] if pending else 0
 
@@ -249,9 +280,9 @@ def cmd_delay(dealer_id: str, days: str) -> str:
 
     db_exec("""
         UPDATE conversations
-        SET last_contact_at = TIMESTAMPADD('day', ?, last_contact_at)
+        SET last_contact_at = datetime(last_contact_at, '+' || ? || ' days')
         WHERE dealer_id = ?
-    """, [days_int, dealer_id])
+    """, [str(days_int), dealer_id])
 
     return f'⏰ Scadenza *posticipata di {days_int} giorno/i* per dealer `{dealer_id}`'
 
@@ -260,7 +291,7 @@ def cmd_close(dealer_id: str) -> str:
     db_exec("""
         UPDATE conversations
         SET current_step = 'CLOSED_NO',
-            analyzed_at  = CURRENT_TIMESTAMP
+            analyzed_at  = datetime('now')
         WHERE dealer_id = ?
     """, [dealer_id])
     return f'🔒 Dealer `{dealer_id}` chiuso con stato `CLOSED_NO`.'
@@ -270,7 +301,7 @@ def cmd_human(dealer_id: str) -> str:
     db_exec("""
         UPDATE conversations
         SET current_step = 'HUMAN_NEEDED',
-            analyzed_at  = CURRENT_TIMESTAMP
+            analyzed_at  = datetime('now')
         WHERE dealer_id = ?
     """, [dealer_id])
     return (
@@ -326,7 +357,7 @@ def cmd_outreach(dealer_id: str = '') -> str:
     # Aggiorna stato
     db_exec("""
         UPDATE conversations
-        SET current_step = 'DAY1_SENT', last_contact_at = CURRENT_TIMESTAMP
+        SET current_step = 'DAY1_SENT', last_contact_at = datetime('now')
         WHERE dealer_id = ?
     """, [dealer_id])
 
@@ -354,7 +385,7 @@ def cmd_pending() -> str:
     rows = db_query("""
         SELECT id, dealer_name, reply_label, reply_text, created_at
         FROM pending_replies
-        WHERE approved IS NULL AND sent = FALSE
+        WHERE approved IS NULL AND sent = 0
         ORDER BY created_at ASC
         LIMIT 10
     """)
@@ -367,6 +398,54 @@ def cmd_pending() -> str:
             f'  _{r["reply_text"][:120]}..._\n'
             f'  `/approva {r["id"]}` | `/rifiuta {r["id"]}`'
         )
+    return '\n'.join(lines)
+
+
+def cmd_costi() -> str:
+    """Report costi LLM OpenRouter."""
+    rows = db_query("""
+        SELECT
+            COUNT(*) as calls,
+            COALESCE(SUM(input_tokens), 0) as tot_in,
+            COALESCE(SUM(output_tokens), 0) as tot_out,
+            COALESCE(SUM(cost_usd), 0) as tot_usd
+        FROM llm_costs
+    """)
+    if not rows or rows[0]['calls'] == 0:
+        return '💰 *Nessuna chiamata LLM registrata.*'
+
+    r = rows[0]
+    cost_eur = r['tot_usd'] * 0.92  # approx USD→EUR
+
+    # Ultimi 5 costi
+    recent = db_query("""
+        SELECT dealer_id, model, input_tokens, output_tokens, cost_usd, created_at
+        FROM llm_costs ORDER BY created_at DESC LIMIT 5
+    """)
+
+    today = db_query("""
+        SELECT COALESCE(SUM(cost_usd), 0) as today_usd, COUNT(*) as today_calls
+        FROM llm_costs WHERE date(created_at) = date('now')
+    """)
+    t = today[0] if today else {'today_usd': 0, 'today_calls': 0}
+
+    lines = [
+        f'💰 *ARGOS™ LLM Cost Tracker*',
+        f'',
+        f'📊 *Totale*: ${r["tot_usd"]:.4f} (~€{cost_eur:.4f})',
+        f'🔢 Chiamate: {r["calls"]}',
+        f'📥 Token in: {r["tot_in"]:,} | 📤 Token out: {r["tot_out"]:,}',
+        f'',
+        f'📅 *Oggi*: ${t["today_usd"]:.4f} | {t["today_calls"]} chiamate',
+        f'',
+        f'*Ultime 5 chiamate:*',
+    ]
+    for c in recent:
+        lines.append(
+            f'• `{c["dealer_id"]}` {c["input_tokens"]}+{c["output_tokens"]}tok '
+            f'${c["cost_usd"]:.4f} _{str(c["created_at"])[:16]}_'
+        )
+
     return '\n'.join(lines)
 
 
@@ -389,6 +468,9 @@ HELP_TEXT = """*ARGOS™ Bot — Comandi disponibili*
 `/delay <dealer_id> <gg>` — posticipa scadenza
 `/close <dealer_id>` — chiudi dealer
 `/human <dealer_id>` — flag intervento umano
+
+💰 *Costi*
+`/costi` — report costi LLM OpenRouter
 
 ℹ️ *Info*
 `/help` — questo messaggio
@@ -423,6 +505,8 @@ def dispatch(text: str, chat_id: str):
         reply = cmd_outreach(args[0] if args else '')
     elif cmd == '/pending':
         reply = cmd_pending()
+    elif cmd == '/costi':
+        reply = cmd_costi()
     elif cmd in ('/help', '/start'):
         reply = HELP_TEXT
     else:
