@@ -278,6 +278,36 @@ Scripts:      tools/scripts/                    ← Operational automation scrip
 8. Commit atomici: `git add -A && git commit -m "tipo(scope): msg"`
 9. **FINE TASK/SESSIONE → PROTOCOLLO OBBLIGATORIO** (vedi sotto)
 
+### REGOLE IMMUTABILI DI SVILUPPO (S65+)
+
+```
+REGOLA 1 — CODE REVIEW OBBLIGATORIO:
+  Dopo OGNI blocco di codice creato/modificato → /simplify (code reviewer)
+  MAI committare senza review. MAI skippare.
+
+REGOLA 2 — AGENT/SUBAGENT PER OGNI TASK:
+  Ogni task complesso → delegare a agent specializzato
+  Ogni ricerca → agent-research
+  Ogni build → agent con isolation worktree se multi-file
+  MAI fare lavoro manuale nella conversazione principale se un agent può farlo
+
+REGOLA 3 — SKILL-FIRST APPROACH:
+  Per OGNI task: cerca skill esistente → se non esiste → CREALA
+  Skill = riutilizzabile, testata, enterprise grade
+  MAI procedere con implementazione ad-hoc se il pattern si ripeterà
+
+REGOLA 4 — DATI REALI O NIENTE:
+  MAI placeholder, MAI dati finti, MAI "da implementare"
+  Se un tool non funziona con dati reali → non è finito
+  Test sempre su dati live prima di considerare completato
+
+REGOLA 5 — TUTTI I MERCATI, SENZA PAURA:
+  Scraper su TUTTI i portali EU: AutoScout24 (DE/NL/BE/AT/FR/SE),
+  Mobile.de, willhaben.at, leboncoin.fr, OEM (bmw.de, audi.de),
+  aste B2B (BCA, AutoProff), privati e dealer
+  Nessun mercato escluso. Nessun portale troppo difficile.
+```
+
 ---
 
 ## PROTOCOLLO FINE TASK/SESSIONE — DEFAULT, SENZA CHIEDERE

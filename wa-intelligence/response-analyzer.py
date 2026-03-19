@@ -486,15 +486,15 @@ def validate_response(text: str) -> dict:
 
 # ── Auto-approvazione + invio schedulato ─────────────────────
 def auto_approve_and_send(db_path, reply_id, dealer, reply_text):
-    """Auto-approva e schedula invio con anti-ban sleep."""
+    """Auto-approva e schedula invio via daemon /send endpoint (anti-ban sleep)."""
     import random, subprocess
 
-    phone = (dealer.get('phone_number', '') or '').replace('+', '').replace(' ', '')
+    phone = (dealer.get('phone_number', '') or '').replace('+', '').replace(' ', '').replace('-', '')
     if not phone:
         print(f'[WARN] No phone for auto-send {reply_id}')
         return False
 
-    wa_id = f'{phone}@c.us'
+    dealer_id = dealer.get('dealer_id', 'UNKNOWN')
     sleep_s = random.randint(90, 720)
 
     # Approva nel DB
@@ -503,25 +503,31 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text):
     con.commit()
     con.close()
 
-    # Schedula invio in background
-    wa_sender = os.path.expanduser(
-        '~/Documents/app-antigravity-auto/wa-sender/send_message.js')
-    client_id = os.environ.get('WA_CLIENT_ID', 'argos-business')
+    # Costruisci payload JSON per il daemon /send
+    payload = json.dumps({
+        'phone': phone,
+        'message': reply_text,
+        'dealer_id': dealer_id,
+    })
+    # Escape per bash single quotes
+    safe_payload = payload.replace("'", "'\\''")
 
-    env = os.environ.copy()
-    env['CLIENT_ID'] = client_id
-
-    safe_text = reply_text.replace('"', "'")
-    subprocess.Popen(
-        ['bash', '-c',
-         f'sleep {sleep_s} && node {wa_sender} "{wa_id}" "{safe_text}" '
-         f'&& python3 -c "import sqlite3; c=sqlite3.connect(\'{db_path}\'); '
-         f'c.execute(\'UPDATE pending_replies SET sent=1 WHERE id=\\\'{reply_id}\\\'\'); '
-         f'c.commit(); c.close()"'],
-        env=env, close_fds=True
+    # Schedula invio via daemon HTTP /send (usa la sessione WA attiva del daemon)
+    # Dopo invio OK, aggiorna pending_replies.sent = 1
+    cmd = (
+        f'sleep {sleep_s} && '
+        f"curl -s -X POST http://127.0.0.1:9191/send "
+        f"-H 'Content-Type: application/json' "
+        f"-d '{safe_payload}' "
+        f"&& python3 -c \""
+        f"import sqlite3; c=sqlite3.connect('{db_path}'); "
+        f"c.execute('UPDATE pending_replies SET sent=1 WHERE id=?', ['{reply_id}']); "
+        f"c.commit(); c.close()\""
     )
 
-    print(f'[AUTO] Approvata + schedulata reply {reply_id} — invio tra {sleep_s}s')
+    subprocess.Popen(['bash', '-c', cmd], close_fds=True)
+
+    print(f'[AUTO] Approvata + schedulata reply {reply_id} — invio tra {sleep_s}s via daemon /send')
     return True
 
 

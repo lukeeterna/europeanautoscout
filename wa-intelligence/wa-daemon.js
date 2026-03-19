@@ -3,12 +3,15 @@
  * CoVe 2026 | Enterprise Grade | PM2 Managed
  *
  * S60: Migrato da DuckDB a SQLite (WAL mode, multi-processo nativo).
+ * S64: Migrato dbExec/dbQuery da python3 shell a better-sqlite3 nativo.
+ *      Aggiunto scheduler multi-step (Day 3 + Day 7 voice).
  *
  * RESPONSABILITÀ:
  *   - Mantiene la sessione WhatsApp SEMPRE attiva (non si chiude mai)
  *   - Ascolta TUTTI gli eventi WA in real-time
  *   - Su ogni messaggio in arrivo: log → SQLite → analyzer → Telegram alert
  *   - Gestisce la coda di invio (anti-ban sleep obbligatorio)
+ *   - Scheduler automatico: Day 3 follow-up + Day 7 voice note
  *
  * AVVIO: pm2 start wa-daemon.js --name argos-wa-daemon
  * STOP:  pm2 stop argos-wa-daemon
@@ -22,6 +25,7 @@ const { execSync, spawn }       = require('child_process');
 const http                      = require('http');
 const fs                        = require('fs');
 const path                      = require('path');
+const Database                  = require('better-sqlite3');
 
 const TC = require('./time-context.js');
 
@@ -38,6 +42,7 @@ const CONFIG = {
     DAILY_LIMIT:   30,
     DAILY_RESET:   null,        // data ultimo reset
     LOG_FILE:      '/tmp/argos-wa-daemon.log',
+    SCHEDULER_INTERVAL: 30 * 60 * 1000,  // 30 minuti
 };
 
 // ── Utility log con timestamp IT ────────────────────────────
@@ -50,62 +55,51 @@ function log(level, ...args) {
     } catch (_) {}
 }
 
-// ── SQLite helpers (via python3 one-liner) ───────────────────
-function dbExec(sql, params = {}) {
-    const paramStr = JSON.stringify(params).replace(/"/g, '\\"');
-    const script = `
-import sqlite3, json, sys
-con = sqlite3.connect("${CONFIG.DB_PATH}", timeout=10)
-try:
-    params = json.loads('${paramStr}') if '${paramStr}' != '{}' else {}
-    con.execute("""${sql}""", list(params.values()) if params else [])
-    con.commit()
-    print("OK")
-except Exception as e:
-    print("ERR:" + str(e), file=sys.stderr)
-    sys.exit(1)
-finally:
-    con.close()
-`;
+// ── SQLite helpers (better-sqlite3 — zero shell, in-process) ─
+let _db = null;
+
+function getDb() {
+    if (!_db) {
+        _db = new Database(CONFIG.DB_PATH, { timeout: 10000 });
+        _db.pragma('journal_mode = WAL');
+        _db.pragma('busy_timeout = 10000');
+    }
+    return _db;
+}
+
+function dbExec(sql, params = []) {
     try {
-        return execSync(`${CONFIG.PYTHON_BIN} -c "${script.replace(/\n/g, '; ')}"`,
-                        { encoding: 'utf8', timeout: 10000 }).trim();
+        const db = getDb();
+        if (params.length > 0) {
+            db.prepare(sql).run(...params);
+        } else {
+            db.exec(sql);
+        }
+        return 'OK';
     } catch (e) {
         log('ERROR', 'dbExec failed:', e.message);
         return null;
     }
 }
 
-function dbQuery(sql) {
-    const script = `
-import sqlite3, json
-con = sqlite3.connect("${CONFIG.DB_PATH}", timeout=10)
-try:
-    cur = con.execute("""${sql}""")
-    rows = cur.fetchall()
-    cols = [d[0] for d in cur.description] if cur.description else []
-    result = [dict(zip(cols, row)) for row in rows]
-    print(json.dumps(result, default=str))
-except Exception as e:
-    print("[]")
-finally:
-    con.close()
-`;
+function dbQuery(sql, params = []) {
     try {
-        const raw = execSync(`${CONFIG.PYTHON_BIN} -c "${script.replace(/\n/g, '; ')}"`,
-                             { encoding: 'utf8', timeout: 10000 }).trim();
-        return JSON.parse(raw);
-    } catch {
+        const db = getDb();
+        if (params.length > 0) {
+            return db.prepare(sql).all(...params);
+        }
+        return db.prepare(sql).all();
+    } catch (e) {
+        log('ERROR', 'dbQuery failed:', e.message);
         return [];
     }
 }
 
 // ── Inizializza schema DB se non esiste ──────────────────────
 function ensureSchema() {
-    // Enable WAL mode for concurrent access
-    dbExec('PRAGMA journal_mode=WAL');
+    const db = getDb();
 
-    const ddl = `
+    db.exec(`
         CREATE TABLE IF NOT EXISTS conversations (
             dealer_id       TEXT PRIMARY KEY,
             dealer_name     TEXT,
@@ -167,10 +161,8 @@ function ensureSchema() {
             timestamp_it    TEXT,
             created_at      TEXT DEFAULT (datetime('now'))
         );
-    `;
-    // Esegui statement per statement
-    ddl.split(';').map(s => s.trim()).filter(Boolean).forEach(stmt => dbExec(stmt));
-    log('INFO', 'Schema DB verificato (SQLite WAL mode).');
+    `);
+    log('INFO', 'Schema DB verificato (better-sqlite3 WAL mode).');
 }
 
 // ── Reset contatore giornaliero se è un nuovo giorno ────────
@@ -187,13 +179,14 @@ function checkDailyReset() {
 function lookupDealer(phone) {
     // Normalizza: rimuovi @c.us e prefisso internazionale
     const normalized = phone.replace('@c.us', '').replace(/^\+/, '');
+    const suffix = normalized.slice(-9);
     const rows = dbQuery(`
         SELECT *
         FROM conversations
-        WHERE REPLACE(REPLACE(phone_number, '+', ''), ' ', '') = '${normalized}'
-           OR REPLACE(REPLACE(phone_number, '+', ''), ' ', '') LIKE '%${normalized.slice(-9)}'
+        WHERE REPLACE(REPLACE(phone_number, '+', ''), ' ', '') = ?
+           OR REPLACE(REPLACE(phone_number, '+', ''), ' ', '') LIKE ?
         LIMIT 1
-    `);
+    `, [normalized, `%${suffix}`]);
     return rows[0] || null;
 }
 
@@ -201,34 +194,42 @@ function lookupDealer(phone) {
 function persistInboundMessage(msg, dealer) {
     const now  = TC.nowIT();
     const id   = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    dbExec(`
-        INSERT OR IGNORE INTO messages
-            (id, dealer_id, dealer_name, phone_number, direction, body,
-             timestamp_it, timestamp_iso, wa_msg_id, processed)
-        VALUES
-            ('${id}',
-             '${dealer?.dealer_id || 'UNKNOWN'}',
-             '${(dealer?.dealer_name || msg.from).replace(/'/g, "''")}',
-             '${msg.from}',
-             'INBOUND',
-             '${msg.body.replace(/'/g, "''")}',
-             datetime('now'),
-             '${now.toISOString()}',
-             '${msg.id?.id || id}',
-             0)
-    `);
+    const db = getDb();
+    try {
+        db.prepare(`
+            INSERT OR IGNORE INTO messages
+                (id, dealer_id, dealer_name, phone_number, direction, body,
+                 timestamp_it, timestamp_iso, wa_msg_id, processed)
+            VALUES (?, ?, ?, ?, 'INBOUND', ?, datetime('now'), ?, ?, 0)
+        `).run(
+            id,
+            dealer?.dealer_id || 'UNKNOWN',
+            dealer?.dealer_name || msg.from,
+            msg.from,
+            msg.body,
+            now.toISOString(),
+            msg.id?.id || id
+        );
+    } catch (e) {
+        log('ERROR', 'persistInboundMessage failed:', e.message);
+    }
     return id;
 }
 
 // ── Aggiorna stato conversazione al DB principale ────────────
 function updateConversationState(dealerId, newStep) {
-    dbExec(`
-        UPDATE conversations
-        SET current_step     = '${newStep}',
-            last_contact_at  = datetime('now'),
-            analyzed_at      = datetime('now')
-        WHERE dealer_id = '${dealerId}'
-    `);
+    const db = getDb();
+    try {
+        db.prepare(`
+            UPDATE conversations
+            SET current_step     = ?,
+                last_contact_at  = datetime('now'),
+                analyzed_at      = datetime('now')
+            WHERE dealer_id = ?
+        `).run(newStep, dealerId);
+    } catch (e) {
+        log('ERROR', 'updateConversationState failed:', e.message);
+    }
 }
 
 // ── Chiama analyzer asincrono ────────────────────────────────
@@ -237,6 +238,9 @@ function triggerAnalyzer(inboundMsgId, msgBody, dealer) {
     const ctxStr = JSON.stringify(ctx).replace(/'/g, "\\'");
 
     log('INFO', `Triggering analyzer per msg: ${inboundMsgId}`);
+
+    // Log analyzer output to file per debug (S65 fix)
+    const analyzerLogFd = fs.openSync('/tmp/argos-analyzer.log', 'a');
 
     const child = spawn(CONFIG.PYTHON_BIN, [
         CONFIG.ANALYZER_SCRIPT,
@@ -250,7 +254,7 @@ function triggerAnalyzer(inboundMsgId, msgBody, dealer) {
         '--time-ctx',   ctxStr,
     ], {
         detached: true,
-        stdio:    'ignore',
+        stdio:    ['ignore', analyzerLogFd, analyzerLogFd],
     });
     child.unref(); // non blocca il daemon
 }
@@ -290,16 +294,19 @@ async function handleInboundMessage(msg) {
     const msgId = persistInboundMessage(msg, dealer);
 
     // 3. Aggiorna audit log
-    dbExec(`
-        INSERT OR IGNORE INTO audit_log (id, event_type, dealer_id, payload, timestamp_it)
-        VALUES (
-            'audit_${Date.now()}',
-            'INBOUND_MESSAGE',
-            '${dealer?.dealer_id || 'UNKNOWN'}',
-            '${JSON.stringify({from: msg.from, body: msg.body.slice(0,200), msgId}).replace(/'/g,"''")}',
-            datetime('now')
-        )
-    `);
+    const db = getDb();
+    try {
+        db.prepare(`
+            INSERT OR IGNORE INTO audit_log (id, event_type, dealer_id, payload, timestamp_it)
+            VALUES (?, 'INBOUND_MESSAGE', ?, ?, datetime('now'))
+        `).run(
+            `audit_${Date.now()}`,
+            dealer?.dealer_id || 'UNKNOWN',
+            JSON.stringify({from: msg.from, body: msg.body.slice(0,200), msgId})
+        );
+    } catch (e) {
+        log('ERROR', 'audit_log insert failed:', e.message);
+    }
 
     // 4. Alert Telegram immediato con contesto temporale
     const dealerLabel = dealer
@@ -416,21 +423,17 @@ function initClient() {
         if (ack === 3) {
             const now = TC.formatIT(TC.nowIT());
             log('INFO', `✓✓ LETTO: ${msg.to} — ${now}`);
-            dbExec(`
-                UPDATE messages
-                SET processed = 1
-                WHERE wa_msg_id = '${msg.id?.id || ''}'
-            `);
-            dbExec(`
-                INSERT OR IGNORE INTO audit_log (id, event_type, dealer_id, payload, timestamp_it)
-                VALUES (
-                    'ack_${Date.now()}',
-                    'MSG_READ_ACK',
-                    'UNKNOWN',
-                    '{"to":"${msg.to}","ack":3}',
-                    datetime('now')
-                )
-            `);
+            const db = getDb();
+            try {
+                db.prepare('UPDATE messages SET processed = 1 WHERE wa_msg_id = ?')
+                  .run(msg.id?.id || '');
+                db.prepare(`
+                    INSERT OR IGNORE INTO audit_log (id, event_type, dealer_id, payload, timestamp_it)
+                    VALUES (?, 'MSG_READ_ACK', 'UNKNOWN', ?, datetime('now'))
+                `).run(`ack_${Date.now()}`, JSON.stringify({to: msg.to, ack: 3}));
+            } catch (e) {
+                log('ERROR', 'message_ack db failed:', e.message);
+            }
         }
     });
 
@@ -464,21 +467,20 @@ function initClient() {
                     const now = TC.nowIT();
 
                     // Logga su DB
-                    dbExec(`INSERT OR IGNORE INTO messages
+                    const db = getDb();
+                    db.prepare(`INSERT OR IGNORE INTO messages
                         (id, dealer_id, dealer_name, phone_number, direction, body,
                          timestamp_it, timestamp_iso, wa_msg_id, processed)
-                        VALUES ('${msgId}', '${dealer_id || 'MANUAL'}', '',
-                                '${chatId}', 'OUTBOUND',
-                                '${message.replace(/'/g, "''")}',
-                                datetime('now'), '${now.toISOString()}', '${msgId}', 1)`);
+                        VALUES (?, ?, '', ?, 'OUTBOUND', ?, datetime('now'), ?, ?, 1)`)
+                      .run(msgId, dealer_id || 'MANUAL', chatId, message, now.toISOString(), msgId);
 
                     // Aggiorna step se dealer_id fornito
                     if (dealer_id) {
-                        dbExec(`UPDATE conversations
+                        db.prepare(`UPDATE conversations
                                 SET current_step = 'DAY1_SENT',
                                     last_contact_at = datetime('now'),
                                     analyzed_at = datetime('now')
-                                WHERE dealer_id = '${dealer_id}'`);
+                                WHERE dealer_id = ?`).run(dealer_id);
                     }
 
                     log('INFO', `✅ INVIATO via HTTP: ${chatId} (${dealer_id || 'manual'})`);
@@ -552,8 +554,207 @@ function initClient() {
         log('INFO', 'HTTP server su http://127.0.0.1:9191 (health + /send)');
     });
 
+    // ── Scheduler Multi-Step (Day 3 + Day 7) ─────────────────
+    startScheduler(client);
+
     client.initialize();
     return client;
+}
+
+// ── VOICE NOTE TEMPLATES PER ARCHETIPO ──────────────────────
+const VOICE_TEMPLATES = {
+    NARCISO: `Buongiorno, sono Luca Ferretti di ARGOS Automotive. Ho riservato questa opportunità esclusivamente per la sua area. Selezioniamo veicoli premium in Germania e Belgio, solo per concessionari selezionati. Report DAT e ispezione DEKRA inclusi. Se vuole, le invio un esempio concreto su misura per il suo stock. A presto.`,
+    BARONE: `Buongiorno, mi permetto di ricontattarla con calma. Sono Luca Ferretti di ARGOS Automotive. Lavoriamo su misura per concessionari come il suo: selezione veicoli premium in Europa, con report DAT e ispezione DEKRA. Zero anticipi, paga solo a veicolo approvato. Se ha cinque minuti, le mostro come funziona. Buona giornata.`,
+    RAGIONIERE: `Buongiorno, Luca Ferretti di ARGOS Automotive. Le invio i margini aggiornati: su una BMW X3 2021 dalla Germania, il risparmio medio è tra 4 e 7mila euro rispetto al mercato italiano. Fee fissa mille euro, report DAT incluso. Nessun anticipo. I numeri parlano da soli. Se vuole, le mando un caso concreto. A presto.`,
+    TECNICO: `Buongiorno, Luca Ferretti di ARGOS Automotive. Ho il report DAT pronto e la documentazione completa sulla nostra procedura: ispezione DEKRA, verifica chilometraggio, garanzia costruttore UE valida in Italia. Ogni veicolo è tracciato e certificato. Se le interessa, le invio un esempio dettagliato. Buona giornata.`,
+    RELAZIONALE: `Buongiorno, ci tenevo a risentirla. Sono Luca Ferretti di ARGOS Automotive. So che i tempi dei concessionari sono stretti, per questo gestiamo tutto noi. Selezioniamo veicoli premium in Europa con report e ispezione inclusi. Zero complicazioni per lei. Quando ha un momento, mi faccia sapere. Un saluto.`,
+    CONSERVATORE: `Buongiorno, Luca Ferretti di ARGOS Automotive. Volevo rassicurarla: nessun rischio, tutto documentato. Ogni veicolo ha report DAT, ispezione DEKRA, garanzia costruttore UE. Paga solo a veicolo consegnato e approvato, zero anticipi. Se vuole, le mostro un caso reale con tutta la documentazione. Buona giornata.`,
+    DELEGATORE: `Buongiorno, Luca Ferretti di ARGOS Automotive. Gestisco tutto io: selezione, report, ispezione, trasporto. A lei serve solo dire sì. Fee fissa mille euro, zero anticipi, zero complicazioni. Se le interessa, le invio un esempio e ci penso io a tutto il resto. Buona giornata.`,
+    PERFORMANTE: `Buongiorno, Luca Ferretti di ARGOS Automotive. Ho un veicolo disponibile subito: BMW, Mercedes o Audi dalla Germania, pronto in 48 ore con report DAT e DEKRA. Fee mille euro, zero anticipi. Se mi dice cosa cerca, le mando la proposta entro domani. A presto.`,
+    OPPORTUNISTA: `Buongiorno, Luca Ferretti di ARGOS Automotive. I numeri sono interessanti: margine medio tra 4 e 7mila euro su veicoli premium dalla Germania. Fee fissa mille euro, nessun anticipo. Il margine è tutto suo. Se vuole, le mando un caso concreto con i numeri reali. Buona giornata.`,
+};
+
+// Day 3 follow-up text templates
+const DAY3_TEMPLATES = {
+    NARCISO: `Buongiorno, solo un rapido aggiornamento. Ho selezionato alcune opportunità esclusive per la sua area — veicoli premium che non troverà facilmente sul mercato italiano.\n\nSe ha 5 minuti, le mostro i dettagli.\n\n— Luca`,
+    BARONE: `Buongiorno, non voglio essere invadente. Le scrivo solo perché ho individuato un paio di veicoli che potrebbero interessarle.\n\nSe e quando ha tempo, sono a disposizione.\n\n— Luca`,
+    RAGIONIERE: `Buongiorno, le condivido un dato: questa settimana su 3 BMW X3 2021 selezionate in Germania, il margine medio per il dealer è stato €5.200.\n\nSe vuole i dettagli, mi scriva.\n\n— Luca`,
+    TECNICO: `Buongiorno, ho preparato una scheda tecnica di esempio: report DAT + foto ispezione DEKRA su una Mercedes GLC recente.\n\nSe le interessa vedere il livello di documentazione, gliela invio.\n\n— Luca`,
+    RELAZIONALE: `Buongiorno, ci tenevo a farle sapere che resto a disposizione. Nessuna fretta, quando vorrà approfondire sono qui.\n\nBuona giornata.\n\n— Luca`,
+    CONSERVATORE: `Buongiorno, capisco che valutare un nuovo fornitore richiede tempo. Per questo le confermo: zero rischi, zero anticipi. Paga solo a veicolo consegnato e approvato.\n\nSe ha domande, sono qui.\n\n— Luca`,
+    DELEGATORE: `Buongiorno, solo un promemoria: se decide di provare, io gestisco tutto — selezione, documenti, trasporto. A lei basta dirmi che tipo di veicolo cerca.\n\n— Luca`,
+    PERFORMANTE: `Buongiorno, aggiornamento rapido: ho 3 veicoli disponibili subito in Germania. Se mi dice marca e budget, le mando la proposta entro oggi.\n\n— Luca`,
+    OPPORTUNISTA: `Buongiorno, i margini di questa settimana sono ancora più interessanti. Su un'Audi Q5 2022 dalla Germania: risparmio netto per il dealer circa €6.000.\n\nSe vuole i numeri completi, mi scriva.\n\n— Luca`,
+};
+
+// ── Genera voice note con edge-tts ──────────────────────────
+function generateVoiceNote(text, outputPath) {
+    try {
+        // edge-tts con voce italiana DiegoNeural
+        execSync(
+            `edge-tts --voice it-IT-DiegoNeural --rate "+5%" --text "${text.replace(/"/g, '\\"')}" --write-media "${outputPath}"`,
+            { timeout: 30000, stdio: 'pipe' }
+        );
+        return fs.existsSync(outputPath);
+    } catch (e) {
+        log('ERROR', 'generateVoiceNote failed:', e.message);
+        return false;
+    }
+}
+
+// ── Scheduler: controlla dealer che necessitano follow-up ───
+function startScheduler(client) {
+    log('INFO', 'Scheduler multi-step avviato (ogni 30 min)');
+
+    async function checkScheduledActions() {
+        if (!TC.isBusinessHours()) {
+            log('INFO', 'Scheduler: fuori orario business, skip');
+            return;
+        }
+
+        checkDailyReset();
+        const db = getDb();
+
+        // Trova dealer che necessitano Day 3 follow-up
+        const day3Candidates = db.prepare(`
+            SELECT * FROM conversations
+            WHERE current_step = 'DAY1_SENT'
+              AND last_contact_at IS NOT NULL
+              AND julianday('now') - julianday(last_contact_at) >= 3
+              AND julianday('now') - julianday(last_contact_at) < 7
+        `).all();
+
+        for (const dealer of day3Candidates) {
+            if (CONFIG.DAILY_SENT >= CONFIG.DAILY_LIMIT) {
+                log('WARN', 'Scheduler: daily limit raggiunto, stop');
+                break;
+            }
+
+            const template = DAY3_TEMPLATES[dealer.persona_type] || DAY3_TEMPLATES.RAGIONIERE;
+            const phone = (dealer.phone_number || '').replace(/[+\s-]/g, '');
+            if (!phone) continue;
+
+            const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
+
+            try {
+                await client.sendMessage(chatId, template);
+                CONFIG.DAILY_SENT++;
+
+                // Logga e aggiorna step
+                const msgId = `day3_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                db.prepare(`INSERT OR IGNORE INTO messages
+                    (id, dealer_id, dealer_name, phone_number, direction, body,
+                     timestamp_it, timestamp_iso, wa_msg_id, processed)
+                    VALUES (?, ?, ?, ?, 'OUTBOUND', ?, datetime('now'), ?, ?, 1)`)
+                  .run(msgId, dealer.dealer_id, dealer.dealer_name, chatId,
+                       template, TC.nowIT().toISOString(), msgId);
+
+                db.prepare(`UPDATE conversations
+                    SET current_step = 'DAY3_SENT', last_contact_at = datetime('now'), analyzed_at = datetime('now')
+                    WHERE dealer_id = ?`).run(dealer.dealer_id);
+
+                log('INFO', `📤 DAY 3 INVIATO: ${dealer.dealer_name} (${dealer.persona_type})`);
+                sendTelegramAlert(
+                    `📤 *Day 3 Follow-up INVIATO*\n` +
+                    `👤 ${dealer.dealer_name} (${dealer.persona_type})\n` +
+                    `📱 ${chatId}\n` +
+                    `📊 ${CONFIG.DAILY_SENT}/${CONFIG.DAILY_LIMIT}`
+                );
+
+                // Anti-ban: attendi 2-5 minuti tra invii
+                const sleepMs = (120 + Math.random() * 180) * 1000;
+                await new Promise(r => setTimeout(r, sleepMs));
+            } catch (e) {
+                log('ERROR', `Day 3 send failed for ${dealer.dealer_id}:`, e.message);
+            }
+        }
+
+        // Trova dealer che necessitano Day 7 voice note
+        const day7Candidates = db.prepare(`
+            SELECT * FROM conversations
+            WHERE current_step IN ('DAY3_SENT', 'DAY1_SENT')
+              AND last_contact_at IS NOT NULL
+              AND julianday('now') - julianday(last_contact_at) >= 4
+              AND current_step = 'DAY3_SENT'
+        `).all();
+
+        // Anche dealer Day1 senza risposta dopo 7 giorni totali
+        const day7FromDay1 = db.prepare(`
+            SELECT * FROM conversations
+            WHERE current_step = 'DAY1_SENT'
+              AND last_contact_at IS NOT NULL
+              AND julianday('now') - julianday(last_contact_at) >= 7
+        `).all();
+
+        const allDay7 = [...day7Candidates, ...day7FromDay1];
+        const seenIds = new Set();
+
+        for (const dealer of allDay7) {
+            if (seenIds.has(dealer.dealer_id)) continue;
+            seenIds.add(dealer.dealer_id);
+
+            if (CONFIG.DAILY_SENT >= CONFIG.DAILY_LIMIT) {
+                log('WARN', 'Scheduler: daily limit raggiunto, stop');
+                break;
+            }
+
+            const voiceText = VOICE_TEMPLATES[dealer.persona_type] || VOICE_TEMPLATES.RAGIONIERE;
+            const phone = (dealer.phone_number || '').replace(/[+\s-]/g, '');
+            if (!phone) continue;
+
+            const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
+            const voicePath = `/tmp/argos_voice_DAY7_${dealer.dealer_id}.mp3`;
+
+            // Genera voice note
+            const generated = generateVoiceNote(voiceText, voicePath);
+            if (!generated) {
+                log('ERROR', `Voice note generation failed for ${dealer.dealer_id}`);
+                continue;
+            }
+
+            try {
+                const { MessageMedia } = require('whatsapp-web.js');
+                const media = MessageMedia.fromFilePath(voicePath);
+                await client.sendMessage(chatId, media, { sendAudioAsVoice: true });
+                CONFIG.DAILY_SENT++;
+
+                db.prepare(`UPDATE conversations
+                    SET current_step = 'DAY7_VOICE_SENT', last_contact_at = datetime('now'), analyzed_at = datetime('now')
+                    WHERE dealer_id = ?`).run(dealer.dealer_id);
+
+                log('INFO', `🎤 DAY 7 VOICE INVIATO: ${dealer.dealer_name} (${dealer.persona_type})`);
+                sendTelegramAlert(
+                    `🎤 *Day 7 Voice Note INVIATO*\n` +
+                    `👤 ${dealer.dealer_name} (${dealer.persona_type})\n` +
+                    `📱 ${chatId}\n` +
+                    `📊 ${CONFIG.DAILY_SENT}/${CONFIG.DAILY_LIMIT}`
+                );
+
+                // Cleanup voice file
+                try { fs.unlinkSync(voicePath); } catch (_) {}
+
+                // Anti-ban: attendi 3-6 minuti tra voice note
+                const sleepMs = (180 + Math.random() * 180) * 1000;
+                await new Promise(r => setTimeout(r, sleepMs));
+            } catch (e) {
+                log('ERROR', `Day 7 voice send failed for ${dealer.dealer_id}:`, e.message);
+            }
+        }
+
+        if (day3Candidates.length === 0 && allDay7.length === 0) {
+            log('INFO', 'Scheduler: nessun follow-up necessario');
+        }
+    }
+
+    // Prima esecuzione dopo 2 minuti dall'avvio
+    setTimeout(() => {
+        checkScheduledActions().catch(e => log('ERROR', 'Scheduler error:', e.message));
+    }, 2 * 60 * 1000);
+
+    // Poi ogni 30 minuti
+    setInterval(() => {
+        checkScheduledActions().catch(e => log('ERROR', 'Scheduler error:', e.message));
+    }, CONFIG.SCHEDULER_INTERVAL);
 }
 
 // ── Entry point ──────────────────────────────────────────────
@@ -563,6 +764,7 @@ const waClient = initClient();
 process.on('SIGTERM', async () => {
     log('INFO', 'SIGTERM ricevuto — shutdown graceful');
     try { await waClient.destroy(); } catch (_) {}
+    try { if (_db) _db.close(); } catch (_) {}
     process.exit(0);
 });
 
