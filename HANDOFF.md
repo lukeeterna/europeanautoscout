@@ -34,8 +34,11 @@
 ## ROADMAP S66+
 
 ```
-S66: Fix scraper + primo run reale + test E2E WA + riscrittura Day 1 con veicolo reale
-S67: Scraper aggiuntivi (willhaben/Marktplaats/Sauto.cz) + deploy PM2 iMac + Day 3 live
-S68: Day 1 nuovi Salerno con dati reali + risposte live + carVertical integration
-S69+: Primo deal → sourcing EU → consegna → fee incassata
+S66: Fix scraper base + TUTTI gli scraper EU (~20 portali) + PDF dossier professionale HD
+S67: Deploy scraper iMac PM2 + primo run reale TUTTI portali + trend DB + digest Telegram
+S68: Test E2E WA + riscrittura Day 1 con veicolo reale da scraper + carVertical
+S69: Day 1 nuovi Salerno con dati reali + risposte live
+S70+: Primo deal → sourcing EU → consegna → fee incassata
+
+REGOLA PDF: immagini HD, NESSUN riferimento fonte/venditore prima pagamento fee
 ```
