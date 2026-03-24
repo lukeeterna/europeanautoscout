@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md — Extract real VINs from AutoScout24 detail pages, produce test_vins.json
-- [ ] 01-02-PLAN.md — Test VIN-decode tools: freevindecoder.eu, NHTSA API, DAT consumer
+- [x] 01-02-PLAN.md — Test VIN-decode tools: freevindecoder.eu, NHTSA API, DAT consumer
 - [ ] 01-03-PLAN.md — Test recall and warranty tools: car-recalls.eu, KBA, BMW warranty, RDW
 - [ ] 01-04-PLAN.md — Consolidate results into TOOL_VALIDATION.md validation matrix
 
