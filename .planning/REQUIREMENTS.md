@@ -26,11 +26,11 @@
 
 ### Dossier PDF
 
-- [ ] **PDF-01**: PDF Enterprise V2 include foto reali HD scaricate dal listing (non placeholder)
-- [ ] **PDF-02**: PDF mostra ARGOS GRADE (A-E) prominente in copertina
-- [ ] **PDF-03**: PDF include sezione "7 Criteri ARGOS Premium Verified" con solo dati verificati reali
-- [ ] **PDF-04**: PDF include analisi finanziaria completa (prezzo EU, costo chiavi in mano, margine netto dealer)
-- [ ] **PDF-05**: PDF ha watermark dealer-specific e zero riferimenti a fonti
+- [x] **PDF-01**: PDF Enterprise V2 include foto reali HD scaricate dal listing (non placeholder)
+- [x] **PDF-02**: PDF mostra ARGOS GRADE (A-E) prominente in copertina
+- [x] **PDF-03**: PDF include sezione "7 Criteri ARGOS Premium Verified" con solo dati verificati reali
+- [x] **PDF-04**: PDF include analisi finanziaria completa (prezzo EU, costo chiavi in mano, margine netto dealer)
+- [x] **PDF-05**: PDF ha watermark dealer-specific e zero riferimenti a fonti
 
 ### Primo Outreach
 
@@ -81,11 +81,11 @@
 | GRADE-02 | Phase 3 | Complete |
 | GRADE-03 | Phase 3 | Complete |
 | GRADE-04 | Phase 3 | Complete |
-| PDF-01 | Phase 3 | Pending |
-| PDF-02 | Phase 3 | Pending |
-| PDF-03 | Phase 3 | Pending |
-| PDF-04 | Phase 3 | Pending |
-| PDF-05 | Phase 3 | Pending |
+| PDF-01 | Phase 3 | Complete |
+| PDF-02 | Phase 3 | Complete |
+| PDF-03 | Phase 3 | Complete |
+| PDF-04 | Phase 3 | Complete |
+| PDF-05 | Phase 3 | Complete |
 | OUT-01 | Phase 4 | Pending |
 | OUT-02 | Phase 4 | Pending |
 | OUT-03 | Phase 4 | Pending |

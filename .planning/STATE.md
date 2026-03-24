@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to execute
-stopped_at: Completed 03-01-PLAN.md — ARGOS GRADE A-E calculator
-last_updated: "2026-03-24T18:20:32.715Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 03-02-PLAN.md — PDF Enterprise V2 + Stile Car dossier generated
+last_updated: "2026-03-24T18:27:02.277Z"
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -51,6 +51,7 @@ Plan: 2 of 2
 | Phase 01 P03 | 12 | 1 tasks | 2 files |
 | Phase 01 P04 | 4 | 1 tasks | 1 files |
 | Phase 03 P01 | 8 | 1 tasks | 1 files |
+| Phase 03 P02 | 18 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 03]: ARGOS GRADE reads cove_results directly (not cove_engine_v4) — engine writes, grade reads
 - [Phase 03]: km_history static 0.5 at 5% weight — no free DE odometer API confirmed Phase 1
 - [Phase 03]: Warranty hardcoded 'richiedere al venditore' — all OEM warranty APIs require login
+- [Phase 03]: Transport cost fixed EUR 1200 (DE→Sud Italia bisarca) — not dynamic, ensures consistent dossier
+- [Phase 03]: Legacy generate_vehicle_sheet preserved for backward compatibility — V2 features injected via grade_data param
 
 ### Pending Todos
 
@@ -91,6 +94,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-24T18:20:32.709Z
-Stopped at: Completed 03-01-PLAN.md — ARGOS GRADE A-E calculator
+Last session: 2026-03-24T18:27:02.254Z
+Stopped at: Completed 03-02-PLAN.md — PDF Enterprise V2 + Stile Car dossier generated
 Resume file: None
