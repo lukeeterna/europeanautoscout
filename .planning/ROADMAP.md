@@ -43,7 +43,11 @@ Plans:
   1. DuckDB has a vehicle_listings table with all required fields (listing_id, vin, make, model, year, mileage, price_eu, price_it_estimate, source, url, detail_url, scraped_at) populated for PROCEED listings
   2. DuckDB has a vehicle_images table linking listing_id to image_url, image_type, downloaded status, and local_path
   3. Detail Enricher V2 runs against a PROCEED listing and writes enriched data (detail page fields + image URLs) to both tables without modifying cove_engine_v4.py
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Create vehicle_listings + vehicle_images DuckDB schema, seed from cove_results
+- [ ] 02-02-PLAN.md — Build Detail Enricher V2: AS24 VIN + image extraction, writes to both tables
 
 ### Phase 3: ARGOS GRADE + PDF Enterprise V2
 **Goal**: A completed dossier for any PROCEED listing can be generated with real photos, ARGOS GRADE, 7 verified criteria, and financial analysis
@@ -76,7 +80,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Validazione Tool Gratuiti | 1/4 | In Progress|  |
-| 2. Schema DB + Detail Enricher | 0/TBD | Not started | - |
+| 1. Validazione Tool Gratuiti | 4/4 | Complete | 2026-03-24 |
+| 2. Schema DB + Detail Enricher | 0/2 | Not started | - |
 | 3. ARGOS GRADE + PDF Enterprise V2 | 0/TBD | Not started | - |
 | 4. Primo Outreach Stile Car | 0/TBD | Not started | - |
