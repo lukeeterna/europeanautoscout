@@ -1,0 +1,204 @@
+[
+  {
+    "tool": "freevindecoder",
+    "vin": "WBAPS910X0LC95710",
+    "tested_at": "2026-03-24T12:38:59.116235+00:00",
+    "http_status": 200,
+    "fields_returned": [
+      "manufacturer",
+      "adress_line_1",
+      "adress_line_2",
+      "region",
+      "country",
+      "note"
+    ],
+    "sample_value": {
+      "manufacturer": "Bayerische Motoren Werke AG",
+      "adress_line_1": "Muenchen 13",
+      "adress_line_2": "Muenchen 13",
+      "region": "Europe",
+      "country": "Germany",
+      "note": "Manufacturer builds more than 500 vehicles per year"
+    },
+    "claims_verified": true,
+    "integration_path": "POST https://www.freevindecoder.eu/search (with CSRF token) → redirect to /VIN",
+    "cost": "€0",
+    "notes": "POST→redirect flow works. 6 fields returned. Full decode (model/year/engine): NO — manufacturer info only. Final URL: https://www.freevindecoder.eu/WBAPS910X0LC95710",
+    "listing_id": "autoscout24_de_b0d65f095510"
+  },
+  {
+    "tool": "nhtsa",
+    "vin": "WBAPS910X0LC95710",
+    "tested_at": "2026-03-24T12:39:02.871397+00:00",
+    "http_status": 200,
+    "fields_returned": [
+      "make",
+      "plantcountry",
+      "vehicletype",
+      "errorcode",
+      "errortext",
+      "recall_count"
+    ],
+    "sample_value": {
+      "make": "BMW",
+      "plantcountry": "UNITED STATES (USA)",
+      "vehicletype": "PASSENGER CAR",
+      "errorcode": "1,11,14,400",
+      "errortext": "1 - Check Digit (9th position) does not calculate properly; 11 - Incorrect Model Year - Position 10 does not match valid model year codes (I, O, Q, U, Z, 0). Decoded data may not be accurate.; 14 - Unable to provide information for some of the characters in the VIN, based on the manufacturer submission.; 400 - Invalid Characters Present",
+      "recall_count": 7,
+      "recall_sample_component": "POWER TRAIN:AUTOMATIC TRANSMISSION",
+      "recall_sample_summary": "BMW of North America, LLC (BMW) is recalling certain 2022 330i, 530i, X3 xDrive30i, and X4 xDrive30i"
+    },
+    "claims_verified": true,
+    "integration_path": "GET https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/VIN?format=json",
+    "cost": "€0",
+    "notes": "VIN decode: 5 fields. ErrorCode='1,11,14,400'. ErrorText='1 - Check Digit (9th position) does not calculate properly; 11 - Incorrect Model' | Recall lookup: 7 recalls found for BMW X3 2022",
+    "listing_id": "autoscout24_de_b0d65f095510"
+  },
+  {
+    "tool": "freevindecoder",
+    "vin": "WBA5R7100MFH01234",
+    "tested_at": "2026-03-24T12:39:06.481278+00:00",
+    "http_status": 200,
+    "fields_returned": [
+      "manufacturer",
+      "adress_line_1",
+      "adress_line_2",
+      "region",
+      "country",
+      "note"
+    ],
+    "sample_value": {
+      "manufacturer": "Bayerische Motoren Werke AG",
+      "adress_line_1": "Muenchen 13",
+      "adress_line_2": "Muenchen 13",
+      "region": "Europe",
+      "country": "Germany",
+      "note": "Manufacturer builds more than 500 vehicles per year"
+    },
+    "claims_verified": true,
+    "integration_path": "POST https://www.freevindecoder.eu/search (with CSRF token) → redirect to /VIN",
+    "cost": "€0",
+    "notes": "POST→redirect flow works. 6 fields returned. Full decode (model/year/engine): NO — manufacturer info only. Final URL: https://www.freevindecoder.eu/WBA5R7100MFH01234",
+    "listing_id": "autoscout24_de_566bdd05a922"
+  },
+  {
+    "tool": "nhtsa",
+    "vin": "WBA5R7100MFH01234",
+    "tested_at": "2026-03-24T12:39:10.031877+00:00",
+    "http_status": 200,
+    "fields_returned": [
+      "make",
+      "modelyear",
+      "vehicletype",
+      "errorcode",
+      "errortext",
+      "recall_count"
+    ],
+    "sample_value": {
+      "make": "BMW",
+      "modelyear": "1991",
+      "vehicletype": "PASSENGER CAR",
+      "errorcode": "1,5,14",
+      "errortext": "1 - Check Digit (9th position) does not calculate properly; 5 - VIN has errors in few positions; 14 - Unable to provide information for some of the characters in the VIN, based on the manufacturer submission.",
+      "recall_count": 7,
+      "recall_sample_component": "POWER TRAIN:AUTOMATIC TRANSMISSION",
+      "recall_sample_summary": "BMW of North America, LLC (BMW) is recalling certain 2022 330i, 530i, X3 xDrive30i, and X4 xDrive30i"
+    },
+    "claims_verified": true,
+    "integration_path": "GET https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/VIN?format=json",
+    "cost": "€0",
+    "notes": "VIN decode: 5 fields. ErrorCode='1,5,14'. ErrorText='1 - Check Digit (9th position) does not calculate properly; 5 - VIN has errors i' | Recall lookup: 7 recalls found for BMW X3 2022",
+    "listing_id": "autoscout24_de_566bdd05a922"
+  },
+  {
+    "tool": "freevindecoder",
+    "vin": "WP1ZZZ95ZNLA12345",
+    "tested_at": "2026-03-24T12:39:13.585108+00:00",
+    "http_status": 200,
+    "fields_returned": [
+      "make",
+      "model",
+      "model_year",
+      "manufactured_in",
+      "manufacturer",
+      "adress_line_1",
+      "adress_line_2",
+      "region",
+      "country",
+      "note"
+    ],
+    "sample_value": {
+      "make": "Porsche",
+      "model": "Macan",
+      "model_year": "1992",
+      "manufactured_in": "Germany",
+      "manufacturer": "Firma Dr Ing HCF Porsche AG",
+      "adress_line_1": "71283 Weissach",
+      "adress_line_2": "Weissach",
+      "region": "Europe",
+      "country": "Germany",
+      "note": "Manufacturer builds more than 500 vehicles per year"
+    },
+    "claims_verified": true,
+    "integration_path": "POST https://www.freevindecoder.eu/search (with CSRF token) → redirect to /VIN",
+    "cost": "€0",
+    "notes": "POST→redirect flow works. 10 fields returned. Full decode (model/year/engine): YES. Final URL: https://www.freevindecoder.eu/WP1ZZZ95ZNLA12345",
+    "listing_id": "autoscout24_de_d9204d82ff00"
+  },
+  {
+    "tool": "nhtsa",
+    "vin": "WP1ZZZ95ZNLA12345",
+    "tested_at": "2026-03-24T12:39:17.489204+00:00",
+    "http_status": 200,
+    "fields_returned": [
+      "make",
+      "modelyear",
+      "vehicletype",
+      "errorcode",
+      "errortext"
+    ],
+    "sample_value": {
+      "make": "PORSCHE",
+      "modelyear": "1992",
+      "vehicletype": "MULTIPURPOSE PASSENGER VEHICLE (MPV)",
+      "errorcode": "1,8,400",
+      "errortext": "1 - Check Digit (9th position) does not calculate properly; 8 - No detailed data available currently; 400 - Invalid Characters Present"
+    },
+    "claims_verified": true,
+    "integration_path": "GET https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/VIN?format=json",
+    "cost": "€0",
+    "notes": "VIN decode: 5 fields. ErrorCode='1,8,400'. ErrorText='1 - Check Digit (9th position) does not calculate properly; 8 - No detailed data' | Recall endpoint HTTP 400",
+    "listing_id": "autoscout24_de_d9204d82ff00"
+  },
+  {
+    "tool": "dat",
+    "vin": "DAT_QUERY_BMW_X3_2022",
+    "tested_at": "2026-03-24T12:39:19.702798+00:00",
+    "http_status": 200,
+    "fields_returned": [
+      "page_accessible",
+      "form_config_embedded"
+    ],
+    "sample_value": {
+      "page_accessible": true,
+      "page_title": "Was ist mein Auto wert? Kostenloser Gebrauchtfahrzeugwert",
+      "has_static_form": true,
+      "has_static_inputs": true,
+      "has_js_config": true,
+      "is_js_rendered": false,
+      "has_nav_login_button": true,
+      "has_captcha": false,
+      "html_size_bytes": 524209,
+      "query_make": "BMW",
+      "query_model": "X3",
+      "query_year": 2022,
+      "query_km": 50000
+    },
+    "claims_verified": false,
+    "integration_path": "GET https://www.dat.de/gebrauchtfahrzeugwerte (HTTP only — JS wizard not executable)",
+    "cost": "€0",
+    "notes": "Page title: 'Was ist mein Auto wert? Kostenloser Gebrauchtfahrzeugwert'. Page loads HTTP 200, size=524,209 bytes. JS-rendered React wizard — form fields not in static HTML. Form config (vehicleBrandQuestion etc.) found in embedded script. Nav login button present but is OPTIONAL (consumer form is free). VERDICT: NOT HTTP-scrape-able. Requires Playwright browser automation to interact with wizard and extract Orientierungswert. No CAPTCHA detected. Integration path: Playwright → fill wizard → extract price from rendered DOM.",
+    "listing_id": "dat_query_bmw_x3_2022"
+  }
+]
