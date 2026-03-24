@@ -27,7 +27,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. At least 3 real PROCEED VINs from DuckDB have been run against each tool (freevindecoder, car-recalls.eu, KBA, DAT consumer, BMW/MB/Audi warranty portals)
   2. A documented matrix exists showing what each tool actually returns vs what it claimed — no tool is assumed to work
   3. Tools confirmed working can be called via scraping or REST with zero cost — integration path is clear
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Extract real VINs from AutoScout24 detail pages, produce test_vins.json
+- [ ] 01-02-PLAN.md — Test VIN-decode tools: freevindecoder.eu, NHTSA API, DAT consumer
+- [ ] 01-03-PLAN.md — Test recall and warranty tools: car-recalls.eu, KBA, BMW warranty, RDW
+- [ ] 01-04-PLAN.md — Consolidate results into TOOL_VALIDATION.md validation matrix
 
 ### Phase 2: Schema DB + Detail Enricher
 **Goal**: Verified listing data and images are persisted in DuckDB, ready for grading and dossier generation
@@ -70,7 +76,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Validazione Tool Gratuiti | 0/TBD | Not started | - |
+| 1. Validazione Tool Gratuiti | 0/4 | Ready to execute | - |
 | 2. Schema DB + Detail Enricher | 0/TBD | Not started | - |
 | 3. ARGOS GRADE + PDF Enterprise V2 | 0/TBD | Not started | - |
 | 4. Primo Outreach Stile Car | 0/TBD | Not started | - |
