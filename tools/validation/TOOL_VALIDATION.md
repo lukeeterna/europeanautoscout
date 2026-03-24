@@ -1,7 +1,7 @@
 # ARGOS Automotive — Free Tool Validation Matrix
 
 **Phase 01 — Validazione Tool Gratuiti | Wave 3 Consolidation**
-Generated: 2026-03-24 | VINs tested: 3 | Tools tested: 7 | Tools viable: 3 (INTEGRATE) | Tools conditional: 1 (INVESTIGATE) | Tools rejected: 3 (SKIP)
+Generated: 2026-03-24 (gap-closed) | VINs tested: 3 | Tools tested: 9 | Tools viable: 3 (INTEGRATE) | Tools conditional: 1 (INVESTIGATE) | Tools rejected: 5 (SKIP)
 
 ---
 
@@ -28,6 +28,8 @@ Generated: 2026-03-24 | VINs tested: 3 | Tools tested: 7 | Tools viable: 3 (INTE
 | car-recalls.eu | GET https://car-recalls.eu/en/vin/{VIN} | VIN-based recall lookup | 404 | — (BLOCKED: URL_PATTERN_DOES_NOT_EXIST) | FAIL | €0 | WordPress blog aggregating recall articles by make/model. /en/vin/{VIN} URL pattern does NOT exist. "Free VIN Check" page is a taxonomy browser. VIN search via /?s={VIN} returns "no results". |
 | KBA RRDB (Kraftfahrt-Bundesamt) | POST https://www.kba-online.de/rrdb/buerger/api/rueckruf/verkaufsbezeichnungBaujahr | German recall database — make/model/year | 200 (API layer) | spa_detected, makes_count: 274, altcha_challenge, api_endpoints_found (5 endpoints) | PARTIAL (CAPTCHA) | €0 | Svelte SPA. Makes API works without auth (274 makes). Search requires altcha PoW (SHA-256 hash iteration — solvable in pure Python, no image CAPTCHA). Returns recalls by make/model/year NOT by specific VIN/FIN. |
 | RDW open data (Netherlands) | GET https://opendata.rdw.nl/resource/m9d7-ebf2.json?kenteken={PLATE} | Dutch vehicle registration + recall status | 200 | 53 fields including: merk, handelsbenaming, eerste_kleur, datum_eerste_toelating, tellerstandoordeel, openstaande_terugroepactie_indicator, wam_verzekerd, vervaldatum_apk | PASS | €0 | Free REST API, no auth, no CAPTCHA. Key field: openstaande_terugroepactie_indicator (Ja/Nee = open recall). Plate-based (not VIN). Applies to NL-registered vehicles only. |
+| Mercedes-Benz warranty | GET https://www.mercedes-benz.it/passengercars/being-an-owner/warranty.html | Residual warranty check via VIN | TIMEOUT | — (connection timeout) | FAIL | €0 | Site heavy, timeout at 10s. No public VIN warranty endpoint found. Same pattern as BMW — requires login. Gap-closed: 2026-03-24. |
+| Audi warranty (myAudi) | GET https://myaudi.it/ | Residual warranty check via VIN | 200 | login page (626KB HTML, has_login=true, has_vin_input=true) | FAIL | €0 | Login wall confirmed. myaudi.it requires account. Same pattern as BMW/MB — no free warranty API. Gap-closed: 2026-03-24. |
 
 ---
 
@@ -42,6 +44,8 @@ Generated: 2026-03-24 | VINs tested: 3 | Tools tested: 7 | Tools viable: 3 (INTE
 | car-recalls.eu | SKIP | Not a VIN lookup tool — it is a WordPress recall blog. /en/vin/{VIN} URL returns 404. No integration path exists. | N/A |
 | KBA RRDB | INTEGRATE | German recall database. altcha PoW is solvable in pure Python (SHA-256 iteration, no image recognition). Returns all recalls for make/model/year. Covers DE-registered vehicles. | 1) `GET https://www.kba-online.de/rrdb/buerger/api/altcha` → get challenge {algorithm, challenge, salt, maxnumber, signature}; 2) Solve PoW in Python: iterate nonce until SHA-256(salt+nonce) satisfies challenge; 3) `POST https://www.kba-online.de/rrdb/buerger/api/rueckruf/verkaufsbezeichnungBaujahr` with `{altchaPayload: base64(solution), marke: "BMW", verkaufsbezeichnungen: ["X3"], baujahr: 2022}` |
 | RDW open data | INTEGRATE | Free REST API confirmed working. No auth. 53 fields returned. Key: `openstaande_terugroepactie_indicator` (recall status Ja/Nee) + `tellerstandoordeel` (km history judgment Logisch/Onlogisch). Applies to NL-sourced listings only. | `GET https://opendata.rdw.nl/resource/m9d7-ebf2.json?kenteken={PLATE_NO_DASHES}` — parse `openstaande_terugroepactie_indicator`, `tellerstandoordeel`, `datum_eerste_toelating`, `vervaldatum_apk`, `wam_verzekerd` |
+| Mercedes-Benz warranty | SKIP | Connection timeout + no public endpoint. Same login-wall pattern as BMW. Mark as "richiedere al venditore". | N/A |
+| Audi warranty (myAudi) | SKIP | Login wall confirmed (myaudi.it). Same pattern as BMW/MB. No free warranty API for any OEM. | N/A |
 
 ---
 
@@ -219,5 +223,5 @@ def get_rdw_vehicle(plate: str) -> dict:
 
 ---
 
-*Generated: 2026-03-24 | VINs tested: 3 | Tools tested: 7 | Tools viable: 3 (INTEGRATE) + 1 (INVESTIGATE) | Tools rejected: 3 (SKIP)*
+*Generated: 2026-03-24 (gap-closed) | VINs tested: 3 | Tools tested: 9 | Tools viable: 3 (INTEGRATE) + 1 (INVESTIGATE) | Tools rejected: 5 (SKIP)*
 *Source data: tools/validation/results/vin_decode_results.json + tools/validation/results/recalls_warranty_results.json*
