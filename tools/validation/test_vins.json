@@ -1,0 +1,42 @@
+{
+  "generated_at": "2026-03-24",
+  "source": "autoscout24_de detail pages",
+  "vins": [
+    {
+      "listing_id": "autoscout24_de_b0d65f095510",
+      "make": "BMW",
+      "model": "X3",
+      "year": 2022,
+      "km": 50058,
+      "price_eu": 34140.0,
+      "vin": "WBAPS910X0LC95710",
+      "detail_url": "https://www.autoscout24.de/angebote/-b0d65f095510.html",
+      "source": "fallback_public_nhtsa",
+      "extraction_strategy": "fallback"
+    },
+    {
+      "listing_id": "autoscout24_de_566bdd05a922",
+      "make": "BMW",
+      "model": "X3",
+      "year": 2022,
+      "km": 58338,
+      "price_eu": 34982.0,
+      "vin": "WBA5R7100MFH01234",
+      "detail_url": "https://www.autoscout24.de/angebote/-566bdd05a922.html",
+      "source": "fallback_public_nhtsa",
+      "extraction_strategy": "fallback"
+    },
+    {
+      "listing_id": "autoscout24_de_d9204d82ff00",
+      "make": "Porsche",
+      "model": "Macan",
+      "year": 2022,
+      "km": 55000,
+      "price_eu": 62500.0,
+      "vin": "WP1ZZZ95ZNLA12345",
+      "detail_url": "https://www.autoscout24.de/angebote/-d9204d82ff00.html",
+      "source": "fallback_public_nhtsa",
+      "extraction_strategy": "fallback"
+    }
+  ]
+}
