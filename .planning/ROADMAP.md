@@ -82,5 +82,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Validazione Tool Gratuiti | 4/4 | Complete | 2026-03-24 |
 | 2. Schema DB + Detail Enricher | 0/2 | Not started | - |
-| 3. ARGOS GRADE + PDF Enterprise V2 | 0/TBD | Not started | - |
+| 3. ARGOS GRADE + PDF Enterprise V2 | 1/2 | In Progress|  |
 | 4. Primo Outreach Stile Car | 0/TBD | Not started | - |

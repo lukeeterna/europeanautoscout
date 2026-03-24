@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 01-04-PLAN.md — tool validation matrix consolidation
-last_updated: "2026-03-24T17:16:59.118Z"
+status: Ready to execute
+stopped_at: Completed 03-01-PLAN.md — ARGOS GRADE A-E calculator
+last_updated: "2026-03-24T18:20:32.715Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 8
+  completed_plans: 7
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Il dealer riceve un dossier con dati che non trova da nessun'altra parte — verificati, reali, e pronti per la rivendita.
-**Current focus:** Phase 02 — schema-db-detail-enricher
+**Current focus:** Phase 03 — argos-grade-pdf-enterprise-v2
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
+Phase: 03 (argos-grade-pdf-enterprise-v2) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Plan: Not started
 | Phase 01 P02 | 395 | 1 tasks | 2 files |
 | Phase 01 P03 | 12 | 1 tasks | 2 files |
 | Phase 01 P04 | 4 | 1 tasks | 1 files |
+| Phase 03 P01 | 8 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ Recent decisions affecting current work:
 - [Phase 01]: KBA RRDB INTEGRATE — altcha PoW solvable in Python, make/model/year recall lookup
 - [Phase 01]: RDW INTEGRATE — free REST plate-based, openstaande_terugroepactie_indicator for NL vehicles
 - [Phase 01]: BMW warranty SKIP — no public API, mark as 'warranty not verified' in dossier
+- [Phase 03]: ARGOS GRADE reads cove_results directly (not cove_engine_v4) — engine writes, grade reads
+- [Phase 03]: km_history static 0.5 at 5% weight — no free DE odometer API confirmed Phase 1
+- [Phase 03]: Warranty hardcoded 'richiedere al venditore' — all OEM warranty APIs require login
 
 ### Pending Todos
 
@@ -87,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-24T12:51:14.686Z
-Stopped at: Completed 01-04-PLAN.md — tool validation matrix consolidation
+Last session: 2026-03-24T18:20:32.709Z
+Stopped at: Completed 03-01-PLAN.md — ARGOS GRADE A-E calculator
 Resume file: None

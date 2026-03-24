@@ -19,10 +19,10 @@
 
 ### Grading & Verification
 
-- [ ] **GRADE-01**: Sistema ARGOS GRADE A-E implementato con pesi: 35% CoVe confidence, 20% fraud flags, 15% completezza dati, 15% foto, 10% recall, 5% storico km
-- [ ] **GRADE-02**: Recall check automatico via car-recalls.eu o KBA per ogni veicolo PROCEED
-- [ ] **GRADE-03**: VIN decode via freevindecoder.eu integrato nel dossier (specs, emissioni, anno)
-- [ ] **GRADE-04**: Verifica garanzia costruttore residua via sito brand (BMW/MB/Audi) con VIN
+- [x] **GRADE-01**: Sistema ARGOS GRADE A-E implementato con pesi: 35% CoVe confidence, 20% fraud flags, 15% completezza dati, 15% foto, 10% recall, 5% storico km
+- [x] **GRADE-02**: Recall check automatico via car-recalls.eu o KBA per ogni veicolo PROCEED
+- [x] **GRADE-03**: VIN decode via freevindecoder.eu integrato nel dossier (specs, emissioni, anno)
+- [x] **GRADE-04**: Verifica garanzia costruttore residua via sito brand (BMW/MB/Audi) con VIN
 
 ### Dossier PDF
 
@@ -77,10 +77,10 @@
 | DATA-01 | Phase 2 | Pending |
 | DATA-02 | Phase 2 | Pending |
 | DATA-03 | Phase 2 | Pending |
-| GRADE-01 | Phase 3 | Pending |
-| GRADE-02 | Phase 3 | Pending |
-| GRADE-03 | Phase 3 | Pending |
-| GRADE-04 | Phase 3 | Pending |
+| GRADE-01 | Phase 3 | Complete |
+| GRADE-02 | Phase 3 | Complete |
+| GRADE-03 | Phase 3 | Complete |
+| GRADE-04 | Phase 3 | Complete |
 | PDF-01 | Phase 3 | Pending |
 | PDF-02 | Phase 3 | Pending |
 | PDF-03 | Phase 3 | Pending |
