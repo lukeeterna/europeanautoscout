@@ -33,7 +33,7 @@ Plans:
 - [x] 01-01-PLAN.md — Extract real VINs from AutoScout24 detail pages, produce test_vins.json
 - [x] 01-02-PLAN.md — Test VIN-decode tools: freevindecoder.eu, NHTSA API, DAT consumer
 - [x] 01-03-PLAN.md — Test recall and warranty tools: car-recalls.eu, KBA, BMW warranty, RDW
-- [ ] 01-04-PLAN.md — Consolidate results into TOOL_VALIDATION.md validation matrix
+- [x] 01-04-PLAN.md — Consolidate results into TOOL_VALIDATION.md validation matrix
 
 ### Phase 2: Schema DB + Detail Enricher
 **Goal**: Verified listing data and images are persisted in DuckDB, ready for grading and dossier generation

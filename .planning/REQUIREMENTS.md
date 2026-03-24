@@ -8,8 +8,8 @@
 ### Validazione Tool
 
 - [x] **TOOL-01**: Ogni tool gratuito (freevindecoder, car-recalls, KBA, DAT consumer, garanzia BMW/MB/Audi) e' stato testato con almeno 3 VIN reali PROCEED da DuckDB
-- [ ] **TOOL-02**: Per ogni tool esiste documentazione di cosa restituisce realmente vs cosa promette
-- [ ] **TOOL-03**: I tool che funzionano sono integrabili via scraping o API REST senza costi
+- [x] **TOOL-02**: Per ogni tool esiste documentazione di cosa restituisce realmente vs cosa promette
+- [x] **TOOL-03**: I tool che funzionano sono integrabili via scraping o API REST senza costi
 
 ### Data Infrastructure
 
@@ -72,8 +72,8 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | TOOL-01 | Phase 1 | Complete |
-| TOOL-02 | Phase 1 | Pending |
-| TOOL-03 | Phase 1 | Pending |
+| TOOL-02 | Phase 1 | Complete |
+| TOOL-03 | Phase 1 | Complete |
 | DATA-01 | Phase 2 | Pending |
 | DATA-02 | Phase 2 | Pending |
 | DATA-03 | Phase 2 | Pending |
