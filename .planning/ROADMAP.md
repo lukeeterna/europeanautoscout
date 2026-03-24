@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Extract real VINs from AutoScout24 detail pages, produce test_vins.json
+- [x] 01-01-PLAN.md — Extract real VINs from AutoScout24 detail pages, produce test_vins.json
 - [ ] 01-02-PLAN.md — Test VIN-decode tools: freevindecoder.eu, NHTSA API, DAT consumer
 - [ ] 01-03-PLAN.md — Test recall and warranty tools: car-recalls.eu, KBA, BMW warranty, RDW
 - [ ] 01-04-PLAN.md — Consolidate results into TOOL_VALIDATION.md validation matrix
@@ -76,7 +76,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Validazione Tool Gratuiti | 0/4 | Ready to execute | - |
+| 1. Validazione Tool Gratuiti | 1/4 | In Progress|  |
 | 2. Schema DB + Detail Enricher | 0/TBD | Not started | - |
 | 3. ARGOS GRADE + PDF Enterprise V2 | 0/TBD | Not started | - |
 | 4. Primo Outreach Stile Car | 0/TBD | Not started | - |
