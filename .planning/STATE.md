@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 01-02-PLAN.md — VIN decode tools tested (freevindecoder, NHTSA, DAT)
-last_updated: "2026-03-24T12:41:07.287Z"
+stopped_at: Completed 01-03-PLAN.md — recall/warranty tool validation
+last_updated: "2026-03-24T12:46:39.370Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 ## Current Position
 
 Phase: 01 (validazione-tool-gratuiti) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 
 ## Performance Metrics
 
@@ -48,6 +48,7 @@ Plan: 3 of 4
 *Updated after each plan completion*
 | Phase 01 P01 | 61 | 1 tasks | 2 files |
 | Phase 01 P02 | 395 | 1 tasks | 2 files |
+| Phase 01 P03 | 12 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,10 @@ Recent decisions affecting current work:
 - [Phase 01]: freevindecoder /api returns 404 — real flow is POST to /search with CSRF token, returns manufacturer info only (not full decode)
 - [Phase 01]: NHTSA vpic API confirmed free REST API — recall lookup by make/model/year viable for dossier enrichment
 - [Phase 01]: DAT consumer portal requires Playwright — JS-rendered React wizard, no static form, defer to browser automation phase
+- [Phase 01]: car-recalls.eu REJECTED — WordPress blog not VIN API; /en/vin/{VIN} returns 404
+- [Phase 01]: KBA marked POSSIBLE — altcha PoW solvable in Python, but returns recalls by make/model/year not VIN
+- [Phase 01]: BMW warranty REJECTED — login wall, no public endpoint found
+- [Phase 01]: RDW ACCEPTED — free REST API confirmed, plate-based, openstaande_terugroepactie_indicator gives recall status
 
 ### Pending Todos
 
@@ -77,6 +82,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-24T12:41:07.281Z
-Stopped at: Completed 01-02-PLAN.md — VIN decode tools tested (freevindecoder, NHTSA, DAT)
+Last session: 2026-03-24T12:46:39.365Z
+Stopped at: Completed 01-03-PLAN.md — recall/warranty tool validation
 Resume file: None
