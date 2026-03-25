@@ -12,9 +12,9 @@ Four phases take ARGOS from hypothesis to first dealer contact. Phase 1 validate
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Validazione Tool Gratuiti** - Test every free data source against real VINs from DuckDB
-- [ ] **Phase 2: Schema DB + Detail Enricher** - Build DuckDB vehicle_listings/images schema and V2 enricher
-- [x] **Phase 3: ARGOS GRADE + PDF Enterprise V2** - Grading system A-E and dossier generation with real data (completed 2026-03-24)
+- [x] **Phase 1: Validazione Tool Gratuiti** - Test every free data source against real VINs from DuckDB (completed 2026-03-24)
+- [x] **Phase 2: Schema DB + Detail Enricher** - Build DuckDB vehicle_listings/images schema and V2 enricher (completed 2026-03-24)
+- [x] **Phase 3: ARGOS GRADE + PDF Enterprise V2** - Grading system A-E and dossier generation with real data (completed 2026-03-25)
 - [ ] **Phase 4: Primo Outreach Stile Car** - Generate BMW X3 dossier and send Day 1 message to Domenico
 
 ## Phase Details
@@ -46,8 +46,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Create vehicle_listings + vehicle_images DuckDB schema, seed from cove_results
-- [ ] 02-02-PLAN.md — Build Detail Enricher V2: AS24 VIN + image extraction, writes to both tables
+- [x] 02-01-PLAN.md — Create vehicle_listings + vehicle_images DuckDB schema, seed from cove_results
+- [x] 02-02-PLAN.md — Build Detail Enricher V2: AS24 VIN + image extraction, writes to both tables
 
 ### Phase 3: ARGOS GRADE + PDF Enterprise V2
 **Goal**: A completed dossier for any PROCEED listing can be generated with real photos, ARGOS GRADE, 7 verified criteria, and financial analysis
@@ -59,7 +59,12 @@ Plans:
   3. Residual manufacturer warranty is checked via brand portal VIN lookup and recorded
   4. PDF Enterprise V2 opens with a prominent ARGOS GRADE badge, includes real HD photos from the listing, and shows only verified data in the "7 Criteri ARGOS Premium Verified" section
   5. PDF financial analysis shows EU price, chiavi-in-mano cost, and net dealer margin in EUR — no percentages, no source references, dealer watermark applied
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [x] 03-01-PLAN.md — ARGOS GRADE A-E calculator with weighted scoring + NHTSA recall integration
+- [x] 03-02-PLAN.md — PDF Enterprise V2 with grade badge, real photos, 7 Criteri, financial analysis
+
 **UI hint**: yes
 
 ### Phase 4: Primo Outreach Stile Car
@@ -81,6 +86,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Validazione Tool Gratuiti | 4/4 | Complete | 2026-03-24 |
-| 2. Schema DB + Detail Enricher | 0/2 | Not started | - |
-| 3. ARGOS GRADE + PDF Enterprise V2 | 2/2 | Complete   | 2026-03-24 |
+| 2. Schema DB + Detail Enricher | 2/2 | Complete | 2026-03-24 |
+| 3. ARGOS GRADE + PDF Enterprise V2 | 2/2 | Complete | 2026-03-25 |
 | 4. Primo Outreach Stile Car | 0/TBD | Not started | - |

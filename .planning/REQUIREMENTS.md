@@ -13,16 +13,16 @@
 
 ### Data Infrastructure
 
-- [ ] **DATA-01**: Schema DuckDB vehicle_listings con campi: listing_id, vin, make, model, year, mileage, price_eu, price_it_estimate, source, url, detail_url, scraped_at
-- [ ] **DATA-02**: Schema DuckDB vehicle_images con campi: listing_id, image_url, image_type, downloaded, local_path
-- [ ] **DATA-03**: Detail Enricher V2 popola vehicle_listings con dati da detail page per listing PROCEED
+- [x] **DATA-01**: Schema DuckDB vehicle_listings con campi: listing_id, vin, make, model, year, mileage, price_eu, price_it_estimate, source, url, detail_url, scraped_at
+- [x] **DATA-02**: Schema DuckDB vehicle_images con campi: listing_id, image_url, image_type, downloaded, local_path
+- [x] **DATA-03**: Detail Enricher V2 popola vehicle_listings con dati da detail page per listing PROCEED
 
 ### Grading & Verification
 
 - [x] **GRADE-01**: Sistema ARGOS GRADE A-E implementato con pesi: 35% CoVe confidence, 20% fraud flags, 15% completezza dati, 15% foto, 10% recall, 5% storico km
 - [x] **GRADE-02**: Recall check automatico via car-recalls.eu o KBA per ogni veicolo PROCEED
-- [x] **GRADE-03**: VIN decode via freevindecoder.eu integrato nel dossier (specs, emissioni, anno)
-- [x] **GRADE-04**: Verifica garanzia costruttore residua via sito brand (BMW/MB/Audi) con VIN
+- [x] **GRADE-03**: Specs veicolo da dati scraper (modello, anno, km, carburante) integrati nel grading — VIN decode freevindecoder.eu scartato in Phase 1 (solo WMI, dati insufficienti)
+- [x] **GRADE-04**: Garanzia costruttore segnalata come "richiedere al venditore" — lookup OEM scartato in Phase 1 (BMW/MB/Audi richiedono login proprietario)
 
 ### Dossier PDF
 
@@ -74,9 +74,9 @@
 | TOOL-01 | Phase 1 | Complete |
 | TOOL-02 | Phase 1 | Complete |
 | TOOL-03 | Phase 1 | Complete |
-| DATA-01 | Phase 2 | Pending |
-| DATA-02 | Phase 2 | Pending |
-| DATA-03 | Phase 2 | Pending |
+| DATA-01 | Phase 2 | Complete |
+| DATA-02 | Phase 2 | Complete |
+| DATA-03 | Phase 2 | Complete |
 | GRADE-01 | Phase 3 | Complete |
 | GRADE-02 | Phase 3 | Complete |
 | GRADE-03 | Phase 3 | Complete |
@@ -98,4 +98,4 @@
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-03-24 after initial definition*
+*Last updated: 2026-03-25 after Phase 3 completion — GRADE-03/04 rescoped per Phase 1 findings*
