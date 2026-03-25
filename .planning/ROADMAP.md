@@ -76,7 +76,10 @@ Plans:
   2. Day 1 WhatsApp message for Domenico (NARCISO archetype) is max 5 lines, references the specific vehicle with real numbers, ends with a closed question
   3. WA daemon at 192.168.1.2:9191 is operational and message (with dossier attachment) is confirmed sent
   4. CRM entry for Stile Car is updated with outreach timestamp and Day 1 status
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 04-01-PLAN.md — Day 1 NARCISO outreach script: verify dossier, send WA message, update CRM
 
 ## Progress
 
@@ -88,4 +91,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Validazione Tool Gratuiti | 4/4 | Complete | 2026-03-24 |
 | 2. Schema DB + Detail Enricher | 2/2 | Complete | 2026-03-24 |
 | 3. ARGOS GRADE + PDF Enterprise V2 | 2/2 | Complete | 2026-03-25 |
-| 4. Primo Outreach Stile Car | 0/TBD | Not started | - |
+| 4. Primo Outreach Stile Car | 0/1 | Not started | - |
