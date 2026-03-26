@@ -48,29 +48,51 @@ SENDER_EMAIL = os.getenv("ARGOS_EMAIL", "ferretti.argosautomotive@gmail.com")
 SENDER_PASSWORD = os.getenv("ARGOS_EMAIL_PASSWORD", "")  # App password from .env
 SENDER_NAME = "Luca Ferretti — ARGOS Automotive"
 
-# What we need for a complete dossier
+# What we need for a complete dossier — every field the Italian dealer expects
 REQUIRED_DATA = {
+    # Critical (deal-breaker if missing)
     "vin": "Vehicle Identification Number (VIN)",
-    "service_history": "Service history / maintenance records",
-    "hu_date": "Last HU/TÜV inspection date and result",
+    "service_history": "Complete service history / maintenance booklet (digital or scanned pages)",
+    "hu_date": "Last HU/TÜV inspection date, result, and expiry",
     "previous_owners": "Number of previous owners",
-    "accident_history": "Any accident or damage history",
+    "accident_history": "Full accident and damage history (including minor repairs)",
+    # Important (affects pricing and dealer decision)
+    "equipment_list": "Complete equipment/options list (factory and aftermarket)",
+    "num_keys": "Number of keys provided",
+    "next_service_due": "Next scheduled service date and type",
+    "outstanding_finance": "Confirmation vehicle is free of liens/financing",
+    "interior_color_material": "Interior color and material (leather/cloth/alcantara)",
+    "tire_type_condition": "Tire type (summer/winter/all-season), brand, DOT date, tread depth",
+    "available_from": "Earliest collection/shipping date",
 }
 
 REQUIRED_PHOTO_VIEWS = [
-    ("front", "Front view (full vehicle)"),
-    ("rear", "Rear view (full vehicle)"),
-    ("side_left", "Left side view"),
-    ("side_right", "Right side view"),
-    ("interior_front", "Front interior / cockpit"),
-    ("interior_rear", "Rear seats"),
-    ("dashboard", "Dashboard / instrument cluster / mileage display"),
-    ("engine", "Engine bay"),
-    ("trunk", "Trunk / cargo area"),
-    ("wheels", "Wheels / tires close-up"),
+    # Exterior (6)
+    ("front", "Front view — full vehicle, straight on"),
+    ("rear", "Rear view — full vehicle, straight on"),
+    ("side_left", "Left side profile — full vehicle"),
+    ("side_right", "Right side profile — full vehicle"),
+    ("front_three_quarter", "Front 3/4 view (driver side)"),
+    ("rear_three_quarter", "Rear 3/4 view (passenger side)"),
+    # Interior (5)
+    ("interior_front", "Front cabin — driver and passenger seats, center console"),
+    ("interior_rear", "Rear seats and legroom"),
+    ("dashboard", "Dashboard with mileage/odometer clearly visible"),
+    ("infotainment", "Infotainment screen / navigation system"),
+    ("trunk", "Trunk / cargo area — open, empty"),
+    # Mechanical (3)
+    ("engine", "Engine bay — open hood"),
+    ("wheels_front", "Front wheel close-up — tire brand, DOT visible"),
+    ("wheels_rear", "Rear wheel close-up — tire brand, DOT visible"),
+    # Documentation (2)
+    ("service_book", "Service booklet — last stamped page"),
+    ("hu_report", "HU/TÜV report or sticker on plate"),
+    # Condition (2)
+    ("damage_detail", "Close-up of any scratches, dents, or paint issues (or confirm 'none')"),
+    ("underbody", "Underbody photo (if available) or confirmation of condition"),
 ]
 
-MIN_PHOTOS_COMPLETE = 6
+MIN_PHOTOS_COMPLETE = 8
 
 
 def analyze_missing_data(listing_id: str, db_path: str = None) -> Dict:
@@ -190,47 +212,101 @@ def compose_seller_email(analysis: Dict) -> Dict:
     # Subject
     subject = f"Inquiry: {vehicle} — Additional Photos & Information Request"
 
-    # Build request sections
+    # Separate critical vs important data requests
+    critical_keys = {"vin", "service_history", "hu_date", "previous_owners", "accident_history"}
+    critical_data = [(k, d) for k, d in analysis["missing_data"] if k in critical_keys]
+    important_data = [(k, d) for k, d in analysis["missing_data"] if k not in critical_keys]
+
+    # Build structured sections
     photo_section = ""
     if analysis["missing_photos"]:
-        photo_lines = []
-        for view, desc in analysis["missing_photos"]:
-            photo_lines.append(f"  • {desc}")
+        # Group photos by category
+        exterior = [(v, d) for v, d in analysis["missing_photos"]
+                    if v in ("front", "rear", "side_left", "side_right", "front_three_quarter", "rear_three_quarter")]
+        interior = [(v, d) for v, d in analysis["missing_photos"]
+                    if v in ("interior_front", "interior_rear", "dashboard", "infotainment", "trunk")]
+        mechanical = [(v, d) for v, d in analysis["missing_photos"]
+                      if v in ("engine", "wheels_front", "wheels_rear")]
+        docs = [(v, d) for v, d in analysis["missing_photos"]
+                if v in ("service_book", "hu_report")]
+        condition = [(v, d) for v, d in analysis["missing_photos"]
+                     if v in ("damage_detail", "underbody")]
+
+        sections = []
+        if exterior:
+            lines = "\n".join(f"    • {d}" for _, d in exterior)
+            sections.append(f"  EXTERIOR ({len(exterior)} photos):\n{lines}")
+        if interior:
+            lines = "\n".join(f"    • {d}" for _, d in interior)
+            sections.append(f"  INTERIOR ({len(interior)} photos):\n{lines}")
+        if mechanical:
+            lines = "\n".join(f"    • {d}" for _, d in mechanical)
+            sections.append(f"  MECHANICAL ({len(mechanical)} photos):\n{lines}")
+        if docs:
+            lines = "\n".join(f"    • {d}" for _, d in docs)
+            sections.append(f"  DOCUMENTATION ({len(docs)} photos):\n{lines}")
+        if condition:
+            lines = "\n".join(f"    • {d}" for _, d in condition)
+            sections.append(f"  CONDITION ({len(condition)} photos):\n{lines}")
+
         photo_section = f"""
-We would appreciate additional high-resolution photos of the vehicle, specifically:
+--- PHOTOS REQUESTED ({len(analysis['missing_photos'])} views) ---
 
-{chr(10).join(photo_lines)}
+We need high-resolution photos for our pre-purchase evaluation:
 
-These photos are essential for our client's evaluation process."""
+{chr(10).join(sections)}
+
+Please send photos at the highest resolution available (minimum 1280x960).
+If some views are not possible, please let us know."""
 
     data_section = ""
-    if analysis["missing_data"]:
-        data_lines = []
-        for key, desc in analysis["missing_data"]:
-            data_lines.append(f"  • {desc}")
-        data_section = f"""
-We also kindly request the following information:
+    if critical_data or important_data:
+        lines = []
+        if critical_data:
+            lines.append("  ESSENTIAL (required before we can proceed):")
+            for _, desc in critical_data:
+                lines.append(f"    • {desc}")
+        if important_data:
+            lines.append("")
+            lines.append("  ADDITIONAL (helps our client make a faster decision):")
+            for _, desc in important_data:
+                lines.append(f"    • {desc}")
 
-{chr(10).join(data_lines)}"""
+        data_section = f"""
+--- VEHICLE INFORMATION REQUESTED ---
+
+{chr(10).join(lines)}"""
 
     # Compose body
     body = f"""Dear {analysis.get('seller_name') or 'Sales Team'},
 
-We are ARGOS Automotive, a vehicle sourcing company based in Europe. We are interested in the {vehicle}, {km:,} km, listed at EUR {price:,.0f}.
+We are ARGOS Automotive, a European vehicle sourcing company. We work with professional dealers across the EU and are interested in the following vehicle from your inventory:
 
-Before proceeding with a potential purchase on behalf of our client, we require some additional documentation to complete our evaluation.
+  Vehicle: {vehicle}
+  Mileage: {km:,} km
+  Listed price: EUR {price:,.0f}
+
+Our client is ready to proceed quickly if the vehicle meets our quality standards. To complete our pre-purchase evaluation, we kindly request the following:
 {photo_section}
 {data_section}
 
-Please confirm the vehicle is still available and let us know if you can provide the above within the next 2-3 business days.
+--- NEXT STEPS ---
 
-We handle all logistics including transport and registration. If terms are agreeable, we can proceed quickly.
+1. Please confirm the vehicle is still available
+2. Send the requested photos and information to this email
+3. We will respond within 24 hours with our decision
 
-Kind regards,
+We handle all transport, customs, and registration. If the vehicle passes our checks, we can arrange collection within 5-7 business days.
+
+Thank you for your time. We look forward to a smooth transaction.
+
+Best regards,
 
 Luca Ferretti
-Vehicle Sourcing — ARGOS Automotive
-ferretti.argosautomotive@gmail.com
+Vehicle Sourcing Department
+ARGOS Automotive — European Vehicle Intelligence
+Email: ferretti.argosautomotive@gmail.com
+Web: argos-automotive.pages.dev
 """
 
     return {
