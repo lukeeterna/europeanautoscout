@@ -190,11 +190,29 @@ class PipelineOrchestrator:
                     self.stats["skipped"] += 1
 
     def process_seller_contacted(self):
-        """Check timeouts and follow-ups for contacted sellers."""
+        """Check for seller responses, timeouts, and send follow-ups."""
         listings = self._query_state("SELLER_CONTACTED")
         if not listings:
             return
         self._log(f"\n── SELLER_CONTACTED checks ({len(listings)} listings) ──")
+
+        # Step 0: Check inbox for seller responses (IMAP)
+        if not self.dry_run:
+            try:
+                from src.cove.seller_contact import check_inbox_for_responses
+                listing_ids = [lid for lid, _ in listings]
+                responses = check_inbox_for_responses(listing_ids)
+                for lid, resp in responses.items():
+                    self._transition(lid, "SELLER_CONTACTED", "DATA_COMPLETE",
+                                     "seller_responded",
+                                     {"subject": resp.get("subject", ""), "from": resp.get("from", "")})
+                # Remove responded listings from processing
+                responded_ids = set(responses.keys())
+                listings = [(lid, row) for lid, row in listings if lid not in responded_ids]
+                if responses:
+                    self._log(f"  {len(responses)} seller responses found via IMAP")
+            except Exception as e:
+                self._log(f"  IMAP check skipped: {e}")
 
         import duckdb
         con = duckdb.connect(self.db_path, read_only=True)
@@ -386,41 +404,70 @@ class PipelineOrchestrator:
             con.close()
 
     def _run_enricher(self, listing_id: str) -> bool:
-        """Run detail enricher on a listing."""
+        """Run detail enricher on a single listing."""
         try:
-            from src.cove.detail_enricher_v2 import enrich_listing
-            return enrich_listing(listing_id, self.db_path)
+            import duckdb
+            con = duckdb.connect(self.db_path, read_only=True)
+            row = con.execute(
+                "SELECT detail_url, source FROM vehicle_listings WHERE listing_id = ?",
+                [listing_id]
+            ).fetchone()
+            con.close()
+
+            if not row or not row[0]:
+                self._log(f"  {listing_id}: no detail_url — cannot enrich")
+                return False
+
+            detail_url, source = row
+            from src.cove.detail_enricher_v2 import DetailEnricherV2
+            enricher = DetailEnricherV2(self.db_path)
+            result = enricher.enrich(listing_id, detail_url, source or "unknown")
+            return result.get("enriched", False) if isinstance(result, dict) else bool(result)
         except Exception as e:
             self._log(f"  {listing_id}: enricher error: {e}")
             return False
 
     def _contact_seller(self, listing_id: str) -> bool:
-        """Discover email + send seller contact request."""
+        """Discover email + send SLIM initial contact (VIN + availability only)."""
         try:
             from src.cove.seller_email_discovery import discover_and_store
-            from src.cove.seller_contact import request_missing_data
+            from src.cove.seller_contact import (
+                analyze_missing_data, compose_initial_email_slim,
+                send_seller_email
+            )
 
             # Step 1: Find email
             disc = discover_and_store(listing_id, self.db_path)
-            if not disc.get("email"):
+            email = disc.get("email")
+            if not email:
                 self._log(f"  {listing_id}: no seller email found")
                 return False
 
-            # Step 2: Send request (dry_run respects orchestrator mode)
-            result = request_missing_data(listing_id, self.db_path, dry_run=self.dry_run)
-            sent = result.get("send_result", {}).get("sent", False)
+            # Step 2: Compose SLIM initial email (VIN + availability, no photo dump)
+            analysis = analyze_missing_data(listing_id, self.db_path)
+            if "error" in analysis:
+                return False
+            analysis["seller_email"] = email
+            analysis["seller_name"] = disc.get("seller_name", "Sales Team")
+
+            email_data = compose_initial_email_slim(analysis)
+            result = send_seller_email(email_data, dry_run=self.dry_run)
+            sent = result.get("sent", False) or result.get("dry_run", False)
 
             if sent:
-                # Update tracking in DB
                 import duckdb
                 now = datetime.now(timezone.utc).isoformat()
                 con = duckdb.connect(self.db_path)
                 con.execute("""
                     UPDATE vehicle_listings
-                    SET seller_contact_sent_at = ?, seller_followup_count = 0
+                    SET seller_contact_sent_at = ?,
+                        seller_followup_count = 0,
+                        seller_email = ?,
+                        seller_name = ?
                     WHERE listing_id = ?
-                """, [now, listing_id])
+                """, [now, email, disc.get("seller_name"), listing_id])
                 con.close()
+                self._log(f"  {listing_id}: initial email sent to {email}")
 
             return sent
         except Exception as e:
@@ -428,17 +475,26 @@ class PipelineOrchestrator:
             return False
 
     def _send_followup(self, listing_id: str, followup_num: int):
-        """Send follow-up email to seller."""
-        self._log(f"  {listing_id}: sending follow-up #{followup_num}")
-        # TODO: implement follow-up email template
-        import duckdb
-        con = duckdb.connect(self.db_path)
-        con.execute("""
-            UPDATE vehicle_listings
-            SET seller_followup_count = ?
-            WHERE listing_id = ?
-        """, [followup_num, listing_id])
-        con.close()
+        """Send follow-up email (Day 3 or Day 7) to seller."""
+        try:
+            from src.cove.seller_contact import send_followup as _send_fu
+            result = _send_fu(listing_id, followup_num, self.db_path, dry_run=self.dry_run)
+            sent = result.get("sent", False) or result.get("dry_run", False)
+
+            if sent:
+                import duckdb
+                con = duckdb.connect(self.db_path)
+                con.execute("""
+                    UPDATE vehicle_listings
+                    SET seller_followup_count = ?
+                    WHERE listing_id = ?
+                """, [followup_num, listing_id])
+                con.close()
+                self._log(f"  {listing_id}: follow-up #{followup_num} sent")
+            else:
+                self._log(f"  {listing_id}: follow-up #{followup_num} failed: {result.get('error','')}")
+        except Exception as e:
+            self._log(f"  {listing_id}: follow-up error: {e}")
 
     def _compute_grade(self, listing_id: str) -> Optional[Dict]:
         """Compute ARGOS GRADE."""

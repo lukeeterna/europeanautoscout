@@ -369,6 +369,217 @@ def send_seller_email(email_data: Dict, dry_run: bool = False) -> Dict:
         return {"sent": False, "error": str(e)}
 
 
+def compose_followup_email(analysis: Dict, followup_num: int) -> Dict:
+    """
+    Compose follow-up email (Day 3 or Day 7).
+
+    Day 3: Short reminder, reference original email
+    Day 7: Final attempt, "closing inquiry in 7 days"
+
+    All in English — lingua franca for all EU sellers.
+    """
+    vehicle = analysis["vehicle"]
+    seller_name = analysis.get("seller_name") or "Sales Team"
+    to_email = analysis.get("seller_email")
+
+    if followup_num == 1:
+        # Day 3 — short reminder
+        subject = f"Follow-up: {vehicle} — Still available?"
+        body = f"""Dear {seller_name},
+
+I am following up on my inquiry about the {vehicle} from a few days ago.
+
+Could you please confirm:
+1. Is the vehicle still available?
+2. Can you share the VIN number?
+
+We are ready to proceed quickly if it meets our standards.
+
+Best regards,
+Luca Ferretti
+ARGOS Automotive
+ferretti.argosautomotive@gmail.com
+"""
+    else:
+        # Day 7 — final attempt
+        subject = f"Final inquiry: {vehicle}"
+        body = f"""Dear {seller_name},
+
+This is my final follow-up regarding the {vehicle}.
+
+If I don't hear back within 7 days, I will close this inquiry and move to alternative vehicles.
+
+If you are still interested in selling, a quick reply with the VIN and confirmation of availability would be appreciated.
+
+Best regards,
+Luca Ferretti
+ARGOS Automotive
+ferretti.argosautomotive@gmail.com
+"""
+
+    return {
+        "subject": subject,
+        "body": body.strip(),
+        "to_email": to_email,
+        "to_name": seller_name,
+        "vehicle": vehicle,
+        "followup_num": followup_num,
+    }
+
+
+def compose_initial_email_slim(analysis: Dict) -> Dict:
+    """
+    Compose SLIM initial contact email.
+    Ask ONLY for VIN + availability first. Photos in follow-up.
+
+    Research finding: asking for too much in first email lowers response rate.
+    """
+    vehicle = analysis["vehicle"]
+    km = analysis.get("km", 0)
+    price = analysis.get("price", 0)
+    seller_name = analysis.get("seller_name") or "Sales Team"
+
+    subject = f"Purchase inquiry: {vehicle}, {km:,} km"
+
+    body = f"""Dear {seller_name},
+
+We are ARGOS Automotive, a European vehicle sourcing company. We are interested in purchasing the following vehicle from your inventory:
+
+  {vehicle} | {km:,} km | EUR {price:,.0f}
+
+Before we proceed, could you please confirm:
+
+  1. Is this vehicle still available?
+  2. What is the VIN number?
+  3. Is the vehicle free of any outstanding finance?
+
+If confirmed, we would then request additional photos and documentation for our pre-purchase evaluation.
+
+We handle all transport and registration. Collection can be arranged within 5-7 business days.
+
+Best regards,
+
+Luca Ferretti
+ARGOS Automotive — European Vehicle Sourcing
+ferretti.argosautomotive@gmail.com
+"""
+
+    return {
+        "subject": subject,
+        "body": body.strip(),
+        "to_email": analysis.get("seller_email"),
+        "to_name": seller_name,
+        "vehicle": vehicle,
+        "type": "initial_slim",
+    }
+
+
+def send_followup(listing_id: str, followup_num: int,
+                  db_path: str = None, dry_run: bool = False) -> Dict:
+    """Send a follow-up email for a listing."""
+    analysis = analyze_missing_data(listing_id, db_path)
+    if "error" in analysis or not analysis.get("seller_email"):
+        return {"sent": False, "error": "no seller email"}
+
+    email_data = compose_followup_email(analysis, followup_num)
+    return send_seller_email(email_data, dry_run=dry_run)
+
+
+def check_inbox_for_responses(
+    listing_ids: List[str] = None,
+    max_emails: int = 50,
+) -> Dict[str, Dict]:
+    """
+    Check Gmail inbox (IMAP) for seller responses.
+
+    Searches for replies matching seller emails from vehicle_listings.
+    Returns dict: {listing_id: {"responded": True, "subject": ..., "date": ...}}
+
+    Requires ARGOS_EMAIL and ARGOS_EMAIL_PASSWORD in env.
+    """
+    import imaplib
+    import email as email_lib
+    from email.header import decode_header
+
+    imap_server = "imap.gmail.com"
+    username = os.getenv("ARGOS_EMAIL", SENDER_EMAIL)
+    password = os.getenv("ARGOS_EMAIL_PASSWORD", "")
+
+    if not password:
+        print("  IMAP: ARGOS_EMAIL_PASSWORD not set — cannot check inbox")
+        return {}
+
+    responses = {}
+
+    try:
+        mail = imaplib.IMAP4_SSL(imap_server)
+        mail.login(username, password)
+        mail.select("INBOX")
+
+        # Search for recent unread messages
+        status, msg_ids = mail.search(None, '(UNSEEN SINCE "01-Mar-2026")')
+        if status != "OK" or not msg_ids[0]:
+            mail.logout()
+            return {}
+
+        ids = msg_ids[0].split()[-max_emails:]  # Last N messages
+        print(f"  IMAP: checking {len(ids)} unread messages...")
+
+        # Load seller emails from DB for matching
+        seller_emails = {}
+        if listing_ids:
+            import duckdb
+            db_path = str(SCRIPT_DIR.parent.parent / "src" / "cove" / "data" / "cove_tracker.duckdb")
+            con = duckdb.connect(db_path, read_only=True)
+            for lid in listing_ids:
+                row = con.execute(
+                    "SELECT seller_email FROM vehicle_listings WHERE listing_id = ?", [lid]
+                ).fetchone()
+                if row and row[0]:
+                    seller_emails[row[0].lower()] = lid
+            con.close()
+
+        for msg_id in ids:
+            status, data = mail.fetch(msg_id, "(RFC822)")
+            if status != "OK":
+                continue
+
+            msg = email_lib.message_from_bytes(data[0][1])
+            from_addr = msg.get("From", "").lower()
+            subject = msg.get("Subject", "")
+
+            # Decode subject if encoded
+            try:
+                decoded = decode_header(subject)
+                subject = "".join(
+                    part.decode(enc or "utf-8") if isinstance(part, bytes) else part
+                    for part, enc in decoded
+                )
+            except Exception:
+                pass
+
+            # Match against seller emails
+            for seller_email, lid in seller_emails.items():
+                if seller_email in from_addr:
+                    responses[lid] = {
+                        "responded": True,
+                        "from": from_addr,
+                        "subject": subject,
+                        "date": msg.get("Date", ""),
+                        "listing_id": lid,
+                    }
+                    print(f"  MATCH: {lid} ← {from_addr} — {subject[:50]}")
+
+        mail.logout()
+
+    except imaplib.IMAP4.error as e:
+        print(f"  IMAP error: {e}")
+    except Exception as e:
+        print(f"  IMAP connection error: {e}")
+
+    return responses
+
+
 def request_missing_data(listing_id: str, db_path: str = None, dry_run: bool = False) -> Dict:
     """
     Full pipeline: analyze → compose → send email to EU seller.
