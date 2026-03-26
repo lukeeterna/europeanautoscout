@@ -1449,24 +1449,34 @@ def generate_dossier_from_db(
         print(f"  [warn] Grade computation failed: {e}. Continuing without grade.")
         grade_data = None
 
-    # ── Download real photo ────────────────────────────────────────────────────
+    # ── Download + SANITIZE photos (remove plate, dealer branding) ───────────
     local_image_paths = []
-    if img_row and img_row[0]:
+    print(f"Processing photos... ({total_imgs} images in DB)")
+
+    # Try sanitizer pipeline first (downloads + sanitizes all images)
+    try:
+        from src.cove.image_sanitizer import sanitize_all_images
+        safe_dir = os.path.join(os.path.abspath(output_dir), "safe_images")
+        safe_paths = sanitize_all_images(listing_id, db_path=db_path, output_dir=safe_dir)
+        if safe_paths:
+            local_image_paths = safe_paths
+            print(f"  {len(safe_paths)} photos sanitized (plates/dealer info removed)")
+    except Exception as e:
+        print(f"  [warn] Sanitizer failed ({e}), falling back to raw download")
+
+    # Fallback: raw download if sanitizer unavailable or failed
+    if not local_image_paths and img_row and img_row[0]:
         image_url = img_row[0]
-        print(f"Downloading photo from CDN... ({total_imgs} images available)")
+        print(f"  Downloading raw photo (NO SANITIZATION)...")
         local_path = _download_image_to_temp(image_url)
         if local_path:
-            # Convert webp to jpg for reportlab compatibility
             local_path = _convert_webp_to_jpg(local_path)
             if local_path and os.path.exists(local_path) and os.path.getsize(local_path) > 500:
                 local_image_paths.append(local_path)
-                print(f"  Photo downloaded: {os.path.getsize(local_path):,} bytes")
-            else:
-                print("  [warn] Photo conversion failed or empty, continuing without photo")
-        else:
-            print("  [warn] Photo download failed, continuing without photo")
-    else:
-        print("  [info] No image URL in DB for this listing")
+                print(f"  WARNING: Photo NOT sanitized — may contain dealer/plate info!")
+
+    if not local_image_paths:
+        print("  [info] No usable images for this listing")
 
     vehicle.local_image_paths = local_image_paths
 
