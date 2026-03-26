@@ -259,7 +259,7 @@ class PipelineOrchestrator:
         con.close()
 
     def process_data_complete(self):
-        """Generate dossier if Gate 3 passes."""
+        """Gate 3 check → freshness check → match dealer → generate PDF."""
         listings = self._query_state("DATA_COMPLETE")
         if not listings:
             return
@@ -268,7 +268,7 @@ class PipelineOrchestrator:
         for lid, row in listings:
             self.stats["processed"] += 1
 
-            # Compute ARGOS GRADE
+            # Step 1: Compute ARGOS GRADE
             grade_data = self._compute_grade(lid)
             if not grade_data:
                 self._log(f"  {lid}: grade computation failed")
@@ -279,35 +279,69 @@ class PipelineOrchestrator:
             photo_count = self._get_photo_count(lid)
             margin = self._estimate_margin(lid)
 
+            # Step 2: Gate 3 check
             passed, reason = gate3_check(grade, photo_count, margin)
-
-            if passed:
-                if self.dry_run:
-                    self._log(f"  {lid}: would generate PDF (grade={grade} photos={photo_count} margin=EUR{margin:.0f})")
-                    self.stats["skipped"] += 1
-                    continue
-
-                pdf_path = self._generate_dossier(lid, grade_data)
-                if pdf_path:
-                    self._transition(lid, "DATA_COMPLETE", "DOSSIER_READY",
-                                     "gate3_pass_pdf_generated",
-                                     {"grade": grade, "photos": photo_count, "margin": margin,
-                                      "pdf": pdf_path})
-                else:
-                    self._log(f"  {lid}: PDF generation failed")
-                    self.stats["errors"] += 1
-            else:
+            if not passed:
                 self._transition(lid, "DATA_COMPLETE", "PARKED",
                                  "gate3_fail", {"reason": reason})
+                continue
+
+            # Step 3: Freshness check — is the listing still live?
+            fresh = self._freshness_check(lid)
+            if fresh.get("available") is False:
+                self._log(f"  {lid}: SOLD — listing 404 on source portal")
+                self._transition(lid, "DATA_COMPLETE", "PARKED",
+                                 "listing_sold", {"status_code": fresh.get("status_code")})
+                continue
+
+            # Step 4: Match to best dealer
+            best_dealer = self._match_to_dealer(lid)
+            dealer_name = best_dealer.get("dealer_name", "ARGOS Preview") if best_dealer else "ARGOS Preview"
+
+            if self.dry_run:
+                self._log(f"  {lid}: gate3 PASS (grade={grade} margin=EUR{margin:.0f}) → dealer={dealer_name}")
+                self.stats["skipped"] += 1
+                continue
+
+            # Step 5: Generate PDF with matched dealer watermark
+            pdf_path = self._generate_dossier(lid, grade_data, dealer_name)
+            if pdf_path:
+                # Store matched dealer and dossier path
+                import duckdb
+                con = duckdb.connect(self.db_path)
+                con.execute("""
+                    UPDATE vehicle_listings
+                    SET matched_dealer = ?, dossier_path = ?
+                    WHERE listing_id = ?
+                """, [best_dealer.get("dealer_id") if best_dealer else None, pdf_path, lid])
+                con.close()
+
+                self._transition(lid, "DATA_COMPLETE", "DOSSIER_READY",
+                                 "gate3_pass_pdf_generated",
+                                 {"grade": grade, "photos": photo_count, "margin": margin,
+                                  "pdf": pdf_path, "dealer": dealer_name,
+                                  "match_score": best_dealer.get("score") if best_dealer else None})
+            else:
+                self._log(f"  {lid}: PDF generation failed")
+                self.stats["errors"] += 1
 
     def process_dossier_ready(self):
         """Report vehicles ready for human review + dealer delivery."""
         listings = self._query_state("DOSSIER_READY")
         if not listings:
             return
-        self._log(f"\n── DOSSIER_READY (awaiting human review) ──")
+        self._log(f"\n── DOSSIER_READY (awaiting human review: Gate 4) ──")
+
+        import duckdb
+        con = duckdb.connect(self.db_path, read_only=True)
         for lid, row in listings:
-            self._log(f"  READY: {lid} — needs human review before sending to dealer")
+            info = con.execute("""
+                SELECT matched_dealer, dossier_path FROM vehicle_listings WHERE listing_id = ?
+            """, [lid]).fetchone()
+            dealer = info[0] if info and info[0] else "unmatched"
+            pdf = info[1] if info and info[1] else "no PDF"
+            self._log(f"  READY: {lid} → dealer={dealer} | {pdf}")
+        con.close()
 
     # ── Helper Methods ────────────────────────────────────────────────────────
 
@@ -505,14 +539,43 @@ class PipelineOrchestrator:
             self._log(f"  {listing_id}: grade error: {e}")
             return None
 
-    def _generate_dossier(self, listing_id: str, grade_data: dict) -> Optional[str]:
-        """Generate PDF dossier."""
+    def _freshness_check(self, listing_id: str) -> Dict:
+        """Check if listing is still live on source portal."""
         try:
-            sys.path.insert(0, str(PROJECT_ROOT / "tools" / "scripts"))
+            from src.cove.dealer_matcher import freshness_check
+            result = freshness_check(listing_id, self.db_path)
+            status = "LIVE" if result.get("available") else "SOLD" if result.get("available") is False else "UNKNOWN"
+            self._log(f"  {listing_id}: freshness → {status}")
+            return result
+        except Exception as e:
+            self._log(f"  {listing_id}: freshness check error: {e}")
+            return {"available": None, "error": str(e)}
+
+    def _match_to_dealer(self, listing_id: str) -> Optional[Dict]:
+        """Match vehicle to best dealer from CRM."""
+        try:
+            from src.cove.dealer_matcher import match_vehicle_to_dealers
+            matches = match_vehicle_to_dealers(listing_id, self.db_path)
+            if matches:
+                best = matches[0]
+                self._log(f"  {listing_id}: matched → {best['dealer_name']} (score={best['score']:.2f}, margin=EUR{best['margin_eur']:,})")
+                return best
+            else:
+                self._log(f"  {listing_id}: no dealer match found")
+                return None
+        except Exception as e:
+            self._log(f"  {listing_id}: matcher error: {e}")
+            return None
+
+    def _generate_dossier(self, listing_id: str, grade_data: dict, dealer_name: str = "ARGOS Preview") -> Optional[str]:
+        """Generate PDF dossier with dealer watermark."""
+        try:
+            scripts_dir = str(PROJECT_ROOT / "tools" / "scripts")
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
             from pdf_generator_enterprise import generate_dossier_from_db
             output_dir = str(PROJECT_ROOT / "dossiers")
-            # For now, use generic dealer name — matching will be added later
-            return generate_dossier_from_db(listing_id, "ARGOS Preview", output_dir, self.db_path)
+            return generate_dossier_from_db(listing_id, dealer_name, output_dir, self.db_path)
         except Exception as e:
             self._log(f"  {listing_id}: PDF error: {e}")
             return None
