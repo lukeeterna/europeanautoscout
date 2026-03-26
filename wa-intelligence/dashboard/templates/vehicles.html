@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title_suffix %} — Veicoli Pipeline{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none">
+  <div class="container-xl">
+    <div class="row align-items-center">
+      <div class="col-auto">
+        <h2 class="page-title">Veicoli Pipeline</h2>
+        <div class="text-muted mt-1">Stato di ogni veicolo nel pipeline ARGOS</div>
+      </div>
+      <div class="col-auto ms-auto">
+        <button class="btn btn-outline-argos btn-sm" onclick="runPipeline(true)">
+          Dry Run
+        </button>
+        <button class="btn btn-argos btn-sm ms-1" onclick="runPipeline(false)">
+          Run Pipeline
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page-body">
+  <div class="container-xl">
+
+    <!-- State Summary Cards -->
+    <div class="row row-deck row-cards mb-3">
+      {% set state_colors = {
+        'DISCOVERED': '#6c757d', 'SCORED': '#0dcaf0', 'ENRICHED': '#ffc107',
+        'SELLER_CONTACTED': '#fd7e14', 'DATA_COMPLETE': '#198754',
+        'DOSSIER_READY': '#C8A446', 'DELIVERED': '#20c997',
+        'REJECTED': '#dc3545', 'ABANDONED': '#6c757d', 'PARKED': '#adb5bd'
+      } %}
+      {% set state_order = ['DOSSIER_READY', 'DATA_COMPLETE', 'SELLER_CONTACTED', 'ENRICHED', 'SCORED', 'DISCOVERED', 'PARKED', 'ABANDONED', 'REJECTED'] %}
+      {% for state in state_order %}
+        {% if summary.get(state, 0) > 0 %}
+        <div class="col-sm-6 col-md-4 col-lg-2">
+          <div class="card" style="border-left: 3px solid {{ state_colors.get(state, '#6c757d') }}">
+            <div class="card-body p-2 text-center">
+              <div class="h1 mb-0" style="color: {{ state_colors.get(state, '#6c757d') }}">{{ summary.get(state, 0) }}</div>
+              <div class="text-muted" style="font-size: 0.7rem">{{ state }}</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+      <div class="col-sm-6 col-md-4 col-lg-2">
+        <div class="card" style="border-left: 3px solid #C8A446">
+          <div class="card-body p-2 text-center">
+            <div class="h1 mb-0" style="color: #C8A446">{{ summary.values()|sum }}</div>
+            <div class="text-muted" style="font-size: 0.7rem">TOTALE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vehicle Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Veicoli in Pipeline</h3>
+        <div class="card-actions">
+          <span class="text-muted">{{ vehicles|length }} veicoli attivi</span>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vcenter table-hover card-table table-sm">
+          <thead>
+            <tr>
+              <th>Stato</th>
+              <th>Veicolo</th>
+              <th>Prezzo EU</th>
+              <th>Mercato IT</th>
+              <th>Margine</th>
+              <th>Conf.</th>
+              <th>Foto</th>
+              <th>Seller</th>
+              <th>Dealer</th>
+              <th>Aggiornato</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in vehicles %}
+            <tr>
+              <td>
+                {% set sc = {
+                  'DOSSIER_READY': 'bg-warning text-dark', 'DATA_COMPLETE': 'bg-success',
+                  'SELLER_CONTACTED': 'bg-orange', 'ENRICHED': 'bg-info',
+                  'SCORED': 'bg-cyan', 'DISCOVERED': 'bg-secondary',
+                  'PARKED': 'bg-muted', 'ABANDONED': 'bg-dark', 'DELIVERED': 'bg-teal'
+                } %}
+                <span class="badge {{ sc.get(v.state, 'bg-secondary') }}" style="font-size: 0.65rem">{{ v.state }}</span>
+              </td>
+              <td>
+                <div><strong>{{ v.make }} {{ v.model }} {{ v.year }}</strong></div>
+                <div class="text-muted" style="font-size: 0.7rem">{{ v.km }} km | {{ v.listing_id[:20] }}</div>
+              </td>
+              <td>{{ v.price_eu }}</td>
+              <td>{{ v.market_it }}</td>
+              <td>
+                {% if v.margin != '?' %}
+                  {% set m = v.margin|replace(',','')|int %}
+                  <span class="{% if m >= 2500 %}text-success{% elif m >= 1500 %}text-warning{% else %}text-danger{% endif %}">
+                    {{ v.margin }}
+                  </span>
+                {% else %}
+                  <span class="text-muted">?</span>
+                {% endif %}
+              </td>
+              <td>{{ v.confidence }}</td>
+              <td>{{ v.photos }}</td>
+              <td>
+                {% if v.seller_email %}
+                  <span class="text-success" title="{{ v.seller_email }}">{{ v.followups }}x</span>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if v.dealer %}
+                  <span class="badge bg-argos">{{ v.dealer }}</span>
+                {% elif v.dossier %}
+                  <span class="text-muted">PDF</span>
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td><span class="text-muted" style="font-size: 0.7rem">{{ v.updated }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pipeline Log -->
+    {% if log_recent %}
+    <div class="card mt-3">
+      <div class="card-header">
+        <h3 class="card-title">Log Pipeline (ultimi 20)</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vcenter table-sm card-table">
+          <thead>
+            <tr>
+              <th>Ora</th>
+              <th>Listing</th>
+              <th>Da</th>
+              <th>A</th>
+              <th>Azione</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for l in log_recent %}
+            <tr>
+              <td class="text-muted" style="font-size: 0.7rem">{{ l.time }}</td>
+              <td style="font-size: 0.75rem">{{ l.listing_id[:25] }}</td>
+              <td><span class="badge bg-secondary" style="font-size: 0.6rem">{{ l['from'] }}</span></td>
+              <td><span class="badge bg-info" style="font-size: 0.6rem">{{ l.to }}</span></td>
+              <td class="text-muted" style="font-size: 0.7rem">{{ l.action }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Pipeline Run Output -->
+    <div id="pipeline-output" class="card mt-3" style="display:none">
+      <div class="card-header">
+        <h3 class="card-title">Pipeline Output</h3>
+      </div>
+      <div class="card-body">
+        <pre id="pipeline-text" class="text-muted" style="font-size: 0.75rem; max-height: 400px; overflow-y: auto;"></pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+async function runPipeline(dryRun) {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = dryRun ? 'Running dry...' : 'Running...';
+
+  try {
+    const resp = await fetch('/api/actions/run-pipeline', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({dry_run: dryRun})
+    });
+    const data = await resp.json();
+    document.getElementById('pipeline-output').style.display = 'block';
+    document.getElementById('pipeline-text').textContent = data.output || data.error || 'No output';
+    if (!dryRun) {
+      setTimeout(() => location.reload(), 2000);
+    }
+  } catch(e) {
+    alert('Pipeline error: ' + e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = dryRun ? 'Dry Run' : 'Run Pipeline';
+  }
+}
+</script>
+{% endblock %}

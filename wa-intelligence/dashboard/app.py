@@ -169,6 +169,177 @@ async def conversation_detail(request: Request, dealer_id: str):
     })
 
 
+# ── CRM ─────────────────────────────────────────────
+
+@app.get('/crm', response_class=HTMLResponse)
+async def crm(request: Request):
+    redirect = _auth_or_redirect(request)
+    if redirect:
+        return redirect
+
+    dealers = db.get_crm_dealers()
+    stats = db.get_crm_pipeline_stats()
+
+    return templates.TemplateResponse('crm.html', {
+        'request': request,
+        'page': 'crm',
+        'dealers': dealers,
+        'stats': stats,
+    })
+
+
+@app.get('/crm/{dealer_id}', response_class=HTMLResponse)
+async def crm_detail(request: Request, dealer_id: str):
+    redirect = _auth_or_redirect(request)
+    if redirect:
+        return redirect
+
+    dealer = db.get_crm_dealer(dealer_id)
+    if not dealer:
+        return RedirectResponse(url='/crm', status_code=303)
+
+    interactions = db.get_crm_interactions(dealer_id)
+    vehicles = db.get_crm_vehicles(dealer_id)
+
+    return templates.TemplateResponse('crm_detail.html', {
+        'request': request,
+        'page': 'crm',
+        'dealer': dealer,
+        'interactions': interactions,
+        'vehicles': vehicles,
+    })
+
+
+# ── Vehicle Pipeline ─────────────────────────────────────
+
+@app.get('/vehicles', response_class=HTMLResponse)
+async def vehicles(request: Request):
+    redirect = _auth_or_redirect(request)
+    if redirect:
+        return redirect
+
+    pipeline_data = _get_vehicle_pipeline_data()
+
+    return templates.TemplateResponse('vehicles.html', {
+        'request': request,
+        'page': 'vehicles',
+        'summary': pipeline_data['summary'],
+        'vehicles': pipeline_data['vehicles'],
+        'log_recent': pipeline_data['log_recent'],
+    })
+
+
+@app.get('/api/vehicle-pipeline')
+async def api_vehicle_pipeline(request: Request):
+    err = _require_auth_api(request)
+    if err:
+        return err
+    return _get_vehicle_pipeline_data()
+
+
+@app.post('/api/actions/run-pipeline')
+async def action_run_pipeline(request: Request):
+    """Trigger a pipeline orchestrator dry-run."""
+    err = _require_auth_api(request)
+    if err:
+        return err
+    body = await request.json()
+    dry_run = body.get('dry_run', True)
+    try:
+        cmd = ['python3', str(Path(__file__).parent.parent.parent / 'src' / 'cove' / 'pipeline_orchestrator.py')]
+        if dry_run:
+            cmd.append('--dry-run')
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120,
+                                env={**os.environ, 'ARGOS_DB_PATH': str(Path(__file__).parent.parent.parent / 'dealer_network.sqlite')})
+        return {'ok': True, 'output': result.stdout[-3000:], 'stderr': result.stderr[-1000:] if result.stderr else ''}
+    except subprocess.TimeoutExpired:
+        return {'ok': False, 'error': 'Pipeline timeout (120s)'}
+    except Exception as e:
+        return JSONResponse({'error': str(e)}, status_code=500)
+
+
+def _get_vehicle_pipeline_data() -> dict:
+    """Get vehicle pipeline data from DuckDB."""
+    try:
+        import duckdb
+        db_path = str(Path(__file__).parent.parent.parent / 'src' / 'cove' / 'data' / 'cove_tracker.duckdb')
+        con = duckdb.connect(db_path, read_only=True)
+
+        # Summary by state
+        summary_rows = con.execute("""
+            SELECT pipeline_state, COUNT(*) as cnt
+            FROM vehicle_listings
+            GROUP BY pipeline_state
+            ORDER BY cnt DESC
+        """).fetchall()
+        summary = {r[0]: r[1] for r in summary_rows}
+
+        # Vehicles with details (non-terminal, most recent first)
+        vehicles = con.execute("""
+            SELECT vl.listing_id, vl.make, vl.model, vl.year, vl.mileage, vl.price_eu,
+                   vl.pipeline_state, vl.state_updated_at, vl.matched_dealer, vl.dossier_path,
+                   vl.seller_email, vl.seller_followup_count, vl.image_count,
+                   cr.confidence, cr.fraud_overall, cr.market_price, cr.recommendation
+            FROM vehicle_listings vl
+            LEFT JOIN cove_results cr ON vl.listing_id = cr.listing_id
+            WHERE vl.pipeline_state NOT IN ('REJECTED')
+            ORDER BY
+                CASE vl.pipeline_state
+                    WHEN 'DOSSIER_READY' THEN 1
+                    WHEN 'DATA_COMPLETE' THEN 2
+                    WHEN 'SELLER_CONTACTED' THEN 3
+                    WHEN 'ENRICHED' THEN 4
+                    WHEN 'SCORED' THEN 5
+                    WHEN 'DISCOVERED' THEN 6
+                    ELSE 7
+                END,
+                vl.state_updated_at DESC NULLS LAST
+            LIMIT 100
+        """).fetchall()
+
+        vehicle_list = []
+        for v in vehicles:
+            margin = 0
+            if v[15] and v[5]:  # market_price and price_eu
+                margin = float(v[15]) - float(v[5]) - 1200 - 430 - 900
+            vehicle_list.append({
+                'listing_id': v[0], 'make': v[1], 'model': v[2], 'year': v[3],
+                'km': f"{v[4]:,}" if v[4] else '?',
+                'price_eu': f"{int(v[5]):,}" if v[5] else '?',
+                'state': v[6], 'updated': str(v[7])[:16] if v[7] else '',
+                'dealer': v[8] or '', 'dossier': v[9] or '',
+                'seller_email': v[10] or '', 'followups': v[11] or 0,
+                'photos': v[12] or 0,
+                'confidence': f"{v[13]:.0%}" if v[13] else '?',
+                'fraud': v[14] or '?',
+                'market_it': f"{int(v[15]):,}" if v[15] else '?',
+                'margin': f"{int(margin):,}" if margin else '?',
+                'recommendation': v[16] or '?',
+            })
+
+        # Recent log
+        log_recent = []
+        try:
+            log_rows = con.execute("""
+                SELECT listing_id, from_state, to_state, action, created_at
+                FROM pipeline_log
+                ORDER BY created_at DESC
+                LIMIT 20
+            """).fetchall()
+            for lr in log_rows:
+                log_recent.append({
+                    'listing_id': lr[0], 'from': lr[1] or '-', 'to': lr[2],
+                    'action': lr[3], 'time': str(lr[4])[:16] if lr[4] else '',
+                })
+        except Exception:
+            pass
+
+        con.close()
+        return {'summary': summary, 'vehicles': vehicle_list, 'log_recent': log_recent}
+    except Exception as e:
+        return {'summary': {}, 'vehicles': [], 'log_recent': [], 'error': str(e)}
+
+
 # ── Finance ──────────────────────────────────────────────
 
 @app.get('/finance', response_class=HTMLResponse)
