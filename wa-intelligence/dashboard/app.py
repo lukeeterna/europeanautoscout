@@ -340,6 +340,85 @@ def _get_vehicle_pipeline_data() -> dict:
         return {'summary': {}, 'vehicles': [], 'log_recent': [], 'error': str(e)}
 
 
+# ── Vehicle Dossier (view/generate PDF) ──────────────────
+
+@app.get('/vehicles/{listing_id}/dossier')
+async def vehicle_dossier(request: Request, listing_id: str):
+    """Serve existing PDF or generate on-the-fly."""
+    redirect = _auth_or_redirect(request)
+    if redirect:
+        return redirect
+
+    from fastapi.responses import FileResponse
+
+    dossier_dir = Path(__file__).parent.parent.parent / 'dossiers'
+
+    # Check if PDF already exists in DB path or by pattern
+    import duckdb
+    db_path = str(Path(__file__).parent.parent.parent / 'src' / 'cove' / 'data' / 'cove_tracker.duckdb')
+
+    existing_pdf = None
+    try:
+        con = duckdb.connect(db_path, read_only=True)
+        row = con.execute("SELECT dossier_path FROM vehicle_listings WHERE listing_id = ?", [listing_id]).fetchone()
+        if row and row[0] and os.path.exists(row[0]):
+            existing_pdf = row[0]
+        con.close()
+    except Exception:
+        pass
+
+    # Fallback: search by pattern in dossiers/
+    if not existing_pdf:
+        for f in dossier_dir.glob(f"*{listing_id[:12]}*.pdf"):
+            existing_pdf = str(f)
+            break
+        # Also check with make/model pattern
+        if not existing_pdf:
+            try:
+                con = duckdb.connect(db_path, read_only=True)
+                vrow = con.execute("SELECT make, model, year FROM cove_results WHERE listing_id = ?", [listing_id]).fetchone()
+                con.close()
+                if vrow:
+                    for f in dossier_dir.glob(f"ARGOS_{vrow[0]}_{vrow[1]}_{vrow[2]}_*.pdf"):
+                        existing_pdf = str(f)
+                        break
+            except Exception:
+                pass
+
+    if existing_pdf and os.path.exists(existing_pdf):
+        return FileResponse(existing_pdf, media_type='application/pdf',
+                            filename=os.path.basename(existing_pdf))
+
+    # PDF doesn't exist — generate it now
+    try:
+        import sys as _sys
+        scripts_dir = str(Path(__file__).parent.parent.parent / 'tools' / 'scripts')
+        if scripts_dir not in _sys.path:
+            _sys.path.insert(0, scripts_dir)
+        repo_root = str(Path(__file__).parent.parent.parent)
+        if repo_root not in _sys.path:
+            _sys.path.insert(0, repo_root)
+        from pdf_generator_enterprise import generate_dossier_from_db
+
+        output_dir = str(dossier_dir)
+        pdf_path = generate_dossier_from_db(listing_id, "ARGOS Preview", output_dir, db_path)
+
+        if pdf_path and os.path.exists(pdf_path):
+            # Store path in DB
+            try:
+                con = duckdb.connect(db_path)
+                con.execute("UPDATE vehicle_listings SET dossier_path = ? WHERE listing_id = ?", [pdf_path, listing_id])
+                con.close()
+            except Exception:
+                pass
+            return FileResponse(pdf_path, media_type='application/pdf',
+                                filename=os.path.basename(pdf_path))
+        else:
+            return JSONResponse({'error': 'PDF generation failed'}, status_code=500)
+    except Exception as e:
+        return JSONResponse({'error': f'PDF generation error: {str(e)}'}, status_code=500)
+
+
 # ── Finance ──────────────────────────────────────────────
 
 @app.get('/finance', response_class=HTMLResponse)
