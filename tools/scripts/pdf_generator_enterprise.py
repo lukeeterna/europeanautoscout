@@ -322,39 +322,39 @@ class ARGOSPDFGenerator:
         return tbl
 
     def _create_logo_header(self, vehicle: VehicleData, dealer: DealerInfo, grade_data: Optional[dict] = None) -> Table:
-        """Create header with logo image + ARGOS GRADE badge + vehicle title + dealer watermark"""
-        logo_path = os.path.abspath(self.LOGO_PATH)
+        """Clean header: ARGOS text brand + GRADE badge + vehicle + watermark"""
 
-        # Left: logo
-        if os.path.exists(logo_path):
-            logo_cell = Image(logo_path, width=70*mm, height=18*mm)
-            logo_cell.hAlign = 'LEFT'
-        else:
-            style_brand = ParagraphStyle('BrandFallback', fontSize=16, fontName='Helvetica-Bold',
-                                         textColor=self.brand_black)
-            logo_cell = Paragraph("<b>ARGOS</b> <font color='#C8A446'>AUTOMOTIVE</font>", style_brand)
+        # Left: ARGOS brand text (no image dependency — always renders clean)
+        brand_style = ParagraphStyle('BrandLeft', fontSize=14, fontName='Helvetica-Bold',
+                                      textColor=self.brand_black, leading=16)
+        brand_cell = Paragraph(
+            "<font color='#1A1A1A'><b>ARGOS</b></font>"
+            "<font color='#C8A446'> AUTOMOTIVE</font>",
+            brand_style
+        )
 
-        # Center: ARGOS GRADE badge (V2)
+        # Center: ARGOS GRADE badge
         if grade_data and 'grade' in grade_data:
-            grade_letter = grade_data['grade']
-            grade_cell = self._build_grade_badge(grade_letter)
+            grade_cell = self._build_grade_badge(grade_data['grade'])
         else:
             grade_cell = Paragraph('', ParagraphStyle('Empty', fontSize=8))
 
         # Right: vehicle title + watermark
-        title_style = ParagraphStyle('TitleRight', fontSize=11, fontName='Helvetica-Bold',
-                                      textColor=self.text_dark, alignment=2)
+        title_style = ParagraphStyle('TitleRight', fontSize=10, fontName='Helvetica-Bold',
+                                      textColor=self.text_dark, alignment=2, leading=13)
         right_text = Paragraph(
             f"<b>{vehicle.make} {vehicle.model} {vehicle.year}</b><br/>"
-            f"<font size='8' color='#C8A446'>Riservato per {dealer.name}</font><br/>"
-            f"<font size='8' color='#6B7280'>{dealer.company}</font>",
+            f"<font size='7' color='#C8A446'>Riservato per {dealer.name}</font>",
             title_style
         )
 
-        header_table = Table([[logo_cell, grade_cell, right_text]], colWidths=[70*mm, 30*mm, 80*mm])
+        header_table = Table([[brand_cell, grade_cell, right_text]],
+                             colWidths=[60*mm, 28*mm, 92*mm])
         header_table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
             ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
             ('RIGHTPADDING', (0, 0), (-1, -1), 0),
         ]))
@@ -477,7 +477,7 @@ class ARGOSPDFGenerator:
             details_rows.append(['Proprietari', str(vehicle.previous_owners)])
 
         details_data = [['DETTAGLI VEICOLO', '']] + details_rows
-        details_table = Table(details_data, colWidths=[35*mm, 45*mm])
+        details_table = Table(details_data, colWidths=[32*mm, 48*mm])
         details_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
             ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
@@ -505,7 +505,7 @@ class ARGOSPDFGenerator:
             ['TOTALE', f'{int(vehicle.confidence * 100)}', 'CERTIFICATO'],
         ]
         scoring_data = [['ANALISI ARGOS', '', '']] + scoring_rows
-        scoring_table = Table(scoring_data, colWidths=[35*mm, 18*mm, 27*mm])
+        scoring_table = Table(scoring_data, colWidths=[32*mm, 16*mm, 32*mm])
         scoring_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
             ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
@@ -574,28 +574,48 @@ class ARGOSPDFGenerator:
         grade_letter = grade_data.get('grade', 'C')
         grade_score = grade_data.get('score', 0.0)
 
+        # Use Paragraph for text wrapping in cells
+        cell_style = ParagraphStyle('CriteriCell', fontSize=8, fontName='Helvetica',
+                                     textColor=self.text_secondary, leading=10)
+        status_style_green = ParagraphStyle('StatusGreen', fontSize=9, fontName='Helvetica-Bold',
+                                            textColor=self.success_green, alignment=1, leading=11)
+        status_style_amber = ParagraphStyle('StatusAmber', fontSize=9, fontName='Helvetica-Bold',
+                                            textColor=HexColor('#F59E0B'), alignment=1, leading=11)
+
+        def _p(text, style=cell_style):
+            return Paragraph(text, style)
+
+        def _status(val: bool):
+            return _p("SI", status_style_green) if val else _p("Da verificare", status_style_amber)
+
         criteri_rows = [
-            ("Km verificati",       _check(km_verified),       "Dati km confermati"),
-            ("Zero flag frode",     _check(fraud_ok),          "Nessun alert rilevato"),
-            ("HU / revisione",      "Da verificare",           "Verifica al ritiro"),
-            ("Affidabilita modello","SI",                       "Dati affidabilita disponibili"),
-            ("Delta mercato EU-IT", _check(delta_ok),          "Margine positivo verificato"),
-            ("Proprietari",         "Da verificare",           "Dato non disponibile da remoto"),
-            ("Foto HD originali",   _check(photos_ok),         f"{photo_count} foto verificate" if photos_ok else "Non disponibili"),
+            (_p("Km verificati"),               _status(km_verified),       _p("Dati km confermati")),
+            (_p("Zero flag frode"),             _status(fraud_ok),          _p("Nessun alert rilevato")),
+            (_p("HU / revisione"),              _p("Da verificare", status_style_amber), _p("Verifica al ritiro")),
+            (_p("Affidabilita modello"),        _p("SI", status_style_green), _p("Dati affidabilita disponibili")),
+            (_p("Delta mercato EU-IT"),         _status(delta_ok),          _p("Margine positivo verificato")),
+            (_p("Proprietari"),                 _p("Da verificare", status_style_amber), _p("Dato non disponibile da remoto")),
+            (_p("Foto HD originali"),           _status(photos_ok),         _p(f"{photo_count} foto verificate" if photos_ok else "Non disponibili")),
         ]
 
         recall_note = f"{recall_count} campagne sicurezza (US market)" if recall_count > 0 else "Nessuna campagna rilevata"
 
         # Build table
-        section_data = [["7 CRITERI ARGOS PREMIUM VERIFIED", f"GRADE {grade_letter}  ({grade_score:.2f})", ""]]
+        header_style = ParagraphStyle('CriteriHeader', fontSize=9, fontName='Helvetica-Bold',
+                                       textColor=self.brand_gold, leading=11)
+        section_data = [[_p("7 CRITERI ARGOS PREMIUM VERIFIED", header_style),
+                         _p(f"GRADE {grade_letter}", header_style),
+                         _p(f"({grade_score:.2f})", header_style)]]
         for criterion, status, detail in criteri_rows:
             section_data.append([criterion, status, detail])
         # Add recall row
-        recall_status = "Attenzione" if recall_count > 3 else "OK"
-        section_data.append(["Campagne sicurezza NHTSA", recall_status, recall_note])
+        recall_status_style = status_style_amber if recall_count > 3 else status_style_green
+        section_data.append([_p("Campagne sicurezza NHTSA"),
+                             _p("Attenzione" if recall_count > 3 else "OK", recall_status_style),
+                             _p(recall_note)])
 
         # Color logic: row 0 = header, rows 1-7 = criteri, row 8 = recalls
-        tbl = Table(section_data, colWidths=[65*mm, 30*mm, 45*mm])
+        tbl = Table(section_data, colWidths=[55*mm, 30*mm, 95*mm])
 
         row_styles = [
             # Header
@@ -669,7 +689,7 @@ class ARGOSPDFGenerator:
             ['MARGINE NETTO DEALER', f'EUR {margine_netto:,}', 'Netto tutto'],
         ]
 
-        financial_table = Table(financial_data, colWidths=[60*mm, 35*mm, 45*mm])
+        financial_table = Table(financial_data, colWidths=[65*mm, 35*mm, 80*mm])
         financial_table.setStyle(TableStyle([
             # Header
             ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
@@ -678,7 +698,7 @@ class ARGOSPDFGenerator:
             ('FONTSIZE', (0, 0), (-1, 0), 9),
             # Body
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
             ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
             ('TEXTCOLOR', (1, 1), (1, -1), self.text_dark),
             ('TEXTCOLOR', (2, 1), (2, -1), self.text_secondary),

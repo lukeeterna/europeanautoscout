@@ -40,13 +40,18 @@ ARGOS_BLACK = (26, 26, 26)        # #1A1A1A
 ARGOS_GOLD = (200, 164, 70)       # #C8A446
 ARGOS_WHITE = (255, 255, 255)
 
-# Plate zone detection: covers plate + dealer frame above it
-PLATE_ZONE_TOP_PCT = 0.68    # Start of plate zone (68% from top — covers dealer frame too)
-PLATE_ZONE_BOTTOM_PCT = 1.0  # End of plate zone (100%)
+# Plate zone: ONLY the license plate area (small strip at bottom)
+# EU plates are ~520x110mm, typically in bottom 10-15% of image
+PLATE_ZONE_TOP_PCT = 0.88    # Start of plate strip (88% from top)
+PLATE_ZONE_BOTTOM_PCT = 1.0  # End (100%)
 
-# Dealer text zone: top percentage where dealer logos/watermarks often appear
+# Plate frame text: thin band just above the plate where dealer name sits
+PLATE_FRAME_TOP_PCT = 0.82   # Dealer frame starts here
+PLATE_FRAME_BOTTOM_PCT = 0.88 # Ends where plate starts
+
+# Top dealer watermark zone (only if dealer puts logo on top)
 DEALER_LOGO_TOP_PCT = 0.0
-DEALER_LOGO_BOTTOM_PCT = 0.10  # Top 10%
+DEALER_LOGO_BOTTOM_PCT = 0.05  # Top 5% only
 
 # ARGOS logo path
 SCRIPT_DIR = Path(__file__).parent
@@ -102,34 +107,64 @@ def sanitize_image(
 
         w, h = clean.size
 
-        # ── Step 1: Blur entire lower portion (plate + dealer frame) ──
-        # Covers: license plate, plate frame with dealer name/URL, bumper text
+        # ── Step 1: Black bar over license plate area (small, precise) ──
+        # Only covers the actual plate, not the whole bumper
         plate_top = int(h * PLATE_ZONE_TOP_PCT)
-        plate_zone = clean.crop((0, plate_top, w, h))
-        plate_blurred = plate_zone.filter(ImageFilter.GaussianBlur(radius=40))
-        clean.paste(plate_blurred, (0, plate_top))
+        plate_left = int(w * 0.25)
+        plate_right = int(w * 0.75)
+        draw = ImageDraw.Draw(clean)
+        draw.rectangle([(plate_left, plate_top), (plate_right, h - int(h * 0.02))],
+                        fill=ARGOS_BLACK)
 
-        # ── Step 2: Blur the dealer frame zone above the plate ──
-        # Dealer frames ("BMW Gebrauchte Automobile", "www.procar.de") sit in
-        # the 45-70% vertical zone (grille/front area of the car)
-        frame_top = int(h * 0.45)
-        frame_bottom = int(h * PLATE_ZONE_TOP_PCT)
-        # Only blur the central horizontal band where plate frames appear
-        frame_left = int(w * 0.20)
-        frame_right = int(w * 0.80)
-        frame_zone = clean.crop((frame_left, frame_top, frame_right, frame_bottom))
-        frame_blurred = frame_zone.filter(ImageFilter.GaussianBlur(radius=30))
-        clean.paste(frame_blurred, (frame_left, frame_top))
+        # ── Step 2: Small ARGOS text on the black bar ──
+        try:
+            font_size = max(10, int((h - plate_top) * 0.30))
+            try:
+                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+            except OSError:
+                try:
+                    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+                except OSError:
+                    font = ImageFont.load_default()
+        except Exception:
+            font = ImageFont.load_default()
 
-        # ── Step 3: ARGOS branded plate overlay ──
-        clean = _overlay_argos_plate_cover(clean, plate_top, w, h)
+        text = "ARGOS AUTOMOTIVE"
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        text_x = (plate_left + plate_right - text_w) // 2
+        text_y = plate_top + ((h - int(h * 0.02) - plate_top - text_h) // 2)
+        draw.text((text_x, text_y), text, fill=ARGOS_GOLD, font=font)
 
-        # ── Step 4: Blur top dealer logo zone (top 10%) ──
-        dealer_bottom = int(h * DEALER_LOGO_BOTTOM_PCT)
-        if dealer_bottom > 10:
-            top_zone = clean.crop((0, 0, w, dealer_bottom))
-            top_blurred = top_zone.filter(ImageFilter.GaussianBlur(radius=15))
-            clean.paste(top_blurred, (0, 0))
+        # ── Step 3: Blur dealer frame text JUST above the plate (thin strip) ──
+        frame_top = int(h * PLATE_FRAME_TOP_PCT)
+        frame_bottom = int(h * PLATE_FRAME_BOTTOM_PCT)
+        frame_left = int(w * 0.25)
+        frame_right = int(w * 0.75)
+        if frame_bottom > frame_top + 5:
+            frame_zone = clean.crop((frame_left, frame_top, frame_right, frame_bottom))
+            frame_blurred = frame_zone.filter(ImageFilter.GaussianBlur(radius=20))
+            clean.paste(frame_blurred, (frame_left, frame_top))
+
+        # ── Step 4: Crop bottom 12% (dealer branding footer bar) ──
+        # AS24/dealer photos often have a branded bar at the bottom with
+        # dealer name, partner logos (Kia, Hyundai, etc). Remove it entirely.
+        crop_bottom = int(h * 0.88)
+        clean = clean.crop((0, 0, w, crop_bottom))
+
+        # ── Step 5: Also blur the plate frame text on the car (center area) ──
+        # "BMW Gebrauchte Automobile" / "www.procar.de" on the grille frame
+        # This is a narrow horizontal band around 55-65% from top, center 60% of width
+        w2, h2 = clean.size
+        grille_top = int(h2 * 0.55)
+        grille_bottom = int(h2 * 0.68)
+        grille_left = int(w2 * 0.25)
+        grille_right = int(w2 * 0.65)
+        if grille_bottom > grille_top + 5:
+            grille_zone = clean.crop((grille_left, grille_top, grille_right, grille_bottom))
+            grille_blurred = grille_zone.filter(ImageFilter.GaussianBlur(radius=15))
+            clean.paste(grille_blurred, (grille_left, grille_top))
 
         # ── Step 4: Save as JPEG (strips all metadata) ──
         if clean.mode == 'RGBA':
