@@ -287,9 +287,21 @@ async function handleInboundMessage(msg) {
     const timeCtx = TC.formatContextForLog(TC.buildAgentTimeContext());
 
     // 1. Cerca dealer nel DB — SOLO dealer noti in pipeline
-    const dealer = lookupDealer(msg.from);
+    // Se il msg arriva con @lid (nuovo formato WA), ottieni il numero reale dal contatto
+    let phone = msg.from;
+    if (msg.from.endsWith('@lid')) {
+        try {
+            const contact = await msg.getContact();
+            phone = contact.number ? `${contact.number}@c.us` : msg.from;
+            log('INFO', `LID resolved: ${msg.from} → ${phone} (${contact.pushname || '?'})`);
+        } catch (e) {
+            log('WARN', `LID resolve failed for ${msg.from}: ${e.message}`);
+        }
+    }
+
+    const dealer = lookupDealer(phone);
     if (!dealer) {
-        log('INFO', `⏭️ Messaggio da numero non in pipeline: ${msg.from} — ignorato`);
+        log('INFO', `⏭️ Messaggio da numero non in pipeline: ${phone} (raw: ${msg.from}) — ignorato`);
         return;
     }
 
@@ -349,6 +361,51 @@ async function handleInboundMessage(msg) {
 }
 
 // ── Inizializza client WA ────────────────────────────────────
+// ── Message Buffer (debounce multi-input) — modulo-level ──
+const MESSAGE_BUFFER = new Map();
+const DEBOUNCE_MS = 15000;  // 15 secondi silence window
+const HARD_CAP_MS = 45000;  // 45 secondi max dal primo messaggio
+
+function bufferMessage(dealer, msg, msgId) {
+    const dealerId = dealer.dealer_id;
+
+    if (MESSAGE_BUFFER.has(dealerId)) {
+        const buf = MESSAGE_BUFFER.get(dealerId);
+        buf.messages.push({ body: msg.body, type: msg.type, id: msgId, timestamp: Date.now() });
+
+        clearTimeout(buf.timer);
+
+        const elapsed = Date.now() - buf.firstAt;
+        const remaining = Math.max(1000, HARD_CAP_MS - elapsed);
+        const wait = Math.min(DEBOUNCE_MS, remaining);
+
+        buf.timer = setTimeout(() => flushBuffer(dealerId, dealer), wait);
+        log('INFO', `Buffer: +1 msg per ${dealer.dealer_name} (${buf.messages.length} in buffer, flush tra ${Math.round(wait/1000)}s)`);
+    } else {
+        const timer = setTimeout(() => flushBuffer(dealerId, dealer), DEBOUNCE_MS);
+        MESSAGE_BUFFER.set(dealerId, {
+            messages: [{ body: msg.body, type: msg.type, id: msgId, timestamp: Date.now() }],
+            timer,
+            firstAt: Date.now(),
+        });
+        log('INFO', `Buffer: nuovo per ${dealer.dealer_name} (flush tra 15s)`);
+    }
+}
+
+function flushBuffer(dealerId, dealer) {
+    const buf = MESSAGE_BUFFER.get(dealerId);
+    if (!buf) return;
+    MESSAGE_BUFFER.delete(dealerId);
+
+    const bodies = buf.messages.map(m => m.body).filter(Boolean);
+    const combinedBody = bodies.join('\n---\n');
+    const firstMsgId = buf.messages[0].id;
+
+    log('INFO', `Buffer flush: ${dealer.dealer_name} — ${buf.messages.length} msg aggregati`);
+    triggerAnalyzer(firstMsgId, combinedBody, dealer);
+}
+
+// ── Inizializza client WA ────────────────────────────────
 function initClient() {
     log('INFO', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     log('INFO', 'ARGOS™ WA Intelligence Daemon v2.1 (SQLite)');
@@ -421,8 +478,8 @@ function initClient() {
         setTimeout(() => process.exit(1), 3000);
     });
 
-    // ── Messaggi in arrivo ───────────────────────────────────
-    client.on('message', async (msg) => {
+    // ── Messaggi in arrivo (message_create è più affidabile di message in WA Web.js 2025+)
+    client.on('message_create', async (msg) => {
         // Ignora messaggi non rilevanti
         if (msg.fromMe)                        return;
         if (msg.from.endsWith('@g.us'))        return;  // gruppo WA
@@ -430,9 +487,11 @@ function initClient() {
         if (msg.from.endsWith('@newsletter'))  return;  // canali WA
         if (msg.from.endsWith('@broadcast'))   return;  // broadcast generico
         if (msg.type === 'e2e_notification')   return;
-        if (!msg.from.endsWith('@c.us'))       return;  // solo chat 1:1 reali
+        // Accetta sia @c.us (vecchio) che @lid (nuovo formato WA 2025+)
+        if (!msg.from.endsWith('@c.us') && !msg.from.endsWith('@lid')) return;
 
         checkDailyReset();
+        log('INFO', `📨 Raw msg.from: ${msg.from} | type: ${msg.type} | hasBody: ${!!msg.body}`);
         await handleInboundMessage(msg);
     });
 
@@ -520,50 +579,6 @@ function initClient() {
             return true;
         }
     };
-
-    // ── Message Buffer (debounce multi-input) ────────────────
-    const MESSAGE_BUFFER = new Map();
-    const DEBOUNCE_MS = 15000;  // 15 secondi silence window
-    const HARD_CAP_MS = 45000;  // 45 secondi max dal primo messaggio
-
-    function bufferMessage(dealer, msg, msgId) {
-        const dealerId = dealer.dealer_id;
-
-        if (MESSAGE_BUFFER.has(dealerId)) {
-            const buf = MESSAGE_BUFFER.get(dealerId);
-            buf.messages.push({ body: msg.body, type: msg.type, id: msgId, timestamp: Date.now() });
-
-            clearTimeout(buf.timer);
-
-            const elapsed = Date.now() - buf.firstAt;
-            const remaining = Math.max(1000, HARD_CAP_MS - elapsed);
-            const wait = Math.min(DEBOUNCE_MS, remaining);
-
-            buf.timer = setTimeout(() => flushBuffer(dealerId, dealer), wait);
-            log('INFO', `Buffer: +1 msg per ${dealer.dealer_name} (${buf.messages.length} in buffer, flush tra ${Math.round(wait/1000)}s)`);
-        } else {
-            const timer = setTimeout(() => flushBuffer(dealerId, dealer), DEBOUNCE_MS);
-            MESSAGE_BUFFER.set(dealerId, {
-                messages: [{ body: msg.body, type: msg.type, id: msgId, timestamp: Date.now() }],
-                timer,
-                firstAt: Date.now(),
-            });
-            log('INFO', `Buffer: nuovo per ${dealer.dealer_name} (flush tra 15s)`);
-        }
-    }
-
-    function flushBuffer(dealerId, dealer) {
-        const buf = MESSAGE_BUFFER.get(dealerId);
-        if (!buf) return;
-        MESSAGE_BUFFER.delete(dealerId);
-
-        const bodies = buf.messages.map(m => m.body).filter(Boolean);
-        const combinedBody = bodies.join('\n---\n');
-        const firstMsgId = buf.messages[0].id;
-
-        log('INFO', `Buffer flush: ${dealer.dealer_name} — ${buf.messages.length} msg aggregati`);
-        triggerAnalyzer(firstMsgId, combinedBody, dealer);
-    }
 
     // ── HTTP Server (porta 9191): health + send + qr ────────
     http.createServer(async (req, res) => {
