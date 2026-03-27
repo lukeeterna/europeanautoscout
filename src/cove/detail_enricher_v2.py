@@ -269,6 +269,34 @@ class DetailEnricherV2:
         result["vin"] = vin
         result["image_count"] = len(images)
 
+        # ── VIN VERIFICATION (€0 — NHTSA + freevindecoder) ────────
+        vin_verification = None
+        if vin and len(vin) == 17:
+            try:
+                from src.cove.vin_verification import VinVerifier
+                # Prendi make/model/year dal listing per consistency check
+                listing_make = specs.get("make", "")
+                listing_model = specs.get("model", "")
+                listing_year = int(specs.get("year", 0) or 0)
+                vin_verification = VinVerifier.full_check(
+                    vin=vin,
+                    listing_make=listing_make,
+                    listing_model=listing_model,
+                    listing_year=listing_year,
+                )
+                result["vin_verified"] = vin_verification.vin_verified
+                result["vin_alerts"] = vin_verification.alerts
+                result["recall_count"] = vin_verification.recall_count
+                logger.info("[enricher_v2] VIN verified=%s, tools=%d/%d, recalls=%d, alerts=%s",
+                            vin_verification.vin_verified,
+                            vin_verification.total_tools_ok,
+                            vin_verification.total_tools_tried,
+                            vin_verification.recall_count,
+                            vin_verification.alerts)
+            except Exception as e:
+                logger.warning("[enricher_v2] VIN verification failed (non-blocking): %s", e)
+                vin_verification = None
+
         if dry_run:
             result["status"] = "enriched" if (vin or images) else "no_vin"
             logger.info("[enricher_v2] DRY RUN %s: vin=%s images=%d specs=%s",
@@ -285,6 +313,15 @@ class DetailEnricherV2:
                 updates.append("vin = ?")
                 params.append(vin)
                 result["fields_updated"].append("vin")
+            # Salva verifica VIN nel DB
+            if vin_verification:
+                updates.append("vin_verified = ?")
+                params.append(vin_verification.vin_verified)
+                updates.append("vin_verification_data = ?")
+                params.append(vin_verification.to_json())
+                updates.append("recall_count = ?")
+                params.append(vin_verification.recall_count)
+                result["fields_updated"].extend(["vin_verified", "vin_verification_data", "recall_count"])
             for field in ("fuel_type", "transmission", "power_kw", "color"):
                 if field in specs:
                     updates.append(f"{field} = ?")

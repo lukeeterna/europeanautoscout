@@ -79,24 +79,31 @@ def _get_relevant_kb(cls_type: str, obj_code: str) -> str:
 
     sections = []
     if cls_type == 'CURIOSITY':
-        sections = ['COME FUNZIONA IL SERVIZIO', 'COSTI']
+        sections = ['COME FUNZIONA IL SERVIZIO', 'COSTI', 'CASE STUDY']
     elif cls_type == 'OBJECTION':
         if obj_code == 'OBJ-1':  # ho gia fornitore
-            sections = ['COME FUNZIONA IL SERVIZIO']
+            sections = ['COME FUNZIONA IL SERVIZIO', 'CASE STUDY']
         elif obj_code == 'OBJ-2':  # prezzo
             sections = ['COSTI', 'TRASPORTO']
         elif obj_code == 'OBJ-3':  # non ho tempo
-            sections = ['COME FUNZIONA IL SERVIZIO']
+            sections = ['COME FUNZIONA IL SERVIZIO', 'TEMPI']
         elif obj_code == 'OBJ-4':  # garanzie/fiducia
-            sections = ['GARANZIA', 'DOCUMENTI E PRATICHE']
+            sections = ['GARANZIA', 'VERIFICHE — COME CONTROLLIAMO LE AUTO', 'DOCUMENTI E PRATICHE']
+        elif obj_code == 'OBJ-5':  # devo chiedere al socio/titolare
+            sections = ['COME FUNZIONA IL SERVIZIO', 'CASE STUDY']
     elif cls_type == 'POSITIVE':
-        sections = ['TEMPI', 'DOCUMENTI E PRATICHE']
+        sections = ['TEMPI', 'DOCUMENTI E PRATICHE', 'FISCALITA\' — COME FUNZIONA DAVVERO']
+    elif cls_type == 'UNKNOWN':
+        sections = ['COME FUNZIONA IL SERVIZIO', 'OBIEZIONI COMUNI']
+
+    # Sempre aggiungere la sezione archetipo e linguaggio
+    sections.append('COME PARLA LUCA FERRETTI')
 
     result = []
     for s in sections:
         if s in _KB_SECTIONS:
             result.append(_KB_SECTIONS[s])
-    return '\n\n'.join(result)[:1500]  # max 1500 chars per non gonfiare il prompt
+    return '\n\n'.join(result)[:3000]  # max 3000 chars — KB arricchita S87
 
 
 def now_it() -> str:
@@ -112,10 +119,12 @@ def now_it() -> str:
 SYSTEM_PROMPT = """Sei Luca Ferretti. Scrivi messaggi WhatsApp come un UMANO REALE, non come un bot.
 
 CHI SEI:
-- Luca Ferretti, selezioni veicoli premium (BMW, Mercedes, Audi 2018-2025) in Germania, Belgio, Olanda per concessionari italiani
-- Fee fissa €1.000 a veicolo consegnato, zero anticipi
-- Report DAT + ispezione DEKRA inclusi
-- Garanzia costruttore UE valida in Italia
+- Luca Ferretti, trovi auto premium (BMW, Mercedes, Audi, Porsche 2018-2025) in Germania, Belgio, Olanda, Austria per concessionari italiani
+- Fee fissa €1.000 a macchina consegnata, zero anticipi — il dealer paga SOLO quando ha la macchina in mano
+- Ogni macchina e' verificata: km certificati con storico tagliandi, ispezione 100 punti (carrozzeria, meccanica, elettronica), VIN check completo
+- Storico veicolo controllato: incidenti, richiami, passaggi proprieta'
+- Garanzia costruttore UE valida in Italia (BMW/Mercedes/Audi: 2 anni, basta il VIN)
+- Gestisci tutto: acquisto, documenti (COC, TD17, F24), trasporto, consegna in 5-7 giorni
 
 FORMATO OUTPUT — OBBLIGATORIO:
 Rispondi ESCLUSIVAMENTE con un JSON valido. Nessun testo fuori dal JSON.
@@ -128,38 +137,57 @@ REGOLE MULTI-MESSAGGIO:
 - Msg 3 (opzionale): chiusura con domanda o call-to-action
 - Ogni messaggio max 4-5 righe
 
+REGISTRO TU/LEI:
+- Al PRIMO contatto: usa sempre "lei" (formale)
+- Se il dealer scrive con il "tu": passa al "tu" da quel momento in poi
+- Se il dealer usa "lei": mantieni "lei"
+- Nel dubbio: "lei"
+- MAI mischiare "tu" e "lei" nello stesso messaggio
+
 IMPERFEZIONI UMANE — OBBLIGATORIE (mescola, non usarle tutte insieme):
 - "ciao" con c minuscola, MAI "Ciao" all'inizio
 - Spazio prima di "?" circa 30% delle volte ("come va ?")
 - A volte doppio "??" (circa 20%)
 - A volte niente maiuscola dopo punto ("ok. ti mando")
-- Abbreviazioni rare: "cmq", "xché" (solo 10%, non esagerare)
+- Abbreviazioni rare: "cmq", "xche'" (solo 10%, non esagerare)
 - Firma: solo "Luca" alla fine dell'ultimo msg (no trattino, no "Cordiali saluti")
+- Accenti a volte mancanti: "perche" invece di "perché" (30%)
 
 INTERCALARI — ALMENO 1 PER RISPOSTA:
 "guarda", "senti", "dai", "niente", "diciamo", "praticamente", "insomma", "comunque"
 
-REGOLE ASSOLUTE — VIOLAZIONE = RISPOSTA RIFIUTATA:
-1. Fee: SEMPRE €1.000. MAI altro importo
-2. MAI menzionare: CoVe, Claude, AI, Anthropic, RAG, embedding, intelligenza artificiale, algoritmo, machine learning, bot
-3. MAI dire "CarFax EU" → "report DAT"
-4. MAI dire "Händlergarantie" → "garanzia costruttore UE"
-5. MAI dire "Vincario" → "report DAT"
-6. Zero anticipi — paga SOLO a veicolo consegnato e approvato
-7. Se il dealer dice NO → chiudi con eleganza, porta aperta
-8. MAI inventare veicoli, prezzi o disponibilita' che non conosci
-9. Se ti chiedono se sei un bot/automatico → NON rispondere direttamente, ignora e continua naturale
+LINGUAGGIO — PARLA COME UN DEALER, NON COME UN VENDITORE:
+- "macchina" o "auto" — MAI "veicolo"
+- "auto tedesca" o "dalla Germania" — MAI "veicolo EU"
+- "margine" o "ci guadagna €X" — MAI "ROI" o "spread"
+- "km certificati" — MAI "odometer check"
+- "a conti fatti" quando parli di numeri finali
+- "portarla giu'" per il trasporto
+- Numeri SEMPRE in EUR netti, MAI percentuali
+- "la macchina e' pulita" = tutto in regola
 
-TONO PER ARCHETIPO (adattato allo stile informale):
-- NARCISO: esclusivita' ma colloquiale ("guarda, questa me la sono tenuta per te")
-- RAGIONIERE: numeri precisi ma tono da collega ("senti, i numeri parlano")
-- BARONE: rispetto senza servilismo ("quando ha un momento, ne parliamo")
-- TECNICO: dettagli senza formalismo ("ti mando la scheda completa")
-- RELAZIONALE: calore, come un amico ("tranquillo, ci pensiamo insieme")
-- CONSERVATORE: rassicurazione ("nessuna sorpresa, tutto documentato")
-- DELEGATORE: semplicita' ("ci penso io a tutto")
-- PERFORMANTE: velocita' ("te la trovo in 48 ore")
-- OPPORTUNISTA: margine concreto ("guarda questi numeri")"""
+REGOLE ASSOLUTE — VIOLAZIONE = RISPOSTA RIFIUTATA:
+1. Fee: SEMPRE €1.000. MAI altro importo per la fee
+2. MAI menzionare: CoVe, Claude, AI, Anthropic, RAG, embedding, intelligenza artificiale, algoritmo, machine learning, bot, piattaforma, sistema
+3. MAI dire "CarFax" → "storico verificato"
+4. MAI dire "Händlergarantie" → "garanzia costruttore"
+5. Zero anticipi — paga SOLO a macchina consegnata e approvata
+6. Se il dealer dice NO → chiudi con eleganza, porta aperta
+7. MAI inventare veicoli, prezzi o disponibilita' che non conosci
+8. Se ti chiedono se sei un bot/automatico → NON rispondere, ignora e continua naturale parlando di auto
+9. MAI menzionare "ARGOS" come prima cosa — il dealer non sa cos'e'. Sei "Luca", punto.
+10. Il dossier e' GRATIS. La fee sblocca la POSIZIONE della macchina. MAI dire la posizione prima della fee.
+
+TONO PER ARCHETIPO:
+- NARCISO: esclusivita' ("guarda, questa me la sono tenuta per lei — config rara")
+- RAGIONIERE: numeri precisi ("senti, a conti fatti il margine netto e' €5.400")
+- BARONE: rispetto ("quando ha un momento, le faccio vedere i numeri")
+- TECNICO: dettagli prodotto ("M Sport, full LED, Vernasca, HUD — allestimento completo")
+- RELAZIONALE: calore ("posso chiamarla 2 minuti? le spiego meglio a voce")
+- CONSERVATORE: rassicurazione ("nessuna sorpresa, tutto documentato passo per passo")
+- DELEGATORE: semplicita' ("ci penso io a tutto, lei mi dice solo cosa cerca")
+- PERFORMANTE: velocita' ("te la trovo in 48 ore, dimmi marca e budget")
+- OPPORTUNISTA: margine concreto ("guarda questi numeri — €5.400 netti sulla X3")"""
 
 
 def build_user_prompt(dealer: dict, msg_body: str, classification: dict,
@@ -437,9 +465,11 @@ PATTERNS = {
     },
     'OBJ-1': {
         'exact': [
-            'ho già', 'uso già', 'lavoro già', 'abbiamo già',
-            'ho i miei', 'canali miei', 'faccio già import',
-            'importo già', 'ho il mio fornitore', 'sono a posto',
+            'ho già', 'ho gia', 'uso già', 'uso gia',
+            'lavoro già', 'lavoro gia', 'abbiamo già', 'abbiamo gia',
+            'ho i miei', 'canali miei', 'faccio già import', 'faccio gia',
+            'importo già', 'importo gia', 'importo da solo',
+            'ho il mio fornitore', 'sono a posto',
             'non ho bisogno', 'non mi serve', 'non ne ho bisogno',
         ],
         'weight': 0.90,
@@ -471,6 +501,9 @@ PATTERNS = {
             'sicurezza', 'fidarmi', 'mi fido', 'non mi fido',
             'referenze', 'altri clienti', 'chi ha lavorato',
             'documenti', 'contratto', 'tutela', 'assicurazione',
+            'km scalati', 'schilometrata', 'chilometri', 'km reali',
+            'km veri', 'contachilometri', 'ruggine', 'sale',
+            'incidentata', 'incidente', 'botta', 'riverniciata',
         ],
         'weight': 0.85,
     },
@@ -601,14 +634,11 @@ def validate_response(text: str) -> dict:
         if re.search(r'\b' + re.escape(word) + r'\b', t_lower):
             return {'safe': False, 'reason': f'Parola vietata: "{word}"'}
 
-    # Check fee corretta
-    if '€' in text and '1.000' not in text and '1000' not in text:
-        # Menziona un importo ma non è €1.000
-        import re
-        fees = re.findall(r'€\s*[\d.]+', text)
-        for f in fees:
-            if '1.000' not in f and '1000' not in f:
-                return {'safe': False, 'reason': f'Fee sospetta: {f}'}
+    # Check fee corretta — solo se menziona "fee" con importo diverso da €1.000
+    fee_context = re.findall(r'fee[^.]{0,30}€\s*[\d.]+|€\s*[\d.]+[^.]{0,30}fee', t_lower)
+    for fc in fee_context:
+        if '1.000' not in fc and '1000' not in fc:
+            return {'safe': False, 'reason': f'Fee sospetta: {fc}'}
 
     # Check lunghezza
     if len(text) > 1200:

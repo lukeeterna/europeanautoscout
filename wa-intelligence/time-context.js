@@ -12,7 +12,7 @@
 const TIMEZONE = 'Europe/Rome';
 
 // ── Ore di business (lun-ven) ─────────────────────────────────
-const BUSINESS_HOURS = { start: 9, end: 18 };
+const BUSINESS_HOURS = { start: 8, end: 20 };
 
 // ── Soglie di warning per azioni scadute ─────────────────────
 const WARNING_HOURS_BEFORE  = 2;   // allerta 2h prima della scadenza
@@ -79,7 +79,7 @@ function isBusinessHours() {
     const now  = nowIT();
     const hour = now.getHours();
     const day  = now.getDay(); // 0=domenica, 6=sabato
-    if (day === 0 || day === 6) return false;
+    if (day === 0) return false; // solo domenica chiuso, sabato mattina attivo
     return hour >= BUSINESS_HOURS.start && hour < BUSINESS_HOURS.end;
 }
 

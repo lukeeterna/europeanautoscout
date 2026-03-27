@@ -206,7 +206,7 @@ function persistInboundMessage(msg, dealer) {
             id,
             dealer?.dealer_id || 'UNKNOWN',
             dealer?.dealer_name || msg.from,
-            msg.from,
+            msg._resolvedPhone || msg.from,
             msg.body,
             now.toISOString(),
             msg.id?.id || id
@@ -233,8 +233,35 @@ function updateConversationState(dealerId, newStep) {
     }
 }
 
+// ── Cap risposte per-dealer (max 3 auto-risposte/giorno) ────
+const DEALER_DAILY_REPLIES = new Map(); // dealerId → count today
+const MAX_REPLIES_PER_DEALER = 3;
+
+function canReplyToDealer(dealerId) {
+    const today = TC.nowIT().toDateString();
+    const key = `${dealerId}_${today}`;
+    const count = DEALER_DAILY_REPLIES.get(key) || 0;
+    return count < MAX_REPLIES_PER_DEALER;
+}
+
+function trackReplyToDealer(dealerId) {
+    const today = TC.nowIT().toDateString();
+    const key = `${dealerId}_${today}`;
+    DEALER_DAILY_REPLIES.set(key, (DEALER_DAILY_REPLIES.get(key) || 0) + 1);
+}
+
 // ── Chiama analyzer asincrono ────────────────────────────────
 function triggerAnalyzer(inboundMsgId, msgBody, dealer) {
+    const dealerId = dealer?.dealer_id || 'UNKNOWN';
+
+    // Cap per-dealer: max 3 risposte auto/giorno
+    if (!canReplyToDealer(dealerId)) {
+        log('WARN', `⚠️ Cap raggiunto per ${dealer?.dealer_name} (${MAX_REPLIES_PER_DEALER}/giorno) — msg salvato ma non risposto`);
+        sendTelegramAlert(`⚠️ *Cap risposte raggiunto*\n👤 ${dealer?.dealer_name}\n📩 "${msgBody.slice(0, 80)}"\n\n_Rispondere manualmente se necessario_`);
+        return;
+    }
+    trackReplyToDealer(dealerId);
+
     const ctx    = TC.buildAgentTimeContext(dealer || {});
     const ctxStr = JSON.stringify(ctx).replace(/'/g, "\\'");
 
@@ -281,6 +308,53 @@ function sendTelegramAlert(text, replyMarkup = null) {
     }
 }
 
+// ── Message Buffer (debounce multi-input) — modulo-level ──
+const MESSAGE_BUFFER = new Map();
+const DEBOUNCE_MS = 15000;  // 15 secondi silence window
+const HARD_CAP_MS = 45000;  // 45 secondi max dal primo messaggio
+
+// ── Anti-Ban: Human-Like Sender (module-level) ──────────────
+let _waClient = null; // settato in initClient() quando ready
+
+const HumanLike = {
+    logNormalDelay(meanMs, stdMs) {
+        const u1 = Math.random();
+        const u2 = Math.random();
+        const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        const delay = Math.exp(Math.log(meanMs) + z * (stdMs / meanMs));
+        return Math.max(2000, Math.min(delay, meanMs * 3));
+    },
+    async simulateTyping(cli, chatId, messageLength) {
+        try {
+            const chat = await (cli || _waClient).getChatById(chatId);
+            await chat.sendPresenceUpdate('composing');
+            const typingMs = Math.max(2000, Math.min(10000, messageLength * 50 + Math.random() * 1500));
+            await new Promise(r => setTimeout(r, typingMs));
+        } catch (e) { log('WARN', 'simulateTyping failed:', e.message); }
+    },
+    async simulateRecording(cli, chatId, audioDurationSec) {
+        try {
+            const chat = await (cli || _waClient).getChatById(chatId);
+            await chat.sendPresenceUpdate('recording');
+            const recordMs = audioDurationSec * 1000 * (0.8 + Math.random() * 0.4);
+            await new Promise(r => setTimeout(r, Math.min(recordMs, 30000)));
+        } catch (e) { log('WARN', 'simulateRecording failed:', e.message); }
+    },
+    async checkOnWhatsApp(cli, phone) {
+        try {
+            const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
+            return await (cli || _waClient).isRegisteredUser(chatId);
+        } catch (e) { log('WARN', `onWhatsApp check failed: ${e.message}`); return true; }
+    },
+    async clearPresence(cli, chatId) {
+        try { const chat = await (cli || _waClient).getChatById(chatId); await chat.clearState(); } catch (_) {}
+    },
+    isAllowedToSend() {
+        if (!TC.isBusinessHours()) { log('INFO', 'Anti-ban: fuori business hours, invio bloccato'); return false; }
+        return true;
+    }
+};
+
 // ── Handler principale: messaggio in arrivo ──────────────────
 async function handleInboundMessage(msg) {
     const now    = TC.nowIT();
@@ -310,7 +384,8 @@ async function handleInboundMessage(msg) {
     log('INFO', `Corpo: ${msg.body.slice(0, 120)}`);
     log('INFO', timeCtx);
 
-    // 2. Logga sul DB
+    // 2. Logga sul DB (usa phone risolto, non raw LID)
+    msg._resolvedPhone = phone; // passa il numero risolto
     const msgId = persistInboundMessage(msg, dealer);
 
     // 3. Aggiorna audit log
@@ -361,10 +436,6 @@ async function handleInboundMessage(msg) {
 }
 
 // ── Inizializza client WA ────────────────────────────────────
-// ── Message Buffer (debounce multi-input) — modulo-level ──
-const MESSAGE_BUFFER = new Map();
-const DEBOUNCE_MS = 15000;  // 15 secondi silence window
-const HARD_CAP_MS = 45000;  // 45 secondi max dal primo messaggio
 
 function bufferMessage(dealer, msg, msgId) {
     const dealerId = dealer.dealer_id;
@@ -515,70 +586,8 @@ function initClient() {
         }
     });
 
-    // ── Anti-Ban: Human-Like Sender ─────────────────────────
-    const HumanLike = {
-        // Delay log-normale (più realistico di uniform random)
-        logNormalDelay(meanMs, stdMs) {
-            const u1 = Math.random();
-            const u2 = Math.random();
-            const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-            const delay = Math.exp(Math.log(meanMs) + z * (stdMs / meanMs));
-            return Math.max(2000, Math.min(delay, meanMs * 3));
-        },
-
-        // Typing indicator proporzionale alla lunghezza
-        async simulateTyping(cli, chatId, messageLength) {
-            try {
-                const chat = await cli.getChatById(chatId);
-                await chat.sendPresenceUpdate('composing');
-                const typingMs = Math.max(2000, Math.min(10000, messageLength * 50 + Math.random() * 1500));
-                await new Promise(r => setTimeout(r, typingMs));
-            } catch (e) {
-                log('WARN', 'simulateTyping failed:', e.message);
-            }
-        },
-
-        // Recording indicator prima di voice note
-        async simulateRecording(cli, chatId, audioDurationSec) {
-            try {
-                const chat = await cli.getChatById(chatId);
-                await chat.sendPresenceUpdate('recording');
-                const recordMs = audioDurationSec * 1000 * (0.8 + Math.random() * 0.4);
-                await new Promise(r => setTimeout(r, Math.min(recordMs, 30000)));
-            } catch (e) {
-                log('WARN', 'simulateRecording failed:', e.message);
-            }
-        },
-
-        // Check se il numero è su WhatsApp PRIMA del primo contatto
-        async checkOnWhatsApp(cli, phone) {
-            try {
-                const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
-                const isRegistered = await cli.isRegisteredUser(chatId);
-                return isRegistered;
-            } catch (e) {
-                log('WARN', `onWhatsApp check failed for ${phone}: ${e.message}`);
-                return true;
-            }
-        },
-
-        // Clear typing/recording state
-        async clearPresence(cli, chatId) {
-            try {
-                const chat = await cli.getChatById(chatId);
-                await chat.clearState();
-            } catch (_) {}
-        },
-
-        // Business hours enforcement
-        isAllowedToSend() {
-            if (!TC.isBusinessHours()) {
-                log('INFO', 'Anti-ban: fuori business hours, invio bloccato');
-                return false;
-            }
-            return true;
-        }
-    };
+    // HumanLike è ora module-level — setta il client reference
+    _waClient = client;
 
     // ── HTTP Server (porta 9191): health + send + qr ────────
     http.createServer(async (req, res) => {
@@ -898,15 +907,15 @@ const VOICE_TEMPLATES = {
 
 // Day 3 follow-up text templates
 const DAY3_TEMPLATES = {
-    NARCISO: `Buongiorno, solo un rapido aggiornamento. Ho selezionato alcune opportunità esclusive per la sua area — veicoli premium che non troverà facilmente sul mercato italiano.\n\nSe ha 5 minuti, le mostro i dettagli.\n\n— Luca`,
-    BARONE: `Buongiorno, non voglio essere invadente. Le scrivo solo perché ho individuato un paio di veicoli che potrebbero interessarle.\n\nSe e quando ha tempo, sono a disposizione.\n\n— Luca`,
-    RAGIONIERE: `Buongiorno, le condivido un dato: questa settimana su 3 BMW X3 2021 selezionate in Germania, il margine medio per il dealer è stato €5.200.\n\nSe vuole i dettagli, mi scriva.\n\n— Luca`,
-    TECNICO: `Buongiorno, ho preparato una scheda tecnica di esempio: report DAT + foto ispezione DEKRA su una Mercedes GLC recente.\n\nSe le interessa vedere il livello di documentazione, gliela invio.\n\n— Luca`,
-    RELAZIONALE: `Buongiorno, ci tenevo a farle sapere che resto a disposizione. Nessuna fretta, quando vorrà approfondire sono qui.\n\nBuona giornata.\n\n— Luca`,
-    CONSERVATORE: `Buongiorno, capisco che valutare un nuovo fornitore richiede tempo. Per questo le confermo: zero rischi, zero anticipi. Paga solo a veicolo consegnato e approvato.\n\nSe ha domande, sono qui.\n\n— Luca`,
-    DELEGATORE: `Buongiorno, solo un promemoria: se decide di provare, io gestisco tutto — selezione, documenti, trasporto. A lei basta dirmi che tipo di veicolo cerca.\n\n— Luca`,
-    PERFORMANTE: `Buongiorno, aggiornamento rapido: ho 3 veicoli disponibili subito in Germania. Se mi dice marca e budget, le mando la proposta entro oggi.\n\n— Luca`,
-    OPPORTUNISTA: `Buongiorno, i margini di questa settimana sono ancora più interessanti. Su un'Audi Q5 2022 dalla Germania: risparmio netto per il dealer circa €6.000.\n\nSe vuole i numeri completi, mi scriva.\n\n— Luca`,
+    NARCISO: `buongiorno, le scrivo solo perche ho trovato una macchina che secondo me fa al caso suo — config rara che in Italia non si trova facilmente.\n\nse ha 2 minuti le mando la scheda. nessun impegno\n\nLuca`,
+    BARONE: `buongiorno, non voglio disturbare. le scrivo perche ho individuato un paio di auto che potrebbero interessarle — km certificati, storico completo.\n\nse e quando ha tempo, sono a disposizione\n\nLuca`,
+    RAGIONIERE: `buongiorno, un dato veloce: su una BMW X3 2022 trovata in Germania questa settimana, il margine netto per il dealer e' circa €5.200 dopo trasporto e fee.\n\nse vuole i numeri completi, mi scriva\n\nLuca`,
+    TECNICO: `buongiorno, ho preparato una scheda tecnica di esempio su una Mercedes GLC recente — allestimento completo, VIN check fatto, km verificati.\n\nse le interessa vedere il livello di documentazione, gliela mando\n\nLuca`,
+    RELAZIONALE: `buongiorno, ci tenevo a farle sapere che resto a disposizione. nessuna fretta, quando vuole approfondire sono qui.\n\nbuona giornata\n\nLuca`,
+    CONSERVATORE: `buongiorno, capisco che valutare un nuovo fornitore richiede tempo. per questo le confermo: zero rischi, zero anticipi. paga solo a macchina consegnata e approvata.\n\nse ha domande, sono qui\n\nLuca`,
+    DELEGATORE: `buongiorno, se decide di provare gestisco tutto io — trovo la macchina, verifico, preparo documenti, organizzo trasporto. a lei basta dirmi cosa cerca\n\nLuca`,
+    PERFORMANTE: `buongiorno, ho 3 auto disponibili subito in Germania. se mi dice marca e budget, le mando la proposta entro oggi\n\nLuca`,
+    OPPORTUNISTA: `buongiorno, i margini di questa settimana sono ancora piu interessanti. su un'Audi Q5 2022 dalla Germania: margine netto circa €6.000 per il dealer.\n\nse vuole i numeri completi, mi scriva\n\nLuca`,
 };
 
 // ── Genera voice note con edge-tts ──────────────────────────
@@ -914,7 +923,7 @@ function generateVoiceNote(text, outputPath) {
     try {
         // edge-tts con voce italiana DiegoNeural
         execSync(
-            `edge-tts --voice it-IT-DiegoNeural --rate "+5%" --text "${text.replace(/"/g, '\\"')}" --write-media "${outputPath}"`,
+            `${process.env.HOME}/Library/Python/3.9/bin/edge-tts --voice it-IT-DiegoNeural --rate "+5%" --text "${text.replace(/"/g, '\\"')}" --write-media "${outputPath}"`,
             { timeout: 30000, stdio: 'pipe' }
         );
         return fs.existsSync(outputPath);
@@ -1086,6 +1095,33 @@ function startScheduler(client) {
         checkScheduledActions().catch(e => log('ERROR', 'Scheduler error:', e.message));
     }, CONFIG.SCHEDULER_INTERVAL);
 }
+
+// ── Health Monitor: verifica connessione WA ogni 5 min ──────
+let _lastHealthOk = Date.now();
+let _healthAlertSent = false;
+
+setInterval(async () => {
+    try {
+        if (!_waClient) return;
+        const state = await _waClient.getState();
+        if (state === 'CONNECTED') {
+            _lastHealthOk = Date.now();
+            if (_healthAlertSent) {
+                sendTelegramAlert('✅ *WA riconnesso* — sessione attiva');
+                _healthAlertSent = false;
+            }
+        } else {
+            const downMin = Math.round((Date.now() - _lastHealthOk) / 60000);
+            if (!_healthAlertSent && downMin >= 5) {
+                sendTelegramAlert(`🚨 *WA DISCONNESSO* da ${downMin} min!\nStato: ${state}\n\n_Controllare sessione su http://192.168.1.2:9191/qr_`);
+                _healthAlertSent = true;
+                log('ERROR', `Health check: WA disconnesso da ${downMin} min, stato: ${state}`);
+            }
+        }
+    } catch (e) {
+        log('WARN', `Health check failed: ${e.message}`);
+    }
+}, 5 * 60 * 1000); // ogni 5 minuti
 
 // ── Entry point ──────────────────────────────────────────────
 const waClient = initClient();

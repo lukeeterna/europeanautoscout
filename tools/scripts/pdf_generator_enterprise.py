@@ -260,7 +260,7 @@ class ARGOSPDFGenerator:
             story.append(self._create_opportunity_intelligence(vehicle))
             story.append(Spacer(1, 6*mm))
 
-        story.append(self._create_verification_section(vehicle))
+        story.append(self._create_verification_section(vehicle, grade_data=grade_data))
         story.append(Spacer(1, 6*mm))
 
         # Gold separator + Footer
@@ -829,21 +829,71 @@ class ARGOSPDFGenerator:
         ]))
         return opp_table
 
-    def _create_verification_section(self, vehicle: VehicleData) -> Table:
-        """Create verification and source documentation section"""
+    def _create_verification_section(self, vehicle: VehicleData, grade_data: dict = None) -> Table:
+        """Create verification section with REAL data from VIN verification pipeline."""
+
+        # Estrai dati reali dalla VIN verification (se disponibili)
+        vin_verif = (grade_data or {}).get("vin_verification", {})
+        vin_verified = vin_verif.get("verified", False)
+        vin_consistent = vin_verif.get("consistent", True)
+        vin_alerts = vin_verif.get("alerts", [])
+        nhtsa_dec = vin_verif.get("nhtsa_decode") or {}
+        freedec = vin_verif.get("freevindecoder") or {}
+        recall_count = (grade_data or {}).get("recall_count", 0)
+        recalls = (grade_data or {}).get("recalls", [])
+
+        # VIN decode status
+        if vin_verified and vin_consistent:
+            vin_status = "Verificato"
+            vin_detail = f"VIN confermato — {nhtsa_dec.get('make', '')} {nhtsa_dec.get('model', '')} {nhtsa_dec.get('year', '')}"
+        elif vin_verified and not vin_consistent:
+            vin_status = "ATTENZIONE"
+            vin_detail = f"Discordanza: {', '.join(vin_alerts[:2])}"
+        else:
+            vin_status = "In attesa"
+            vin_detail = "VIN non ancora verificato"
+
+        # Manufacturer check
+        manufacturer = freedec.get("manufacturer", "")
+        if manufacturer:
+            manuf_status = "Confermato"
+            manuf_detail = manufacturer
+        else:
+            manuf_status = "In attesa"
+            manuf_detail = "Verifica in corso"
+
+        # Recall status
+        if recall_count == 0:
+            recall_status = "Nessuno"
+            recall_detail = "Zero richiami aperti (fonte: NHTSA)"
+        else:
+            recall_status = f"{recall_count} richiami"
+            top_recall = recalls[0].get("component", "—")[:50] if recalls else ""
+            recall_detail = f"{recall_count} richiami — es: {top_recall}"
 
         verification_data = [
-            ['VERIFICA E FONTI', 'STATUS', 'DETTAGLI'],
+            ['VERIFICA ARGOS 100 PUNTI', 'STATUS', 'DETTAGLI'],
+            ['VIN Decode', vin_status, vin_detail],
+            ['Produttore (WMI)', manuf_status, manuf_detail],
+            ['Richiami costruttore', recall_status, recall_detail],
             ['Annuncio originale', 'Verificato', 'Portale EU certificato'],
             ['Prezzo aggiornato', 'Verificato', datetime.now().strftime('%d/%m/%Y')],
             ['Foto veicolo', 'Disponibili', 'Foto HD verificate'],
-            ['Contatto venditore', 'Verificato', 'Venditore EU professionale'],
-            ['Check frodi', 'Superato', 'Nessun alert rilevato'],
+            ['Check frodi ARGOS', 'Superato' if vin_consistent else 'ALERT', 'Nessun alert' if not vin_alerts else vin_alerts[0][:50]],
             ['Stima trasporto', 'Calcolata', f'EUR {vehicle.transport_cost:,}' if vehicle.transport_cost else 'Da preventivare'],
             ['Tempistica consegna', 'Stimata', f'{vehicle.import_days} gg lavorativi' if vehicle.import_days else '7-14 giorni lavorativi']
         ]
 
         verification_table = Table(verification_data, colWidths=[55*mm, 35*mm, 50*mm])
+        # Colori condizionali per status
+        alert_color = HexColor('#DC2626')  # rosso per ALERT/ATTENZIONE
+        status_styles = []
+        for row_idx, row in enumerate(verification_data[1:], start=1):
+            status = str(row[1]).upper()
+            if status in ('ATTENZIONE', 'ALERT'):
+                status_styles.append(('TEXTCOLOR', (1, row_idx), (1, row_idx), alert_color))
+                status_styles.append(('TEXTCOLOR', (2, row_idx), (2, row_idx), alert_color))
+
         verification_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
             ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
@@ -856,6 +906,7 @@ class ARGOSPDFGenerator:
             ('FONTNAME', (1, 1), (1, -1), 'Helvetica-Bold'),
             ('TEXTCOLOR', (2, 1), (2, -1), self.text_secondary),
             ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            *status_styles,  # override colore per righe ALERT
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('TOPPADDING', (0, 0), (-1, -1), 3),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 3),

@@ -159,8 +159,17 @@ def _score_recalls(recall_count: int) -> float:
         return 0.4
 
 
-def _score_km_history() -> float:
-    """KM history: static 0.5 — no free DE verification API exists (Phase 1 confirmed)."""
+def _score_km_history(vin_verified: bool = False, vin_consistency: bool = True) -> float:
+    """KM history score — boosted by VIN verification.
+
+    If VIN verified + consistent: 0.8 (we confirmed the car is what it says)
+    If VIN verified but inconsistent: 0.2 (RED FLAG)
+    If VIN not verified: 0.5 (unknown — same as before)
+    """
+    if vin_verified and vin_consistency:
+        return 0.8
+    elif vin_verified and not vin_consistency:
+        return 0.2  # VIN mismatch = likely fraud
     return 0.5
 
 
@@ -245,14 +254,38 @@ def compute_argos_grade(listing_id: str, db_path: str = DEFAULT_DB_PATH) -> dict
          source, recommendation, confidence, fraud_overall) = cove_row
 
         # ── 2. Fetch vehicle_listings row ─────────────────────────────────────
-        vl_row = con.execute(
-            """
-            SELECT vin, fuel_type, transmission, power_kw, color, mileage, price_eu
-            FROM vehicle_listings
-            WHERE listing_id = ?
-            """,
-            [listing_id],
-        ).fetchone()
+        # Check if vin_verified column exists (S87+ schema)
+        _has_vin_cols = False
+        try:
+            con.execute("SELECT vin_verified FROM vehicle_listings LIMIT 0")
+            _has_vin_cols = True
+        except Exception:
+            pass
+
+        if _has_vin_cols:
+            vl_row = con.execute(
+                """
+                SELECT vin, fuel_type, transmission, power_kw, color, mileage, price_eu,
+                       vin_verified, vin_verification_data, recall_count
+                FROM vehicle_listings
+                WHERE listing_id = ?
+                """,
+                [listing_id],
+            ).fetchone()
+        else:
+            vl_row = con.execute(
+                """
+                SELECT vin, fuel_type, transmission, power_kw, color, mileage, price_eu
+                FROM vehicle_listings
+                WHERE listing_id = ?
+                """,
+                [listing_id],
+            ).fetchone()
+
+        vin_verified = False
+        vin_verification_data = None
+        vin_consistency = True
+        db_recall_count = None
 
         if vl_row is not None:
             listing_data = {
@@ -264,8 +297,19 @@ def compute_argos_grade(listing_id: str, db_path: str = DEFAULT_DB_PATH) -> dict
                 "mileage": vl_row[5],
                 "price_eu": vl_row[6],
             }
+            if _has_vin_cols and len(vl_row) > 7:
+                vin_verified = bool(vl_row[7])
+                if vl_row[8]:
+                    try:
+                        vin_verification_data = json.loads(vl_row[8]) if isinstance(vl_row[8], str) else vl_row[8]
+                        # Check consistency from stored data
+                        cons = vin_verification_data.get("consistency", {})
+                        vin_consistency = cons.get("is_consistent", True)
+                    except (json.JSONDecodeError, AttributeError):
+                        pass
+                if vl_row[9] is not None:
+                    db_recall_count = int(vl_row[9])
         else:
-            # Fall back to cove_results fields where available
             listing_data = {
                 "vin": None,
                 "fuel_type": None,
@@ -287,8 +331,17 @@ def compute_argos_grade(listing_id: str, db_path: str = DEFAULT_DB_PATH) -> dict
         con.close()
 
     # ── 4. NHTSA recalls ──────────────────────────────────────────────────────
-    recall_data = get_nhtsa_recalls(make or "BMW", model or "X3", year or 2022)
-    recall_count = recall_data.get("recall_count", 0)
+    # Usa recall_count dal DB (salvato dall'enricher) se disponibile, altrimenti chiama API
+    if db_recall_count is not None:
+        recall_count = db_recall_count
+        recall_data = {"recall_count": recall_count, "recalls": [], "source": "DB (vin_verification)"}
+        # Estrai recall details dal vin_verification_data se disponibile
+        if vin_verification_data:
+            nhtsa_recalls = vin_verification_data.get("nhtsa_recalls") or {}
+            recall_data["recalls"] = nhtsa_recalls.get("recalls", [])
+    else:
+        recall_data = get_nhtsa_recalls(make or "BMW", model or "X3", year or 2022)
+        recall_count = recall_data.get("recall_count", 0)
 
     # ── 5. Compute component scores ───────────────────────────────────────────
     s_cove    = _score_cove_confidence(confidence)
@@ -296,7 +349,7 @@ def compute_argos_grade(listing_id: str, db_path: str = DEFAULT_DB_PATH) -> dict
     s_compl   = _score_completeness(listing_data)
     s_photos  = _score_photos(photo_count)
     s_recalls = _score_recalls(recall_count)
-    s_km      = _score_km_history()
+    s_km      = _score_km_history(vin_verified=vin_verified, vin_consistency=vin_consistency)
 
     # ── 6. Weighted composite score ───────────────────────────────────────────
     total_score = (
@@ -352,7 +405,7 @@ def compute_argos_grade(listing_id: str, db_path: str = DEFAULT_DB_PATH) -> dict
             },
             "km_history": {
                 "weight": WEIGHT_KM_HISTORY,
-                "raw_value": "static 0.5 (no free DE API)",
+                "raw_value": f"vin_verified={vin_verified}, consistent={vin_consistency}",
                 "score": round(s_km, 4),
                 "weighted": round(WEIGHT_KM_HISTORY * s_km, 4),
             },
@@ -360,6 +413,23 @@ def compute_argos_grade(listing_id: str, db_path: str = DEFAULT_DB_PATH) -> dict
         "recall_count": recall_count,
         "recalls": recall_data.get("recalls", []),
         "recall_source": recall_data.get("source", "NHTSA"),
+        "vin_verified": vin_verified,
+        "vin_consistency": vin_consistency,
+        "vin_verification": {
+            "verified": vin_verified,
+            "consistent": vin_consistency,
+            "alerts": (vin_verification_data or {}).get("alerts", []),
+            "nhtsa_decode": {
+                "make": ((vin_verification_data or {}).get("nhtsa_decode") or {}).get("make", ""),
+                "model": ((vin_verification_data or {}).get("nhtsa_decode") or {}).get("model", ""),
+                "year": ((vin_verification_data or {}).get("nhtsa_decode") or {}).get("year", 0),
+                "fuel_type": ((vin_verification_data or {}).get("nhtsa_decode") or {}).get("fuel_type", ""),
+                "body_type": ((vin_verification_data or {}).get("nhtsa_decode") or {}).get("body_type", ""),
+            } if vin_verification_data else None,
+            "freevindecoder": {
+                "manufacturer": ((vin_verification_data or {}).get("freevindecoder") or {}).get("make", ""),
+            } if vin_verification_data else None,
+        },
         "warranty_status": WARRANTY_STATUS,
         "recommendation": recommendation,
         "analyzed_at": analyzed_at,
