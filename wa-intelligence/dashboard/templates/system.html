@@ -108,47 +108,50 @@
     </div>
   </div>
 
-  <!-- WA Auth -->
+  <!-- WA Auth (via daemon :9191/qr) -->
   <div class="col-12">
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title" style="color: var(--argos-gold);">WhatsApp Auth</h3>
         <span id="wa-session-badge">
           {% if wa_session_active %}
-            <span class="badge" style="background: var(--argos-success); color: #000;">SESSIONE ATTIVA</span>
+            <span class="badge" style="background: var(--argos-success); color: #000;">CONNESSO</span>
+          {% elif wa_auth_running %}
+            <span class="badge" style="background: var(--argos-gold); color: #000;">QR PRONTO</span>
           {% else %}
-            <span class="badge" style="background: var(--argos-danger); color: #fff;">SESSIONE SCADUTA</span>
+            <span class="badge" style="background: var(--argos-danger); color: #fff;">{{ wa_status|default('offline') }}</span>
           {% endif %}
         </span>
       </div>
       <div class="card-body">
         <div id="wa-auth-container">
-          {% if wa_auth_running %}
-            <p style="color: var(--argos-gold); margin-bottom: 1rem;">QR Auth in corso — scansiona dal telefono:</p>
+          {% if wa_session_active %}
+            <p style="color: var(--argos-success); font-size: 1.1em;">
+              Sessione WA attiva e funzionante. Il daemon gestisce tutto.
+            </p>
+          {% elif wa_auth_running %}
+            <p style="color: var(--argos-gold); margin-bottom: 1rem;">QR pronto — scansiona con WA Business &gt; Dispositivi collegati &gt; Collega:</p>
             <div style="text-align: center;">
-              <iframe id="wa-qr-frame" src="http://192.168.1.2:8765"
-                      style="width: 400px; height: 500px; border: 2px solid var(--argos-gold); border-radius: 8px; background: #08080A;">
-              </iframe>
+              <iframe src="/wa-qr" style="width: 400px; height: 480px; border: 2px solid var(--argos-gold); border-radius: 8px; background: #1a1a2e;"></iframe>
             </div>
             <div style="text-align: center; margin-top: 1rem;">
-              <button onclick="stopWaAuth()" class="btn" style="background: var(--argos-danger); color: #fff; border: none;">
-                Ferma Auth
-              </button>
-            </div>
-          {% elif not wa_session_active %}
-            <p style="color: var(--tblr-muted); margin-bottom: 1rem;">
-              Sessione WA scaduta. Clicca per generare il QR e scansionarlo con WhatsApp Business.
-            </p>
-            <div style="text-align: center;">
-              <button onclick="startWaAuth()" id="wa-auth-btn" class="btn"
-                      style="background: var(--argos-gold); color: #000; border: none; font-weight: 600; padding: 0.75rem 2rem; font-size: 1rem;">
-                Autentica WhatsApp
+              <button onclick="checkWaSession()" class="btn" style="background: var(--argos-gold); color: #000; border: none;">
+                Verifica Sessione
               </button>
             </div>
           {% else %}
-            <p style="color: var(--argos-success);">
-              Sessione WA attiva e funzionante. Nessuna azione richiesta.
+            <p style="color: var(--tblr-muted); margin-bottom: 1rem;">
+              Daemon WA: <strong>{{ wa_status|default('offline') }}</strong>.
+              {% if wa_status == 'initializing' %}Il daemon si sta avviando — attendi qualche secondo e ricarica.
+              {% elif wa_status == 'offline' %}Verifica che il daemon sia attivo: <code>pm2 start argos-wa-daemon</code>
+              {% else %}Ricarica la pagina per vedere il QR quando disponibile.
+              {% endif %}
             </p>
+            <div style="text-align: center;">
+              <button onclick="location.reload()" class="btn" style="background: var(--argos-gold); color: #000; border: none; font-weight: 600; padding: 0.75rem 2rem;">
+                Ricarica
+              </button>
+            </div>
           {% endif %}
         </div>
       </div>
@@ -202,75 +205,20 @@
 
 {% block scripts %}
 <script>
-async function startWaAuth() {
-  const btn = document.getElementById('wa-auth-btn');
-  btn.disabled = true;
-  btn.textContent = 'Avvio in corso...';
-
-  try {
-    const res = await fetch('/api/actions/wa-auth-start', {method: 'POST'});
-    const data = await res.json();
-    if (data.ok) {
-      const container = document.getElementById('wa-auth-container');
-      container.innerHTML = `
-        <p style="color: var(--argos-gold); margin-bottom: 1rem;">
-          QR Auth in corso — scansiona dal telefono (WA Business > Dispositivi collegati > Collega):
-        </p>
-        <div style="text-align: center;">
-          <p id="wa-loading" style="color: var(--tblr-muted); padding: 2rem;">Avvio Chromium (~15s)...</p>
-          <iframe id="wa-qr-frame" src="about:blank"
-                  style="width: 400px; height: 520px; border: 2px solid var(--argos-gold); border-radius: 8px; background: #08080A; display: none;">
-          </iframe>
-        </div>
-        <div style="text-align: center; margin-top: 1rem;">
-          <button onclick="stopWaAuth()" class="btn" style="background: var(--argos-danger); color: #fff; border: none;">
-            Ferma Auth
-          </button>
-          <button onclick="checkWaSession()" class="btn" style="background: var(--argos-gold); color: #000; border: none; margin-left: 0.5rem;">
-            Verifica Sessione
-          </button>
-        </div>
-      `;
-      // Retry loading iframe until QR server is ready
-      let retries = 0;
-      const tryLoad = setInterval(() => {
-        retries++;
-        fetch('http://192.168.1.2:8765', {mode: 'no-cors'}).then(() => {
-          clearInterval(tryLoad);
-          const frame = document.getElementById('wa-qr-frame');
-          const loading = document.getElementById('wa-loading');
-          if (frame) { frame.src = 'http://192.168.1.2:8765'; frame.style.display = 'block'; }
-          if (loading) loading.style.display = 'none';
-        }).catch(() => {});
-        if (retries > 30) clearInterval(tryLoad);
-      }, 2000);
-      document.getElementById('wa-session-badge').innerHTML =
-        '<span class="badge" style="background: var(--argos-gold); color: #000;">AUTH IN CORSO</span>';
-    } else {
-      btn.textContent = 'Errore: ' + (data.error || 'riprova');
-      btn.disabled = false;
-    }
-  } catch (e) {
-    btn.textContent = 'Errore connessione';
-    btn.disabled = false;
-  }
-}
-
-async function stopWaAuth() {
-  await fetch('/api/actions/wa-auth-stop', {method: 'POST'});
-  location.reload();
-}
-
 async function checkWaSession() {
   const res = await fetch('/api/wa-session-status');
   const data = await res.json();
   if (data.session_active) {
     document.getElementById('wa-session-badge').innerHTML =
-      '<span class="badge" style="background: var(--argos-success); color: #000;">SESSIONE ATTIVA</span>';
+      '<span class="badge" style="background: var(--argos-success); color: #000;">CONNESSO</span>';
     const container = document.getElementById('wa-auth-container');
-    container.innerHTML = '<p style="color: var(--argos-success); font-size: 1.1em;">Sessione WA autenticata con successo!</p>';
+    container.innerHTML = '<p style="color: var(--argos-success); font-size: 1.1em;">WhatsApp connesso!</p>';
     setTimeout(() => location.reload(), 2000);
   }
 }
+// Auto-check ogni 10s se QR visibile
+{% if wa_auth_running %}
+setInterval(checkWaSession, 10000);
+{% endif %}
 </script>
 {% endblock %}

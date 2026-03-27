@@ -28,6 +28,7 @@ const path                      = require('path');
 const Database                  = require('better-sqlite3');
 
 const TC = require('./time-context.js');
+const QRCode = require('qrcode');
 
 // ── Configurazione ────────────────────────────────────────────
 const CONFIG = {
@@ -376,14 +377,22 @@ function initClient() {
         }
     });
 
+    // ── QR State (esposto via GET /qr) ──────────────────────
+    let QR_STATE = { qr: null, status: 'initializing', updated_at: null };
+
     // ── Events ──────────────────────────────────────────────
 
-    client.on('qr', () => {
-        log('WARN', 'QR richiesto — sessione scaduta. Avvia send_qr_server.js per re-auth.');
-        sendTelegramAlert('⚠️ *WA Daemon*: sessione scaduta. Richiesta nuova autenticazione QR.');
+    client.on('qr', (qr) => {
+        // Genera QR come data URL (base64 PNG) server-side
+        QRCode.toDataURL(qr, { width: 300, margin: 2 }, (err, dataUrl) => {
+            QR_STATE = { qr: dataUrl || qr, status: 'waiting_scan', updated_at: new Date().toISOString() };
+            log('WARN', 'QR generato — disponibile su GET /qr');
+            sendTelegramAlert('⚠️ *WA Daemon*: QR pronto. Apri http://192.168.1.2:9191/qr per scansionare');
+        });
     });
 
     client.on('authenticated', () => {
+        QR_STATE = { qr: null, status: 'authenticated', updated_at: new Date().toISOString() };
         log('INFO', '✅ Sessione autenticata');
     });
 
@@ -393,6 +402,7 @@ function initClient() {
     });
 
     client.on('ready', () => {
+        QR_STATE = { qr: null, status: 'connected', updated_at: new Date().toISOString() };
         const ctx = TC.buildAgentTimeContext();
         log('INFO', '✅ Client PRONTO — in ascolto');
         log('INFO', TC.formatContextForLog(ctx));
@@ -405,6 +415,7 @@ function initClient() {
     });
 
     client.on('disconnected', (reason) => {
+        QR_STATE = { qr: null, status: 'disconnected', updated_at: new Date().toISOString() };
         log('ERROR', 'Disconnesso:', reason);
         sendTelegramAlert(`🔴 *WA Daemon disconnesso*: ${reason}\nPM2 riavvierà automaticamente.`);
         setTimeout(() => process.exit(1), 3000);
@@ -554,9 +565,55 @@ function initClient() {
         triggerAnalyzer(firstMsgId, combinedBody, dealer);
     }
 
-    // ── HTTP Server (porta 9191): health + send ─────────────
+    // ── HTTP Server (porta 9191): health + send + qr ────────
     http.createServer(async (req, res) => {
         checkDailyReset();
+
+        // GET /qr — mostra QR code per autenticazione (HTML o JSON)
+        if (req.method === 'GET' && req.url.startsWith('/qr')) {
+            const wantsJson = (req.headers.accept || '').includes('application/json') || req.url.includes('format=json');
+
+            if (wantsJson) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(QR_STATE));
+                return;
+            }
+
+            // HTML page con QR code auto-refresh
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+
+            if (QR_STATE.status === 'connected') {
+                res.end(`<!DOCTYPE html><html><body style="background:#1a1a2e;color:#0f0;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+                    <div style="text-align:center"><h1>✅ WhatsApp Connesso</h1><p>Sessione attiva — daemon in ascolto</p></div></body></html>`);
+                return;
+            }
+
+            if (QR_STATE.status === 'authenticated') {
+                res.end(`<!DOCTYPE html><html><body style="background:#1a1a2e;color:#0f0;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+                    <div style="text-align:center"><h1>✅ Autenticato</h1><p>In attesa di connessione completa...</p></div>
+                    <script>setTimeout(()=>location.reload(),3000)</script></body></html>`);
+                return;
+            }
+
+            if (!QR_STATE.qr) {
+                res.end(`<!DOCTYPE html><html><body style="background:#1a1a2e;color:#fff;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+                    <div style="text-align:center"><h1>⏳ QR in generazione...</h1><p>Status: ${QR_STATE.status}</p></div>
+                    <script>setTimeout(()=>location.reload(),3000)</script></body></html>`);
+                return;
+            }
+
+            // QR come immagine base64 PNG — zero dipendenze client
+            res.end(`<!DOCTYPE html><html><head><title>ARGOS WA Auth</title></head>
+                <body style="background:#1a1a2e;color:#fff;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+                <div style="text-align:center">
+                    <h2 style="color:#e94560">ARGOS™ WhatsApp Auth</h2>
+                    <img src="${QR_STATE.qr}" style="margin:20px auto;display:block;border:8px solid #fff;border-radius:12px;width:300px;height:300px" />
+                    <p>Scansiona con WA Business → Dispositivi collegati → Collega</p>
+                    <p style="color:#666;font-size:12px">Auto-refresh ogni 20s | Status: ${QR_STATE.status}</p>
+                </div>
+                <script>setTimeout(()=>location.reload(), 20000)</script></body></html>`);
+            return;
+        }
 
         // POST /send — invia messaggio singolo WA via daemon (con anti-ban)
         if (req.method === 'POST' && req.url === '/send') {
@@ -790,16 +847,18 @@ function initClient() {
         res.end(JSON.stringify({
             status:           'OK',
             daemon:           'argos-wa-daemon',
-            version:          '2.2-sqlite',
+            version:          '2.3-ambra',
             now_it:           ctx.now_it,
             is_business_hours: ctx.is_business_hours,
             daily_sent:       CONFIG.DAILY_SENT,
             daily_limit:      CONFIG.DAILY_LIMIT,
             daily_remaining:  CONFIG.DAILY_LIMIT - CONFIG.DAILY_SENT,
             uptime_sec:       Math.round(process.uptime()),
+            wa_status:        QR_STATE.status,
+            qr_available:     !!QR_STATE.qr,
         }, null, 2));
-    }).listen(9191, '127.0.0.1', () => {
-        log('INFO', 'HTTP server su http://127.0.0.1:9191 (health + /send)');
+    }).listen(9191, '0.0.0.0', () => {
+        log('INFO', 'HTTP server su http://0.0.0.0:9191 (health + /send + /qr)');
     });
 
     // ── Scheduler Multi-Step (Day 3 + Day 7) ─────────────────

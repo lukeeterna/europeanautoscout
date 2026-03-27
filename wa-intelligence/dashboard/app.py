@@ -469,10 +469,12 @@ async def system(request: Request):
     db_stats = db.get_db_stats()
     audit = db.get_recent_audit(20)
 
-    # WA session status
-    session_dir = Path.home() / 'Documents' / 'app-antigravity-auto' / 'wa-sender' / '.wwebjs_auth' / 'session-argos-business'
-    wa_session_active = session_dir.exists() and any(session_dir.iterdir()) if session_dir.exists() else False
-    wa_auth_running = _wa_auth_process is not None and _wa_auth_process.poll() is None
+    # WA session status — dal daemon direttamente
+    health = _daemon_status()
+    wa_status = health.get('wa_status', 'offline')
+    wa_session_active = wa_status == 'connected'
+    qr_state = _daemon_qr()
+    wa_auth_running = qr_state.get('status') == 'waiting_scan'
 
     return templates.TemplateResponse('system.html', {
         'request': request,
@@ -482,6 +484,7 @@ async def system(request: Request):
         'audit': audit,
         'wa_session_active': wa_session_active,
         'wa_auth_running': wa_auth_running,
+        'wa_status': wa_status,
     })
 
 
@@ -602,94 +605,92 @@ async def action_send_day1(request: Request):
     return {'ok': ok, 'dealer_id': dealer_id}
 
 
-# ── WA Auth ──────────────────────────────────────────────
+# ── WA Auth (proxy al daemon :9191) ──────────────────────
 
-_wa_auth_process = None
+DAEMON_URL = 'http://127.0.0.1:9191'
+
+
+def _daemon_status():
+    """Ottieni stato dal daemon WA (health + qr)."""
+    import urllib.request
+    try:
+        req = urllib.request.Request(f'{DAEMON_URL}/', headers={'Accept': 'application/json'})
+        resp = urllib.request.urlopen(req, timeout=3)
+        return json.loads(resp.read())
+    except Exception:
+        return {'status': 'offline', 'wa_status': 'offline'}
+
+
+def _daemon_qr():
+    """Ottieni QR state dal daemon."""
+    import urllib.request
+    try:
+        req = urllib.request.Request(f'{DAEMON_URL}/qr', headers={'Accept': 'application/json'})
+        resp = urllib.request.urlopen(req, timeout=3)
+        return json.loads(resp.read())
+    except Exception:
+        return {'status': 'offline', 'qr': None}
 
 
 @app.get('/api/wa-session-status')
 async def wa_session_status(request: Request):
-    """Check WA session status. Richiede auth."""
+    """Check WA session status via daemon :9191."""
     err = _require_auth_api(request)
     if err:
         return err
 
-    session_dir = Path.home() / 'Documents' / 'app-antigravity-auto' / 'wa-sender' / '.wwebjs_auth' / 'session-argos-business'
-    session_exists = session_dir.exists() and any(session_dir.iterdir()) if session_dir.exists() else False
-
-    global _wa_auth_process
-    auth_running = _wa_auth_process is not None and _wa_auth_process.poll() is None
+    health = _daemon_status()
+    qr_state = _daemon_qr()
 
     return {
-        'session_active': session_exists,
-        'auth_running': auth_running,
+        'daemon_online': health.get('status') == 'OK',
+        'wa_status': health.get('wa_status', 'unknown'),
+        'session_active': health.get('wa_status') == 'connected',
+        'qr_available': qr_state.get('status') == 'waiting_scan',
+        'auth_running': qr_state.get('status') == 'waiting_scan',
     }
+
+
+@app.get('/wa-qr', response_class=HTMLResponse)
+async def wa_qr_page(request: Request):
+    """Pagina QR auth — proxy dal daemon :9191/qr."""
+    redirect = _auth_or_redirect(request)
+    if redirect:
+        return redirect
+
+    import urllib.request
+    try:
+        resp = urllib.request.urlopen(f'{DAEMON_URL}/qr', timeout=5)
+        html = resp.read().decode('utf-8')
+        return HTMLResponse(html)
+    except Exception as e:
+        return HTMLResponse(f'<html><body style="background:#1a1a2e;color:#ff4444;font-family:monospace;padding:40px">'
+                          f'<h2>Daemon WA offline</h2><p>{e}</p>'
+                          f'<p>Verifica che wa-daemon sia attivo: pm2 status argos-wa-daemon</p></body></html>')
 
 
 @app.post('/api/actions/wa-auth-start')
 async def wa_auth_start(request: Request):
-    """Avvia QR auth server su porta 8765."""
+    """Redirect al QR del daemon — nessun processo separato."""
     err = _require_auth_api(request)
     if err:
         return err
 
-    global _wa_auth_process
+    health = _daemon_status()
+    if health.get('status') != 'OK':
+        return JSONResponse({'error': 'Daemon WA offline. Avvia con: pm2 start argos-wa-daemon'}, status_code=503)
 
-    if _wa_auth_process is not None and _wa_auth_process.poll() is None:
-        return {'ok': True, 'message': 'Auth già in corso', 'port': 8765}
-
-    # Kill any existing process on port 8765
-    try:
-        subprocess.run(['lsof', '-ti:8765'], capture_output=True, text=True, timeout=3)
-        subprocess.run('lsof -ti:8765 | xargs kill -9', shell=True, timeout=3)
-    except Exception:
-        pass
-
-    auth_script = Path.home() / 'Documents' / 'app-antigravity-auto' / 'wa-intelligence' / 'auth-qr-server.js'
-    if not auth_script.exists():
-        return JSONResponse({'error': 'auth-qr-server.js not found'}, status_code=404)
-
-    # Kill stale Chromium sessions that block whatsapp-web.js
-    session_lock = Path.home() / 'Documents' / 'app-antigravity-auto' / 'wa-sender' / 'session-argos-business' / 'SingletonLock'
-    if session_lock.exists():
-        session_lock.unlink(missing_ok=True)
-
-    # Find node binary
-    node_bin = '/usr/local/bin/node'
-    if not Path(node_bin).exists():
-        node_bin = 'node'
-
-    try:
-        _wa_auth_process = subprocess.Popen(
-            [node_bin, str(auth_script)],
-            stdout=open('/tmp/wa_qr_http.log', 'w'),
-            stderr=subprocess.STDOUT,
-            cwd=str(auth_script.parent),
-        )
-        db.write_audit('WA_AUTH_STARTED', None, '{"method": "dashboard"}')
-        return {'ok': True, 'message': 'QR server avviato', 'port': 8765}
-    except Exception as e:
-        return JSONResponse({'error': str(e)}, status_code=500)
+    db.write_audit('WA_AUTH_STARTED', None, '{"method": "daemon-qr"}')
+    return {'ok': True, 'message': 'QR disponibile dal daemon', 'redirect': '/wa-qr'}
 
 
 @app.post('/api/actions/wa-auth-stop')
 async def wa_auth_stop(request: Request):
-    """Ferma il QR auth server."""
+    """Non serve più — il daemon gestisce tutto."""
     err = _require_auth_api(request)
     if err:
         return err
-
-    global _wa_auth_process
-    if _wa_auth_process is not None:
-        _wa_auth_process.terminate()
-        _wa_auth_process = None
-
-    try:
-        subprocess.run('lsof -ti:8765 | xargs kill -9', shell=True, timeout=3)
-    except Exception:
-        pass
-
-    return {'ok': True}
+    return {'ok': True, 'message': 'Il daemon gestisce la sessione autonomamente'}
 
 
 # ── Health & Monitoring (NO AUTH) ────────────────────────
