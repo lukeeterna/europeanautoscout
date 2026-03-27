@@ -952,11 +952,11 @@ def main():
             'label': 'TEMPLATE_FALLBACK',
             'text': json.dumps({"messages": [
                 "ciao, grazie per il riscontro",
-                "guarda, ti mando i dettagli completi entro 48h con report DAT e ispezione DEKRA. zero anticipi, paghi solo a veicolo approvato\n\nLuca"
+                "guarda, ti mando i dettagli completi entro 48h con km certificati e storico verificato. zero anticipi, paghi solo a veicolo approvato\n\nLuca"
             ]}),
             'messages': [
                 "ciao, grazie per il riscontro",
-                "guarda, ti mando i dettagli completi entro 48h con report DAT e ispezione DEKRA. zero anticipi, paghi solo a veicolo approvato\n\nLuca"
+                "guarda, ti mando i dettagli completi entro 48h con km certificati e storico verificato. zero anticipi, paghi solo a veicolo approvato\n\nLuca"
             ]
         }]
         llm_cost_info = 'fallback template'
