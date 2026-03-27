@@ -16,6 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Schema DB + Detail Enricher** - Build DuckDB vehicle_listings/images schema and V2 enricher (completed 2026-03-24)
 - [x] **Phase 3: ARGOS GRADE + PDF Enterprise V2** - Grading system A-E and dossier generation with real data (completed 2026-03-25)
 - [ ] **Phase 4: Primo Outreach Stile Car** - Generate BMW X3 dossier and send Day 1 message to Domenico
+- [ ] **Phase 6: AMBRA Agent — WA Autonomo** - Transform wa-daemon into human-like autonomous agent (multi-msg, imperfezioni, debounce, knowledge base, anti-ban)
 
 ## Phase Details
 
@@ -81,6 +82,25 @@ Plans:
 Plans:
 - [ ] 04-01-PLAN.md — Day 1 NARCISO outreach script: verify dossier, send WA message, update CRM
 
+### Phase 6: AMBRA Agent — WA Autonomo
+**Goal**: wa-daemon + response-analyzer diventano un agente WA indistinguibile da umano (benchmark AMBRA: 90-95%), con anti-ban layer e architettura transport-agnostic
+**Depends on**: Phase 4
+**Requirements**: AGENT-01, AGENT-02, AGENT-03, AGENT-04, AGENT-05
+**Success Criteria** (what must be TRUE):
+  1. wa-daemon invia 2-3 messaggi separati con typing indicator e 3-8s delay tra ognuno — MAI blocco unico
+  2. response-analyzer genera risposte con imperfezioni umane (minuscole, intercalari, spazi irregolari) calibrate per archetipo
+  3. Buffer debounce 15s per-dealer aggrega messaggi multipli in un'unica risposta — MAI risposte separate a burst
+  4. Knowledge base ARGOS (FAQ servizio, costi, tempi, trasporto, garanzie, obiezioni) iniettata nel prompt LLM
+  5. Anti-ban layer attivo: typing indicator proporzionale, recording indicator pre-vocale, delay log-normale, onWhatsApp check, business hours enforcement
+**Plans**: 5 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Multi-messaggio con delay + typing indicator (endpoint /send-multi)
+- [ ] 06-02-PLAN.md — Prompt Haiku con imperfezioni umane + output JSON multi-msg
+- [ ] 06-03-PLAN.md — Debounce 15s multi-input per-dealer con hard cap 45s
+- [ ] 06-04-PLAN.md — Knowledge base ARGOS + iniezione nel prompt LLM
+- [ ] 06-05-PLAN.md — Anti-ban layer: typing/recording indicator, delay log-normale, onWhatsApp check
+
 ## Progress
 
 **Execution Order:**
@@ -92,3 +112,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Schema DB + Detail Enricher | 2/2 | Complete | 2026-03-24 |
 | 3. ARGOS GRADE + PDF Enterprise V2 | 2/2 | Complete | 2026-03-25 |
 | 4. Primo Outreach Stile Car | 0/1 | Not started | - |
+| 6. AMBRA Agent — WA Autonomo | 0/5 | Not started | - |

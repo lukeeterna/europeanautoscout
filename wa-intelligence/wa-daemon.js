@@ -242,7 +242,7 @@ function triggerAnalyzer(inboundMsgId, msgBody, dealer) {
     // Log analyzer output to file per debug (S65 fix)
     const analyzerLogFd = fs.openSync('/tmp/argos-analyzer.log', 'a');
 
-    const child = spawn(CONFIG.PYTHON_BIN, [
+    const args = [
         CONFIG.ANALYZER_SCRIPT,
         '--msg-id',     inboundMsgId,
         '--msg-body',   msgBody,
@@ -252,7 +252,14 @@ function triggerAnalyzer(inboundMsgId, msgBody, dealer) {
         '--step',       dealer?.current_step || 'UNKNOWN',
         '--db-path',    CONFIG.DB_PATH,
         '--time-ctx',   ctxStr,
-    ], {
+    ];
+
+    // Flag batch se messaggi aggregati dal buffer
+    if (msgBody.includes('\n---\n')) {
+        args.push('--batch');
+    }
+
+    const child = spawn(CONFIG.PYTHON_BIN, args, {
         detached: true,
         stdio:    ['ignore', analyzerLogFd, analyzerLogFd],
     });
@@ -308,35 +315,36 @@ async function handleInboundMessage(msg) {
         log('ERROR', 'audit_log insert failed:', e.message);
     }
 
-    // 4. Alert Telegram immediato con contesto temporale
-    const dealerLabel = dealer
-        ? `*${dealer.dealer_name}* (${dealer.persona_type || '?'}) — step: ${dealer.current_step || '?'}`
-        : `*SCONOSCIUTO* — ${msg.from}`;
+    // 4. Alert Telegram (solo se NON c'è già un buffer attivo per questo dealer)
+    const hasExistingBuffer = MESSAGE_BUFFER.has(dealer.dealer_id);
 
-    const daysInfo = dealer?.last_contact_at
-        ? `⏱ ${TC.daysElapsed(dealer.last_contact_at)}gg dall'ultimo contatto`
-        : '';
+    if (!hasExistingBuffer) {
+        const dealerLabel = `*${dealer.dealer_name}* (${dealer.persona_type || '?'}) — step: ${dealer.current_step || '?'}`;
+        const daysInfo = dealer?.last_contact_at
+            ? `⏱ ${TC.daysElapsed(dealer.last_contact_at)}gg dall'ultimo contatto`
+            : '';
 
-    const alertText = [
-        `📩 *RISPOSTA WHATSAPP* — ${TC.formatIT(now)}`,
-        ``,
-        `👤 ${dealerLabel}`,
-        daysInfo,
-        ``,
-        `💬 _"${msg.body.slice(0, 300)}"_`,
-        ``,
-        `⏳ Analisi psicologica in corso...`,
-    ].filter(Boolean).join('\n');
+        const alertText = [
+            `📩 *RISPOSTA WHATSAPP* — ${TC.formatIT(now)}`,
+            ``,
+            `👤 ${dealerLabel}`,
+            daysInfo,
+            ``,
+            `💬 _"${msg.body.slice(0, 300)}"_`,
+            ``,
+            `⏳ Analisi in corso (buffer 15s)...`,
+        ].filter(Boolean).join('\n');
 
-    sendTelegramAlert(alertText);
+        sendTelegramAlert(alertText);
+    }
 
     // 5. Aggiorna step se dealer noto
     if (dealer) {
         updateConversationState(dealer.dealer_id, `RESPONSE_RECEIVED_${Date.now()}`);
     }
 
-    // 6. Avvia analisi asincrona (genera candidate replies)
-    triggerAnalyzer(msgId, msg.body, dealer);
+    // 6. Buffer debounce (aspetta 15s di silenzio prima di analizzare)
+    bufferMessage(dealer, msg, msgId);
 }
 
 // ── Inizializza client WA ────────────────────────────────────
@@ -437,11 +445,120 @@ function initClient() {
         }
     });
 
+    // ── Anti-Ban: Human-Like Sender ─────────────────────────
+    const HumanLike = {
+        // Delay log-normale (più realistico di uniform random)
+        logNormalDelay(meanMs, stdMs) {
+            const u1 = Math.random();
+            const u2 = Math.random();
+            const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+            const delay = Math.exp(Math.log(meanMs) + z * (stdMs / meanMs));
+            return Math.max(2000, Math.min(delay, meanMs * 3));
+        },
+
+        // Typing indicator proporzionale alla lunghezza
+        async simulateTyping(cli, chatId, messageLength) {
+            try {
+                const chat = await cli.getChatById(chatId);
+                await chat.sendPresenceUpdate('composing');
+                const typingMs = Math.max(2000, Math.min(10000, messageLength * 50 + Math.random() * 1500));
+                await new Promise(r => setTimeout(r, typingMs));
+            } catch (e) {
+                log('WARN', 'simulateTyping failed:', e.message);
+            }
+        },
+
+        // Recording indicator prima di voice note
+        async simulateRecording(cli, chatId, audioDurationSec) {
+            try {
+                const chat = await cli.getChatById(chatId);
+                await chat.sendPresenceUpdate('recording');
+                const recordMs = audioDurationSec * 1000 * (0.8 + Math.random() * 0.4);
+                await new Promise(r => setTimeout(r, Math.min(recordMs, 30000)));
+            } catch (e) {
+                log('WARN', 'simulateRecording failed:', e.message);
+            }
+        },
+
+        // Check se il numero è su WhatsApp PRIMA del primo contatto
+        async checkOnWhatsApp(cli, phone) {
+            try {
+                const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
+                const isRegistered = await cli.isRegisteredUser(chatId);
+                return isRegistered;
+            } catch (e) {
+                log('WARN', `onWhatsApp check failed for ${phone}: ${e.message}`);
+                return true;
+            }
+        },
+
+        // Clear typing/recording state
+        async clearPresence(cli, chatId) {
+            try {
+                const chat = await cli.getChatById(chatId);
+                await chat.clearState();
+            } catch (_) {}
+        },
+
+        // Business hours enforcement
+        isAllowedToSend() {
+            if (!TC.isBusinessHours()) {
+                log('INFO', 'Anti-ban: fuori business hours, invio bloccato');
+                return false;
+            }
+            return true;
+        }
+    };
+
+    // ── Message Buffer (debounce multi-input) ────────────────
+    const MESSAGE_BUFFER = new Map();
+    const DEBOUNCE_MS = 15000;  // 15 secondi silence window
+    const HARD_CAP_MS = 45000;  // 45 secondi max dal primo messaggio
+
+    function bufferMessage(dealer, msg, msgId) {
+        const dealerId = dealer.dealer_id;
+
+        if (MESSAGE_BUFFER.has(dealerId)) {
+            const buf = MESSAGE_BUFFER.get(dealerId);
+            buf.messages.push({ body: msg.body, type: msg.type, id: msgId, timestamp: Date.now() });
+
+            clearTimeout(buf.timer);
+
+            const elapsed = Date.now() - buf.firstAt;
+            const remaining = Math.max(1000, HARD_CAP_MS - elapsed);
+            const wait = Math.min(DEBOUNCE_MS, remaining);
+
+            buf.timer = setTimeout(() => flushBuffer(dealerId, dealer), wait);
+            log('INFO', `Buffer: +1 msg per ${dealer.dealer_name} (${buf.messages.length} in buffer, flush tra ${Math.round(wait/1000)}s)`);
+        } else {
+            const timer = setTimeout(() => flushBuffer(dealerId, dealer), DEBOUNCE_MS);
+            MESSAGE_BUFFER.set(dealerId, {
+                messages: [{ body: msg.body, type: msg.type, id: msgId, timestamp: Date.now() }],
+                timer,
+                firstAt: Date.now(),
+            });
+            log('INFO', `Buffer: nuovo per ${dealer.dealer_name} (flush tra 15s)`);
+        }
+    }
+
+    function flushBuffer(dealerId, dealer) {
+        const buf = MESSAGE_BUFFER.get(dealerId);
+        if (!buf) return;
+        MESSAGE_BUFFER.delete(dealerId);
+
+        const bodies = buf.messages.map(m => m.body).filter(Boolean);
+        const combinedBody = bodies.join('\n---\n');
+        const firstMsgId = buf.messages[0].id;
+
+        log('INFO', `Buffer flush: ${dealer.dealer_name} — ${buf.messages.length} msg aggregati`);
+        triggerAnalyzer(firstMsgId, combinedBody, dealer);
+    }
+
     // ── HTTP Server (porta 9191): health + send ─────────────
     http.createServer(async (req, res) => {
         checkDailyReset();
 
-        // POST /send — invia messaggio WA via daemon
+        // POST /send — invia messaggio singolo WA via daemon (con anti-ban)
         if (req.method === 'POST' && req.url === '/send') {
             let body = '';
             req.on('data', chunk => { body += chunk; });
@@ -453,6 +570,11 @@ function initClient() {
                         res.end(JSON.stringify({ error: 'phone and message required' }));
                         return;
                     }
+                    if (!HumanLike.isAllowedToSend()) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'outside business hours' }));
+                        return;
+                    }
                     if (CONFIG.DAILY_SENT >= CONFIG.DAILY_LIMIT) {
                         res.writeHead(429, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'daily limit reached', daily_sent: CONFIG.DAILY_SENT }));
@@ -460,13 +582,28 @@ function initClient() {
                     }
 
                     const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
+
+                    // Check primo contatto: verifica onWhatsApp
+                    const existingMsgs = dbQuery('SELECT COUNT(*) as cnt FROM messages WHERE dealer_id = ? AND direction = ?', [dealer_id || '', 'OUTBOUND']);
+                    const isFirstContact = !existingMsgs[0] || existingMsgs[0].cnt === 0;
+                    if (isFirstContact) {
+                        const onWA = await HumanLike.checkOnWhatsApp(client, phone);
+                        if (!onWA) {
+                            res.writeHead(400, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ error: 'number not on WhatsApp', phone }));
+                            return;
+                        }
+                    }
+
+                    // Simula typing prima dell'invio
+                    await HumanLike.simulateTyping(client, chatId, message.length);
                     await client.sendMessage(chatId, message);
+                    await HumanLike.clearPresence(client, chatId);
                     CONFIG.DAILY_SENT++;
 
                     const msgId = `out_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
                     const now = TC.nowIT();
 
-                    // Logga su DB
                     const db = getDb();
                     db.prepare(`INSERT OR IGNORE INTO messages
                         (id, dealer_id, dealer_name, phone_number, direction, body,
@@ -474,7 +611,6 @@ function initClient() {
                         VALUES (?, ?, '', ?, 'OUTBOUND', ?, datetime('now'), ?, ?, 1)`)
                       .run(msgId, dealer_id || 'MANUAL', chatId, message, now.toISOString(), msgId);
 
-                    // Aggiorna step se dealer_id fornito
                     if (dealer_id) {
                         db.prepare(`UPDATE conversations
                                 SET current_step = 'DAY1_SENT',
@@ -487,7 +623,7 @@ function initClient() {
                     sendTelegramAlert(`📤 *Day 1 INVIATO*\n👤 ${dealer_id || chatId}\n📱 ${chatId}\n📊 ${CONFIG.DAILY_SENT}/${CONFIG.DAILY_LIMIT}`);
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ status: 'sent', msg_id: msgId, daily_sent: CONFIG.DAILY_SENT }));
+                    res.end(JSON.stringify({ status: 'sent', msg_id: msgId, daily_sent: CONFIG.DAILY_SENT, first_contact: isFirstContact }));
                 } catch (err) {
                     log('ERROR', 'Send failed:', err.message);
                     res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -497,7 +633,108 @@ function initClient() {
             return;
         }
 
-        // POST /send-voice — invia voice note WA via daemon
+        // POST /send-multi — invia 2-3 messaggi separati con typing + delay (AMBRA style)
+        if (req.method === 'POST' && req.url === '/send-multi') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const { phone, messages, dealer_id } = JSON.parse(body);
+                    if (!phone || !messages || !Array.isArray(messages) || messages.length === 0) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'phone and messages (array) required' }));
+                        return;
+                    }
+                    if (messages.length > 5) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'max 5 messages per call' }));
+                        return;
+                    }
+                    if (!HumanLike.isAllowedToSend()) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'outside business hours' }));
+                        return;
+                    }
+                    if (CONFIG.DAILY_SENT + messages.length > CONFIG.DAILY_LIMIT) {
+                        res.writeHead(429, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'daily limit would be exceeded', daily_sent: CONFIG.DAILY_SENT, needed: messages.length }));
+                        return;
+                    }
+
+                    const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
+
+                    // Check primo contatto
+                    const existingMsgs = dbQuery('SELECT COUNT(*) as cnt FROM messages WHERE dealer_id = ? AND direction = ?', [dealer_id || '', 'OUTBOUND']);
+                    const isFirstContact = !existingMsgs[0] || existingMsgs[0].cnt === 0;
+                    if (isFirstContact) {
+                        const onWA = await HumanLike.checkOnWhatsApp(client, phone);
+                        if (!onWA) {
+                            res.writeHead(400, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ error: 'number not on WhatsApp', phone }));
+                            return;
+                        }
+                    }
+
+                    const msgIds = [];
+                    const db = getDb();
+
+                    for (let i = 0; i < messages.length; i++) {
+                        const msg = messages[i];
+                        if (!msg || typeof msg !== 'string') continue;
+
+                        // Simula typing proporzionale
+                        await HumanLike.simulateTyping(client, chatId, msg.length);
+
+                        // Invia messaggio
+                        await client.sendMessage(chatId, msg);
+                        CONFIG.DAILY_SENT++;
+
+                        const msgId = `multi_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                        msgIds.push(msgId);
+
+                        // Logga su DB
+                        const now = TC.nowIT();
+                        db.prepare(`INSERT OR IGNORE INTO messages
+                            (id, dealer_id, dealer_name, phone_number, direction, body,
+                             timestamp_it, timestamp_iso, wa_msg_id, processed)
+                            VALUES (?, ?, '', ?, 'OUTBOUND', ?, datetime('now'), ?, ?, 1)`)
+                          .run(msgId, dealer_id || 'MANUAL', chatId, msg, now.toISOString(), msgId);
+
+                        // Delay log-normale tra messaggi (non dopo l'ultimo)
+                        if (i < messages.length - 1) {
+                            const interDelay = HumanLike.logNormalDelay(5000, 1500);
+                            log('INFO', `Multi-msg delay: ${Math.round(interDelay/1000)}s prima del msg ${i+2}`);
+                            await new Promise(r => setTimeout(r, interDelay));
+                        }
+                    }
+
+                    // Clear typing dopo ultimo messaggio
+                    await HumanLike.clearPresence(client, chatId);
+
+                    // Aggiorna step
+                    if (dealer_id) {
+                        db.prepare(`UPDATE conversations
+                                SET current_step = 'DAY1_SENT',
+                                    last_contact_at = datetime('now'),
+                                    analyzed_at = datetime('now')
+                                WHERE dealer_id = ?`).run(dealer_id);
+                    }
+
+                    log('INFO', `✅ MULTI-INVIATO via HTTP: ${chatId} (${dealer_id || 'manual'}) — ${msgIds.length} msg`);
+                    sendTelegramAlert(`📤 *Multi-msg INVIATO*\n👤 ${dealer_id || chatId}\n📱 ${chatId}\n💬 ${msgIds.length} messaggi\n📊 ${CONFIG.DAILY_SENT}/${CONFIG.DAILY_LIMIT}`);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ status: 'sent', msg_ids: msgIds, count: msgIds.length, daily_sent: CONFIG.DAILY_SENT }));
+                } catch (err) {
+                    log('ERROR', 'Send-multi failed:', err.message);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
+            });
+            return;
+        }
+
+        // POST /send-voice — invia voice note WA via daemon (con anti-ban recording indicator)
         if (req.method === 'POST' && req.url === '/send-voice') {
             let body = '';
             req.on('data', chunk => { body += chunk; });
@@ -509,6 +746,11 @@ function initClient() {
                         res.end(JSON.stringify({ error: 'phone and audio_path required' }));
                         return;
                     }
+                    if (!HumanLike.isAllowedToSend()) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'outside business hours' }));
+                        return;
+                    }
                     if (CONFIG.DAILY_SENT >= CONFIG.DAILY_LIMIT) {
                         res.writeHead(429, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'daily limit reached', daily_sent: CONFIG.DAILY_SENT }));
@@ -518,7 +760,13 @@ function initClient() {
                     const { MessageMedia } = require('whatsapp-web.js');
                     const media = MessageMedia.fromFilePath(audio_path);
                     const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
+
+                    // Simula recording indicator prima dell'invio
+                    const estimatedDuration = Math.ceil(fs.statSync(audio_path).size / 4000);
+                    await HumanLike.simulateRecording(client, chatId, estimatedDuration);
+
                     await client.sendMessage(chatId, media, { sendAudioAsVoice: true });
+                    await HumanLike.clearPresence(client, chatId);
                     CONFIG.DAILY_SENT++;
 
                     const msgId = `voice_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -637,10 +885,12 @@ function startScheduler(client) {
             const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
 
             try {
+                // Anti-ban: simula typing prima dell'invio
+                await HumanLike.simulateTyping(client, chatId, template.length);
                 await client.sendMessage(chatId, template);
+                await HumanLike.clearPresence(client, chatId);
                 CONFIG.DAILY_SENT++;
 
-                // Logga e aggiorna step
                 const msgId = `day3_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
                 db.prepare(`INSERT OR IGNORE INTO messages
                     (id, dealer_id, dealer_name, phone_number, direction, body,
@@ -661,8 +911,9 @@ function startScheduler(client) {
                     `📊 ${CONFIG.DAILY_SENT}/${CONFIG.DAILY_LIMIT}`
                 );
 
-                // Anti-ban: attendi 2-5 minuti tra invii
-                const sleepMs = (120 + Math.random() * 180) * 1000;
+                // Anti-ban: delay log-normale tra dealer (media 5 min)
+                const sleepMs = HumanLike.logNormalDelay(300000, 90000);
+                log('INFO', `Day3 anti-ban delay: ${Math.round(sleepMs/1000)}s`);
                 await new Promise(r => setTimeout(r, sleepMs));
             } catch (e) {
                 log('ERROR', `Day 3 send failed for ${dealer.dealer_id}:`, e.message);
@@ -715,7 +966,11 @@ function startScheduler(client) {
             try {
                 const { MessageMedia } = require('whatsapp-web.js');
                 const media = MessageMedia.fromFilePath(voicePath);
+
+                // Anti-ban: simula recording indicator prima dell'invio
+                await HumanLike.simulateRecording(client, chatId, 20);
                 await client.sendMessage(chatId, media, { sendAudioAsVoice: true });
+                await HumanLike.clearPresence(client, chatId);
                 CONFIG.DAILY_SENT++;
 
                 db.prepare(`UPDATE conversations
@@ -733,8 +988,9 @@ function startScheduler(client) {
                 // Cleanup voice file
                 try { fs.unlinkSync(voicePath); } catch (_) {}
 
-                // Anti-ban: attendi 3-6 minuti tra voice note
-                const sleepMs = (180 + Math.random() * 180) * 1000;
+                // Anti-ban: delay log-normale tra voice note (media 5 min)
+                const sleepMs = HumanLike.logNormalDelay(300000, 90000);
+                log('INFO', `Day7 voice anti-ban delay: ${Math.round(sleepMs/1000)}s`);
                 await new Promise(r => setTimeout(r, sleepMs));
             } catch (e) {
                 log('ERROR', `Day 7 voice send failed for ${dealer.dealer_id}:`, e.message);

@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Phase complete — ready for verification
+status: Executing Phase 06
 stopped_at: Completed 03-02-PLAN.md — PDF Enterprise V2 + Stile Car dossier generated
-last_updated: "2026-03-24T18:27:02.277Z"
+last_updated: "2026-03-27T09:27:21.166Z"
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 3
-  total_plans: 8
+  total_plans: 14
   completed_plans: 8
 ---
 
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Il dealer riceve un dossier con dati che non trova da nessun'altra parte — verificati, reali, e pronti per la rivendita.
-**Current focus:** Phase 03 — argos-grade-pdf-enterprise-v2
+**Current focus:** Phase 06 — ambra-agent-wa-autonomo
 
 ## Current Position
 
-Phase: 03 (argos-grade-pdf-enterprise-v2) — EXECUTING
-Plan: 2 of 2
+Phase: 06 (ambra-agent-wa-autonomo) — EXECUTING
+Plan: 1 of 5
 
 ## Performance Metrics
 

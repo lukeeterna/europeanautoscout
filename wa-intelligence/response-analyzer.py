@@ -39,6 +39,65 @@ ARGOS_FEE = '€1.000'
 ARGOS_PERSONA = 'Luca Ferretti'
 ARGOS_BRAND = 'ARGOS Automotive'
 
+# ── Knowledge Base ARGOS ──────────────────────────────────
+KB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'argos_knowledge_base.md')
+KNOWLEDGE_BASE = ''
+_KB_SECTIONS = {}
+
+def _load_knowledge_base():
+    global KNOWLEDGE_BASE, _KB_SECTIONS
+    if not os.path.exists(KB_PATH):
+        return
+    with open(KB_PATH, 'r') as f:
+        KNOWLEDGE_BASE = f.read()
+    # Parsa sezioni per iniezione selettiva
+    current_section = ''
+    current_content = []
+    for line in KNOWLEDGE_BASE.split('\n'):
+        if line.startswith('## '):
+            if current_section:
+                _KB_SECTIONS[current_section] = '\n'.join(current_content)
+            current_section = line[3:].strip().upper()
+            current_content = [line]
+        elif line.startswith('### ') and current_section == 'OBIEZIONI COMUNI':
+            # Sottosezioni obiezioni
+            obj_key = line[4:].strip().strip('"').lower()
+            _KB_SECTIONS[f'OBJ:{obj_key}'] = ''
+            current_content.append(line)
+        else:
+            current_content.append(line)
+    if current_section:
+        _KB_SECTIONS[current_section] = '\n'.join(current_content)
+
+_load_knowledge_base()
+
+
+def _get_relevant_kb(cls_type: str, obj_code: str) -> str:
+    """Ritorna le sezioni KB pertinenti in base alla classificazione."""
+    if not _KB_SECTIONS:
+        return ''
+
+    sections = []
+    if cls_type == 'CURIOSITY':
+        sections = ['COME FUNZIONA IL SERVIZIO', 'COSTI']
+    elif cls_type == 'OBJECTION':
+        if obj_code == 'OBJ-1':  # ho gia fornitore
+            sections = ['COME FUNZIONA IL SERVIZIO']
+        elif obj_code == 'OBJ-2':  # prezzo
+            sections = ['COSTI', 'TRASPORTO']
+        elif obj_code == 'OBJ-3':  # non ho tempo
+            sections = ['COME FUNZIONA IL SERVIZIO']
+        elif obj_code == 'OBJ-4':  # garanzie/fiducia
+            sections = ['GARANZIA', 'DOCUMENTI E PRATICHE']
+    elif cls_type == 'POSITIVE':
+        sections = ['TEMPI', 'DOCUMENTI E PRATICHE']
+
+    result = []
+    for s in sections:
+        if s in _KB_SECTIONS:
+            result.append(_KB_SECTIONS[s])
+    return '\n\n'.join(result)[:1500]  # max 1500 chars per non gonfiare il prompt
+
 
 def now_it() -> str:
     try:
@@ -49,46 +108,58 @@ def now_it() -> str:
         return datetime.utcnow().isoformat()
 
 
-# ── SYSTEM PROMPT per LLM ────────────────────────────────────
-SYSTEM_PROMPT = """Sei Luca Ferretti, consulente di ARGOS Automotive. Scrivi risposte WhatsApp per concessionari italiani.
+# ── SYSTEM PROMPT per LLM (AMBRA-style: imperfezioni umane + multi-msg) ────
+SYSTEM_PROMPT = """Sei Luca Ferretti. Scrivi messaggi WhatsApp come un UMANO REALE, non come un bot.
 
 CHI SEI:
-- Luca Ferretti, ARGOS Automotive
-- Selezioni veicoli premium (BMW, Mercedes, Audi 2018-2023) in Germania, Belgio, Olanda per dealer italiani
+- Luca Ferretti, selezioni veicoli premium (BMW, Mercedes, Audi 2018-2025) in Germania, Belgio, Olanda per concessionari italiani
 - Fee fissa €1.000 a veicolo consegnato, zero anticipi
 - Report DAT + ispezione DEKRA inclusi
 - Garanzia costruttore UE valida in Italia
 
+FORMATO OUTPUT — OBBLIGATORIO:
+Rispondi ESCLUSIVAMENTE con un JSON valido. Nessun testo fuori dal JSON.
+{"messages": ["primo messaggio", "secondo messaggio"]}
+
+REGOLE MULTI-MESSAGGIO:
+- SEMPRE 2-3 messaggi separati (MAI un blocco unico)
+- Msg 1: apertura breve (saluto/aggancio, max 1-2 righe)
+- Msg 2: contenuto principale (risposta, info, proposta)
+- Msg 3 (opzionale): chiusura con domanda o call-to-action
+- Ogni messaggio max 4-5 righe
+
+IMPERFEZIONI UMANE — OBBLIGATORIE (mescola, non usarle tutte insieme):
+- "ciao" con c minuscola, MAI "Ciao" all'inizio
+- Spazio prima di "?" circa 30% delle volte ("come va ?")
+- A volte doppio "??" (circa 20%)
+- A volte niente maiuscola dopo punto ("ok. ti mando")
+- Abbreviazioni rare: "cmq", "xché" (solo 10%, non esagerare)
+- Firma: solo "Luca" alla fine dell'ultimo msg (no trattino, no "Cordiali saluti")
+
+INTERCALARI — ALMENO 1 PER RISPOSTA:
+"guarda", "senti", "dai", "niente", "diciamo", "praticamente", "insomma", "comunque"
+
 REGOLE ASSOLUTE — VIOLAZIONE = RISPOSTA RIFIUTATA:
-1. Fee: SEMPRE €1.000. MAI €400, MAI altro importo
-2. MAI dire "non possiamo fatturare" → dire "il bonifico è più efficiente per entrambi"
-3. MAI dire "CarFax EU" → dire "report DAT" o "DAT Fahrzeughistorie"
-4. MAI dire "Händlergarantie" → dire "garanzia costruttore UE"
-5. MAI menzionare: CoVe, Claude, AI, Anthropic, RAG, embedding, intelligenza artificiale, algoritmo, machine learning
-6. MAI dire "Vincario" → dire "report DAT"
-7. Talk track vs trader: "I trader nascondono €7-10.000 nel prezzo. Noi: €1.000 fisso, tu scegli, DAT+DEKRA inclusi."
-8. Zero anticipi — il dealer paga SOLO a veicolo consegnato e approvato
-9. Se il dealer dice NO → NON insistere. Chiudi con eleganza, porta aperta
-10. MAI inventare veicoli specifici, prezzi specifici o disponibilità che non conosci
+1. Fee: SEMPRE €1.000. MAI altro importo
+2. MAI menzionare: CoVe, Claude, AI, Anthropic, RAG, embedding, intelligenza artificiale, algoritmo, machine learning, bot
+3. MAI dire "CarFax EU" → "report DAT"
+4. MAI dire "Händlergarantie" → "garanzia costruttore UE"
+5. MAI dire "Vincario" → "report DAT"
+6. Zero anticipi — paga SOLO a veicolo consegnato e approvato
+7. Se il dealer dice NO → chiudi con eleganza, porta aperta
+8. MAI inventare veicoli, prezzi o disponibilita' che non conosci
+9. Se ti chiedono se sei un bot/automatico → NON rispondere direttamente, ignora e continua naturale
 
-TONO PER ARCHETIPO:
-- RAGIONIERE: numeri precisi, dati concreti, zero fuffa, ROI esplicito
-- BARONE: rispetto, "su misura per lei", esclusività, mai pressione
-- PERFORMANTE: velocità, "48h", risultati, efficienza
-- NARCISO: esclusività, "selezionato", "riservato per la sua area"
-- TECNICO: documentazione, specifiche, report DAT dettagliato
-- RELAZIONALE: calore, "ci lavoriamo insieme", zero pressione, empatia
-- CONSERVATORE: sicurezza, "nessuna sorpresa", garanzie, tutto documentato
-- DELEGATORE: semplicità, "gestisco tutto io", zero complicazioni
-- OPPORTUNISTA: margine concreto, "i numeri parlano da soli"
-- VISIONARIO: modello innovativo, trasparenza come valore differenziante
-
-FORMATO RISPOSTA:
-- WhatsApp: breve, diretto, massimo 6-8 righe
-- Firma: — Luca (mai "Cordiali saluti" o formalità eccessive)
-- Usa il nome del dealer/titolare se lo conosci
-- NO emoji eccessive, massimo 0-1 per messaggio
-- Tono professionale ma umano, come un collega fidato"""
+TONO PER ARCHETIPO (adattato allo stile informale):
+- NARCISO: esclusivita' ma colloquiale ("guarda, questa me la sono tenuta per te")
+- RAGIONIERE: numeri precisi ma tono da collega ("senti, i numeri parlano")
+- BARONE: rispetto senza servilismo ("quando ha un momento, ne parliamo")
+- TECNICO: dettagli senza formalismo ("ti mando la scheda completa")
+- RELAZIONALE: calore, come un amico ("tranquillo, ci pensiamo insieme")
+- CONSERVATORE: rassicurazione ("nessuna sorpresa, tutto documentato")
+- DELEGATORE: semplicita' ("ci penso io a tutto")
+- PERFORMANTE: velocita' ("te la trovo in 48 ore")
+- OPPORTUNISTA: margine concreto ("guarda questi numeri")"""
 
 
 def build_user_prompt(dealer: dict, msg_body: str, classification: dict,
@@ -108,7 +179,7 @@ def build_user_prompt(dealer: dict, msg_body: str, classification: dict,
 
     prompt = f"""CONTESTO DEALER:
 - Nome: {dealer.get('dealer_name', 'Sconosciuto')}
-- Città: {dealer.get('city', '?')}
+- Citta': {dealer.get('city', '?')}
 - Stock: {dealer.get('stock_size', '?')} veicoli
 - Archetipo: {dealer.get('persona_type', 'DEFAULT')}
 - Step attuale: {dealer.get('current_step', '?')}
@@ -123,15 +194,28 @@ STORICO CONVERSAZIONE:
 {history_text}
 """
 
+    # Contesto veicolo proposto (se disponibile)
+    vehicle_ctx = dealer.get('_vehicle_context', '')
+    if vehicle_ctx:
+        prompt += f"""
+VEICOLO PROPOSTO AL DEALER:
+{vehicle_ctx}
+"""
+
+    # Knowledge base pertinente (se caricata)
+    kb_section = _get_relevant_kb(cls_type, obj_code)
+    if kb_section:
+        prompt += f"""
+CONOSCENZA ARGOS (usa SOLO queste info per rispondere):
+{kb_section}
+"""
+
     prompt += f"""
 MESSAGGIO DEL DEALER (a cui devi rispondere):
 "{msg_body}"
 
-Genera 2 risposte alternative:
-RISPOSTA_A (la migliore per questo archetipo):
-RISPOSTA_B (approccio diverso, più breve):
-
-Calibra il tono sull'archetipo {dealer.get('persona_type', 'DEFAULT')}. Rispondi SOLO con le 2 risposte, nient'altro."""
+Rispondi SOLO con un JSON valido: {{"messages": ["msg1", "msg2"]}}
+Calibra il tono sull'archetipo {dealer.get('persona_type', 'DEFAULT')}. 2-3 messaggi separati."""
 
     return prompt
 
@@ -177,23 +261,59 @@ def call_llm(system_prompt: str, user_prompt: str) -> dict:
 
 
 def parse_llm_responses(text: str) -> list:
-    """Parsa le 2 risposte dal testo LLM."""
-    responses = []
+    """Parsa la risposta LLM — preferisce JSON multi-msg, fallback a testo."""
+    text = text.strip()
 
-    # Cerca RISPOSTA_A e RISPOSTA_B
+    # Tentativo 1: JSON diretto
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, dict) and 'messages' in parsed:
+            msgs = parsed['messages']
+            if isinstance(msgs, list) and len(msgs) > 0:
+                return [{'label': 'LLM_MULTI', 'text': json.dumps(parsed), 'messages': msgs}]
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    # Tentativo 2: JSON dentro code block markdown
+    json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
+    if json_match:
+        try:
+            parsed = json.loads(json_match.group(1))
+            if isinstance(parsed, dict) and 'messages' in parsed:
+                msgs = parsed['messages']
+                if isinstance(msgs, list) and len(msgs) > 0:
+                    return [{'label': 'LLM_MULTI', 'text': json.dumps(parsed), 'messages': msgs}]
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    # Tentativo 3: cerca JSON ovunque nel testo
+    json_match2 = re.search(r'\{[^{}]*"messages"\s*:\s*\[.*?\]\s*\}', text, re.DOTALL)
+    if json_match2:
+        try:
+            parsed = json.loads(json_match2.group(0))
+            if 'messages' in parsed:
+                msgs = parsed['messages']
+                if isinstance(msgs, list) and len(msgs) > 0:
+                    return [{'label': 'LLM_MULTI', 'text': json.dumps(parsed), 'messages': msgs}]
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    # Fallback: vecchio formato RISPOSTA_A/B (backward compat)
     parts = re.split(r'RISPOSTA_[AB][\s:]*', text, flags=re.IGNORECASE)
-
-    for i, part in enumerate(parts[1:], 1):  # skip parte prima di RISPOSTA_A
+    responses = []
+    for i, part in enumerate(parts[1:], 1):
         cleaned = part.strip().strip('"').strip()
         if cleaned:
             label = 'LLM_A' if i == 1 else 'LLM_B'
             responses.append({'label': label, 'text': cleaned})
+    if responses:
+        return responses[:2]
 
-    # Fallback: se il parsing non trova 2 risposte, usa il testo intero
-    if len(responses) == 0 and text.strip():
-        responses.append({'label': 'LLM_SINGLE', 'text': text.strip()})
+    # Ultimo fallback: testo intero come singolo messaggio
+    if text:
+        return [{'label': 'LLM_SINGLE', 'text': text}]
 
-    return responses[:2]
+    return []
 
 
 # ── Cost Tracking ────────────────────────────────────────────
@@ -453,6 +573,22 @@ FORBIDDEN_WORDS_EXACT = ['cove', 'gpt', 'rag', 'bot', 'ai']
 def validate_response(text: str) -> dict:
     """Valida la risposta prima dell'auto-invio. Ritorna {safe, reason}."""
     import re
+
+    # Se JSON multi-msg, valida ogni messaggio individualmente
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, dict) and 'messages' in parsed:
+            for msg in parsed['messages']:
+                result = validate_response(msg)
+                if not result['safe']:
+                    return result
+            total_len = sum(len(m) for m in parsed['messages'])
+            if total_len > 2000:
+                return {'safe': False, 'reason': f'Multi-msg troppo lungo: {total_len} chars totali'}
+            return {'safe': True, 'reason': 'OK'}
+    except (json.JSONDecodeError, TypeError):
+        pass
+
     t_lower = text.lower()
 
     # Check termini vietati (substring)
@@ -485,9 +621,9 @@ def validate_response(text: str) -> dict:
 
 
 # ── Auto-approvazione + invio schedulato ─────────────────────
-def auto_approve_and_send(db_path, reply_id, dealer, reply_text):
-    """Auto-approva e schedula invio via daemon /send endpoint (anti-ban sleep)."""
-    import random, subprocess
+def auto_approve_and_send(db_path, reply_id, dealer, reply_text, reply_obj=None):
+    """Auto-approva e schedula invio via daemon /send o /send-multi (anti-ban sleep)."""
+    import random, subprocess, math
 
     phone = (dealer.get('phone_number', '') or '').replace('+', '').replace(' ', '').replace('-', '')
     if not phone:
@@ -495,7 +631,15 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text):
         return False
 
     dealer_id = dealer.get('dealer_id', 'UNKNOWN')
-    sleep_s = random.randint(90, 720)
+
+    # Delay differenziato: conversazione attiva vs outreach
+    current_step = dealer.get('current_step', '') or ''
+    if 'RESPONSE_RECEIVED' in current_step:
+        sleep_s = random.randint(20, 60)
+    else:
+        # Log-normale approssimato per outreach
+        mean, std = 300, 120
+        sleep_s = int(max(60, min(mean * 3, math.exp(math.log(mean) + random.gauss(0, 1) * (std / mean)))))
 
     # Approva nel DB
     con = sqlite3.connect(db_path, timeout=10)
@@ -503,20 +647,42 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text):
     con.commit()
     con.close()
 
-    # Costruisci payload JSON per il daemon /send
-    payload = json.dumps({
-        'phone': phone,
-        'message': reply_text,
-        'dealer_id': dealer_id,
-    })
-    # Escape per bash single quotes
+    # Determina se usare /send o /send-multi
+    messages = None
+    if reply_obj and 'messages' in reply_obj:
+        messages = reply_obj['messages']
+    else:
+        # Prova a parsare reply_text come JSON multi-msg
+        try:
+            parsed = json.loads(reply_text)
+            if isinstance(parsed, dict) and 'messages' in parsed:
+                messages = parsed['messages']
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    if messages and isinstance(messages, list) and len(messages) > 1:
+        # Multi-messaggio → usa /send-multi
+        payload = json.dumps({
+            'phone': phone,
+            'messages': messages,
+            'dealer_id': dealer_id,
+        })
+        endpoint = '/send-multi'
+    else:
+        # Singolo messaggio → usa /send
+        text = messages[0] if messages else reply_text
+        payload = json.dumps({
+            'phone': phone,
+            'message': text,
+            'dealer_id': dealer_id,
+        })
+        endpoint = '/send'
+
     safe_payload = payload.replace("'", "'\\''")
 
-    # Schedula invio via daemon HTTP /send (usa la sessione WA attiva del daemon)
-    # Dopo invio OK, aggiorna pending_replies.sent = 1
     cmd = (
         f'sleep {sleep_s} && '
-        f"curl -s -X POST http://127.0.0.1:9191/send "
+        f"curl -s -X POST http://127.0.0.1:9191{endpoint} "
         f"-H 'Content-Type: application/json' "
         f"-d '{safe_payload}' "
         f"&& python3 -c \""
@@ -527,7 +693,8 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text):
 
     subprocess.Popen(['bash', '-c', cmd], close_fds=True)
 
-    print(f'[AUTO] Approvata + schedulata reply {reply_id} — invio tra {sleep_s}s via daemon /send')
+    msg_count = len(messages) if messages else 1
+    print(f'[AUTO] Approvata + schedulata reply {reply_id} — {msg_count} msg via {endpoint} — invio tra {sleep_s}s')
     return True
 
 
@@ -660,6 +827,7 @@ def main():
     parser.add_argument('--step',       default='UNKNOWN')
     parser.add_argument('--db-path',    required=True)
     parser.add_argument('--time-ctx',   default='{}')
+    parser.add_argument('--batch',     action='store_true', default=False)
     args = parser.parse_args()
 
     print(f'[{now_it()}] Analyzer avviato per msg_id={args.msg_id}')
@@ -718,7 +886,17 @@ def main():
 
     if OPENROUTER_API_KEY:
         msg_history = dealer.get('message_history', [])
-        user_prompt = build_user_prompt(dealer, args.msg_body, classification, msg_history)
+
+        # Se batch mode, avvisa il prompt che sono messaggi aggregati
+        msg_body_for_prompt = args.msg_body
+        if args.batch:
+            msg_body_for_prompt = (
+                '[Il dealer ha inviato questi messaggi in rapida successione. '
+                'Rispondi a TUTTI i temi in un\'unica risposta coerente, '
+                'non ripetere saluti per ogni messaggio.]\n\n' + args.msg_body
+            )
+
+        user_prompt = build_user_prompt(dealer, msg_body_for_prompt, classification, msg_history)
 
         print(f'  Chiamata LLM: {OPENROUTER_MODEL}...')
         result = call_llm(SYSTEM_PROMPT, user_prompt)
@@ -738,14 +916,18 @@ def main():
         else:
             print(f'  LLM FALLBACK: {result.get("error", "unknown")}')
 
-    # Fallback template
+    # Fallback template (multi-msg format)
     if not candidates:
         candidates = [{
             'label': 'TEMPLATE_FALLBACK',
-            'text': "Grazie per il riscontro.\n"
-                    "Le mando i dettagli completi entro 48h — "
-                    "report DAT e ispezione DEKRA inclusi.\n"
-                    "Zero anticipi, paga solo a veicolo approvato.\n— Luca"
+            'text': json.dumps({"messages": [
+                "ciao, grazie per il riscontro",
+                "guarda, ti mando i dettagli completi entro 48h con report DAT e ispezione DEKRA. zero anticipi, paghi solo a veicolo approvato\n\nLuca"
+            ]}),
+            'messages': [
+                "ciao, grazie per il riscontro",
+                "guarda, ti mando i dettagli completi entro 48h con report DAT e ispezione DEKRA. zero anticipi, paghi solo a veicolo approvato\n\nLuca"
+            ]
         }]
         llm_cost_info = 'fallback template'
 
@@ -780,10 +962,16 @@ def main():
 
     else:
         # SAFE → auto-approva e invia
-        import random
-        sleep_s = random.randint(90, 720)
+        import random, math
+        current_step = dealer.get('current_step', '') or ''
+        if 'RESPONSE_RECEIVED' in current_step:
+            sleep_s = random.randint(20, 60)
+        else:
+            mean, std = 300, 120
+            sleep_s = int(max(60, min(mean * 3, math.exp(math.log(mean) + random.gauss(0, 1) * (std / mean)))))
+
         success = auto_approve_and_send(
-            args.db_path, best_id, dealer, best['text'])
+            args.db_path, best_id, dealer, best['text'], reply_obj=best)
 
         status = (f"✅ *AUTO-APPROVATA* — invio tra ~{sleep_s // 60}min\n"
                   f"_Usa `/rifiuta {best_id}` entro {sleep_s // 60}min per bloccare_"
