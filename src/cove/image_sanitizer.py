@@ -49,9 +49,9 @@ PLATE_ZONE_BOTTOM_PCT = 1.0  # End (100%)
 PLATE_FRAME_TOP_PCT = 0.82   # Dealer frame starts here
 PLATE_FRAME_BOTTOM_PCT = 0.88 # Ends where plate starts
 
-# Top dealer watermark zone (only if dealer puts logo on top)
+# Top dealer watermark zone — many EU portals/dealers place large logos on top 15-20%
 DEALER_LOGO_TOP_PCT = 0.0
-DEALER_LOGO_BOTTOM_PCT = 0.05  # Top 5% only
+DEALER_LOGO_BOTTOM_PCT = 0.18  # Top 18% — covers most dealer watermarks
 
 # ARGOS logo path
 SCRIPT_DIR = Path(__file__).parent
@@ -146,6 +146,26 @@ def sanitize_image(
             frame_zone = clean.crop((frame_left, frame_top, frame_right, frame_bottom))
             frame_blurred = frame_zone.filter(ImageFilter.GaussianBlur(radius=20))
             clean.paste(frame_blurred, (frame_left, frame_top))
+
+        # ── Step 3b: Neutralize dealer watermark ──
+        # EU portals and dealers place semi-transparent watermarks across the image.
+        # Strategy: crop top 18% + heavy blur on upper-center zone where watermark text sits.
+        crop_top = int(h * DEALER_LOGO_BOTTOM_PCT)
+        clean = clean.crop((0, crop_top, w, h))
+        w, h = clean.size  # Update dimensions after crop
+
+        # Additional blur on the area where watermark text may still be visible
+        # (typically upper 30% of remaining image, center 80% width)
+        wm_top = 0
+        wm_bottom = int(h * 0.30)
+        wm_left = int(w * 0.10)
+        wm_right = int(w * 0.90)
+        if wm_bottom > wm_top + 10:
+            wm_zone = clean.crop((wm_left, wm_top, wm_right, wm_bottom))
+            # Multi-pass blur to destroy semi-transparent text
+            for _ in range(4):
+                wm_zone = wm_zone.filter(ImageFilter.GaussianBlur(radius=20))
+            clean.paste(wm_zone, (wm_left, wm_top))
 
         # ── Step 4: Crop bottom 12% (dealer branding footer bar) ──
         # AS24/dealer photos often have a branded bar at the bottom with

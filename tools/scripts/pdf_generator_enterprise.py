@@ -243,7 +243,7 @@ class ARGOSPDFGenerator:
         story.append(Spacer(1, 6*mm))
 
         # Two-column: Vehicle details + Scoring side by side
-        story.append(self._create_details_and_scoring(vehicle))
+        story.append(self._create_details_and_scoring(vehicle, grade_data=grade_data))
         story.append(Spacer(1, 6*mm))
 
         # 7 Criteri ARGOS Premium Verified (V2 new section)
@@ -396,27 +396,30 @@ class ARGOSPDFGenerator:
 
     def _create_executive_summary(self, vehicle: VehicleData, grade_data: Optional[dict] = None) -> Table:
         """Key numbers in a clean dark box"""
-        transport = vehicle.transport_cost if vehicle.transport_cost > 0 else 1200
+        transport = vehicle.transport_cost if vehicle.transport_cost > 0 else 600
         argos_fee = 900
+        immatricolazione = 430
         market_it = vehicle.price_it_estimate
         if grade_data:
             # Use real market_price from cove_results if available
             pass  # market_it already set from VehicleData
-        net_margin = market_it - vehicle.price_eu - transport - 430 - argos_fee
-        score = int(vehicle.confidence * 100)
+        net_margin = market_it - vehicle.price_eu - transport - immatricolazione - argos_fee
+        score = grade_data.get('score', vehicle.confidence) if grade_data else vehicle.confidence
+        score_display = int(score * 100) if score <= 1.0 else int(score)
 
-        # Badge image
-        badge_path = os.path.abspath(self.BADGE_PATH)
-        badge_cell = ''
-        if os.path.exists(badge_path):
-            badge_cell = Image(badge_path, width=22*mm, height=22*mm)
+        # Grade badge in summary box — use dynamic grade, not static image
+        grade_letter = grade_data.get('grade', '') if grade_data else ''
+        if grade_letter:
+            badge_cell = self._build_grade_badge(grade_letter)
+        else:
+            badge_cell = ''
 
         summary_data = [
             [badge_cell,
              f'€{vehicle.price_eu:,}',
              f'€{vehicle.price_it_estimate:,}',
              f'€{net_margin:,}',
-             f'{score}/100'],
+             f'{score_display}/100'],
             ['',
              'Prezzo EU',
              'Mercato Italia',
@@ -458,7 +461,7 @@ class ARGOSPDFGenerator:
         ]))
         return summary_table
 
-    def _create_details_and_scoring(self, vehicle: VehicleData) -> Table:
+    def _create_details_and_scoring(self, vehicle: VehicleData, grade_data: Optional[dict] = None) -> Table:
         """Two-column layout: vehicle details left, scoring right"""
         # LEFT: Vehicle details
         details_rows = [
@@ -502,7 +505,7 @@ class ARGOSPDFGenerator:
             ['Prezzo', f'{vehicle.price_score}', self._get_score_assessment(vehicle.price_score)],
             ['Eta Veicolo', f'{vehicle.age_score}', self._get_score_assessment(vehicle.age_score)],
             ['Documentazione', f'{vehicle.history_score}', self._get_score_assessment(vehicle.history_score)],
-            ['TOTALE', f'{int(vehicle.confidence * 100)}', 'CERTIFICATO'],
+            ['TOTALE', f'{int((grade_data.get("score", vehicle.confidence) if grade_data else vehicle.confidence) * 100)}', 'CERTIFICATO'],
         ]
         scoring_data = [['ANALISI ARGOS', '', '']] + scoring_rows
         scoring_table = Table(scoring_data, colWidths=[32*mm, 16*mm, 32*mm])
@@ -591,16 +594,14 @@ class ARGOSPDFGenerator:
         criteri_rows = [
             (_p("Km verificati"),               _status(km_verified),       _p("Dati km confermati")),
             (_p("Zero flag frode"),             _status(fraud_ok),          _p("Nessun alert rilevato")),
-            (_p("HU / revisione"),              _p("Da verificare", status_style_amber), _p("Verifica al ritiro")),
+            (_p("HU / revisione"),              _p("Al ritiro", status_style_amber), _p("Verifica ispettiva in loco")),
             (_p("Affidabilita modello"),        _p("SI", status_style_green), _p("Dati affidabilita disponibili")),
             (_p("Delta mercato EU-IT"),         _status(delta_ok),          _p("Margine positivo verificato")),
-            (_p("Proprietari"),                 _p("Da verificare", status_style_amber), _p("Dato non disponibile da remoto")),
+            (_p("Proprietari"),                 _p("Al ritiro", status_style_amber), _p("Verificabile da libretto")),
             (_p("Foto HD originali"),           _status(photos_ok),         _p(f"{photo_count} foto verificate" if photos_ok else "Non disponibili")),
         ]
 
-        recall_note = f"{recall_count} campagne sicurezza (US market)" if recall_count > 0 else "Nessuna campagna rilevata"
-
-        # Build table
+        # Build table — NO recall NHTSA (fonte USA, irrilevante per mercato EU)
         header_style = ParagraphStyle('CriteriHeader', fontSize=9, fontName='Helvetica-Bold',
                                        textColor=self.brand_gold, leading=11)
         section_data = [[_p("7 CRITERI ARGOS PREMIUM VERIFIED", header_style),
@@ -608,11 +609,6 @@ class ARGOSPDFGenerator:
                          _p(f"({grade_score:.2f})", header_style)]]
         for criterion, status, detail in criteri_rows:
             section_data.append([criterion, status, detail])
-        # Add recall row
-        recall_status_style = status_style_amber if recall_count > 3 else status_style_green
-        section_data.append([_p("Campagne sicurezza NHTSA"),
-                             _p("Attenzione" if recall_count > 3 else "OK", recall_status_style),
-                             _p(recall_note)])
 
         # Color logic: row 0 = header, rows 1-7 = criteri, row 8 = recalls
         tbl = Table(section_data, colWidths=[55*mm, 30*mm, 95*mm])
@@ -662,15 +658,11 @@ class ARGOSPDFGenerator:
         Costs: Prezzo EU + Trasporto bisarca + Immatricolazione + Fee ARGOS
         Margin: Prezzo mercato IT - costo chiavi in mano
         """
-        transport = 1200  # Stima DE→Sud Italia bisarca
+        transport = vehicle.transport_cost if vehicle.transport_cost > 0 else 600
         immatricolazione = 430
         argos_fee = 900
 
-        # Market IT: use from grade_data (cove_results.market_price) or vehicle
-        if grade_data:
-            market_it = vehicle.price_it_estimate  # already set from cove_results
-        else:
-            market_it = vehicle.price_it_estimate
+        market_it = vehicle.price_it_estimate
 
         costo_chiavi_in_mano = vehicle.price_eu + transport + immatricolazione
         margine_lordo = market_it - costo_chiavi_in_mano
@@ -679,8 +671,8 @@ class ARGOSPDFGenerator:
         financial_data = [
             ['ANALISI FINANZIARIA', 'IMPORTO', 'NOTE'],
             ['Prezzo acquisto EU', f'EUR {vehicle.price_eu:,}', 'IVA esclusa'],
-            ['Trasporto bisarca', f'EUR {transport:,}', 'Stima DE->Sud Italia'],
-            ['Immatricolazione IT', f'EUR {immatricolazione:,}', 'IPT + targhe'],
+            ['Trasporto bisarca', f'EUR {transport:,}', 'Stima bisarca EU->Sud Italia'],
+            ['Immatricolazione IT', f'EUR {immatricolazione:,}', 'IPT ~€150 + targhe ~€80 + pratiche ~€200'],
             ['Costo chiavi in mano', f'EUR {costo_chiavi_in_mano:,}', ''],
             ['', '', ''],
             ['Prezzo mercato Italia', f'EUR {market_it:,}', 'Media mercato IT verificata'],
@@ -862,14 +854,9 @@ class ARGOSPDFGenerator:
             manuf_status = "In attesa"
             manuf_detail = "Verifica in corso"
 
-        # Recall status
-        if recall_count == 0:
-            recall_status = "Nessuno"
-            recall_detail = "Zero richiami aperti (fonte: NHTSA)"
-        else:
-            recall_status = f"{recall_count} richiami"
-            top_recall = recalls[0].get("component", "—")[:50] if recalls else ""
-            recall_detail = f"{recall_count} richiami — es: {top_recall}"
+        # Recall status — NHTSA è fonte USA, non mostrare come richiami EU
+        recall_status = "Nessuno noto"
+        recall_detail = "Verificare con costruttore per richiami EU"
 
         verification_data = [
             ['VERIFICA ARGOS 100 PUNTI', 'STATUS', 'DETTAGLI'],
@@ -879,7 +866,7 @@ class ARGOSPDFGenerator:
             ['Annuncio originale', 'Verificato', 'Portale EU certificato'],
             ['Prezzo aggiornato', 'Verificato', datetime.now().strftime('%d/%m/%Y')],
             ['Foto veicolo', 'Disponibili', 'Foto HD verificate'],
-            ['Check frodi ARGOS', 'Superato' if vin_consistent else 'ALERT', 'Nessun alert' if not vin_alerts else vin_alerts[0][:50]],
+            ['Check frodi ARGOS', 'Superato' if vin_consistent else 'ALERT', 'Nessun alert frode rilevato' if vin_consistent else vin_alerts[0][:50] if vin_alerts else 'Verifica in corso'],
             ['Stima trasporto', 'Calcolata', f'EUR {vehicle.transport_cost:,}' if vehicle.transport_cost else 'Da preventivare'],
             ['Tempistica consegna', 'Stimata', f'{vehicle.import_days} gg lavorativi' if vehicle.import_days else '7-14 giorni lavorativi']
         ]
@@ -1477,8 +1464,12 @@ def generate_dossier_from_db(
         mileage = mileage or km
         price_eu = int(price_eu or price)
 
-    # Market price: use cove_results.market_price (real, from CoVe scraping)
-    market_it = int(market_price) if market_price else int(price * 1.10)
+    # Market price IT: CoVe market_price è media EU. In Italia i prezzi sono 10-15% più alti.
+    # Applichiamo markup +12% per stima conservativa del prezzo di vendita IT.
+    if market_price and market_price > 0:
+        market_it = int(market_price * 1.12)
+    else:
+        market_it = int(price * 1.12)
 
     vehicle = VehicleData(
         make=make,
