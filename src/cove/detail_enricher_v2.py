@@ -359,12 +359,15 @@ class DetailEnricherV2:
                 sql = f"UPDATE vehicle_listings SET {', '.join(updates)} WHERE listing_id = ?"
                 con.execute(sql, params)
 
-            # Insert vehicle_images (skip if already populated for this listing)
+            # Insert vehicle_images — replace if we found more than existing
             existing = con.execute(
                 "SELECT COUNT(*) FROM vehicle_images WHERE listing_id = ?", [listing_id]
             ).fetchone()[0]
 
-            if existing == 0 and images:
+            if images and len(images) > existing:
+                # Delete old images and insert fresh set
+                if existing > 0:
+                    con.execute("DELETE FROM vehicle_images WHERE listing_id = ?", [listing_id])
                 for img_url in images:
                     con.execute(
                         "INSERT INTO vehicle_images (listing_id, image_url, image_type) VALUES (?, ?, ?)",
