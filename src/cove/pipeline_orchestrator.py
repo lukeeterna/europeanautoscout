@@ -429,8 +429,8 @@ class PipelineOrchestrator:
             if not row or not row[1]:
                 return 0.0
             price_eu = float(row[0])
-            market_it = float(row[1])
-            transport = 1200
+            market_it = float(row[1]) * 1.12  # EU market_price → IT +12%
+            transport = 600
             immatricolazione = 430
             fee_argos = 900
             return market_it - price_eu - transport - immatricolazione - fee_argos
@@ -455,8 +455,9 @@ class PipelineOrchestrator:
             detail_url, source = row
             from src.cove.detail_enricher_v2 import DetailEnricherV2
             enricher = DetailEnricherV2(self.db_path)
-            result = enricher.enrich(listing_id, detail_url, source or "unknown")
-            return result.get("enriched", False) if isinstance(result, dict) else bool(result)
+            result = enricher.enrich_listing(listing_id, detail_url, source or "unknown")
+            enricher.close()
+            return result.get("status") in ("enriched", "no_vin") if isinstance(result, dict) else bool(result)
         except Exception as e:
             self._log(f"  {listing_id}: enricher error: {e}")
             return False

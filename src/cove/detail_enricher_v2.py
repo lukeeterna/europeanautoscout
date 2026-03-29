@@ -133,7 +133,30 @@ def extract_images_from_html(html: str, source: str) -> List[str]:
         if any(cdn in url.lower() for cdn in ["cdn", "img.", "images.", "foto", "photo", "bild"]):
             add_url(url)
 
-    return found[:20]
+    # Layer 4: Direct URL regex for portal-specific CDN patterns
+    # AS24: prod.pictures.autoscout24.net/listing-images/...
+    # mobile.de: img.classistatic.de/...
+    # Others: any portal CDN with listing/vehicle image paths
+    portal_cdn_patterns = [
+        r'https://prod\.pictures\.autoscout24\.net/listing-images/[^\s"\'<>]+',
+        r'https://img\.classistatic\.de/api/v\d+/mo-prod/images/[^\s"\'<>]+',
+        r'https://[^\s"\'<>]*(?:listing|vehicle|auto|car)[-_]images?/[^\s"\'<>]+\.(?:jpg|jpeg|png|webp)',
+    ]
+    for pattern in portal_cdn_patterns:
+        for m in re.finditer(pattern, html, re.IGNORECASE):
+            add_url(m.group(0))
+
+    # Deduplicate by image ID (remove size variants, keep largest)
+    # e.g. same image at /400x300 and /1280x960 — keep /1280x960
+    deduped = {}
+    for url in found:
+        # Extract base (without size suffix)
+        base = re.sub(r'/\d+x\d+\.?$', '', url)
+        base = re.sub(r'/resize/\d+x\d+$', '', base)
+        if base not in deduped or len(url) > len(deduped[base]):
+            deduped[base] = url
+
+    return list(deduped.values())[:20]
 
 
 def extract_specs_from_html(html: str) -> Dict[str, Any]:
