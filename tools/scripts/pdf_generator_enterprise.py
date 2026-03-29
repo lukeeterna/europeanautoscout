@@ -450,23 +450,24 @@ class ARGOSPDFGenerator:
 
         badge_data = [
             [Paragraph(f"<b>{grade_letter}</b>",
-                       ParagraphStyle('GradeLetter', fontSize=22, fontName='Helvetica-Bold',
-                                      textColor=colors.white, alignment=1))],
+                       ParagraphStyle('GradeLetter', fontSize=20, fontName='Helvetica-Bold',
+                                      textColor=colors.white, alignment=1, leading=22))],
             [Paragraph("ARGOS GRADE",
-                       ParagraphStyle('GradeLabel', fontSize=6, fontName='Helvetica-Bold',
-                                      textColor=colors.white, alignment=1))],
+                       ParagraphStyle('GradeLabel', fontSize=5.5, fontName='Helvetica-Bold',
+                                      textColor=colors.white, alignment=1, leading=7))],
         ]
-        badge_table = Table(badge_data, colWidths=[22*mm])
+        badge_table = Table(badge_data, colWidths=[22*mm], rowHeights=[8*mm, 4*mm])
         badge_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), grade_color),
-            ('TOPPADDING', (0, 0), (0, 0), 4),
+            ('TOPPADDING', (0, 0), (0, 0), 2),
             ('BOTTOMPADDING', (0, 0), (0, 0), 0),
             ('TOPPADDING', (0, 1), (0, 1), 0),
-            ('BOTTOMPADDING', (0, 1), (0, 1), 4),
+            ('BOTTOMPADDING', (0, 1), (0, 1), 2),
             ('LEFTPADDING', (0, 0), (-1, -1), 2),
             ('RIGHTPADDING', (0, 0), (-1, -1), 2),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('VALIGN', (0, 0), (0, 0), 'BOTTOM'),
+            ('VALIGN', (0, 1), (0, 1), 'TOP'),
             ('BOX', (0, 0), (-1, -1), 1.5, colors.white),
         ]))
         return badge_table
@@ -491,11 +492,15 @@ class ARGOSPDFGenerator:
         else:
             badge_cell = ''
 
+        # Format prices with dot separator (Italian convention) for readability
+        def _fmt(n):
+            return f"{int(n):,}".replace(",", ".")
+
         summary_data = [
             [badge_cell,
-             f'€{vehicle.price_eu:,}',
-             f'€{vehicle.price_it_estimate:,}',
-             f'€{net_margin:,}',
+             f'{_fmt(vehicle.price_eu)}',
+             f'{_fmt(vehicle.price_it_estimate)}',
+             f'{_fmt(net_margin)}',
              f'{score_display}/100'],
             ['',
              'Prezzo EU',
@@ -504,14 +509,14 @@ class ARGOSPDFGenerator:
              'Punteggio ARGOS'],
         ]
 
-        summary_table = Table(summary_data, colWidths=[25*mm, 37*mm, 37*mm, 37*mm, 34*mm])
+        summary_table = Table(summary_data, colWidths=[24*mm, 38*mm, 38*mm, 38*mm, 32*mm])
         summary_table.setStyle(TableStyle([
             # Dark background
             ('BACKGROUND', (0, 0), (-1, -1), self.brand_black),
-            # Numbers row — large white bold
+            # Numbers row — white bold, font reduced to avoid overlap
             ('TEXTCOLOR', (1, 0), (-1, 0), self.brand_white),
             ('FONTNAME', (1, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (1, 0), (-1, 0), 14),
+            ('FONTSIZE', (1, 0), (-1, 0), 12),
             ('ALIGN', (1, 0), (-1, 0), 'CENTER'),
             # Gold for margin
             ('TEXTCOLOR', (3, 0), (3, 0), self.brand_gold),

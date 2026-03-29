@@ -196,6 +196,48 @@ def extract_specs_from_html(html: str) -> Dict[str, Any]:
                     except (ValueError, TypeError):
                         pass
 
+            # Price extraction from JSON-LD offers
+            if "price_eu" not in specs or not specs.get("price_eu"):
+                offers = item.get("offers", item.get("offer", {}))
+                price_raw = None
+                if isinstance(offers, dict):
+                    price_raw = offers.get("price", offers.get("lowPrice"))
+                elif isinstance(offers, list) and offers:
+                    price_raw = offers[0].get("price", offers[0].get("lowPrice"))
+                if price_raw is None:
+                    price_raw = item.get("price")
+                if price_raw is not None:
+                    try:
+                        specs["price_eu"] = float(price_raw)
+                    except (ValueError, TypeError):
+                        pass
+
+            # Year extraction from JSON-LD
+            if "year" not in specs or not specs.get("year"):
+                year_raw = item.get("vehicleModelDate", item.get("productionDate", ""))
+                if year_raw:
+                    try:
+                        yr = int(str(year_raw)[:4])
+                        if 2000 <= yr <= 2030:
+                            specs["year"] = yr
+                    except (ValueError, TypeError):
+                        pass
+
+            # Mileage extraction from JSON-LD
+            if "mileage" not in specs or not specs.get("mileage"):
+                km_raw = item.get("mileageFromOdometer", {})
+                if isinstance(km_raw, dict):
+                    km_val = km_raw.get("value", "")
+                else:
+                    km_val = km_raw
+                if km_val:
+                    try:
+                        km_int = int(re.sub(r'[^\d]', '', str(km_val)))
+                        if km_int > 0:
+                            specs["mileage"] = km_int
+                    except (ValueError, TypeError):
+                        pass
+
     return specs
 
 
@@ -350,6 +392,19 @@ class DetailEnricherV2:
                     updates.append(f"{field} = ?")
                     params.append(specs[field])
                     result["fields_updated"].append(field)
+            # Update price/year/mileage if missing in DB and found in detail page
+            if specs.get("price_eu") and specs["price_eu"] > 0:
+                updates.append("price_eu = CASE WHEN price_eu IS NULL OR price_eu = 0 THEN ? ELSE price_eu END")
+                params.append(float(specs["price_eu"]))
+                result["fields_updated"].append("price_eu")
+            if specs.get("year") and specs["year"] > 0:
+                updates.append("year = CASE WHEN year IS NULL OR year = 0 THEN ? ELSE year END")
+                params.append(int(specs["year"]))
+                result["fields_updated"].append("year")
+            if specs.get("mileage") and specs["mileage"] > 0:
+                updates.append("mileage = CASE WHEN mileage IS NULL OR mileage = 0 THEN ? ELSE mileage END")
+                params.append(int(specs["mileage"]))
+                result["fields_updated"].append("mileage")
             updates.append("image_count = ?")
             params.append(len(images))
             updates.append("scraped_at = NOW()")

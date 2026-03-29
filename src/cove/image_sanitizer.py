@@ -33,6 +33,26 @@ try:
 except ImportError:
     PILLOW_AVAILABLE = False
 
+try:
+    import cv2
+    import numpy as np
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+
+# EasyOCR — lazy loaded (heavy model, 95MB)
+_EASYOCR_READER = None
+
+def _get_ocr_reader():
+    global _EASYOCR_READER
+    if _EASYOCR_READER is None:
+        try:
+            import easyocr
+            _EASYOCR_READER = easyocr.Reader(['de', 'en'], gpu=False, verbose=False)
+        except ImportError:
+            pass
+    return _EASYOCR_READER
+
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 # ARGOS brand colors
@@ -110,92 +130,130 @@ def sanitize_image(
     try:
         # Open and strip EXIF
         img = Image.open(image_path)
-        # Create clean copy without EXIF
         clean = Image.new(img.mode, img.size)
         clean.paste(img)
-
         w, h = clean.size
 
-        # ── Step 1: Black bar over license plate area (small, precise) ──
-        # Only covers the actual plate, not the whole bumper
-        plate_top = int(h * PLATE_ZONE_TOP_PCT)
-        plate_left = int(w * 0.25)
-        plate_right = int(w * 0.75)
-        draw = ImageDraw.Draw(clean)
-        draw.rectangle([(plate_left, plate_top), (plate_right, h - int(h * 0.02))],
-                        fill=ARGOS_BLACK)
+        # ══════════════════════════════════════════════════════════
+        # STEP 1: Detect license plates via OpenCV (contour + HSV)
+        # ══════════════════════════════════════════════════════════
+        plate_rects = []
+        if CV2_AVAILABLE:
+            plate_rects = _detect_plates_cv2(image_path)
 
-        # ── Step 2: Small ARGOS text on the black bar ──
-        try:
-            font_size = max(10, int((h - plate_top) * 0.30))
+        # ══════════════════════════════════════════════════════════
+        # STEP 2: Detect dealer text via EasyOCR
+        # ══════════════════════════════════════════════════════════
+        text_rects = []
+        reader = _get_ocr_reader()
+        if reader:
             try:
-                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
-            except OSError:
+                results = reader.readtext(image_path, detail=1)
+                for bbox_pts, text_str, conf in results:
+                    if conf > 0.3:
+                        xs = [int(p[0]) for p in bbox_pts]
+                        ys = [int(p[1]) for p in bbox_pts]
+                        text_rects.append((min(xs), min(ys), max(xs), max(ys), text_str))
+            except Exception as e:
+                print(f"  [OCR] EasyOCR error: {e}")
+
+        # ══════════════════════════════════════════════════════════
+        # STEP 3: Cover plates with ARGOS branded bar
+        # ══════════════════════════════════════════════════════════
+        draw = ImageDraw.Draw(clean)
+
+        if plate_rects:
+            for px, py, pw, ph in plate_rects:
+                # Draw ARGOS branded plate cover
+                draw.rectangle([(px, py), (px + pw, py + ph)], fill=ARGOS_BLACK)
+                # Add ARGOS text centered on plate
                 try:
-                    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+                    pfont_size = max(8, int(ph * 0.45))
+                    try:
+                        pfont = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", pfont_size)
+                    except OSError:
+                        try:
+                            pfont = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", pfont_size)
+                        except OSError:
+                            pfont = ImageFont.load_default()
+                except Exception:
+                    pfont = ImageFont.load_default()
+                ptext = "ARGOS"
+                pbb = draw.textbbox((0, 0), ptext, font=pfont)
+                ptw, pth = pbb[2] - pbb[0], pbb[3] - pbb[1]
+                draw.text((px + (pw - ptw) // 2, py + (ph - pth) // 2), ptext, fill=ARGOS_GOLD, font=pfont)
+        else:
+            # Fallback: no plate detected — add ARGOS bar at bottom 10%
+            bar_top = int(h * 0.90)
+            draw.rectangle([(int(w * 0.20), bar_top), (int(w * 0.80), h)], fill=ARGOS_BLACK)
+            try:
+                fs = max(10, int((h - bar_top) * 0.40))
+                try:
+                    font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", fs)
                 except OSError:
-                    font = ImageFont.load_default()
-        except Exception:
-            font = ImageFont.load_default()
+                    try:
+                        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", fs)
+                    except OSError:
+                        font = ImageFont.load_default()
+            except Exception:
+                font = ImageFont.load_default()
+            text = "ARGOS AUTOMOTIVE"
+            bb = draw.textbbox((0, 0), text, font=font)
+            tw, th = bb[2] - bb[0], bb[3] - bb[1]
+            draw.text(((w - tw) // 2, bar_top + ((h - bar_top - th) // 2)), text, fill=ARGOS_GOLD, font=font)
 
-        text = "ARGOS AUTOMOTIVE"
-        bbox = draw.textbbox((0, 0), text, font=font)
-        text_w = bbox[2] - bbox[0]
-        text_h = bbox[3] - bbox[1]
-        text_x = (plate_left + plate_right - text_w) // 2
-        text_y = plate_top + ((h - int(h * 0.02) - plate_top - text_h) // 2)
-        draw.text((text_x, text_y), text, fill=ARGOS_GOLD, font=font)
+        # ══════════════════════════════════════════════════════════
+        # STEP 4: Cover dealer text with black rectangles
+        # ══════════════════════════════════════════════════════════
+        # Blackout any detected text that looks like dealer info
+        # (not car spec text like "xDrive" or "Automatik")
+        # Blackout detected text that could identify the seller
+        # Keep only pure car spec words (engine, transmission codes)
+        _keep_words = {'xdrive', 'sdrive', 'quattro', 'tfsi', 'tdi', 'cdi',
+                       'diesel', 'benzin', 'hybrid', 'electric',
+                       'automatik', 'automatic', 'schaltung',
+                       'argos', 'automotive'}
+        has_bottom_text = False
+        for tx1, ty1, tx2, ty2, ttext in text_rects:
+            words_lower = ttext.lower().strip().split()
+            # Skip if it's pure car spec terminology
+            if all(w in _keep_words or len(w) <= 2 or w.replace('.', '').isdigit() for w in words_lower):
+                continue
+            # Skip tiny text (noise)
+            if (tx2 - tx1) < 20 or (ty2 - ty1) < 6:
+                continue
+            # Track if text found in bottom 20% (dealer banner zone)
+            if ty1 > h * 0.80:
+                has_bottom_text = True
+            # Cover with black + padding
+            pad = 5
+            draw.rectangle([(tx1 - pad, ty1 - pad), (tx2 + pad, ty2 + pad)], fill=ARGOS_BLACK)
 
-        # ── Step 3: Blur dealer frame text JUST above the plate (thin strip) ──
-        frame_top = int(h * PLATE_FRAME_TOP_PCT)
-        frame_bottom = int(h * PLATE_FRAME_BOTTOM_PCT)
-        frame_left = int(w * 0.25)
-        frame_right = int(w * 0.75)
-        if frame_bottom > frame_top + 5:
-            frame_zone = clean.crop((frame_left, frame_top, frame_right, frame_bottom))
-            frame_blurred = frame_zone.filter(ImageFilter.GaussianBlur(radius=20))
-            clean.paste(frame_blurred, (frame_left, frame_top))
+        # If any dealer text detected in bottom 20%, blackout the entire bottom strip
+        # This catches logos and small text that OCR might miss
+        if has_bottom_text:
+            bot_bar = int(h * 0.82)
+            draw.rectangle([(0, bot_bar), (w, h)], fill=ARGOS_BLACK)
+            # Add ARGOS branding on the bottom bar
+            try:
+                bfs = max(10, int((h - bot_bar) * 0.30))
+                try:
+                    bfont = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", bfs)
+                except OSError:
+                    try:
+                        bfont = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", bfs)
+                    except OSError:
+                        bfont = ImageFont.load_default()
+            except Exception:
+                bfont = ImageFont.load_default()
+            btext = "ARGOS AUTOMOTIVE"
+            bbb = draw.textbbox((0, 0), btext, font=bfont)
+            btw = bbb[2] - bbb[0]
+            bth = bbb[3] - bbb[1]
+            draw.text(((w - btw) // 2, bot_bar + ((h - bot_bar - bth) // 2)),
+                      btext, fill=ARGOS_GOLD, font=bfont)
 
-        # ── Step 3b: Neutralize dealer watermark ──
-        # EU portals and dealers place semi-transparent watermarks across the image.
-        # Strategy: crop top 18% + heavy blur on upper-center zone where watermark text sits.
-        crop_top = int(h * DEALER_LOGO_BOTTOM_PCT)
-        clean = clean.crop((0, crop_top, w, h))
-        w, h = clean.size  # Update dimensions after crop
-
-        # Additional blur on the area where watermark text may still be visible
-        # (typically upper 30% of remaining image, center 80% width)
-        wm_top = 0
-        wm_bottom = int(h * 0.30)
-        wm_left = int(w * 0.10)
-        wm_right = int(w * 0.90)
-        if wm_bottom > wm_top + 10:
-            wm_zone = clean.crop((wm_left, wm_top, wm_right, wm_bottom))
-            # Multi-pass blur to destroy semi-transparent text
-            for _ in range(4):
-                wm_zone = wm_zone.filter(ImageFilter.GaussianBlur(radius=20))
-            clean.paste(wm_zone, (wm_left, wm_top))
-
-        # ── Step 4: Crop bottom 12% (dealer branding footer bar) ──
-        # AS24/dealer photos often have a branded bar at the bottom with
-        # dealer name, partner logos (Kia, Hyundai, etc). Remove it entirely.
-        crop_bottom = int(h * 0.88)
-        clean = clean.crop((0, 0, w, crop_bottom))
-
-        # ── Step 5: Also blur the plate frame text on the car (center area) ──
-        # "BMW Gebrauchte Automobile" / "www.procar.de" on the grille frame
-        # This is a narrow horizontal band around 55-65% from top, center 60% of width
-        w2, h2 = clean.size
-        grille_top = int(h2 * 0.55)
-        grille_bottom = int(h2 * 0.68)
-        grille_left = int(w2 * 0.25)
-        grille_right = int(w2 * 0.65)
-        if grille_bottom > grille_top + 5:
-            grille_zone = clean.crop((grille_left, grille_top, grille_right, grille_bottom))
-            grille_blurred = grille_zone.filter(ImageFilter.GaussianBlur(radius=15))
-            clean.paste(grille_blurred, (grille_left, grille_top))
-
-        # ── Step 4: Save as JPEG (strips all metadata) ──
+        # ── Step 5: Save as JPEG (strips all metadata) ──
         if clean.mode == 'RGBA':
             clean = clean.convert('RGB')
         clean.save(safe_path, 'JPEG', quality=90)
@@ -305,6 +363,27 @@ def sanitize_all_images(
         print(f"  No images found for listing {listing_id}")
         return []
 
+    # ── Dedup URLs: AS24 stores same photo in 10 resolutions ──
+    # Keep only highest resolution per unique image UUID
+    import re as _re
+    unique_images = {}
+    for url, local_path in rows:
+        if not url:
+            continue
+        # Extract base UUID from URL (before resolution suffix like /1280x960.webp)
+        base = _re.sub(r'/\d+x\d+\.(jpg|webp|png)$', '', url.split('?')[0])
+        # Parse resolution
+        res_match = _re.search(r'/(\d+)x(\d+)\.(jpg|webp|png)$', url)
+        res = int(res_match.group(1)) * int(res_match.group(2)) if res_match else 0
+        # Prefer jpg over webp at same resolution, prefer highest resolution
+        if base not in unique_images or res > unique_images[base][2]:
+            unique_images[base] = (url, local_path, res)
+
+    deduped_rows = [(v[0], v[1]) for v in unique_images.values()]
+    if len(deduped_rows) < len(rows):
+        print(f"  URL dedup: {len(rows)} → {len(deduped_rows)} unique images")
+    rows = deduped_rows
+
     safe_paths = []
     raw_dir = os.path.join(output_dir, "raw")
     os.makedirs(raw_dir, exist_ok=True)
@@ -325,8 +404,133 @@ def sanitize_all_images(
             if safe:
                 safe_paths.append(safe)
 
+    # Dedup disabled — perceptual hash too aggressive on studio photos
+    # where all images share the same background after banner crop.
+    # TODO: implement content-aware dedup (detect car angle, not background)
+
     print(f"  Sanitized {len(safe_paths)}/{len(rows)} images for {listing_id}")
     return safe_paths
+
+
+def _detect_plates_cv2(image_path: str) -> List[Tuple[int, int, int, int]]:
+    """
+    Detect EU license plates using OpenCV contour + HSV color detection.
+    EU plates: white rectangle, aspect ratio ~4.7:1.
+    Returns list of (x, y, w, h) bounding rectangles.
+    """
+    if not CV2_AVAILABLE:
+        return []
+    try:
+        img = cv2.imread(image_path)
+        if img is None:
+            return []
+        h_img, w_img = img.shape[:2]
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+        # White color range — EU plates are white with blue left band
+        lower_white = np.array([0, 0, 180])
+        upper_white = np.array([255, 60, 255])
+        mask = cv2.inRange(hsv, lower_white, upper_white)
+
+        # Morphological ops to clean up mask
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 5))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+        contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        plates = []
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            area = w * h
+            aspect_ratio = w / h if h > 0 else 0
+            img_area = w_img * h_img
+
+            # EU plate constraints:
+            # - Aspect ratio 3.5-6.0 (standard is ~4.7)
+            # - Area between 0.2% and 5% of image
+            # - Width between 5% and 30% of image width
+            if (3.0 < aspect_ratio < 6.5
+                    and 0.002 < area / img_area < 0.05
+                    and 0.05 < w / w_img < 0.35):
+                plates.append((x, y, w, h))
+
+        # Remove overlapping detections — keep largest
+        plates.sort(key=lambda p: p[2] * p[3], reverse=True)
+        filtered = []
+        for p in plates:
+            overlap = False
+            for f in filtered:
+                # Check if centers are close
+                cx1, cy1 = p[0] + p[2]//2, p[1] + p[3]//2
+                cx2, cy2 = f[0] + f[2]//2, f[1] + f[3]//2
+                if abs(cx1 - cx2) < p[2] and abs(cy1 - cy2) < p[3]:
+                    overlap = True
+                    break
+            if not overlap:
+                filtered.append(p)
+
+        return filtered[:3]  # Max 3 plates (front, rear, side)
+    except Exception as e:
+        print(f"  [CV2] Plate detection error: {e}")
+        return []
+
+
+def _perceptual_hash(image_path: str) -> Optional[str]:
+    """Compute a simple perceptual hash: resize to 8x8 grayscale, threshold to binary."""
+    try:
+        img = Image.open(image_path).convert('L').resize((8, 8), Image.Resampling.LANCZOS)
+        pixels = list(img.getdata())
+        avg = sum(pixels) / len(pixels)
+        bits = ''.join('1' if p > avg else '0' for p in pixels)
+        return bits
+    except Exception:
+        return None
+
+
+def _perceptual_hash_16(image_path: str) -> Optional[str]:
+    """Higher resolution perceptual hash (16x16=256 bits) for better discrimination."""
+    try:
+        img = Image.open(image_path).convert('L').resize((16, 16), Image.Resampling.LANCZOS)
+        pixels = list(img.getdata())
+        avg = sum(pixels) / len(pixels)
+        bits = ''.join('1' if p > avg else '0' for p in pixels)
+        return bits
+    except Exception:
+        return None
+
+
+def _hamming_distance(h1: str, h2: str) -> int:
+    """Count differing bits between two hashes."""
+    return sum(c1 != c2 for c1, c2 in zip(h1, h2))
+
+
+def _dedup_images(image_paths: List[str], threshold: int = 2) -> List[str]:
+    """
+    Remove near-duplicate images using perceptual hashing.
+    threshold: max hamming distance to consider duplicate (lower = stricter).
+    2 out of 64 bits = ~3% — only truly identical photos removed.
+
+    Uses 16x16 hash for better discrimination between different car angles.
+    """
+    if not PILLOW_AVAILABLE:
+        return image_paths
+
+    hashes = []
+    unique = []
+    for path in image_paths:
+        h = _perceptual_hash_16(path)
+        if h is None:
+            unique.append(path)
+            continue
+        is_dup = False
+        for existing_h in hashes:
+            if _hamming_distance(h, existing_h) <= threshold:
+                is_dup = True
+                break
+        if not is_dup:
+            unique.append(path)
+            hashes.append(h)
+    return unique
 
 
 def _download_image(url: str, output_dir: str, listing_id: str, index: int) -> Optional[str]:
