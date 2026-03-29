@@ -424,7 +424,7 @@ class AutoScoutScraper(BaseScraper):
         self,
         make: str,
         model: str,
-        page: int = 1,
+        params_or_page=1,
         *,
         year_min: int = YEAR_MIN,
         year_max: int = YEAR_MAX,
@@ -453,6 +453,12 @@ class AutoScoutScraper(BaseScraper):
             fuel_types: Lista fuel type codes (D=Diesel, G=Gasoline, E=Electric, ecc.)
             sort: Ordinamento (standard, price_asc, price_desc)
         """
+        # Accept either dict (from base_scraper) or int (direct call)
+        if isinstance(params_or_page, dict):
+            page = params_or_page.get("page", 1)
+        else:
+            page = params_or_page
+
         make_slug = _resolve_make_slug(make)
         model_slug = _resolve_model_slug(model, self._country)
 
@@ -1231,18 +1237,32 @@ class AutoScoutScraper(BaseScraper):
             price_max: Prezzo massimo EUR
             fuel_types: Lista codici fuel (D, G, E, ...)
         """
-        return super().scrape(
-            make,
-            model,
-            max_pages=max_pages or min(self.portal.max_pages, self.MAX_PAGES),
+        from .models import ScraperRun
+        from datetime import datetime, timezone
+        start = datetime.now(timezone.utc)
+
+        # Temporarily override max_pages (frozen dataclass workaround)
+        old_max = self.config.max_pages
+        if max_pages and max_pages != old_max:
+            object.__setattr__(self.config, 'max_pages', max_pages)
+        listings = self.scrape_model(
+            make=make,
+            model=model,
             year_min=year_min,
             year_max=year_max,
             km_max=km_max,
-            price_min=price_min,
-            price_max=price_max,
-            fuel_types=fuel_types,
-            **kwargs,
         )
+        if max_pages and max_pages != old_max:
+            object.__setattr__(self.config, 'max_pages', old_max)
+
+        run = ScraperRun(
+            portal=self.portal_key,
+            country=self._country,
+            started_at=start.isoformat(),
+            finished_at=datetime.now(timezone.utc).isoformat(),
+            listings_found=len(listings),
+        )
+        return listings, run
 
     # ─────────────────────────────────────────────────────────
     # MULTI-COUNTRY CONVENIENCE

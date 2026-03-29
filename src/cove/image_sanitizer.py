@@ -61,6 +61,9 @@ ARGOS_LOGO_PATH = PROJECT_ROOT / "assets" / "ARGOS_logo_sobrio_horizontal.png"
 # Output directory for sanitized images
 DEFAULT_SAFE_DIR = PROJECT_ROOT / "dossiers" / "safe_images"
 
+# Minimum file size — images below this are thumbnails (useless in PDF)
+MIN_IMAGE_BYTES = 30 * 1024  # 30 KB
+
 
 def sanitize_image(
     image_path: str,
@@ -83,6 +86,12 @@ def sanitize_image(
 
     if not os.path.exists(image_path):
         print(f"  SKIP: image not found: {image_path}")
+        return None
+
+    # Skip thumbnails — too small to be useful in a dossier
+    file_size = os.path.getsize(image_path)
+    if file_size < MIN_IMAGE_BYTES:
+        print(f"  SKIP thumbnail: {os.path.basename(image_path)} ({file_size // 1024} KB < {MIN_IMAGE_BYTES // 1024} KB)")
         return None
 
     # Output setup

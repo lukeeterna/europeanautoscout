@@ -244,7 +244,7 @@ class MobileDeScraper(BaseScraper):
         self,
         make: str,
         model: str,
-        page: int = 1,
+        params_or_page=1,
         **kwargs,
     ) -> str:
         """
@@ -253,6 +253,12 @@ class MobileDeScraper(BaseScraper):
         Parametri kwargs accettati:
             year_min, year_max, km_max, fuel, sort
         """
+        # Accept either dict (from base_scraper) or int (direct call)
+        if isinstance(params_or_page, dict):
+            page = params_or_page.get("page", 1)
+        else:
+            page = params_or_page
+
         year_min: int = kwargs.get("year_min", 0)
         year_max: int = kwargs.get("year_max", 0)
         km_max: int = kwargs.get("km_max", 0)
@@ -1131,13 +1137,36 @@ class MobileDeScraper(BaseScraper):
         model: str,
         max_pages: Optional[int] = None,
         **search_kwargs,
-    ) -> Tuple[List[Listing], ...]:
+    ) -> Tuple[List[Listing], "ScraperRun"]:
         """Scrape con cap a 8 pagine per Mobile.de."""
+        from .models import ScraperRun
+        from datetime import datetime, timezone
+
         effective_max = min(
             max_pages or self.MAX_PAGES_MOBILE,
             self.MAX_PAGES_MOBILE,
         )
-        return super().scrape(make, model, max_pages=effective_max, **search_kwargs)
+        start = datetime.now(timezone.utc)
+
+        old_max = self.config.max_pages
+        if effective_max != old_max:
+            object.__setattr__(self.config, 'max_pages', effective_max)
+        listings = self.scrape_model(
+            make=make,
+            model=model,
+            **search_kwargs,
+        )
+        if effective_max != old_max:
+            object.__setattr__(self.config, 'max_pages', old_max)
+
+        run = ScraperRun(
+            portal=self.portal_key,
+            country="DE",
+            started_at=start.isoformat(),
+            finished_at=datetime.now(timezone.utc).isoformat(),
+            listings_found=len(listings),
+        )
+        return listings, run
 
     # ------------------------------------------------------------------
     # Utility statiche

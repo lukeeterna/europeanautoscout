@@ -48,26 +48,25 @@ logging.basicConfig(
 logger = logging.getLogger('market_intelligence')
 
 
-def get_scraper(portal_type: str):
-    """Factory: ritorna l'istanza scraper corretta per il tipo di portale.
-    portal_type è il prefisso (autoscout24, mobile, willhaben, leboncoin)."""
-    if portal_type.startswith('autoscout24'):
+def get_scraper(portal_name: str):
+    """Factory: ritorna l'istanza scraper corretta per il portale.
+    portal_name è il nome completo (autoscout24_de, mobile_de, etc)."""
+    scraper_type = portal_name.split('_')[0] if '_' in portal_name else portal_name
+    if scraper_type == 'autoscout24':
         from tools.scrapers.autoscout_scraper import AutoScoutScraper
-        return AutoScoutScraper()
-    elif portal_type in ('mobile_de', 'mobile'):
+        return AutoScoutScraper(portal_key=portal_name)
+    elif scraper_type in ('mobile', ):
         from tools.scrapers.mobile_de_scraper import MobileDeScraper
         return MobileDeScraper()
     else:
-        logger.warning(f'Scraper non implementato per tipo: {portal_type}')
+        logger.warning(f'Scraper non implementato per tipo: {portal_name}')
         return None
 
 
 def run_portal(portal_name: str, portal_config: PortalConfig,
                country_filter: str = None, dry_run: bool = False) -> dict:
     """Esegue lo scraping per un singolo portale. Ritorna stats."""
-    # Determina il tipo di scraper dal nome del portale
-    scraper_type = portal_name.split('_')[0] if '_' in portal_name else portal_name
-    scraper = get_scraper(scraper_type)
+    scraper = get_scraper(portal_name)
     if not scraper:
         return {'error': f'Scraper non disponibile: {portal_name}'}
 
@@ -105,7 +104,6 @@ def run_portal(portal_name: str, portal_config: PortalConfig,
                     listings = scraper.scrape_model(
                         make=make,
                         model=model,
-                        country=country,
                         year_min=YEAR_MIN,
                         year_max=YEAR_MAX,
                         km_max=km_max,

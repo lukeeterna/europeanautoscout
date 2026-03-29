@@ -231,12 +231,14 @@ class ARGOSPDFGenerator:
         story.append(self._gold_line())
         story.append(Spacer(1, 6*mm))
 
-        # Vehicle images (if available)
+        # Vehicle hero images (top 3 on cover page)
         if vehicle.local_image_paths:
-            img_table = self._create_image_row(vehicle.local_image_paths)
-            if img_table:
-                story.append(img_table)
-                story.append(Spacer(1, 5*mm))
+            valid_imgs = [p for p in vehicle.local_image_paths if os.path.exists(p) and os.path.getsize(p) > 30000]
+            if valid_imgs:
+                hero_table = self._create_image_row(valid_imgs[:3])
+                if hero_table:
+                    story.append(hero_table)
+                    story.append(Spacer(1, 5*mm))
 
         # Executive summary — key numbers (V2: uses grade_data for market price)
         story.append(self._create_executive_summary(vehicle, grade_data=grade_data))
@@ -268,6 +270,13 @@ class ARGOSPDFGenerator:
         story.append(Spacer(1, 3*mm))
         story.append(self._create_footer(dealer))
 
+        # ── Photo Gallery pages (all HD photos, 2x3 grid per page) ──────────
+        if vehicle.local_image_paths:
+            valid_imgs = [p for p in vehicle.local_image_paths if os.path.exists(p) and os.path.getsize(p) > 30000]
+            if len(valid_imgs) > 3:  # Only add gallery if more than hero images
+                gallery = self._create_photo_gallery(valid_imgs, vehicle, dealer)
+                story.extend(gallery)
+
         doc.build(story)
         return output_path
 
@@ -289,7 +298,7 @@ class ARGOSPDFGenerator:
         if not REPORTLAB_AVAILABLE:
             return None
 
-        valid_paths = [p for p in image_paths[:3] if os.path.exists(p) and os.path.getsize(p) > 1000]
+        valid_paths = [p for p in image_paths if os.path.exists(p) and os.path.getsize(p) > 30000]
         if not valid_paths:
             return None
 
@@ -320,6 +329,74 @@ class ARGOSPDFGenerator:
             ('RIGHTPADDING', (0, 0), (-1, -1), 1),
         ]))
         return tbl
+
+    def _create_photo_gallery(self, image_paths: List[str], vehicle: VehicleData, dealer) -> list:
+        """Create multi-page photo gallery with 2x3 grid (6 photos per page)."""
+        from reportlab.platypus import PageBreak
+
+        elements = []
+        cols = 2
+        rows_per_page = 3
+        per_page = cols * rows_per_page
+
+        page_width = A4[0] - 30*mm  # usable width
+        page_height = A4[1] - 50*mm  # usable height (leave room for header/footer)
+        img_width = (page_width - 5*mm) / cols
+        img_height = (page_height - 30*mm) / rows_per_page  # leave room for title
+
+        for page_idx in range(0, len(image_paths), per_page):
+            page_imgs = image_paths[page_idx:page_idx + per_page]
+
+            elements.append(PageBreak())
+
+            # Gallery page header
+            title_style = ParagraphStyle('GalleryTitle', fontSize=11, fontName='Helvetica-Bold',
+                                          textColor=self.brand_black, leading=14)
+            page_num = page_idx // per_page + 1
+            total_pages = (len(image_paths) + per_page - 1) // per_page
+            elements.append(Paragraph(
+                f"<font color='#1A1A1A'><b>ARGOS</b></font>"
+                f"<font color='#C8A446'> AUTOMOTIVE</font>"
+                f" — Galleria Fotografica {vehicle.make} {vehicle.model} {vehicle.year}"
+                f" ({page_num}/{total_pages})",
+                title_style
+            ))
+            elements.append(Spacer(1, 2*mm))
+            elements.append(self._gold_line())
+            elements.append(Spacer(1, 4*mm))
+
+            # Build 2-column grid rows
+            grid_rows = []
+            for row_idx in range(0, len(page_imgs), cols):
+                row_imgs = page_imgs[row_idx:row_idx + cols]
+                cells = []
+                for path in row_imgs:
+                    try:
+                        img = Image(path, width=img_width, height=img_height)
+                        img.hAlign = 'CENTER'
+                        cells.append(img)
+                    except Exception:
+                        cells.append('')
+                # Pad incomplete row
+                while len(cells) < cols:
+                    cells.append('')
+                grid_rows.append(cells)
+
+            if grid_rows:
+                col_widths = [img_width + 2*mm] * cols
+                row_heights = [img_height + 3*mm] * len(grid_rows)
+                tbl = Table(grid_rows, colWidths=col_widths, rowHeights=row_heights)
+                tbl.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 1),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 1),
+                    ('TOPPADDING', (0, 0), (-1, -1), 1),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                ]))
+                elements.append(tbl)
+
+        return elements
 
     def _create_logo_header(self, vehicle: VehicleData, dealer: DealerInfo, grade_data: Optional[dict] = None) -> Table:
         """Clean header: ARGOS text brand + GRADE badge + vehicle + watermark"""
@@ -1552,12 +1629,13 @@ def generate_dossier_from_db(
     generator = ARGOSPDFGenerator()
     generator.generate_vehicle_sheet(vehicle, dealer, output_path, grade_data=grade_data)
 
-    # Cleanup temp images
+    # Cleanup temp images (only /tmp files, NOT safe_images)
     for p in local_image_paths:
-        try:
-            os.unlink(p)
-        except Exception:
-            pass
+        if p and '/tmp/' in p:
+            try:
+                os.unlink(p)
+            except Exception:
+                pass
 
     file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
     print(f"PDF generated: {output_path} ({file_size:,} bytes)")
