@@ -98,18 +98,68 @@ class PipelineOrchestrator:
     # ── State Processors ──────────────────────────────────────────────────────
 
     def process_discovered(self):
-        """Score all DISCOVERED listings through CoVe."""
+        """Enrich + Score all DISCOVERED listings through CoVe autonomously."""
         listings = self._query_state("DISCOVERED")
         if not listings:
             return
         self._log(f"\n── DISCOVERED → SCORED ({len(listings)} listings) ──")
 
+        scored_count = 0
+        MAX_SCORE_PER_RUN = 20  # Rate limit: max 20 new scorings per run
+
         for lid, row in listings:
             self.stats["processed"] += 1
             # Check if already scored in cove_results
             cove = self._get_cove_result(lid)
+
             if not cove:
-                self._log(f"  {lid}: no CoVe result — needs scoring (skipping)")
+                # ── AUTO-SCORE: enrich + score listings that have basic data ──
+                if scored_count >= MAX_SCORE_PER_RUN:
+                    self._log(f"  {lid}: rate limit ({MAX_SCORE_PER_RUN}/run) — deferred")
+                    self.stats["skipped"] += 1
+                    continue
+
+                if self.dry_run:
+                    self._log(f"  {lid}: would auto-enrich + score")
+                    self.stats["skipped"] += 1
+                    continue
+
+                # Step 1: Enrich if needed (gets price/km/year from detail page)
+                has_detail = self._has_enrichment(lid)
+                if not has_detail:
+                    success = self._run_enricher(lid)
+                    if not success:
+                        self._log(f"  {lid}: enrichment failed — skipping")
+                        self.stats["skipped"] += 1
+                        continue
+
+                # Step 2: Check we have enough data for CoVe
+                listing_data = self._get_listing_data(lid)
+                if not listing_data:
+                    self._log(f"  {lid}: no listing data — skipping")
+                    self.stats["skipped"] += 1
+                    continue
+
+                price = listing_data.get("price_eu") or 0
+                km = listing_data.get("mileage") or 0
+                year = listing_data.get("year") or 0
+
+                if price <= 0 or year <= 0:
+                    self._log(f"  {lid}: incomplete data (price={price}, year={year}) — skipping")
+                    self.stats["skipped"] += 1
+                    continue
+
+                # Step 3: Run CoVe scoring
+                scored = self._run_cove_scoring(lid, listing_data)
+                if scored:
+                    scored_count += 1
+                    cove = self._get_cove_result(lid)
+                else:
+                    self._log(f"  {lid}: CoVe scoring failed")
+                    self.stats["errors"] += 1
+                    continue
+
+            if not cove:
                 self.stats["skipped"] += 1
                 continue
 
@@ -401,6 +451,49 @@ class PipelineOrchestrator:
             return row[0] if row else 0
         finally:
             con.close()
+
+    def _get_listing_data(self, listing_id: str) -> Optional[Dict]:
+        """Get full listing data for CoVe scoring."""
+        import duckdb
+        con = duckdb.connect(self.db_path, read_only=True)
+        try:
+            row = con.execute("""
+                SELECT listing_id, make, model, year, mileage, price_eu,
+                       vin, source, detail_url
+                FROM vehicle_listings WHERE listing_id = ?
+            """, [listing_id]).fetchone()
+            if not row:
+                return None
+            return {
+                "listing_id": row[0], "make": row[1], "model": row[2],
+                "year": row[3], "mileage": row[4], "price_eu": row[5],
+                "vin": row[6], "source": row[7], "detail_url": row[8],
+            }
+        finally:
+            con.close()
+
+    def _run_cove_scoring(self, listing_id: str, listing_data: Dict) -> bool:
+        """Run CoVe Engine on a single listing. Returns True if scored."""
+        try:
+            from src.cove.cove_engine_v4 import CoVeEngine, Listing
+            engine = CoVeEngine()
+            listing = Listing(
+                listing_id=listing_data["listing_id"],
+                make=listing_data.get("make") or "Unknown",
+                model=listing_data.get("model") or "Unknown",
+                year=int(listing_data.get("year") or 0),
+                km=int(listing_data.get("mileage") or 0),
+                price=float(listing_data.get("price_eu") or 0),
+                vin=listing_data.get("vin"),
+                source=listing_data.get("source") or "autoscout24",
+            )
+            result = engine.analyze(listing)
+            self._log(f"  {listing_id}: CoVe scored → {result.recommendation} "
+                       f"(confidence={result.confidence:.2f})")
+            return True
+        except Exception as e:
+            self._log(f"  {listing_id}: CoVe error: {e}")
+            return False
 
     def _get_data_completeness(self, listing_id: str) -> float:
         """Compute data completeness score 0.0-1.0."""

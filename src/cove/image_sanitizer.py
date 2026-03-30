@@ -53,6 +53,79 @@ def _get_ocr_reader():
             pass
     return _EASYOCR_READER
 
+# LaMa inpainting model — lazy loaded (196MB, WACV 2022)
+_LAMA_MODEL = None
+_LAMA_PATH = None
+
+def _get_lama_model():
+    global _LAMA_MODEL, _LAMA_PATH
+    if _LAMA_MODEL is None:
+        try:
+            import torch
+            from huggingface_hub import hf_hub_download
+            _LAMA_PATH = hf_hub_download(repo_id="fashn-ai/LaMa", filename="big-lama.pt")
+            _LAMA_MODEL = torch.jit.load(_LAMA_PATH, map_location="cpu")
+            _LAMA_MODEL.eval()
+        except Exception as e:
+            print(f"  [LAMA] Model load failed: {e}")
+    return _LAMA_MODEL
+
+
+def _lama_inpaint(cv_img, mask):
+    """
+    Inpaint using LaMa (Large Mask Inpainting).
+    cv_img: BGR numpy array (H, W, 3)
+    mask: binary numpy array (H, W), 255 = inpaint
+    Returns: BGR numpy array (H, W, 3)
+    """
+    import torch
+    model = _get_lama_model()
+    if model is None:
+        # Fallback to cv2.inpaint
+        return cv2.inpaint(cv_img, mask, 12, cv2.INPAINT_NS)
+
+    h, w = cv_img.shape[:2]
+    # LaMa requires dimensions divisible by 8
+    pad_h = (8 - h % 8) % 8
+    pad_w = (8 - w % 8) % 8
+
+    # Prepare image tensor: RGB normalized to [0, 1]
+    img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+    img_tensor = torch.from_numpy(img_rgb).permute(2, 0, 1).unsqueeze(0)  # (1, 3, H, W)
+
+    # Prepare mask tensor: binary [0, 1]
+    mask_f = (mask > 127).astype(np.float32)
+    mask_tensor = torch.from_numpy(mask_f).unsqueeze(0).unsqueeze(0)  # (1, 1, H, W)
+
+    # Pad to multiple of 8
+    if pad_h > 0 or pad_w > 0:
+        img_tensor = torch.nn.functional.pad(img_tensor, (0, pad_w, 0, pad_h), mode='reflect')
+        mask_tensor = torch.nn.functional.pad(mask_tensor, (0, pad_w, 0, pad_h), mode='constant', value=0)
+
+    with torch.no_grad():
+        result = model(img_tensor, mask_tensor)
+
+    # Remove padding and convert back
+    result = result[0].permute(1, 2, 0).numpy()[:h, :w]
+    result = np.clip(result * 255, 0, 255).astype(np.uint8)
+    return cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
+
+
+# YOLOv5 plate detector — lazy loaded
+_YOLO_PLATE_MODEL = None
+
+def _get_plate_model():
+    global _YOLO_PLATE_MODEL
+    if _YOLO_PLATE_MODEL is None:
+        try:
+            import yolov5
+            _YOLO_PLATE_MODEL = yolov5.load('keremberke/yolov5n-license-plate')
+            _YOLO_PLATE_MODEL.conf = 0.40
+            _YOLO_PLATE_MODEL.iou = 0.45
+        except Exception as e:
+            print(f"  [YOLO] Plate model load failed: {e}")
+    return _YOLO_PLATE_MODEL
+
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 # ARGOS brand colors
@@ -83,6 +156,28 @@ DEFAULT_SAFE_DIR = PROJECT_ROOT / "dossiers" / "safe_images"
 
 # Minimum file size — images below this are thumbnails (useless in PDF)
 MIN_IMAGE_BYTES = 30 * 1024  # 30 KB
+
+
+def _add_argos_bar(draw: 'ImageDraw.Draw', w: int, h_total: int, bar_top: int, bar_bottom: int):
+    """Draw ARGOS AUTOMOTIVE text centered on a black bar."""
+    try:
+        bfs = max(10, int((bar_bottom - bar_top) * 0.30))
+        try:
+            bfont = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", bfs)
+        except OSError:
+            try:
+                bfont = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", bfs)
+            except OSError:
+                bfont = ImageFont.load_default()
+    except Exception:
+        bfont = ImageFont.load_default()
+    btext = "ARGOS AUTOMOTIVE"
+    bbb = draw.textbbox((0, 0), btext, font=bfont)
+    btw = bbb[2] - bbb[0]
+    bth = bbb[3] - bbb[1]
+    bar_h = bar_bottom - bar_top
+    draw.text(((w - btw) // 2, bar_top + (bar_h - bth) // 2),
+              btext, fill=ARGOS_GOLD, font=bfont)
 
 
 def sanitize_image(
@@ -135,40 +230,185 @@ def sanitize_image(
         w, h = clean.size
 
         # ══════════════════════════════════════════════════════════
-        # STEP 1: Detect license plates via OpenCV (contour + HSV)
+        # ZERO TOLERANCE SANITIZATION v14 — GENERAL APPROACH
+        #
+        # 1. YOLO detects plates → inpaint (natural fill, not black box)
+        # 2. OCR detects ALL text → inpaint non-car text
+        # 3. CV2 edge detects banners → CROP
+        # 4. Verify OCR on output → DROP if text survives
+        #
+        # No blur. No full-width bars. No whack-a-mole.
         # ══════════════════════════════════════════════════════════
-        plate_rects = []
-        if CV2_AVAILABLE:
-            plate_rects = _detect_plates_cv2(image_path)
 
-        # ══════════════════════════════════════════════════════════
-        # STEP 2: Detect dealer text via EasyOCR
-        # ══════════════════════════════════════════════════════════
+        _keep_words = {'xdrive', 'sdrive', 'quattro', 'tfsi', 'tdi', 'cdi',
+                       'diesel', 'benzin', 'hybrid', 'electric',
+                       'automatik', 'automatic', 'schaltung',
+                       'argos', 'automotive'}
+
+        # ── STEP 1: Detect plates via YOLO ───────────────────────
+        plate_boxes = []
+        yolo = _get_plate_model()
+        if yolo:
+            try:
+                results = yolo(image_path, size=640)
+                preds = results.pred[0]
+                for *box, conf, cls in preds:
+                    x1, y1, x2, y2 = [int(v) for v in box]
+                    # Plates are in bottom 60% of image — filter top false positives
+                    if y1 < h * 0.40 and conf < 0.70:
+                        continue
+                    if conf > 0.30:
+                        plate_boxes.append((x1, y1, x2, y2, float(conf)))
+                        print(f"  [YOLO] Plate at ({x1},{y1})-({x2},{y2}) conf={conf:.2f}")
+            except Exception as e:
+                print(f"  [YOLO] Error: {e}")
+
+        # ── STEP 2: Detect all text via EasyOCR ──────────────────
         text_rects = []
         reader = _get_ocr_reader()
         if reader:
             try:
                 results = reader.readtext(image_path, detail=1)
                 for bbox_pts, text_str, conf in results:
-                    if conf > 0.3:
+                    if conf > 0.15:
                         xs = [int(p[0]) for p in bbox_pts]
                         ys = [int(p[1]) for p in bbox_pts]
-                        text_rects.append((min(xs), min(ys), max(xs), max(ys), text_str))
+                        text_rects.append((min(xs), min(ys), max(xs), max(ys), text_str, conf))
             except Exception as e:
-                print(f"  [OCR] EasyOCR error: {e}")
+                print(f"  [OCR] Error: {e}")
 
-        # ══════════════════════════════════════════════════════════
-        # STEP 3: Cover plates with ARGOS branded bar
-        # ══════════════════════════════════════════════════════════
-        draw = ImageDraw.Draw(clean)
+        _crop_top_after_inpaint = 0
 
-        if plate_rects:
-            for px, py, pw, ph in plate_rects:
-                # Draw ARGOS branded plate cover
-                draw.rectangle([(px, py), (px + pw, py + ph)], fill=ARGOS_BLACK)
-                # Add ARGOS text centered on plate
+        # ── STEP 3: Build inpaint mask ───────────────────────────
+        # One mask for everything that needs to disappear.
+        if CV2_AVAILABLE:
+            cv_img = cv2.imread(image_path)
+            if cv_img is not None:
+                mask = np.zeros(cv_img.shape[:2], dtype=np.uint8)
+
+                # 3a: Mask plates (YOLO) + generous frame expansion
+                for x1, y1, x2, y2, conf in plate_boxes:
+                    pw, ph = x2 - x1, y2 - y1
+                    # Expand to cover plate frame (dealer text above/below)
+                    fx1 = max(0, x1 - int(pw * 0.08))
+                    fy1 = max(0, y1 - int(ph * 1.0))   # 100% above for frame
+                    fx2 = min(w, x2 + int(pw * 0.08))
+                    fy2 = min(h, y2 + int(ph * 0.5))    # 50% below
+                    mask[fy1:fy2, fx1:fx2] = 255
+
+                # 3b: Mask all non-car text detected by OCR
+                for tx1, ty1, tx2, ty2, ttext, conf in text_rects:
+                    words_lower = ttext.lower().strip().split()
+                    if all(w in _keep_words for w in words_lower):
+                        continue
+                    if (tx2 - tx1) < 15 or (ty2 - ty1) < 5:
+                        continue
+                    if len(ttext.strip()) <= 1:
+                        continue
+                    # Mask with padding
+                    pad = 10
+                    mx1 = max(0, tx1 - pad)
+                    my1 = max(0, ty1 - pad)
+                    mx2 = min(w, tx2 + pad)
+                    my2 = min(h, ty2 + pad)
+                    mask[my1:my2, mx1:mx2] = 255
+
+                # 3c: Detect top banner → save for CROP later (not inpaint!)
+                # Inpainting the entire top zone destroys the car roof.
+                # Banner = CROP. Individual text/logos = already in mask from 3b.
+                gray = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
+                h_cv, w_cv = gray.shape
+                max_edge = 0
+                edge_row = 0
+                for row in range(int(h_cv * 0.05), int(h_cv * 0.30)):
+                    diff = abs(float(np.mean(gray[row])) - float(np.mean(gray[row + 1])))
+                    if diff > max_edge:
+                        max_edge = diff
+                        edge_row = row
+                top_std = float(np.std(gray[0:int(h_cv * 0.18)]))
+                _crop_top_after_inpaint = 0
+                if max_edge > 15 and edge_row > int(h_cv * 0.05):
+                    _crop_top_after_inpaint = edge_row + int(h_cv * 0.04)  # 4% margin — catches logos below edge
+                elif top_std < 25:
+                    _crop_top_after_inpaint = int(h_cv * 0.18)
+                # Extend if OCR found text above the edge
+                for tx1, ty1, tx2, ty2, ttext, conf in text_rects:
+                    if ty1 < h * 0.30:
+                        words_lower = ttext.lower().strip().split()
+                        if not all(w in _keep_words for w in words_lower) and len(ttext.strip()) > 2:
+                            _crop_top_after_inpaint = max(_crop_top_after_inpaint, ty2 + int(h * 0.05))
+                _crop_top_after_inpaint = min(_crop_top_after_inpaint, int(h * 0.30))
+                if _crop_top_after_inpaint > 0:
+                    print(f"  [BANNER] Top crop planned at {_crop_top_after_inpaint}px ({_crop_top_after_inpaint/h*100:.0f}%)")
+
+                # 3d: Plate fallback — if YOLO missed the plate, mask typical plate zone
+                if not plate_boxes:
+                    # Look for OCR text in bottom 30% that could be plate frame text
+                    has_bottom_text = False
+                    for tx1, ty1, tx2, ty2, ttext, conf in text_rects:
+                        if ty1 > h * 0.70:
+                            words_lower = ttext.lower().strip().split()
+                            if not all(w in _keep_words for w in words_lower):
+                                has_bottom_text = True
+                                pad = 12
+                                mask[max(0,ty1-pad):min(h,ty2+pad), max(0,tx1-pad):min(w,tx2+pad)] = 255
+                    if not has_bottom_text:
+                        # No plate found at all — DON'T mask, just add ARGOS label
+                        # after crop in the right spot
+                        print(f"  [FALLBACK] No plate detected, will add ARGOS label after crop")
+
+                # 3f: Inpaint with LaMa
+                has_mask = np.any(mask > 0)
+                if has_mask:
+                    inpainted = _lama_inpaint(cv_img, mask)
+                    # Convert back to PIL
+                    clean = Image.fromarray(cv2.cvtColor(inpainted, cv2.COLOR_BGR2RGB))
+                    w, h = clean.size
+                    print(f"  [INPAINT] Removed {len(plate_boxes)} plates + {np.count_nonzero(mask) // 1000}K masked pixels")
+
+        # ── STEP 4: Crop top banner + bottom uniform strip ────────
+        # Top banner = CROP (preserves car, removes dealer logos)
+        # Bottom = crop if uniform strip detected
+        crop_top = _crop_top_after_inpaint
+        crop_bottom = 0
+        if CV2_AVAILABLE:
+            _tmp = safe_path + ".tmp.jpg"
+            _save = clean.convert('RGB') if clean.mode == 'RGBA' else clean
+            _save.save(_tmp, 'JPEG', quality=95)
+            cv_img2 = cv2.imread(_tmp)
+            try:
+                os.remove(_tmp)
+            except OSError:
+                pass
+            if cv_img2 is not None:
+                gray2 = cv2.cvtColor(cv_img2, cv2.COLOR_BGR2GRAY)
+                bot_std = float(np.std(gray2[int(gray2.shape[0] * 0.85):]))
+                if bot_std < 30:
+                    crop_bottom = gray2.shape[0] - int(gray2.shape[0] * 0.85)
+
+        if crop_top > 0 or crop_bottom > 0:
+            new_bottom = h - crop_bottom if crop_bottom else h
+            clean = clean.crop((0, crop_top, w, new_bottom))
+            w, h = clean.size
+            if crop_top > 0:
+                print(f"  [CROP] Top {crop_top}px")
+            if crop_bottom > 0:
+                print(f"  [CROP] Bottom {crop_bottom}px")
+
+        # ── STEP 5: Add small ARGOS label on plate area ──────────
+        if plate_boxes:
+            draw = ImageDraw.Draw(clean)
+            for x1, y1, x2, y2, conf in plate_boxes:
+                ay1 = y1 - crop_top
+                ay2 = min(y2 - crop_top, h)
+                if ay1 < 0 or ay1 > h:
+                    continue
+                pw, ph = x2 - x1, ay2 - ay1
+                if ph <= 0:
+                    continue
+                # Small ARGOS text on the inpainted plate area
                 try:
-                    pfont_size = max(8, int(ph * 0.45))
+                    pfont_size = max(8, int(ph * 0.40))
                     try:
                         pfont = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", pfont_size)
                     except OSError:
@@ -181,13 +421,16 @@ def sanitize_image(
                 ptext = "ARGOS"
                 pbb = draw.textbbox((0, 0), ptext, font=pfont)
                 ptw, pth = pbb[2] - pbb[0], pbb[3] - pbb[1]
-                draw.text((px + (pw - ptw) // 2, py + (ph - pth) // 2), ptext, fill=ARGOS_GOLD, font=pfont)
-        else:
-            # Fallback: no plate detected — add ARGOS bar at bottom 10%
-            bar_top = int(h * 0.90)
-            draw.rectangle([(int(w * 0.20), bar_top), (int(w * 0.80), h)], fill=ARGOS_BLACK)
+                cx = x1 + (pw - ptw) // 2
+                cy = ay1 + (ph - pth) // 2
+                draw.text((cx, cy), ptext, fill=ARGOS_GOLD, font=pfont)
+
+        # ── STEP 5b: If no plate detected, add small ARGOS at bottom ──
+        if not plate_boxes:
+            draw = ImageDraw.Draw(clean)
+            # Small ARGOS in bottom-left, subtle
             try:
-                fs = max(10, int((h - bar_top) * 0.40))
+                fs = max(10, int(h * 0.03))
                 try:
                     font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", fs)
                 except OSError:
@@ -197,66 +440,44 @@ def sanitize_image(
                         font = ImageFont.load_default()
             except Exception:
                 font = ImageFont.load_default()
-            text = "ARGOS AUTOMOTIVE"
-            bb = draw.textbbox((0, 0), text, font=font)
-            tw, th = bb[2] - bb[0], bb[3] - bb[1]
-            draw.text(((w - tw) // 2, bar_top + ((h - bar_top - th) // 2)), text, fill=ARGOS_GOLD, font=font)
+            draw.text((int(w * 0.03), int(h * 0.92)), "ARGOS", fill=ARGOS_GOLD, font=font)
 
-        # ══════════════════════════════════════════════════════════
-        # STEP 4: Cover dealer text with black rectangles
-        # ══════════════════════════════════════════════════════════
-        # Blackout any detected text that looks like dealer info
-        # (not car spec text like "xDrive" or "Automatik")
-        # Blackout detected text that could identify the seller
-        # Keep only pure car spec words (engine, transmission codes)
-        _keep_words = {'xdrive', 'sdrive', 'quattro', 'tfsi', 'tdi', 'cdi',
-                       'diesel', 'benzin', 'hybrid', 'electric',
-                       'automatik', 'automatic', 'schaltung',
-                       'argos', 'automotive'}
-        has_bottom_text = False
-        for tx1, ty1, tx2, ty2, ttext in text_rects:
-            words_lower = ttext.lower().strip().split()
-            # Skip if it's pure car spec terminology
-            if all(w in _keep_words or len(w) <= 2 or w.replace('.', '').isdigit() for w in words_lower):
-                continue
-            # Skip tiny text (noise)
-            if (tx2 - tx1) < 20 or (ty2 - ty1) < 6:
-                continue
-            # Track if text found in bottom 20% (dealer banner zone)
-            if ty1 > h * 0.80:
-                has_bottom_text = True
-            # Cover with black + padding
-            pad = 5
-            draw.rectangle([(tx1 - pad, ty1 - pad), (tx2 + pad, ty2 + pad)], fill=ARGOS_BLACK)
-
-        # If any dealer text detected in bottom 20%, blackout the entire bottom strip
-        # This catches logos and small text that OCR might miss
-        if has_bottom_text:
-            bot_bar = int(h * 0.82)
-            draw.rectangle([(0, bot_bar), (w, h)], fill=ARGOS_BLACK)
-            # Add ARGOS branding on the bottom bar
-            try:
-                bfs = max(10, int((h - bot_bar) * 0.30))
-                try:
-                    bfont = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", bfs)
-                except OSError:
-                    try:
-                        bfont = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", bfs)
-                    except OSError:
-                        bfont = ImageFont.load_default()
-            except Exception:
-                bfont = ImageFont.load_default()
-            btext = "ARGOS AUTOMOTIVE"
-            bbb = draw.textbbox((0, 0), btext, font=bfont)
-            btw = bbb[2] - bbb[0]
-            bth = bbb[3] - bbb[1]
-            draw.text(((w - btw) // 2, bot_bar + ((h - bot_bar - bth) // 2)),
-                      btext, fill=ARGOS_GOLD, font=bfont)
-
-        # ── Step 5: Save as JPEG (strips all metadata) ──
+        # ── STEP 6: Save ─────────────────────────────────────────
         if clean.mode == 'RGBA':
             clean = clean.convert('RGB')
         clean.save(safe_path, 'JPEG', quality=90)
+
+        # ── STEP 7: ZERO TOLERANCE VERIFY ────────────────────────
+        if reader:
+            try:
+                import re as _re
+                verify_results = reader.readtext(safe_path, detail=1)
+                for bbox_pts, vtext, vconf in verify_results:
+                    if vconf < 0.30:
+                        continue
+                    vwords = vtext.lower().strip().split()
+                    # Skip our own ARGOS branding (OCR sometimes reads it as ARCOS/ARG0S)
+                    _our_brand = {'argos', 'arcos', 'arg0s', 'argds', 'automotive', 'automotve'}
+                    if all(w in _our_brand or w in _keep_words for w in vwords):
+                        continue
+                    if len(vtext.strip()) <= 2:
+                        continue
+                    if all(w.replace('.', '').replace(',', '').isdigit() for w in vwords):
+                        continue
+                    garble_ratio = len(_re.findall(r'[^a-zA-Z0-9\s]', vtext)) / max(len(vtext), 1)
+                    if garble_ratio > 0.3 or (vconf < 0.45 and garble_ratio > 0.1):
+                        continue
+                    if len(vtext.strip()) <= 4 and vconf < 0.50:
+                        continue
+                    # Surviving dealer text → REJECT
+                    print(f"  REJECTED: \"{vtext}\" (conf={vconf:.2f}) survived")
+                    try:
+                        os.remove(safe_path)
+                    except OSError:
+                        pass
+                    return None
+            except Exception as e:
+                print(f"  [VERIFY] error: {e}")
 
         size_kb = os.path.getsize(safe_path) / 1024
         print(f"  SANITIZED: {safe_name} ({size_kb:.0f} KB)")
@@ -414,8 +635,12 @@ def sanitize_all_images(
 
 def _detect_plates_cv2(image_path: str) -> List[Tuple[int, int, int, int]]:
     """
-    Detect EU license plates using OpenCV contour + HSV color detection.
-    EU plates: white rectangle, aspect ratio ~4.7:1.
+    Detect EU license plates using OpenCV contour + HSV + position filtering.
+
+    EU plates: white rectangle ~520x110mm, aspect ratio ~4.7:1.
+    Position constraint: plates appear in bottom 45% of image, center 90%.
+    This eliminates false positives from white car body parts, sky, etc.
+
     Returns list of (x, y, w, h) bounding rectangles.
     """
     if not CV2_AVAILABLE:
@@ -425,51 +650,75 @@ def _detect_plates_cv2(image_path: str) -> List[Tuple[int, int, int, int]]:
         if img is None:
             return []
         h_img, w_img = img.shape[:2]
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+        # Only search in bottom 45% of image — plates are never in the sky
+        search_top = int(h_img * 0.55)
+        roi = img[search_top:, :]
+        h_roi, w_roi = roi.shape[:2]
+
+        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
 
         # White color range — EU plates are white with blue left band
-        lower_white = np.array([0, 0, 180])
-        upper_white = np.array([255, 60, 255])
+        lower_white = np.array([0, 0, 170])
+        upper_white = np.array([255, 70, 255])
         mask = cv2.inRange(hsv, lower_white, upper_white)
 
-        # Morphological ops to clean up mask
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 5))
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        # Morphological ops: close gaps in plate text, then open to remove noise
+        kernel_close = cv2.getStructuringElement(cv2.MORPH_RECT, (18, 5))
+        kernel_open = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 3))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_close)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel_open)
 
-        contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        plates = []
+        candidates = []
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
+            if h == 0 or w == 0:
+                continue
             area = w * h
-            aspect_ratio = w / h if h > 0 else 0
-            img_area = w_img * h_img
+            aspect_ratio = w / h
+            roi_area = w_roi * h_roi
 
-            # EU plate constraints:
-            # - Aspect ratio 3.5-6.0 (standard is ~4.7)
-            # - Area between 0.2% and 5% of image
-            # - Width between 5% and 30% of image width
-            if (3.0 < aspect_ratio < 6.5
-                    and 0.002 < area / img_area < 0.05
-                    and 0.05 < w / w_img < 0.35):
-                plates.append((x, y, w, h))
+            # EU plate constraints (tightened):
+            # - Aspect ratio 3.5-5.8 (standard EU is 4.7:1)
+            # - Area 0.15%-4% of ROI (not full image — ROI is bottom 45%)
+            # - Width 6%-28% of image width
+            # - Height 1%-6% of image height (plates are thin)
+            # - Center 90%: plate center X must be within 5%-95% of image width
+            cx = x + w // 2
+            cy_full = (search_top + y) + h // 2  # Y in full image coords
 
-        # Remove overlapping detections — keep largest
-        plates.sort(key=lambda p: p[2] * p[3], reverse=True)
+            center_x_ok = 0.05 * w_img < cx < 0.95 * w_img
+
+            if (3.5 < aspect_ratio < 5.8
+                    and 0.0015 < area / roi_area < 0.04
+                    and 0.06 < w / w_img < 0.28
+                    and 0.01 < h / h_img < 0.06
+                    and center_x_ok):
+                # Score: prefer candidates closer to EU standard aspect ratio
+                ar_score = 1.0 - abs(aspect_ratio - 4.7) / 2.0
+                candidates.append((x, search_top + y, w, h, ar_score))
+
+        # Sort by aspect ratio closeness to 4.7 (best match first)
+        candidates.sort(key=lambda c: c[4], reverse=True)
+
+        # Remove overlapping detections — keep best scoring
         filtered = []
-        for p in plates:
+        for c in candidates:
+            x, y, w, h, score = c
             overlap = False
-            for f in filtered:
-                # Check if centers are close
-                cx1, cy1 = p[0] + p[2]//2, p[1] + p[3]//2
-                cx2, cy2 = f[0] + f[2]//2, f[1] + f[3]//2
-                if abs(cx1 - cx2) < p[2] and abs(cy1 - cy2) < p[3]:
+            for fx, fy, fw, fh in filtered:
+                # Check if centers are close (within 1 plate-width)
+                cx1, cy1 = x + w // 2, y + h // 2
+                cx2, cy2 = fx + fw // 2, fy + fh // 2
+                if abs(cx1 - cx2) < max(w, fw) and abs(cy1 - cy2) < max(h, fh) * 2:
                     overlap = True
                     break
             if not overlap:
-                filtered.append(p)
+                filtered.append((x, y, w, h))
 
-        return filtered[:3]  # Max 3 plates (front, rear, side)
+        return filtered[:2]  # Max 2 plates (front + rear visible)
     except Exception as e:
         print(f"  [CV2] Plate detection error: {e}")
         return []
