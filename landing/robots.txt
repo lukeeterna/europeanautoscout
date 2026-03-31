@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://argos-automotive.pages.dev/sitemap.xml
