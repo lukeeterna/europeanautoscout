@@ -165,8 +165,32 @@ def check_due_actions():
         lines.append(f"\n{len(actions_due)} azioni da fare ORA.")
         send_telegram("\n".join(lines))
 
+        # Advance each dealer to next sequence step (prevents re-sending)
+        for a in actions_due:
+            seq_info = SEQUENCE.get(a["action"], {})
+            next_action = seq_info.get("next")
+            next_days = seq_info.get("next_days", 7)
+            if next_action:
+                next_at = (now + timedelta(days=next_days)).replace(
+                    hour=9, minute=0, second=0, microsecond=0
+                ).isoformat()
+                conn.execute("""
+                    UPDATE dealers SET next_action_type = ?, next_action_at = ?
+                    WHERE dealer_id = ?
+                """, [next_action, next_at, a["dealer_id"]])
+                print(f"  [{a['dealer_id']}] Advanced: {a['action']} → {next_action} at {next_at}")
+            else:
+                # End of sequence — mark as COLD
+                conn.execute("""
+                    UPDATE dealers SET next_action_type = NULL, next_action_at = NULL,
+                    pipeline_status = 'COLD'
+                    WHERE dealer_id = ?
+                """, [a["dealer_id"]])
+                print(f"  [{a['dealer_id']}] Sequence complete → COLD")
+        conn.commit()
+
         save_state(state)
-        print(f"[OK] {len(actions_due)} actions due, notification sent")
+        print(f"[OK] {len(actions_due)} actions due, notification sent, dealers advanced")
     else:
         print(f"[OK] No actions due right now")
 

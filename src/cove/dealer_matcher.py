@@ -240,7 +240,23 @@ def match_vehicle_to_dealers(
         if result["score"] >= min_score:
             matches.append(result)
 
-    matches.sort(key=lambda x: x["score"], reverse=True)
+    # Tiebreaker: when scores are identical, distribute evenly across dealers
+    # Count existing assignments per dealer to balance load
+    try:
+        import duckdb
+        con = duckdb.connect(db_path, read_only=True)
+        assignments = {}
+        for m in matches:
+            did = m.get("dealer_id", "")
+            count = con.execute(
+                "SELECT COUNT(*) FROM vehicle_listings WHERE matched_dealer = ?", [did]
+            ).fetchone()[0]
+            assignments[did] = count
+        con.close()
+        # Sort by score DESC, then by assignment count ASC (least-loaded first)
+        matches.sort(key=lambda x: (-x["score"], assignments.get(x.get("dealer_id", ""), 0)))
+    except Exception:
+        matches.sort(key=lambda x: x["score"], reverse=True)
     return matches
 
 

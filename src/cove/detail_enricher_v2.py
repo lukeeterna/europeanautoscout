@@ -93,7 +93,7 @@ def extract_images_from_html(html: str, source: str) -> List[str]:
     seen: set = set()
 
     def add_url(url: str) -> None:
-        url = url.strip()
+        url = url.strip().rstrip('\\')  # Strip trailing backslash from JSON-LD escapes
         if not url.startswith("http"):
             return
         if any(skip in url.lower() for skip in ["1x1", "pixel", "tracking", "logo", "icon"]):
@@ -138,9 +138,9 @@ def extract_images_from_html(html: str, source: str) -> List[str]:
     # mobile.de: img.classistatic.de/...
     # Others: any portal CDN with listing/vehicle image paths
     portal_cdn_patterns = [
-        r'https://prod\.pictures\.autoscout24\.net/listing-images/[^\s"\'<>]+',
-        r'https://img\.classistatic\.de/api/v\d+/mo-prod/images/[^\s"\'<>]+',
-        r'https://[^\s"\'<>]*(?:listing|vehicle|auto|car)[-_]images?/[^\s"\'<>]+\.(?:jpg|jpeg|png|webp)',
+        r'https://prod\.pictures\.autoscout24\.net/listing-images/[^\s"\'<>\\]+',
+        r'https://img\.classistatic\.de/api/v\d+/mo-prod/images/[^\s"\'<>\\]+',
+        r'https://[^\s"\'<>\\]*(?:listing|vehicle|auto|car)[-_]images?/[^\s"\'<>\\]+\.(?:jpg|jpeg|png|webp)',
     ]
     for pattern in portal_cdn_patterns:
         for m in re.finditer(pattern, html, re.IGNORECASE):
@@ -150,13 +150,18 @@ def extract_images_from_html(html: str, source: str) -> List[str]:
     # e.g. same image at /400x300 and /1280x960 — keep /1280x960
     deduped = {}
     for url in found:
-        # Extract base (without size suffix)
-        base = re.sub(r'/\d+x\d+\.?$', '', url)
-        base = re.sub(r'/resize/\d+x\d+$', '', base)
-        if base not in deduped or len(url) > len(deduped[base]):
+        # Extract base (without size suffix like /1280x960.webp or /120X90.jpeg)
+        base = re.sub(r'/\d+[xX]\d+(?:\.\w+)?$', '', url)
+        base = re.sub(r'/resize/\d+[xX]\d+(?:\.\w+)?$', '', base)
+        # Prefer highest resolution (largest dimensions in URL)
+        def _res(u):
+            m = re.search(r'/(\d+)x(\d+)', u)
+            return int(m.group(1)) * int(m.group(2)) if m else 0
+        if base not in deduped or _res(url) > _res(deduped[base]):
             deduped[base] = url
 
-    return list(deduped.values())[:20]
+    # AS24 ordering: first 15 are the car, last 3-5 are dealer (piazzale, building, people)
+    return list(deduped.values())[:15]
 
 
 def extract_specs_from_html(html: str) -> Dict[str, Any]:
@@ -237,6 +242,33 @@ def extract_specs_from_html(html: str) -> Dict[str, Any]:
                             specs["mileage"] = km_int
                     except (ValueError, TypeError):
                         pass
+
+            # Seller/dealer name extraction from JSON-LD
+            if "seller_name" not in specs or not specs.get("seller_name"):
+                seller = item.get("seller", item.get("offers", {}).get("seller", {}))
+                if isinstance(seller, dict):
+                    sname = (seller.get("companyName") or seller.get("name")
+                             or seller.get("legalName") or "")
+                    if sname and len(sname) > 1:
+                        specs["seller_name"] = str(sname).strip()
+
+    # Fallback: extract seller from __NEXT_DATA__ (AutoScout24)
+    if "seller_name" not in specs or not specs.get("seller_name"):
+        m_next = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL)
+        if m_next:
+            try:
+                nd = json.loads(m_next.group(1))
+                listings = nd.get("props", {}).get("pageProps", {}).get("listings", [])
+                if isinstance(listings, list):
+                    for lst_item in listings[:5]:
+                        seller = lst_item.get("seller", {})
+                        if isinstance(seller, dict):
+                            cn = seller.get("companyName", "")
+                            if cn and len(cn) > 1:
+                                specs["seller_name"] = str(cn).strip()
+                                break
+            except (json.JSONDecodeError, KeyError):
+                pass
 
     return specs
 
@@ -387,7 +419,7 @@ class DetailEnricherV2:
                 updates.append("recall_count = ?")
                 params.append(vin_verification.recall_count)
                 result["fields_updated"].extend(["vin_verified", "vin_verification_data", "recall_count"])
-            for field in ("fuel_type", "transmission", "power_kw", "color"):
+            for field in ("fuel_type", "transmission", "power_kw", "color", "seller_name"):
                 if field in specs:
                     updates.append(f"{field} = ?")
                     params.append(specs[field])
@@ -414,13 +446,13 @@ class DetailEnricherV2:
                 sql = f"UPDATE vehicle_listings SET {', '.join(updates)} WHERE listing_id = ?"
                 con.execute(sql, params)
 
-            # Insert vehicle_images — replace if we found more than existing
+            # Insert vehicle_images — always replace with freshly deduplicated set
             existing = con.execute(
                 "SELECT COUNT(*) FROM vehicle_images WHERE listing_id = ?", [listing_id]
             ).fetchone()[0]
 
-            if images and len(images) > existing:
-                # Delete old images and insert fresh set
+            if images:
+                # Delete old images and insert fresh deduplicated set
                 if existing > 0:
                     con.execute("DELETE FROM vehicle_images WHERE listing_id = ?", [listing_id])
                 for img_url in images:

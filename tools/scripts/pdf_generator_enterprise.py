@@ -1627,7 +1627,9 @@ def generate_dossier_from_db(
     # ── Generate PDF ───────────────────────────────────────────────────────────
     os.makedirs(output_dir, exist_ok=True)
     safe_dealer = dealer_name.replace(' ', '_').replace('/', '_')
-    filename = f"ARGOS_{make}_{model}_{year}_{safe_dealer}.pdf"
+    # Include short listing_id to avoid filename collisions
+    short_id = listing_id[-8:] if len(listing_id) > 8 else listing_id
+    filename = f"ARGOS_{make}_{model}_{year}_{safe_dealer}_{short_id}.pdf"
     output_path = os.path.join(os.path.abspath(output_dir), filename)
 
     print(f"Generating PDF: {output_path}")

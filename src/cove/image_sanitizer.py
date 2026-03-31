@@ -185,6 +185,7 @@ def sanitize_image(
     output_dir: str = None,
     listing_id: str = None,
     image_index: int = 0,
+    seller_name: str = None,
 ) -> Optional[str]:
     """
     Sanitize a single vehicle image:
@@ -229,13 +230,29 @@ def sanitize_image(
         clean.paste(img)
         w, h = clean.size
 
+        # ── PRE-FILTER: Drop non-car images (dealer buildings, piazzale, people) ──
+        if CV2_AVAILABLE and image_index >= 12:
+            # Late images in AS24 listings are often dealer promotional photos
+            # Heuristic: check if image is dominated by sky/building (high blue/gray ratio)
+            cv_check = cv2.imread(image_path)
+            if cv_check is not None:
+                hsv = cv2.cvtColor(cv_check, cv2.COLOR_BGR2HSV)
+                h_ch, s_ch, v_ch = cv_check.shape[:2], hsv[:, :, 1], hsv[:, :, 2]
+                # Sky detection: top 30% has low saturation + high value (bright gray/blue)
+                top_third = s_ch[:cv_check.shape[0] // 3, :]
+                sky_ratio = float(np.sum((top_third < 50) & (v_ch[:cv_check.shape[0] // 3, :] > 150))) / max(top_third.size, 1)
+                if sky_ratio > 0.5:
+                    print(f"  DROP non-car: {os.path.basename(image_path)} (sky_ratio={sky_ratio:.2f}, likely building/outdoor)")
+                    return None
+
         # ══════════════════════════════════════════════════════════
-        # ZERO TOLERANCE SANITIZATION v14 — GENERAL APPROACH
+        # ZERO TOLERANCE SANITIZATION v15 — GENERAL APPROACH
         #
         # 1. YOLO detects plates → inpaint (natural fill, not black box)
         # 2. OCR detects ALL text → inpaint non-car text
         # 3. CV2 edge detects banners → CROP
         # 4. Verify OCR on output → DROP if text survives
+        # 5. Pre-filter drops non-car images (buildings, piazzale)
         #
         # No blur. No full-width bars. No whack-a-mole.
         # ══════════════════════════════════════════════════════════
@@ -270,7 +287,7 @@ def sanitize_image(
             try:
                 results = reader.readtext(image_path, detail=1)
                 for bbox_pts, text_str, conf in results:
-                    if conf > 0.15:
+                    if conf > 0.10:  # Low threshold to catch cursive/styled dealer text
                         xs = [int(p[0]) for p in bbox_pts]
                         ys = [int(p[1]) for p in bbox_pts]
                         text_rects.append((min(xs), min(ys), max(xs), max(ys), text_str, conf))
@@ -297,16 +314,39 @@ def sanitize_image(
                     mask[fy1:fy2, fx1:fx2] = 255
 
                 # 3b: Mask all non-car text detected by OCR
+                # Build seller blocklist from seller_name (split into words >= 3 chars)
+                _seller_words = set()
+                if seller_name:
+                    for sw in seller_name.lower().split():
+                        if len(sw) >= 3:
+                            _seller_words.add(sw)
+
                 for tx1, ty1, tx2, ty2, ttext, conf in text_rects:
                     words_lower = ttext.lower().strip().split()
-                    if all(w in _keep_words for w in words_lower):
-                        continue
-                    if (tx2 - tx1) < 15 or (ty2 - ty1) < 5:
-                        continue
-                    if len(ttext.strip()) <= 1:
-                        continue
-                    # Mask with padding
-                    pad = 10
+
+                    # Force-mask if text matches seller name (even at low confidence)
+                    is_seller = False
+                    if _seller_words:
+                        for wl in words_lower:
+                            for sw in _seller_words:
+                                # Fuzzy: seller word contained in detected text or vice versa
+                                if sw in wl or wl in sw:
+                                    is_seller = True
+                                    print(f"  [SELLER] '{ttext}' matches seller '{seller_name}' → MASK")
+                                    break
+                            if is_seller:
+                                break
+
+                    if not is_seller:
+                        if all(w in _keep_words for w in words_lower):
+                            continue
+                        if (tx2 - tx1) < 15 or (ty2 - ty1) < 5:
+                            continue
+                        if len(ttext.strip()) <= 1:
+                            continue
+
+                    # Mask with padding (extra padding for seller matches)
+                    pad = 20 if is_seller else 10
                     mx1 = max(0, tx1 - pad)
                     my1 = max(0, ty1 - pad)
                     mx2 = min(w, tx2 + pad)
@@ -553,16 +593,31 @@ def sanitize_all_images(
     db_path: str = None,
     output_dir: str = None,
     download_first: bool = True,
+    seller_name: str = None,
 ) -> List[str]:
     """
     Sanitize all images for a listing:
     1. Get image URLs from vehicle_images table
     2. Download if needed
-    3. Sanitize each image
+    3. Sanitize each image (with seller_name blocklist if provided)
     4. Return list of safe image paths
     """
     if db_path is None:
         db_path = str(PROJECT_ROOT / "src" / "cove" / "data" / "cove_tracker.duckdb")
+
+    # Auto-fetch seller_name from DB if not provided
+    if not seller_name:
+        try:
+            import duckdb as _ddb
+            _con = _ddb.connect(db_path, read_only=True)
+            _row = _con.execute(
+                "SELECT seller_name FROM vehicle_listings WHERE listing_id = ?", [listing_id]
+            ).fetchone()
+            if _row and _row[0]:
+                seller_name = _row[0]
+            _con.close()
+        except Exception:
+            pass
 
     if output_dir is None:
         output_dir = str(DEFAULT_SAFE_DIR)
@@ -591,10 +646,10 @@ def sanitize_all_images(
     for url, local_path in rows:
         if not url:
             continue
-        # Extract base UUID from URL (before resolution suffix like /1280x960.webp)
-        base = _re.sub(r'/\d+x\d+\.(jpg|webp|png)$', '', url.split('?')[0])
+        # Extract base UUID from URL (before resolution suffix like /1280x960.webp or /120X90.jpeg)
+        base = _re.sub(r'/\d+[xX]\d+\.(?:jpg|jpeg|webp|png)$', '', url.split('?')[0])
         # Parse resolution
-        res_match = _re.search(r'/(\d+)x(\d+)\.(jpg|webp|png)$', url)
+        res_match = _re.search(r'/(\d+)[xX](\d+)\.(?:jpg|jpeg|webp|png)$', url)
         res = int(res_match.group(1)) * int(res_match.group(2)) if res_match else 0
         # Prefer jpg over webp at same resolution, prefer highest resolution
         if base not in unique_images or res > unique_images[base][2]:
@@ -621,7 +676,8 @@ def sanitize_all_images(
             src_path = _download_image(url, raw_dir, listing_id, i)
 
         if src_path and os.path.exists(src_path):
-            safe = sanitize_image(src_path, output_dir, listing_id, i)
+            safe = sanitize_image(src_path, output_dir, listing_id, i,
+                                  seller_name=seller_name)
             if safe:
                 safe_paths.append(safe)
 

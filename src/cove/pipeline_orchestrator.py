@@ -51,9 +51,10 @@ class PipelineOrchestrator:
     Each method handles one state's transitions.
     """
 
-    def __init__(self, db_path: str = DB_PATH, dry_run: bool = False):
+    def __init__(self, db_path: str = DB_PATH, dry_run: bool = False, max_score_per_run: int = 60):
         self.db_path = db_path
         self.dry_run = dry_run
+        self.max_score_per_run = max_score_per_run
         self.stats = {s: 0 for s in ["processed", "transitioned", "errors", "skipped"]}
         self._log(f"{'DRY RUN — ' if dry_run else ''}Pipeline run started at {datetime.now(timezone.utc).isoformat()}")
 
@@ -68,6 +69,10 @@ class PipelineOrchestrator:
         self._log(f"\n  Current pipeline state:")
         for state, count in sorted(summary.items(), key=lambda x: x[1], reverse=True):
             self._log(f"    {state:25s} {count:4d}")
+
+        # Step 0: Clean up stale listings (older than 5 days in SCORED/DISCOVERED)
+        if not only_state:
+            self._cleanup_stale()
 
         processors = [
             ("DISCOVERED", self.process_discovered),
@@ -105,7 +110,7 @@ class PipelineOrchestrator:
         self._log(f"\n── DISCOVERED → SCORED ({len(listings)} listings) ──")
 
         scored_count = 0
-        MAX_SCORE_PER_RUN = 20  # Rate limit: max 20 new scorings per run
+        MAX_SCORE_PER_RUN = self.max_score_per_run  # Configurable via --max-score
 
         for lid, row in listings:
             self.stats["processed"] += 1
@@ -522,13 +527,35 @@ class PipelineOrchestrator:
             if not row or not row[1]:
                 return 0.0
             price_eu = float(row[0])
-            market_it = float(row[1]) * 1.12  # EU market_price → IT +12%
+            market_it = float(row[1]) * 1.10  # EU market_price → IT +10% (conservative)
             transport = 600
             immatricolazione = 430
             fee_argos = 900
             return market_it - price_eu - transport - immatricolazione - fee_argos
         finally:
             con.close()
+
+    def _cleanup_stale(self):
+        """Mark listings older than 5 days in DISCOVERED/SCORED as REJECTED (stale)."""
+        try:
+            import duckdb
+            con = duckdb.connect(self.db_path)
+            stale = con.execute("""
+                SELECT listing_id, pipeline_state FROM vehicle_listings
+                WHERE pipeline_state IN ('DISCOVERED', 'SCORED')
+                  AND scraped_at < NOW() - INTERVAL '5 days'
+            """).fetchall()
+            if stale:
+                for lid, state in stale:
+                    con.execute("""
+                        UPDATE vehicle_listings SET pipeline_state = 'REJECTED',
+                        state_updated_at = NOW() WHERE listing_id = ?
+                    """, [lid])
+                self._log(f"\n  Cleanup: {len(stale)} stale listings → REJECTED (>5 days old)")
+                self.stats["transitioned"] += len(stale)
+            con.close()
+        except Exception as e:
+            self._log(f"  Cleanup error: {e}")
 
     def _run_enricher(self, listing_id: str) -> bool:
         """Run detail enricher on a single listing."""
@@ -762,6 +789,7 @@ def main():
     parser.add_argument("--state", type=str, help="Process only this state")
     parser.add_argument("--setup", action="store_true", help="Setup/upgrade DB schema")
     parser.add_argument("--db", type=str, default=DB_PATH, help="DB path")
+    parser.add_argument("--max-score", type=int, default=60, help="Max scorings per run (default: 60)")
     args = parser.parse_args()
 
     if args.setup:
@@ -779,7 +807,8 @@ def main():
         print(f"  {'TOTAL':25s} {total:4d}")
         return
 
-    orch = PipelineOrchestrator(db_path=args.db, dry_run=args.dry_run)
+    orch = PipelineOrchestrator(db_path=args.db, dry_run=args.dry_run,
+                                max_score_per_run=args.max_score)
     orch.run(only_state=args.state)
 
 
