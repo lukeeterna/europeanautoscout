@@ -112,13 +112,14 @@ def check_due_actions():
     now = datetime.now()
 
     # Find dealers with pending actions due today or overdue
+    # Exclude dealers who have responded — they exit the automatic sequence
     rows = conn.execute("""
         SELECT dealer_id, name, wa, pipeline_status, tier, archetype,
                next_action_at, next_action_type, titolare_name
         FROM dealers
         WHERE next_action_at IS NOT NULL
           AND next_action_at <= ?
-          AND pipeline_status NOT IN ('CLOSED', 'DEAD', 'CONVERTED')
+          AND pipeline_status NOT IN ('CLOSED', 'DEAD', 'CONVERTED', 'RESPONDED', 'ENGAGED', 'NEGOTIATING')
         ORDER BY next_action_at ASC
     """, [now.isoformat()]).fetchall()
 
@@ -166,7 +167,18 @@ def check_due_actions():
         send_telegram("\n".join(lines))
 
         # Advance each dealer to next sequence step (prevents re-sending)
+        # Re-check pipeline_status before advancing — dealer may have responded
         for a in actions_due:
+            current_status = conn.execute(
+                "SELECT pipeline_status FROM dealers WHERE dealer_id = ?",
+                [a["dealer_id"]]
+            ).fetchone()
+            if current_status and current_status[0] in (
+                "RESPONDED", "ENGAGED", "NEGOTIATING", "CONVERTED", "CLOSED", "DEAD"
+            ):
+                print(f"  [{a['dealer_id']}] Skipped advance — status is {current_status[0]}")
+                continue
+
             seq_info = SEQUENCE.get(a["action"], {})
             next_action = seq_info.get("next")
             next_days = seq_info.get("next_days", 7)
