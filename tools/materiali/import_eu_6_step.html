@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Import EU in 6 Step — ARGOS Automotive</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0a;
+    color: #e8e0d0;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: #0a0a0a;
+    border-bottom: 1px solid #c8a446;
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-shield {
+    width: 44px;
+    height: 44px;
+    border: 2px solid #c8a446;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #c8a446;
+    flex-shrink: 0;
+  }
+  .logo-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: #c8a446;
+    letter-spacing: 0.08em;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .header-right {
+    text-align: right;
+  }
+  .header-right h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    color: #e8e0d0;
+  }
+  .header-right p {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* MAIN */
+  .main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 52px 32px 80px;
+  }
+
+  .page-title {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .page-title h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 34px;
+    font-weight: 600;
+    color: #e8e0d0;
+    letter-spacing: 0.03em;
+  }
+  .page-title .subtitle {
+    font-size: 12px;
+    color: #555;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+
+  .divider-gold {
+    width: 60px;
+    height: 1px;
+    background: #c8a446;
+    margin: 24px auto 52px;
+  }
+
+  /* TIMELINE VERTICALE */
+  .timeline {
+    position: relative;
+    padding-left: 0;
+  }
+
+  /* Linea verticale centrale */
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 39px;
+    top: 40px;
+    bottom: 40px;
+    width: 1px;
+    background: linear-gradient(to bottom, #c8a446, #333 80%, transparent);
+  }
+
+  .step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+    margin-bottom: 40px;
+    position: relative;
+  }
+  .step-item:last-child { margin-bottom: 0; }
+
+  /* NUMERO STEP */
+  .step-num {
+    width: 80px;
+    min-width: 80px;
+    height: 80px;
+    background: #111;
+    border: 2px solid #c8a446;
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .step-num .sn-label {
+    font-size: 9px;
+    color: #888;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .step-num .sn-n {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: #c8a446;
+    line-height: 1;
+    margin-top: 2px;
+  }
+
+  /* CONTENUTO STEP */
+  .step-content {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 2px;
+    padding: 24px 28px;
+    flex: 1;
+    min-height: 80px;
+    transition: border-color 0.2s;
+  }
+  .step-content:hover {
+    border-color: #333;
+  }
+
+  .step-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .step-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: #e8e0d0;
+    letter-spacing: 0.05em;
+  }
+
+  .step-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .tag-time {
+    background: #0d0d0d;
+    border: 1px solid #222;
+    color: #777;
+  }
+  .tag-cost {
+    background: #141208;
+    border: 1px solid #3a2f10;
+    color: #c8a446;
+  }
+
+  .step-desc {
+    font-size: 13px;
+    color: #aaa;
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .step-details {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .detail-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.5;
+  }
+  .detail-row::before {
+    content: '—';
+    color: #c8a446;
+    flex-shrink: 0;
+    font-size: 12px;
+  }
+  .detail-row strong {
+    color: #999;
+    font-weight: 500;
+  }
+
+  /* RIEPILOGO COSTI */
+  .riepilogo {
+    background: #111;
+    border: 1px solid #c8a446;
+    border-radius: 2px;
+    padding: 32px;
+    margin-top: 48px;
+  }
+  .riepilogo-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    color: #c8a446;
+    margin-bottom: 24px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #222;
+  }
+
+  .riepilogo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 40px;
+  }
+
+  .riepilogo-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .riepilogo-row .rr-label {
+    font-size: 12px;
+    color: #666;
+  }
+  .riepilogo-row .rr-value {
+    font-size: 13px;
+    color: #aaa;
+    font-weight: 500;
+  }
+
+  .riepilogo-total {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 16px 0 0;
+    margin-top: 8px;
+    border-top: 1px solid #333;
+  }
+  .riepilogo-total .rt-label {
+    font-size: 14px;
+    color: #e8e0d0;
+    font-weight: 600;
+  }
+  .riepilogo-total .rt-value {
+    font-size: 20px;
+    color: #c8a446;
+    font-weight: 700;
+  }
+
+  .riepilogo-timeline {
+    grid-column: 1 / -1;
+    background: #0d0d0d;
+    border: 1px solid #1e1e1e;
+    border-radius: 2px;
+    padding: 16px 20px;
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .rt-item {
+    text-align: center;
+  }
+  .rt-item .ri-label {
+    font-size: 10px;
+    color: #555;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .rt-item .ri-value {
+    font-size: 14px;
+    color: #c8a446;
+    font-weight: 600;
+    margin-top: 3px;
+  }
+  .rt-separator {
+    font-size: 18px;
+    color: #333;
+  }
+
+  /* PAESI COPERTI */
+  .paesi-block {
+    background: #0d0d0d;
+    border: 1px solid #1e1e1e;
+    border-radius: 2px;
+    padding: 24px 28px;
+    margin-top: 32px;
+  }
+  .paesi-title {
+    font-size: 11px;
+    color: #555;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .paesi-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .paese-tag {
+    background: #111;
+    border: 1px solid #222;
+    padding: 6px 14px;
+    border-radius: 2px;
+    font-size: 12px;
+    color: #888;
+  }
+
+  /* FOOTER */
+  .footer {
+    background: #060606;
+    border-top: 1px solid #1a1a1a;
+    padding: 20px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 60px;
+  }
+  .footer-left {
+    font-size: 12px;
+    color: #444;
+    letter-spacing: 0.08em;
+  }
+  .footer-left strong { color: #c8a446; }
+  .footer-right {
+    font-size: 11px;
+    color: #333;
+    text-align: right;
+  }
+
+  /* PRINT */
+  @media print {
+    body { background: white; color: #111; }
+    .header { background: white; border-bottom: 2px solid #c8a446; }
+    .logo-shield { border-color: #c8a446; color: #c8a446; }
+    .logo-text { color: #c8a446; }
+    .header-right h1 { color: #111; }
+    .timeline::before { background: #c8a446; }
+    .step-num { background: white; border-color: #c8a446; }
+    .step-content { background: white; border-color: #ddd; page-break-inside: avoid; }
+    .riepilogo { background: white; border-color: #c8a446; }
+    .riepilogo-timeline { background: #f8f8f8; }
+    .paesi-block { background: #f8f8f8; border-color: #ddd; }
+    .footer { background: white; border-top: 1px solid #ddd; }
+    .tag-cost { background: #fff8e8; color: #8a6a00; border-color: #c8a446; }
+    .tag-time { background: #f5f5f5; color: #555; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-shield">A</div>
+    <div>
+      <div class="logo-text">ARGOS Automotive</div>
+      <div class="logo-sub">Vehicle Intelligence — EU Markets</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <h1>Processo Import EU</h1>
+    <p>Guida operativa — Dalla selezione alla consegna</p>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="page-title">
+    <h2>Import EU in 6 Step</h2>
+    <div class="subtitle">Dalla ricerca in Germania alla targa italiana — timeline e costi reali</div>
+  </div>
+  <div class="divider-gold"></div>
+
+  <div class="timeline">
+
+    <!-- STEP 1 -->
+    <div class="step-item">
+      <div class="step-num">
+        <span class="sn-label">Step</span>
+        <span class="sn-n">1</span>
+      </div>
+      <div class="step-content">
+        <div class="step-top">
+          <span class="step-name">Selezione</span>
+          <div class="step-tags">
+            <span class="tag tag-time">3-5 giorni</span>
+            <span class="tag tag-cost">Costo: incluso</span>
+          </div>
+        </div>
+        <p class="step-desc">Ricerca attiva sui mercati europei in base alle specifiche richieste dal dealer: marca, modello, anno, km, allestimento. I mercati coperti includono Germania, Olanda, Belgio, Austria, Francia e Svezia.</p>
+        <div class="step-details">
+          <div class="detail-row">Fonti: AutoScout24.de, Mobile.de, AutoTrader NL, Autoscout24.be, Willhaben.at, Blocket.se</div>
+          <div class="detail-row">Filtri: <strong>privati e dealer ufficiali</strong>, km verificati, no incidenti, storico tagliandi disponibile</div>
+          <div class="detail-row">Output: shortlist di 3-5 auto con scheda dati comparativa (km, anno, storia, prezzo, delta vs IT)</div>
+          <div class="detail-row">Il dealer approva prima di procedere all'acquisto — <strong>zero impegni nella fase di selezione</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-item">
+      <div class="step-num">
+        <span class="sn-label">Step</span>
+        <span class="sn-n">2</span>
+      </div>
+      <div class="step-content">
+        <div class="step-top">
+          <span class="step-name">Verifica</span>
+          <div class="step-tags">
+            <span class="tag tag-time">2-3 giorni</span>
+            <span class="tag tag-cost">Costo: incluso</span>
+          </div>
+        </div>
+        <p class="step-desc">Analisi documentale approfondita sull'auto selezionata: storico tagliandi, chilometraggio, proprieta', eventuali anomalie sul prezzo rispetto al mercato.</p>
+        <div class="step-details">
+          <div class="detail-row">Storico tagliandi: rete ufficiale BMW / Mercedes-Benz / Audi — ogni tagliando registra km, data e officina</div>
+          <div class="detail-row">Numero proprieta': libretto di circolazione tedesco (Fahrzeugbrief) — traccia ogni passaggio di mano</div>
+          <div class="detail-row">Confronto prezzo: verifica coerenza con valori AutoScout24.de e Mobile.de per fascia km equivalente</div>
+          <div class="detail-row">TUV: revisione biennale obbligatoria in Germania — data scadenza visibile nel libretto</div>
+          <div class="detail-row">Se la verifica non passa, si torna allo Step 1 su un'altra auto — <strong>a zero costi aggiuntivi</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-item">
+      <div class="step-num">
+        <span class="sn-label">Step</span>
+        <span class="sn-n">3</span>
+      </div>
+      <div class="step-content">
+        <div class="step-top">
+          <span class="step-name">Acquisto</span>
+          <div class="step-tags">
+            <span class="tag tag-time">1-2 giorni</span>
+            <span class="tag tag-cost">Costo: prezzo DE concordato</span>
+          </div>
+        </div>
+        <p class="step-desc">Trattativa con il venditore in Germania. Contratto di vendita in forma scritta con trasferimento di proprieta'. Il pagamento avviene via bonifico internazionale SEPA.</p>
+        <div class="step-details">
+          <div class="detail-row">Contratto: Kaufvertrag (contratto di vendita tedesco) — documento legalmente valido anche in Italia</div>
+          <div class="detail-row">Pagamento: bonifico SEPA — tracciabile, documentato, senza commissioni intra-UE</div>
+          <div class="detail-row">Documenti ritirati: Fahrzeugbrief (carta di circolazione), Fahrzeugschein (libretto), chiavi, manuale</div>
+          <div class="detail-row">Il dealer paga il venditore direttamente — <strong>ARGOS non gestisce il denaro del dealer</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-item">
+      <div class="step-num">
+        <span class="sn-label">Step</span>
+        <span class="sn-n">4</span>
+      </div>
+      <div class="step-content">
+        <div class="step-top">
+          <span class="step-name">Trasporto</span>
+          <div class="step-tags">
+            <span class="tag tag-time">5-8 giorni lavorativi</span>
+            <span class="tag tag-cost">EUR 700 - 1.000</span>
+          </div>
+        </div>
+        <p class="step-desc">Trasporto su bisarca professionale dalla Germania all'Italia. L'auto viaggia coperta, assicurata per il transito, con consegna direttamente al piazzale del dealer.</p>
+        <div class="step-details">
+          <div class="detail-row">Vettore: bisarca chiusa (non aperta) — l'auto non accumula km o usura durante il trasporto</div>
+          <div class="detail-row">Assicurazione transit: EUR 100 (inclusa nel costo importazione) — copre danni da trasporto</div>
+          <div class="detail-row">Costo per zona — <strong>Nord Italia</strong> (TO, MI, VE): circa EUR 700 — <strong>Centro-Sud</strong> (NA, BA, SA): circa EUR 850 — <strong>Estremo Sud e Isole</strong>: circa EUR 1.000</div>
+          <div class="detail-row">Consegna: direttamente al piazzale del dealer o indirizzo indicato</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step-item">
+      <div class="step-num">
+        <span class="sn-label">Step</span>
+        <span class="sn-n">5</span>
+      </div>
+      <div class="step-content">
+        <div class="step-top">
+          <span class="step-name">Importazione</span>
+          <div class="step-tags">
+            <span class="tag tag-time">7-10 giorni lavorativi</span>
+            <span class="tag tag-cost">EUR 1.175 - 1.425</span>
+          </div>
+        </div>
+        <p class="step-desc">Pratiche burocratiche per rendere l'auto legalmente circolante in Italia: Certificato di Conformita', immatricolazione, pagamento IPT, eventuali adeguamenti normativi.</p>
+        <div class="step-details">
+          <div class="detail-row"><strong>COC (Certificato di Conformita'):</strong> EUR 150-200 — certifica che l'auto rispetta le norme EU. Rilasciato dal costruttore o da uffici autorizzati</div>
+          <div class="detail-row"><strong>Immatricolazione italiana:</strong> EUR 500-600 — comprende visita tecnica, versamento bollo e rilascio targa IT</div>
+          <div class="detail-row"><strong>IPT (Imposta Provinciale di Trascrizione):</strong> EUR 350-500 — variabile per provincia e cilindrata</div>
+          <div class="detail-row"><strong>Assicurazione transit:</strong> EUR 100 — copre il periodo dal ritiro DE alla consegna IT</div>
+          <div class="detail-row">Tutta la pratica e' gestita da ARGOS — il dealer riceve solo i documenti finali</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step-item">
+      <div class="step-num">
+        <span class="sn-label">Step</span>
+        <span class="sn-n">6</span>
+      </div>
+      <div class="step-content">
+        <div class="step-top">
+          <span class="step-name">Consegna</span>
+          <div class="step-tags">
+            <span class="tag tag-time">Giorno 0 per il dealer</span>
+            <span class="tag tag-cost">Fee ARGOS: EUR 800-1.200</span>
+          </div>
+        </div>
+        <p class="step-desc">L'auto arriva al piazzale del dealer con targa italiana, libretto aggiornato e tutta la documentazione in ordine. Dal momento della consegna, e' pronta per essere esposta e venduta.</p>
+        <div class="step-details">
+          <div class="detail-row">Documenti consegnati: libretto italiano, certificato di proprieta', storico tagliandi originale DE, COC</div>
+          <div class="detail-row">Garanzia costruttore: attiva e verificabile — vale in tutta l'Unione Europea</div>
+          <div class="detail-row">Regime fiscale: applicabile il regime del margine (art. 36 D.L. 41/1995) per auto acquistate da privati</div>
+          <div class="detail-row"><strong>Fee ARGOS pagata solo a consegna avvenuta</strong> — zero costi se l'operazione non va in porto</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIEPILOGO COSTI E TIMELINE -->
+  <div class="riepilogo">
+    <div class="riepilogo-title">Riepilogo costi fissi e timeline totale</div>
+
+    <div class="riepilogo-grid">
+      <div class="riepilogo-row">
+        <span class="rr-label">Trasporto bisarca (Centro-Sud)</span>
+        <span class="rr-value">EUR 850</span>
+      </div>
+      <div class="riepilogo-row">
+        <span class="rr-label">Certificato di Conformita' (COC)</span>
+        <span class="rr-value">EUR 150-200</span>
+      </div>
+      <div class="riepilogo-row">
+        <span class="rr-label">Immatricolazione italiana</span>
+        <span class="rr-value">EUR 500-600</span>
+      </div>
+      <div class="riepilogo-row">
+        <span class="rr-label">IPT (Imposta Provinciale Trascrizione)</span>
+        <span class="rr-value">EUR 350-500</span>
+      </div>
+      <div class="riepilogo-row">
+        <span class="rr-label">Assicurazione transit</span>
+        <span class="rr-value">EUR 100</span>
+      </div>
+      <div class="riepilogo-row">
+        <span class="rr-label">Fee ARGOS (success fee)</span>
+        <span class="rr-value">EUR 800-1.200</span>
+      </div>
+
+      <div class="riepilogo-total">
+        <span class="rt-label">Totale costi fuori prezzo acquisto DE</span>
+        <span class="rt-value">EUR 2.750 - 3.450</span>
+      </div>
+
+      <div class="riepilogo-timeline">
+        <div class="rt-item">
+          <div class="ri-label">Selezione e verifica</div>
+          <div class="ri-value">5-8 giorni</div>
+        </div>
+        <div class="rt-separator">+</div>
+        <div class="rt-item">
+          <div class="ri-label">Acquisto e trasporto</div>
+          <div class="ri-value">6-10 giorni</div>
+        </div>
+        <div class="rt-separator">+</div>
+        <div class="rt-item">
+          <div class="ri-label">Importazione</div>
+          <div class="ri-value">7-10 giorni</div>
+        </div>
+        <div class="rt-separator">=</div>
+        <div class="rt-item">
+          <div class="ri-label">Timeline totale</div>
+          <div class="ri-value" style="font-size:18px;">3-4 settimane</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PAESI COPERTI -->
+  <div class="paesi-block">
+    <div class="paesi-title">Mercati EU coperti — 19 paesi attivi</div>
+    <div class="paesi-list">
+      <span class="paese-tag">Germania DE</span>
+      <span class="paese-tag">Olanda NL</span>
+      <span class="paese-tag">Belgio BE</span>
+      <span class="paese-tag">Austria AT</span>
+      <span class="paese-tag">Francia FR</span>
+      <span class="paese-tag">Svezia SE</span>
+      <span class="paese-tag">Spagna ES</span>
+      <span class="paese-tag">Portogallo PT</span>
+      <span class="paese-tag">Polonia PL</span>
+      <span class="paese-tag">Repubblica Ceca CZ</span>
+      <span class="paese-tag">Ungheria HU</span>
+      <span class="paese-tag">Romania RO</span>
+      <span class="paese-tag">Svizzera CH</span>
+      <span class="paese-tag">Danimarca DK</span>
+      <span class="paese-tag">Norvegia NO</span>
+      <span class="paese-tag">Finlandia FI</span>
+      <span class="paese-tag">Lussemburgo LU</span>
+      <span class="paese-tag">Irlanda IE</span>
+      <span class="paese-tag">Croazia HR</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <div class="footer-left">
+    <strong>ARGOS Automotive</strong> — Luca Ferretti — +39 328 153 6308
+  </div>
+  <div class="footer-right">
+    Guida operativa interna<br>
+    Aggiornato aprile 2026
+  </div>
+</div>
+
+</body>
+</html>

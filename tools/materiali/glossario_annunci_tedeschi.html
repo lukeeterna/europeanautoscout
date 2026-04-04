@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Come Leggere un Annuncio Tedesco — ARGOS Automotive</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0a;
+    color: #e8e0d0;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: #0a0a0a;
+    border-bottom: 1px solid #c8a446;
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-shield {
+    width: 44px;
+    height: 44px;
+    border: 2px solid #c8a446;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #c8a446;
+    flex-shrink: 0;
+  }
+  .logo-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: #c8a446;
+    letter-spacing: 0.08em;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .header-right {
+    text-align: right;
+  }
+  .header-right h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    color: #e8e0d0;
+  }
+  .header-right p {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* MAIN */
+  .main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 52px 32px 80px;
+  }
+
+  .page-title {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .page-title h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 34px;
+    font-weight: 600;
+    color: #e8e0d0;
+  }
+  .page-title .subtitle {
+    font-size: 12px;
+    color: #555;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .divider-gold {
+    width: 60px;
+    height: 1px;
+    background: #c8a446;
+    margin: 24px auto 48px;
+  }
+
+  /* LAYOUT 2 COLONNE */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 10px;
+    color: #c8a446;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #1e1e1e;
+  }
+
+  /* GLOSSARIO TABLE */
+  .glossario-block {
+    margin-bottom: 36px;
+  }
+
+  .glossario-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .glossario-table tr {
+    border-bottom: 1px solid #141414;
+  }
+  .glossario-table tr:last-child {
+    border-bottom: none;
+  }
+  .glossario-table td {
+    padding: 9px 0;
+    vertical-align: top;
+  }
+  .td-de {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e8e0d0;
+    width: 50%;
+    padding-right: 16px;
+  }
+  .td-it {
+    font-size: 13px;
+    color: #888;
+    width: 50%;
+  }
+  .td-it .nota {
+    font-size: 11px;
+    color: #555;
+    font-style: italic;
+    display: block;
+    margin-top: 2px;
+  }
+  .badge-importante {
+    display: inline-block;
+    background: #141208;
+    border: 1px solid #3a2f10;
+    color: #c8a446;
+    font-size: 9px;
+    padding: 1px 6px;
+    letter-spacing: 0.1em;
+    border-radius: 1px;
+    vertical-align: middle;
+    margin-left: 6px;
+    text-transform: uppercase;
+  }
+
+  /* MOCK ANNUNCIO */
+  .mock-annuncio {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 2px;
+    overflow: hidden;
+    font-size: 12px;
+    position: sticky;
+    top: 32px;
+  }
+  .mock-header-bar {
+    background: #1a1a2e;
+    border-bottom: 1px solid #2a2a4a;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mock-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #333;
+  }
+  .mock-dot.r { background: #5a1a1a; }
+  .mock-dot.y { background: #4a3a0a; }
+  .mock-dot.g { background: #1a3a1a; }
+  .mock-url {
+    font-size: 10px;
+    color: #444;
+    margin-left: 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .mock-body {
+    padding: 0;
+  }
+
+  /* IMMAGINE FITTIZIA */
+  .mock-img {
+    height: 160px;
+    background: linear-gradient(135deg, #111 0%, #1a1a1a 50%, #0d0d0d 100%);
+    border-bottom: 1px solid #1e1e1e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .mock-img-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    color: #333;
+    letter-spacing: 0.1em;
+  }
+  .mock-badge-img {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #c8a446;
+    color: #0a0a0a;
+    font-size: 9px;
+    padding: 3px 8px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* DATI ANNUNCIO */
+  .mock-title-row {
+    padding: 16px 16px 8px;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .mock-title {
+    font-size: 15px;
+    color: #e8e0d0;
+    font-weight: 600;
+    margin-bottom: 3px;
+  }
+  .mock-price {
+    font-size: 20px;
+    color: #c8a446;
+    font-weight: 700;
+  }
+  .mock-price-sub {
+    font-size: 10px;
+    color: #555;
+    margin-top: 2px;
+  }
+
+  .mock-row-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-bottom: 1px solid #141414;
+  }
+  .mock-row-grid:last-of-type {
+    border-bottom: none;
+  }
+
+  .mock-field {
+    padding: 8px 16px;
+    border-bottom: 1px solid #111;
+    position: relative;
+  }
+  .mock-field:nth-child(odd) {
+    border-right: 1px solid #141414;
+  }
+  .mock-field-label {
+    font-size: 9px;
+    color: #444;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .mock-field-value {
+    font-size: 12px;
+    color: #ccc;
+    font-weight: 500;
+  }
+  .mock-field-de {
+    font-size: 10px;
+    color: #555;
+    margin-top: 1px;
+  }
+
+  /* CALLOUT SUL MOCK */
+  .callout {
+    background: #141208;
+    border: 1px solid #3a2f10;
+    border-radius: 2px;
+    margin: 0 10px 12px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #c8a446;
+    line-height: 1.5;
+  }
+  .callout strong { font-weight: 600; }
+
+  /* SEZIONE SPECIALE: TERMINI FISCALI */
+  .fiscale-block {
+    background: #0d0d0d;
+    border: 1px solid #c8a446;
+    border-radius: 2px;
+    padding: 24px 28px;
+    margin-top: 40px;
+    grid-column: 1 / -1;
+  }
+  .fiscale-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    color: #c8a446;
+    margin-bottom: 8px;
+  }
+  .fiscale-sub {
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .fiscale-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .fiscale-item {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    padding: 16px;
+    border-radius: 2px;
+  }
+  .fi-de {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e8e0d0;
+    margin-bottom: 4px;
+  }
+  .fi-it {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 8px;
+  }
+  .fi-nota {
+    font-size: 11px;
+    color: #555;
+    line-height: 1.5;
+    border-top: 1px solid #1a1a1a;
+    padding-top: 8px;
+    margin-top: 8px;
+  }
+
+  /* FOOTER */
+  .footer {
+    background: #060606;
+    border-top: 1px solid #1a1a1a;
+    padding: 20px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 60px;
+  }
+  .footer-left {
+    font-size: 12px;
+    color: #444;
+    letter-spacing: 0.08em;
+  }
+  .footer-left strong { color: #c8a446; }
+  .footer-right {
+    font-size: 11px;
+    color: #333;
+    text-align: right;
+  }
+
+  /* PRINT */
+  @media print {
+    body { background: white; color: #111; }
+    .header { background: white; border-bottom: 2px solid #c8a446; }
+    .logo-shield { border-color: #c8a446; color: #c8a446; }
+    .logo-text { color: #c8a446; }
+    .mock-annuncio { position: static; background: white; border-color: #ddd; }
+    .mock-header-bar { background: #f0f0f0; border-color: #ddd; }
+    .mock-img { background: #f5f5f5; }
+    .fiscale-block { background: white; border-color: #c8a446; }
+    .fiscale-item { background: #f8f8f8; border-color: #ddd; }
+    .footer { background: white; border-top: 1px solid #ddd; }
+    .two-col { grid-template-columns: 1fr; gap: 24px; }
+    .mock-annuncio { page-break-inside: avoid; }
+    .glossario-block { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-shield">A</div>
+    <div>
+      <div class="logo-text">ARGOS Automotive</div>
+      <div class="logo-sub">Vehicle Intelligence — EU Markets</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <h1>Glossario Annunci Tedeschi</h1>
+    <p>Guida alla lettura — AutoScout24.de e Mobile.de</p>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="page-title">
+    <h2>Come Leggere un Annuncio Tedesco</h2>
+    <div class="subtitle">Tutti i termini che contano — da DE a IT, con annotazioni pratiche</div>
+  </div>
+  <div class="divider-gold"></div>
+
+  <div class="two-col">
+
+    <!-- COLONNA SINISTRA: GLOSSARI -->
+    <div>
+
+      <!-- DATI PRINCIPALI -->
+      <div class="glossario-block">
+        <div class="section-label">Dati principali</div>
+        <table class="glossario-table">
+          <tr>
+            <td class="td-de">Erstzulassung</td>
+            <td class="td-it">Prima immatricolazione
+              <span class="nota">Data del primo collaudo — determina l'eta' dell'auto</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">Kilometerstand</td>
+            <td class="td-it">Chilometraggio
+              <span class="nota">Verificare con storico tagliandi costruttore</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">Fahrzeughalter</td>
+            <td class="td-it">Numero di proprietari
+              <span class="nota">1 Halter = un solo proprietario precedente</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">Scheckheftgepflegt</td>
+            <td class="td-it">Tagliandi regolari — libretto completo
+              <span class="nota">Indica storico tagliandi presso rete ufficiale</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">Hauptuntersuchung (HU)</td>
+            <td class="td-it">Revisione tecnica (equivalente collaudo IT)
+              <span class="nota">HU neu = revisione appena fatta — valore aggiunto</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">TUV bis</td>
+            <td class="td-it">Revisione TUV valida fino a (mese/anno)
+              <span class="nota">TUV biennale obbligatorio in Germania — piu' severo del collaudo italiano</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- MOTORE E TECNICA -->
+      <div class="glossario-block">
+        <div class="section-label">Motore e tecnica</div>
+        <table class="glossario-table">
+          <tr>
+            <td class="td-de">Leistung (PS / kW)</td>
+            <td class="td-it">Potenza (CV / kW)
+              <span class="nota">PS = Pferdestark = CV. Esempio: 190 PS = 190 CV</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">Hubraum (ccm)</td>
+            <td class="td-it">Cilindrata (cc)
+              <span class="nota">Esempio: 1995 ccm = 2.0 litri</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">Kraftstoff: Diesel</td>
+            <td class="td-it">Alimentazione: Diesel</td>
+          </tr>
+          <tr>
+            <td class="td-de">Kraftstoff: Benzin</td>
+            <td class="td-it">Alimentazione: Benzina</td>
+          </tr>
+          <tr>
+            <td class="td-de">Kraftstoff: Hybrid</td>
+            <td class="td-it">Alimentazione: Ibrido</td>
+          </tr>
+          <tr>
+            <td class="td-de">Getriebe: Automatik</td>
+            <td class="td-it">Cambio: Automatico</td>
+          </tr>
+          <tr>
+            <td class="td-de">Getriebe: Schaltung</td>
+            <td class="td-it">Cambio: Manuale</td>
+          </tr>
+          <tr>
+            <td class="td-de">Allradantrieb (AWD)</td>
+            <td class="td-it">Trazione integrale
+              <span class="nota">xDrive (BMW) / 4MATIC (Mercedes) / quattro (Audi)</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">Schadstoffklasse</td>
+            <td class="td-it">Classe emissioni (Euro 5 / Euro 6d)
+              <span class="nota">Euro 6d = standard attuale, nessuna restrizione ZTL</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- CONDIZIONI E STORIA -->
+      <div class="glossario-block">
+        <div class="section-label">Condizioni e storia</div>
+        <table class="glossario-table">
+          <tr>
+            <td class="td-de">Unfallschaden: Nein</td>
+            <td class="td-it">Danni da incidente: No — nessun sinistro registrato</td>
+          </tr>
+          <tr>
+            <td class="td-de">Unfallschaden: Ja</td>
+            <td class="td-it">Danni da incidente: Si — chiedere dettagli riparazioni
+              <span class="nota">In Germania le riparazioni devono essere dichiarate</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">Nichtraucherfahrzeug</td>
+            <td class="td-it">Auto di non fumatore</td>
+          </tr>
+          <tr>
+            <td class="td-de">Gepflegter Zustand</td>
+            <td class="td-it">Condizioni curate</td>
+          </tr>
+          <tr>
+            <td class="td-de">Vorbesitzer</td>
+            <td class="td-it">Precedenti proprieta'
+              <span class="nota">Sinonimo di Fahrzeughalter in molti annunci</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">Firmenwagen</td>
+            <td class="td-it">Auto aziendale
+              <span class="nota">Solitamente km bassi, tagliandi regolari, cambio ogni 2-3 anni</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">Dienstwagen</td>
+            <td class="td-it">Auto di servizio (auto aziendale assegnata al dipendente)</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- DOCUMENTI E GARANZIE -->
+      <div class="glossario-block">
+        <div class="section-label">Documenti e garanzie</div>
+        <table class="glossario-table">
+          <tr>
+            <td class="td-de">Garantie</td>
+            <td class="td-it">Garanzia
+              <span class="nota">Specificare se costruttore (UE) o estensione assicurativa</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">Herstellergarantie</td>
+            <td class="td-it">Garanzia del costruttore
+              <span class="nota">Vale in tutta l'Unione Europea — honoured in Italy</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">Fahrzeugbrief</td>
+            <td class="td-it">Carta di circolazione / Libretto proprieta'</td>
+          </tr>
+          <tr>
+            <td class="td-de">Fahrzeugschein</td>
+            <td class="td-it">Carta di circolazione (tagliando)</td>
+          </tr>
+          <tr>
+            <td class="td-de">COC-Papiere</td>
+            <td class="td-it">Certificato di Conformita' (documenti COC)
+              <span class="nota">Se gia' presenti, risparmio EUR 150-200 sulla pratica import</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="td-de">AU / Abgasuntersuchung</td>
+            <td class="td-it">Controllo emissioni (test gas di scarico)
+              <span class="nota">AU neu = appena eseguita — equivalente alla revisione emissioni</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- EQUIPAGGIAMENTO -->
+      <div class="glossario-block">
+        <div class="section-label">Equipaggiamento e optional</div>
+        <table class="glossario-table">
+          <tr>
+            <td class="td-de">Navigationssystem</td>
+            <td class="td-it">Sistema di navigazione (GPS)</td>
+          </tr>
+          <tr>
+            <td class="td-de">Sitzheizung</td>
+            <td class="td-it">Sedili riscaldati</td>
+          </tr>
+          <tr>
+            <td class="td-de">Ledersitze</td>
+            <td class="td-it">Sedili in pelle</td>
+          </tr>
+          <tr>
+            <td class="td-de">Panoramaschiebedach</td>
+            <td class="td-it">Tetto panoramico</td>
+          </tr>
+          <tr>
+            <td class="td-de">Tempomat / Abstandstempomat</td>
+            <td class="td-it">Cruise control / Adaptive cruise control</td>
+          </tr>
+          <tr>
+            <td class="td-de">Einparkhilfe / Parksensoren</td>
+            <td class="td-it">Sensori di parcheggio</td>
+          </tr>
+          <tr>
+            <td class="td-de">Ruckfahrkamera</td>
+            <td class="td-it">Telecamera posteriore</td>
+          </tr>
+          <tr>
+            <td class="td-de">Xenon / LED-Scheinwerfer</td>
+            <td class="td-it">Fari Xeno / LED</td>
+          </tr>
+          <tr>
+            <td class="td-de">Winterreifen inklusive</td>
+            <td class="td-it">Pneumatici invernali inclusi</td>
+          </tr>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- COLONNA DESTRA: MOCK ANNUNCIO + FISCALE -->
+    <div>
+
+      <!-- MOCK ANNUNCIO TIPO -->
+      <div style="margin-bottom: 14px; font-size: 10px; color: #555; letter-spacing: 0.15em; text-transform: uppercase;">
+        Annuncio tipo — annotazioni ARGOS
+      </div>
+
+      <div class="mock-annuncio">
+        <div class="mock-header-bar">
+          <div class="mock-dot r"></div>
+          <div class="mock-dot y"></div>
+          <div class="mock-dot g"></div>
+          <span class="mock-url">autoscout24.de — Anzeige #48271639</span>
+        </div>
+
+        <div class="mock-body">
+
+          <div class="mock-img">
+            <span class="mock-img-text">BMW X3 xDrive20d — 12 Fotos</span>
+            <div class="mock-badge-img">Scheckheftgepflegt</div>
+          </div>
+
+          <div class="mock-title-row">
+            <div class="mock-title">BMW X3 xDrive20d Advantage — EZ 03/2022</div>
+            <div class="mock-price">EUR 33.490</div>
+            <div class="mock-price-sub">Differenzbesteuert — Nettobetrag nicht ausweisbar</div>
+          </div>
+
+          <div class="callout">
+            "Differenzbesteuert" = regime del margine applicato dal venditore tedesco. Per il dealer italiano che acquista: <strong>nessuna IVA tedesca da recuperare</strong>, ma applicabile il regime del margine italiano sull'eventuale differenza.
+          </div>
+
+          <div class="mock-row-grid">
+            <div class="mock-field">
+              <div class="mock-field-label">Erstzulassung</div>
+              <div class="mock-field-value">03/2022</div>
+              <div class="mock-field-de">Prima immatricolazione</div>
+            </div>
+            <div class="mock-field">
+              <div class="mock-field-label">Kilometerstand</div>
+              <div class="mock-field-value">64.800 km</div>
+              <div class="mock-field-de">Chilometraggio dichiarato</div>
+            </div>
+          </div>
+
+          <div class="mock-row-grid">
+            <div class="mock-field">
+              <div class="mock-field-label">Kraftstoff</div>
+              <div class="mock-field-value">Diesel</div>
+              <div class="mock-field-de">Alimentazione</div>
+            </div>
+            <div class="mock-field">
+              <div class="mock-field-label">Getriebe</div>
+              <div class="mock-field-value">Automatik</div>
+              <div class="mock-field-de">Cambio automatico</div>
+            </div>
+          </div>
+
+          <div class="mock-row-grid">
+            <div class="mock-field">
+              <div class="mock-field-label">Leistung</div>
+              <div class="mock-field-value">190 PS / 140 kW</div>
+              <div class="mock-field-de">190 CV</div>
+            </div>
+            <div class="mock-field">
+              <div class="mock-field-label">Allradantrieb</div>
+              <div class="mock-field-value">xDrive AWD</div>
+              <div class="mock-field-de">Trazione integrale</div>
+            </div>
+          </div>
+
+          <div class="mock-row-grid">
+            <div class="mock-field">
+              <div class="mock-field-label">Fahrzeughalter</div>
+              <div class="mock-field-value">1 Halter</div>
+              <div class="mock-field-de">Un solo proprietario</div>
+            </div>
+            <div class="mock-field">
+              <div class="mock-field-label">TUV bis</div>
+              <div class="mock-field-value">05/2026</div>
+              <div class="mock-field-de">Revisione valida fino a</div>
+            </div>
+          </div>
+
+          <div class="mock-row-grid">
+            <div class="mock-field">
+              <div class="mock-field-label">Unfallschaden</div>
+              <div class="mock-field-value" style="color: #5a9;">Nein</div>
+              <div class="mock-field-de">Nessun sinistro dichiarato</div>
+            </div>
+            <div class="mock-field">
+              <div class="mock-field-label">Scheckheftgepflegt</div>
+              <div class="mock-field-value" style="color: #5a9;">Ja</div>
+              <div class="mock-field-de">Tagliandi regolari</div>
+            </div>
+          </div>
+
+          <div class="mock-row-grid">
+            <div class="mock-field">
+              <div class="mock-field-label">Schadstoffklasse</div>
+              <div class="mock-field-value">Euro 6d-TEMP</div>
+              <div class="mock-field-de">Standard emissioni</div>
+            </div>
+            <div class="mock-field">
+              <div class="mock-field-label">Herstellergarantie</div>
+              <div class="mock-field-value">Ja (BMW UE)</div>
+              <div class="mock-field-de">Garanzia costruttore EU</div>
+            </div>
+          </div>
+
+          <div style="padding: 10px 16px 16px;">
+            <div class="mock-field-label" style="margin-bottom: 6px;">Ausstattung (optional)</div>
+            <div style="font-size: 11px; color: #555; line-height: 1.7;">
+              Navigationssystem — Sitzheizung — Ledersitze — Panoramaschiebedach — Tempomat — Einparkhilfe v/h — Ruckfahrkamera — LED-Scheinwerfer
+            </div>
+          </div>
+
+          <div class="callout" style="margin-top: 0;">
+            Questo annuncio ha tutti i segnali positivi: 1 proprietario, tagliandi regolari, no incidenti, TUV valido, garanzia costruttore attiva. Questi sono i parametri da verificare prima di procedere a qualsiasi trattativa.
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- SEZIONE TERMINI FISCALI -->
+  <div class="fiscale-block">
+    <div class="fiscale-title">Termini fiscali — quelli che cambiano il conto</div>
+    <div class="fiscale-sub">
+      Queste quattro dizioni nell'annuncio determinano il trattamento IVA dell'operazione. Leggerle correttamente evita sorprese contabili. Verificare sempre con il proprio commercialista prima di procedere.
+    </div>
+    <div class="fiscale-grid">
+      <div class="fiscale-item">
+        <div class="fi-de">MwSt. ausweisbar</div>
+        <div class="fi-it">IVA detraibile (esposta in fattura)</div>
+        <div class="fi-nota">Il venditore tedesco e' soggetto IVA e la espone in fattura. Per il dealer italiano con partita IVA, l'IVA tedesca (19%) puo' essere recuperata tramite rimborso intra-UE. Procedura piu' complessa ma vantaggiosa su prezzi alti.</div>
+      </div>
+      <div class="fiscale-item">
+        <div class="fi-de">Differenzbesteuert</div>
+        <div class="fi-it">Regime del margine applicato dal venditore DE</div>
+        <div class="fi-nota">Il venditore tedesco applica il regime del margine: l'IVA non e' esposta. Nessun recupero IVA possibile per il dealer italiano. In compenso, il dealer IT puo' applicare a sua volta il regime del margine sulla rivendita (art. 36 D.L. 41/1995).</div>
+      </div>
+      <div class="fiscale-item">
+        <div class="fi-de">Nettobetrag nicht ausweisbar</div>
+        <div class="fi-it">Nessuna IVA recuperabile</div>
+        <div class="fi-nota">Dizione che accompagna il regime del margine. Conferma che l'IVA non puo' essere scorporata e che il prezzo e' onnicomprensivo. Verificare se la dizione appare insieme a "Differenzbesteuert".</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <div class="footer-left">
+    <strong>ARGOS Automotive</strong> — Luca Ferretti — +39 328 153 6308
+  </div>
+  <div class="footer-right">
+    Materiale formativo interno<br>
+    Aggiornato aprile 2026
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contratto Incarico Scouting — ARGOS Automotive</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #8B7355;
+      --gold-light: #C4A96B;
+      --black: #0D0D0D;
+      --gray-dark: #2C2C2C;
+      --gray-mid: #5A5A5A;
+      --gray-light: #EBEBEB;
+      --white: #FFFFFF;
+      --accent: #F5F1EB;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 10pt;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.6;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 16mm 20mm 22mm 20mm;
+      background: var(--white);
+      position: relative;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 8mm;
+      border-bottom: 0.5pt solid var(--gold);
+      margin-bottom: 8mm;
+    }
+
+    .brand h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20pt;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--black);
+    }
+
+    .brand h1 span { color: var(--gold); }
+
+    .brand .tagline {
+      font-size: 7pt;
+      font-weight: 400;
+      color: var(--gray-mid);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 2pt;
+    }
+
+    .doc-label { text-align: right; }
+
+    .doc-label .doc-type {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13pt;
+      font-weight: 600;
+      color: var(--gray-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .doc-label .doc-ref {
+      font-size: 8pt;
+      color: var(--gray-mid);
+      margin-top: 3pt;
+      font-style: italic;
+    }
+
+    /* ── TITOLO CONTRATTO ── */
+    .contract-title {
+      text-align: center;
+      margin-bottom: 7mm;
+    }
+
+    .contract-title h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 14pt;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--black);
+    }
+
+    .contract-title .subtitle {
+      font-size: 8.5pt;
+      color: var(--gray-mid);
+      margin-top: 3pt;
+      font-style: italic;
+    }
+
+    /* ── PARTI ── */
+    .parti-section {
+      margin-bottom: 6mm;
+    }
+
+    .parti-section .parti-title {
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 4pt;
+    }
+
+    .parti-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5mm;
+    }
+
+    .parte-box {
+      background: var(--accent);
+      border-left: 2.5pt solid var(--gold);
+      padding: 4.5mm 5.5mm;
+    }
+
+    .parte-box .parte-label {
+      font-size: 7pt;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 3pt;
+    }
+
+    .parte-box p {
+      font-size: 9pt;
+      line-height: 1.6;
+      color: var(--gray-dark);
+    }
+
+    .placeholder {
+      font-weight: 700;
+      color: var(--black);
+      background: #FFF9E6;
+      padding: 0 2pt;
+      border-radius: 2pt;
+    }
+
+    /* ── PREMESSE ── */
+    .premesse {
+      background: var(--accent);
+      border: 0.3pt solid var(--gold-light);
+      padding: 4mm 5mm;
+      margin: 5mm 0;
+      font-size: 8.5pt;
+      color: var(--gray-dark);
+      line-height: 1.6;
+    }
+
+    .premesse .premesse-title {
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 3pt;
+    }
+
+    .premesse ul {
+      padding-left: 14pt;
+      margin-top: 2pt;
+    }
+
+    .premesse li { margin-bottom: 2pt; }
+
+    /* ── ARTICOLI ── */
+    .articoli { margin-top: 4mm; }
+
+    .articolo {
+      margin-bottom: 5mm;
+      page-break-inside: avoid;
+    }
+
+    .articolo .art-header {
+      display: flex;
+      align-items: baseline;
+      gap: 5pt;
+      border-bottom: 0.3pt solid var(--gold-light);
+      padding-bottom: 2pt;
+      margin-bottom: 4pt;
+    }
+
+    .articolo .art-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 10pt;
+      font-weight: 700;
+      color: var(--gold);
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .articolo .art-titolo {
+      font-size: 9pt;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--gray-dark);
+    }
+
+    .articolo .art-body {
+      font-size: 9pt;
+      color: var(--gray-dark);
+      line-height: 1.65;
+    }
+
+    .articolo .art-body ul {
+      padding-left: 14pt;
+      margin-top: 3pt;
+    }
+
+    .articolo .art-body li {
+      margin-bottom: 2pt;
+    }
+
+    .articolo .art-body .highlight {
+      background: var(--accent);
+      border-left: 2pt solid var(--gold);
+      padding: 3pt 6pt;
+      margin: 4pt 0;
+      font-size: 9pt;
+    }
+
+    /* ── FIRME ── */
+    .firme-section { margin-top: 8mm; }
+
+    .firme-title {
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 2mm;
+    }
+
+    .luogo-data {
+      font-size: 9pt;
+      margin-bottom: 6mm;
+      color: var(--gray-dark);
+    }
+
+    .firme-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14mm;
+    }
+
+    .firma-block { text-align: center; }
+
+    .firma-block .firma-label {
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gray-mid);
+      margin-bottom: 2mm;
+    }
+
+    .firma-line {
+      border-bottom: 0.5pt solid var(--black);
+      height: 12mm;
+      width: 100%;
+      margin-bottom: 3pt;
+    }
+
+    .firma-block .firma-sub {
+      font-size: 8pt;
+      color: var(--gray-mid);
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      position: absolute;
+      bottom: 10mm;
+      left: 20mm;
+      right: 20mm;
+      border-top: 0.3pt solid var(--gold-light);
+      padding-top: 4pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer span {
+      font-size: 7pt;
+      color: var(--gray-mid);
+    }
+
+    .footer .footer-brand {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 600;
+      font-size: 8pt;
+      color: var(--gold);
+    }
+
+    @media print {
+      body { background: white; }
+      .page { margin: 0; padding: 10mm 14mm 18mm 14mm; width: 100%; }
+      .placeholder { background: #FFF9E6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .premesse, .parte-box, .articolo .art-body .highlight {
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+      .footer { position: fixed; bottom: 8mm; }
+      .articolo { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand">
+      <h1>ARGOS <span>Automotive</span></h1>
+      <div class="tagline">Vehicle Scouting &amp; Intelligence EU</div>
+    </div>
+    <div class="doc-label">
+      <div class="doc-type">Incarico di Scouting</div>
+      <div class="doc-ref">Contratto di ricerca e segnalazione veicolo</div>
+      <div class="doc-ref">Rif.: <strong class="placeholder">[RIFER./ANNO]</strong> &nbsp;|&nbsp; Data: <strong class="placeholder">[GG/MM/AAAA]</strong></div>
+    </div>
+  </div>
+
+  <!-- TITOLO -->
+  <div class="contract-title">
+    <h2>Incarico di Ricerca e Segnalazione Veicolo</h2>
+    <div class="subtitle">Contratto di procacciamento — prestazione di servizi informativi</div>
+  </div>
+
+  <!-- PARTI -->
+  <div class="parti-section">
+    <div class="parti-title">Le Parti</div>
+    <div class="parti-grid">
+      <div class="parte-box">
+        <div class="parte-label">Committente</div>
+        <p>
+          <strong class="placeholder">[RAGIONE SOCIALE DEALER]</strong><br>
+          P.IVA: <strong class="placeholder">[P.IVA DEALER]</strong><br>
+          ATECO: <strong class="placeholder">[45.11.01 / 45.11.02]</strong><br>
+          Sede: <strong class="placeholder">[INDIRIZZO]</strong><br>
+          <strong class="placeholder">[CAP, CITTÀ, PROVINCIA]</strong><br>
+          Legale rappresentante: <strong class="placeholder">[NOME COGNOME]</strong>
+        </p>
+      </div>
+      <div class="parte-box">
+        <div class="parte-label">Incaricato</div>
+        <p>
+          <strong class="placeholder">[LUCA FERRETTI / DITTA INDIVIDUALE]</strong><br>
+          <strong class="placeholder">[P.IVA: [XXX] / C.F.: [XXX]]</strong><br>
+          ATECO: 46.18.41<br>
+          Residente/sede in: <strong class="placeholder">[INDIRIZZO]</strong><br>
+          <strong class="placeholder">[CAP, CITTÀ, PROVINCIA]</strong><br>
+          Tel.: +39 328 153 6308
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREMESSE -->
+  <div class="premesse">
+    <div class="premesse-title">Premesso che</div>
+    <ul>
+      <li>Il Committente opera nel commercio di autoveicoli (ATECO 45.11) ed è interessato all'approvvigionamento di veicoli premium dal mercato europeo.</li>
+      <li>L'Incaricato svolge attività di ricerca e segnalazione di veicoli disponibili sui mercati automotive europei (DE, NL, BE, AT, FR, SE e altri paesi EU).</li>
+      <li>Le parti intendono regolare i termini della collaborazione per la ricerca del veicolo specificato all'Art. 1.</li>
+    </ul>
+  </div>
+
+  <!-- ARTICOLI -->
+  <div class="articoli">
+
+    <div class="articolo">
+      <div class="art-header">
+        <div class="art-num">Art. 1</div>
+        <div class="art-titolo">Oggetto</div>
+      </div>
+      <div class="art-body">
+        L'Incaricato si impegna a ricercare e segnalare al Committente veicoli corrispondenti alle
+        seguenti specifiche concordate:
+        <ul style="margin-top:4pt;">
+          <li>Marca / Modello: <strong class="placeholder">[MARCA / MODELLO]</strong></li>
+          <li>Anno: <strong class="placeholder">[ANNO O RANGE ANNI]</strong> &nbsp;|&nbsp; Chilometri max: <strong class="placeholder">[KM MAX]</strong></li>
+          <li>Budget indicativo: <strong class="placeholder">[€ BUDGET]</strong> &nbsp;|&nbsp; Mercati: <strong class="placeholder">[DE / NL / BE / tutti EU]</strong></li>
+          <li>Specifiche aggiuntive: <strong class="placeholder">[OPTIONAL — colore, allestimento, ecc.]</strong></li>
+        </ul>
+        <div class="highlight" style="margin-top:5pt;">
+          L'Incaricato fornisce per ogni veicolo segnalato un <strong>dossier informativo</strong> comprensivo di:
+          dati tecnici, analisi del prezzo di mercato EU, stima del margine commerciale netto per il Committente,
+          segnalazioni di rischio, riferimenti al venditore.
+        </div>
+      </div>
+    </div>
+
+    <div class="articolo">
+      <div class="art-header">
+        <div class="art-num">Art. 2</div>
+        <div class="art-titolo">Obblighi dell'Incaricato</div>
+      </div>
+      <div class="art-body">
+        L'Incaricato si impegna a:
+        <ul>
+          <li>Ricercare il veicolo su portali automotive europei (minimo 15 fonti indipendenti);</li>
+          <li>Eseguire almeno 4 analisi di prezzo indipendenti per stimare il margine commerciale;</li>
+          <li>Verificare i dati del veicolo attraverso fonti pubbliche disponibili (portali VIN, storico revisioni);</li>
+          <li>Segnalare eventuali anomalie o fattori di rischio nel dossier;</li>
+          <li>Fornire i riferimenti diretti al venditore europeo per consentire al Committente il contatto diretto.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="articolo">
+      <div class="art-header">
+        <div class="art-num">Art. 3</div>
+        <div class="art-titolo">Cosa NON è incluso nel Servizio</div>
+      </div>
+      <div class="art-body">
+        Il presente incarico riguarda esclusivamente il <strong>servizio informativo di ricerca e segnalazione</strong>.
+        Non sono inclusi, salvo accordo scritto separato:
+        <ul>
+          <li>L'acquisto del veicolo (il Committente acquista direttamente dal venditore europeo);</li>
+          <li>Il trasporto e la logistica del veicolo dall'estero;</li>
+          <li>La preparazione dei documenti di esportazione e/o importazione;</li>
+          <li>L'omologazione, la revisione o l'immatricolazione italiana;</li>
+          <li>Qualsiasi garanzia sulla conformità del veicolo alle normative italiane.</li>
+        </ul>
+        <div class="highlight">
+          Servizi aggiuntivi (trasporto, pratiche documentali) sono valutabili separatamente su richiesta scritta del Committente.
+        </div>
+      </div>
+    </div>
+
+    <div class="articolo">
+      <div class="art-header">
+        <div class="art-num">Art. 4</div>
+        <div class="art-titolo">Compenso — Success Fee</div>
+      </div>
+      <div class="art-body">
+        Il Committente riconoscerà all'Incaricato un compenso di
+        <strong class="placeholder">[€ IMPORTO]</strong>
+        (+ eventuali oneri di legge) per ogni veicolo effettivamente acquistato dal Committente
+        a seguito della segnalazione dell'Incaricato.
+        <div class="highlight" style="margin-top:5pt;">
+          <strong>Il compenso è dovuto SOLO in caso di acquisto effettivo (success fee).</strong>
+          Nessun compenso è dovuto per segnalazioni che non portano ad acquisto, indipendentemente
+          dall'attività svolta dall'Incaricato.
+        </div>
+      </div>
+    </div>
+
+    <div class="articolo">
+      <div class="art-header">
+        <div class="art-num">Art. 5</div>
+        <div class="art-titolo">Pagamento</div>
+      </div>
+      <div class="art-body">
+        Il compenso sarà corrisposto entro <strong>15 (quindici) giorni</strong> dalla data di acquisto
+        del veicolo da parte del Committente, tramite bonifico bancario sul conto indicato dall'Incaricato.
+        Causale: <em>"Incarico scouting veicolo — [marca/modello] — rif. contratto [RIFER./ANNO]"</em>.
+      </div>
+    </div>
+
+    <div class="articolo">
+      <div class="art-header">
+        <div class="art-num">Art. 6</div>
+        <div class="art-titolo">Limitazione di Responsabilità</div>
+      </div>
+      <div class="art-body">
+        L'Incaricato fornisce informazioni raccolte da <strong>fonti pubbliche e banche dati commerciali</strong>.
+        L'Incaricato non garantisce: l'assenza di vizi occulti, l'esattezza del chilometraggio
+        (salvo verifica VIN disponibile), l'assenza di sinistri non dichiarati, la conformità
+        alle normative italiane.<br>
+        Il Committente, in qualità di operatore professionale del settore (ATECO 45.11), è tenuto a
+        svolgere le proprie verifiche indipendenti prima dell'acquisto.
+      </div>
+    </div>
+
+    <div class="articolo">
+      <div class="art-header">
+        <div class="art-num">Art. 7</div>
+        <div class="art-titolo">Durata</div>
+      </div>
+      <div class="art-body">
+        Il presente incarico ha validità di <strong>30 (trenta) giorni</strong> dalla data di firma, rinnovabile
+        per accordo scritto tra le parti. Ciascuna parte può recedere in qualsiasi momento senza
+        penali né preavviso. In caso di recesso, nessun compenso è dovuto salvo acquisti già perfezionati.
+      </div>
+    </div>
+
+    <div class="articolo">
+      <div class="art-header">
+        <div class="art-num">Art. 8</div>
+        <div class="art-titolo">Riservatezza</div>
+      </div>
+      <div class="art-body">
+        I dati forniti dall'Incaricato nel dossier (prezzi, contatti venditori, analisi di mercato)
+        sono <strong>confidenziali e destinati esclusivamente al Committente</strong>. Il Committente si impegna
+        a non diffonderli a terzi senza autorizzazione scritta dell'Incaricato.
+      </div>
+    </div>
+
+    <div class="articolo">
+      <div class="art-header">
+        <div class="art-num">Art. 9</div>
+        <div class="art-titolo">Foro Competente</div>
+      </div>
+      <div class="art-body">
+        Per ogni controversia derivante dal presente contratto sarà competente, in via esclusiva,
+        il Foro di <strong class="placeholder">[CITTÀ DEL COMMITTENTE]</strong>.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FIRME -->
+  <div class="firme-section">
+    <div class="firme-title">Luogo, Data e Firme</div>
+    <div class="luogo-data">
+      Luogo: <strong class="placeholder">[CITTÀ]</strong> &nbsp;&nbsp;|&nbsp;&nbsp;
+      Data: <strong class="placeholder">[GG/MM/AAAA]</strong>
+    </div>
+    <div class="firme-grid">
+      <div class="firma-block">
+        <div class="firma-label">Firma del Committente</div>
+        <div class="firma-line"></div>
+        <div class="firma-sub"><strong class="placeholder">[NOME COGNOME]</strong> per <strong class="placeholder">[RAGIONE SOCIALE]</strong></div>
+      </div>
+      <div class="firma-block">
+        <div class="firma-label">Firma dell'Incaricato</div>
+        <div class="firma-line"></div>
+        <div class="firma-sub"><strong class="placeholder">[LUCA FERRETTI]</strong> — ARGOS Automotive</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span class="footer-brand">ARGOS Automotive</span>
+    <span>Luca Ferretti &nbsp;|&nbsp; +39 328 153 6308 &nbsp;|&nbsp; argos-automotive.pages.dev</span>
+    <span>Contratto Incarico Scouting — pag. 1/1</span>
+  </div>
+
+</div>
+</body>
+</html>

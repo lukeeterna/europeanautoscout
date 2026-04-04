@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5 Obiezioni, 5 Risposte — ARGOS Automotive</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0a;
+    color: #e8e0d0;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: #0a0a0a;
+    border-bottom: 1px solid #c8a446;
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-shield {
+    width: 44px;
+    height: 44px;
+    border: 2px solid #c8a446;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #c8a446;
+    flex-shrink: 0;
+  }
+  .logo-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: #c8a446;
+    letter-spacing: 0.08em;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .header-right {
+    text-align: right;
+  }
+  .header-right h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    color: #e8e0d0;
+  }
+  .header-right p {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* MAIN */
+  .main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 52px 32px 80px;
+  }
+
+  .page-title {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .page-title h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: #e8e0d0;
+    letter-spacing: 0.03em;
+  }
+  .page-title .subtitle {
+    font-size: 12px;
+    color: #555;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+
+  .divider-gold {
+    width: 60px;
+    height: 1px;
+    background: #c8a446;
+    margin: 24px auto 48px;
+  }
+
+  /* CARD OBIEZIONE */
+  .obiezione-card {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 2px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .obiezione-card:hover {
+    border-color: #333;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .numero-badge {
+    background: #c8a446;
+    color: #0a0a0a;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-weight: 700;
+    width: 60px;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .obiezione-block {
+    background: #0d0d0d;
+    flex: 1;
+    padding: 20px 24px;
+    border-right: 1px solid #1e1e1e;
+  }
+  .obiezione-label {
+    font-size: 10px;
+    color: #555;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .obiezione-testo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    color: #aaa;
+    font-style: italic;
+    line-height: 1.5;
+  }
+  .obiezione-testo::before { content: '"'; }
+  .obiezione-testo::after { content: '"'; }
+
+  .risposta-block {
+    flex: 1.4;
+    padding: 20px 28px;
+  }
+  .risposta-label {
+    font-size: 10px;
+    color: #c8a446;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .risposta-testo {
+    font-size: 13px;
+    color: #ccc;
+    line-height: 1.7;
+  }
+  .risposta-testo strong {
+    color: #e8e0d0;
+    font-weight: 600;
+  }
+
+  /* NOTA A FONDO */
+  .nota-tag {
+    display: inline-block;
+    background: #0d0d0d;
+    border: 1px solid #222;
+    padding: 4px 10px;
+    border-radius: 2px;
+    font-size: 10px;
+    color: #555;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 10px;
+  }
+
+  /* RIQUADRO PRINCPIO */
+  .principio-block {
+    background: #0d0d0d;
+    border: 1px solid #c8a446;
+    border-radius: 2px;
+    padding: 28px 32px;
+    margin-top: 48px;
+    text-align: center;
+  }
+  .principio-block .pt {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    color: #c8a446;
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+  }
+  .principio-block .pb {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.7;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  /* FOOTER */
+  .footer {
+    background: #060606;
+    border-top: 1px solid #1a1a1a;
+    padding: 20px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 60px;
+  }
+  .footer-left {
+    font-size: 12px;
+    color: #444;
+    letter-spacing: 0.08em;
+  }
+  .footer-left strong { color: #c8a446; }
+  .footer-right {
+    font-size: 11px;
+    color: #333;
+    text-align: right;
+  }
+
+  /* PRINT */
+  @media print {
+    body { background: white; color: #111; }
+    .header { background: white; border-bottom: 2px solid #c8a446; }
+    .logo-shield { border-color: #c8a446; color: #c8a446; }
+    .logo-text { color: #c8a446; }
+    .header-right h1 { color: #111; }
+    .obiezione-card { background: white; border-color: #ddd; page-break-inside: avoid; }
+    .card-header { flex-direction: row; }
+    .obiezione-block { background: #f5f5f5; border-color: #ddd; }
+    .risposta-block { background: white; }
+    .principio-block { background: white; border-color: #c8a446; }
+    .footer { background: white; border-top: 1px solid #ddd; }
+    .numero-badge { background: #c8a446; color: white; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-shield">A</div>
+    <div>
+      <div class="logo-text">ARGOS Automotive</div>
+      <div class="logo-sub">Vehicle Intelligence — EU Markets</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <h1>Gestione Obiezioni Cliente</h1>
+    <p>Materiale formativo — uso riservato</p>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="page-title">
+    <h2>5 Obiezioni, 5 Risposte che Chiudono la Vendita</h2>
+    <div class="subtitle">Auto da import EU — Come rispondere con dati certi</div>
+  </div>
+  <div class="divider-gold"></div>
+
+  <!-- 1 -->
+  <div class="obiezione-card">
+    <div class="card-header">
+      <div class="numero-badge">1</div>
+      <div class="obiezione-block">
+        <div class="obiezione-label">Obiezione</div>
+        <div class="obiezione-testo">Viene dalla Germania, sara' stata un taxi o un noleggio</div>
+      </div>
+      <div class="risposta-block">
+        <div class="risposta-label">Risposta</div>
+        <div class="risposta-testo">
+          Questa e' una BMW di proprieta' privata con il libretto tagliandi completo presso la rete ufficiale BMW. <strong>In Germania la revisione TUV e' biennale e obbligatoria per legge</strong> — piu' severa di quella italiana. Un taxi o un'auto a noleggio avrebbe un'intestazione commerciale nel libretto di circolazione, verificabile immediatamente. Posso mostrare il documento.
+        </div>
+        <div class="nota-tag">Dato verificabile: libretto intestazione + storico tagliandi</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="obiezione-card">
+    <div class="card-header">
+      <div class="numero-badge">2</div>
+      <div class="obiezione-block">
+        <div class="obiezione-label">Obiezione</div>
+        <div class="obiezione-testo">E se ha i km scalati? Come faccio a saperlo?</div>
+      </div>
+      <div class="risposta-block">
+        <div class="risposta-label">Risposta</div>
+        <div class="risposta-testo">
+          Ogni tagliando BMW registra il chilometraggio nel sistema della rete ufficiale. Con lo storico completo, <strong>ogni km e' incrociato con data e officina</strong>. In Germania la manomissione del contachilometri e' reato penale perseguito dal codice della strada federale (paragrafo 22b StVG). Prima di venire in Italia, questa auto ha la revisione TUV aggiornata — che include verifica km.
+        </div>
+        <div class="nota-tag">Fonte: StVG paragrafo 22b — reato penale in Germania</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="obiezione-card">
+    <div class="card-header">
+      <div class="numero-badge">3</div>
+      <div class="obiezione-block">
+        <div class="obiezione-label">Obiezione</div>
+        <div class="obiezione-testo">E la garanzia? Se si rompe qualcosa, dove vado?</div>
+      </div>
+      <div class="risposta-block">
+        <div class="risposta-label">Risposta</div>
+        <div class="risposta-testo">
+          La garanzia del costruttore BMW e' europea — non italiana, non tedesca: <strong>europea</strong>. Qualsiasi concessionaria BMW autorizzata in Italia la onora esattamente come se l'auto fosse stata comprata a Milano. Vale per tutta l'Unione Europea. Lo stesso vale per Mercedes-Benz e Audi. Il cliente non nota nessuna differenza nel post-vendita.
+        </div>
+        <div class="nota-tag">Garanzia costruttore UE: verificabile sul sito BMW/Mercedes/Audi</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="obiezione-card">
+    <div class="card-header">
+      <div class="numero-badge">4</div>
+      <div class="obiezione-block">
+        <div class="obiezione-label">Obiezione</div>
+        <div class="obiezione-testo">Costa meno perche' ha qualcosa che non va, no?</div>
+      </div>
+      <div class="risposta-block">
+        <div class="risposta-label">Risposta</div>
+        <div class="risposta-testo">
+          Il mercato tedesco dell'usato e' circa cinque volte piu' grande di quello italiano: piu' offerta significa prezzi piu' bassi, non auto peggiori. Le auto aziendali tedesche — chiamate Firmenwagen — vengono cambiate ogni due o tre anni con chilometraggio basso e tagliandi regolari, perche' l'azienda le gestisce come asset. <strong>Il risparmio viene dal mercato, non dalla qualita'.</strong>
+        </div>
+        <div class="nota-tag">Dati: mercato usato DE oltre 7 milioni di auto/anno vs IT circa 1,5 milioni</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="obiezione-card">
+    <div class="card-header">
+      <div class="numero-badge">5</div>
+      <div class="obiezione-block">
+        <div class="obiezione-label">Obiezione</div>
+        <div class="obiezione-testo">E i documenti? Sara' complicato, ci vorranno mesi...</div>
+      </div>
+      <div class="risposta-block">
+        <div class="risposta-label">Risposta</div>
+        <div class="risposta-testo">
+          Il processo e' piu' semplice di quello che sembra. Io mi occupo della ricerca e della verifica — lei riceve un dossier completo con tutti i riferimenti per procedere. Per trasporto e pratiche, puo' usare i suoi contatti di fiducia oppure possiamo valutare un supporto dedicato. In ogni caso, nel report trova gia' <strong>la stima di tutti i costi</strong>: trasporto bisarca (7 giorni circa), COC, immatricolazione. Nessuna sorpresa.
+        </div>
+        <div class="nota-tag">Timeline: 3-4 settimane dalla selezione alla consegna</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRINCIPIO FINALE -->
+  <div class="principio-block">
+    <div class="pt">Il principio alla base di ogni risposta</div>
+    <div class="pb">
+      Non rassicurare a parole — mostrare il documento. Il cliente che ha un dubbio su km, provenienza o garanzia vuole vedere qualcosa di concreto, non sentirsi dire "stia tranquillo". Ogni risposta si chiude con un dato verificabile: libretto, sistema tagliandi, normativa, timeline. Chi ha la documentazione in mano vince l'obiezione.
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <div class="footer-left">
+    <strong>ARGOS Automotive</strong> — Luca Ferretti — +39 328 153 6308
+  </div>
+  <div class="footer-right">
+    Materiale formativo interno<br>
+    Aggiornato aprile 2026
+  </div>
+</div>
+
+</body>
+</html>

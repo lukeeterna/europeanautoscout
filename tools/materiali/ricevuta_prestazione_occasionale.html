@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ricevuta Prestazione Occasionale — ARGOS Automotive</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #8B7355;
+      --gold-light: #C4A96B;
+      --black: #0D0D0D;
+      --gray-dark: #2C2C2C;
+      --gray-mid: #5A5A5A;
+      --gray-light: #EBEBEB;
+      --white: #FFFFFF;
+      --accent: #F5F1EB;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 10.5pt;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.55;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 18mm 20mm 22mm 20mm;
+      background: var(--white);
+      position: relative;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 10mm;
+      border-bottom: 0.5pt solid var(--gold);
+      margin-bottom: 10mm;
+    }
+
+    .brand h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22pt;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--black);
+    }
+
+    .brand h1 span {
+      color: var(--gold);
+    }
+
+    .brand .tagline {
+      font-size: 7.5pt;
+      font-weight: 400;
+      color: var(--gray-mid);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 2pt;
+    }
+
+    .doc-label {
+      text-align: right;
+    }
+
+    .doc-label .doc-type {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 13pt;
+      font-weight: 600;
+      color: var(--gray-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .doc-label .doc-ref {
+      font-size: 8pt;
+      color: var(--gray-mid);
+      margin-top: 3pt;
+      font-style: italic;
+    }
+
+    /* ── PARTI ── */
+    .parti-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6mm;
+      margin-bottom: 8mm;
+    }
+
+    .parte-box {
+      background: var(--accent);
+      border-left: 2.5pt solid var(--gold);
+      padding: 5mm 6mm;
+    }
+
+    .parte-box .parte-label {
+      font-size: 7pt;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 4pt;
+    }
+
+    .placeholder {
+      font-weight: 700;
+      color: var(--black);
+      background: #FFF9E6;
+      padding: 0 2pt;
+      border-radius: 2pt;
+    }
+
+    .parte-box p {
+      font-size: 9.5pt;
+      line-height: 1.6;
+      color: var(--gray-dark);
+    }
+
+    /* ── SEZIONE OGGETTO ── */
+    .section {
+      margin-bottom: 6mm;
+    }
+
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 10pt;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold);
+      border-bottom: 0.3pt solid var(--gold-light);
+      padding-bottom: 2pt;
+      margin-bottom: 4pt;
+    }
+
+    .section p {
+      font-size: 9.5pt;
+      color: var(--gray-dark);
+      line-height: 1.6;
+    }
+
+    /* ── TABELLA IMPORTI ── */
+    .importi-table {
+      width: 100%;
+      margin: 6mm 0;
+      border-collapse: collapse;
+    }
+
+    .importi-table thead tr {
+      background: var(--black);
+      color: var(--white);
+    }
+
+    .importi-table thead th {
+      font-family: 'Inter', sans-serif;
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4pt 8pt;
+      text-align: left;
+    }
+
+    .importi-table thead th:last-child {
+      text-align: right;
+    }
+
+    .importi-table tbody tr {
+      border-bottom: 0.3pt solid var(--gray-light);
+    }
+
+    .importi-table tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .importi-table tbody td {
+      font-size: 9.5pt;
+      padding: 4pt 8pt;
+      color: var(--gray-dark);
+    }
+
+    .importi-table tbody td:last-child {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .importi-table tbody tr.ritenuta td {
+      color: #9B2020;
+      font-weight: 500;
+    }
+
+    .importi-table tbody tr.netto {
+      background: var(--accent);
+    }
+
+    .importi-table tbody tr.netto td {
+      font-weight: 700;
+      font-size: 10.5pt;
+      color: var(--black);
+      padding: 5pt 8pt;
+    }
+
+    /* ── DICHIARAZIONE ── */
+    .dichiarazione {
+      background: var(--accent);
+      border: 0.3pt solid var(--gold-light);
+      padding: 5mm 6mm;
+      margin: 6mm 0;
+      font-size: 9pt;
+      color: var(--gray-dark);
+      line-height: 1.65;
+    }
+
+    .dichiarazione strong {
+      color: var(--black);
+    }
+
+    /* ── NOTA BOLLO ── */
+    .nota-bollo {
+      display: flex;
+      align-items: center;
+      gap: 6pt;
+      font-size: 8.5pt;
+      color: var(--gray-mid);
+      margin: 4mm 0;
+    }
+
+    .bollo-box {
+      display: inline-block;
+      border: 0.5pt solid var(--gray-mid);
+      padding: 3pt 7pt;
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--gray-mid);
+      text-transform: uppercase;
+    }
+
+    /* ── FIRME ── */
+    .firme-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12mm;
+      margin-top: 10mm;
+    }
+
+    .firma-block {
+      text-align: center;
+    }
+
+    .firma-block .firma-label {
+      font-size: 8pt;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gray-mid);
+      margin-bottom: 3mm;
+    }
+
+    .firma-line {
+      border-bottom: 0.5pt solid var(--black);
+      height: 12mm;
+      width: 100%;
+      margin-bottom: 4pt;
+    }
+
+    .firma-block .firma-sub {
+      font-size: 8pt;
+      color: var(--gray-mid);
+    }
+
+    /* ── AVVISI ── */
+    .avvisi {
+      margin-top: 8mm;
+      padding-top: 5mm;
+      border-top: 0.3pt solid var(--gray-light);
+    }
+
+    .avvisi p {
+      font-size: 7.5pt;
+      color: var(--gray-mid);
+      line-height: 1.5;
+      margin-bottom: 3pt;
+    }
+
+    .avvisi p strong {
+      color: var(--gray-dark);
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      position: absolute;
+      bottom: 10mm;
+      left: 20mm;
+      right: 20mm;
+      border-top: 0.3pt solid var(--gold-light);
+      padding-top: 4pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer span {
+      font-size: 7.5pt;
+      color: var(--gray-mid);
+    }
+
+    .footer .footer-brand {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 600;
+      font-size: 8.5pt;
+      color: var(--gold);
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      body { background: white; }
+      .page { margin: 0; padding: 12mm 15mm 18mm 15mm; width: 100%; min-height: auto; }
+      .placeholder { background: #FFF9E6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .importi-table thead tr { background: #0D0D0D !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .footer { position: fixed; bottom: 8mm; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand">
+      <h1>ARGOS <span>Automotive</span></h1>
+      <div class="tagline">Vehicle Scouting &amp; Intelligence EU</div>
+    </div>
+    <div class="doc-label">
+      <div class="doc-type">Ricevuta Prestazione Occasionale</div>
+      <div class="doc-ref">Art. 2222 c.c. — Redditi diversi art. 67, c.1, lett. l, TUIR</div>
+      <div class="doc-ref">N. <strong class="placeholder">[NUMERO/ANNO]</strong> &nbsp;|&nbsp; Data: <strong class="placeholder">[GG/MM/AAAA]</strong></div>
+    </div>
+  </div>
+
+  <!-- PARTI -->
+  <div class="parti-grid">
+    <div class="parte-box">
+      <div class="parte-label">Prestatore</div>
+      <p>
+        <strong class="placeholder">[NOME COGNOME PRESTATORE]</strong><br>
+        C.F.: <strong class="placeholder">[CODICE FISCALE]</strong><br>
+        Residente in: <strong class="placeholder">[INDIRIZZO, CAP, CITTÀ]</strong><br>
+        Tel.: +39 328 153 6308
+      </p>
+    </div>
+    <div class="parte-box">
+      <div class="parte-label">Committente</div>
+      <p>
+        <strong class="placeholder">[RAGIONE SOCIALE DEALER]</strong><br>
+        P.IVA: <strong class="placeholder">[P.IVA DEALER]</strong><br>
+        Sede legale: <strong class="placeholder">[INDIRIZZO SEDE LEGALE]</strong><br>
+        <strong class="placeholder">[CAP, CITTÀ, PROVINCIA]</strong>
+      </p>
+    </div>
+  </div>
+
+  <!-- OGGETTO -->
+  <div class="section">
+    <div class="section-title">Oggetto della Prestazione</div>
+    <p>
+      Servizio di ricerca e verifica informativa veicolo
+      <strong class="placeholder">[MARCA / MODELLO / ANNO]</strong>
+      per conto del committente. Attività svolta in data
+      <strong class="placeholder">[GG/MM/AAAA]</strong>,
+      comprendente: analisi portali automotive europei, verifica dati tecnici e documentali,
+      stima del margine commerciale, redazione dossier informativo.
+    </p>
+    <p style="margin-top:4pt; font-size:9pt; color:#5A5A5A;">
+      <em>Il presente compenso si riferisce esclusivamente al servizio di ricerca, analisi e verifica del veicolo.
+      Non include servizi di trasporto, importazione o immatricolazione.</em>
+    </p>
+  </div>
+
+  <!-- IMPORTI -->
+  <div class="section">
+    <div class="section-title">Calcolo del Compenso</div>
+    <table class="importi-table">
+      <thead>
+        <tr>
+          <th>Descrizione</th>
+          <th style="text-align:right;">Importo (EUR)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Compenso lordo — Scouting e verifica veicolo</td>
+          <td><strong class="placeholder">[IMPORTO LORDO,00]</strong></td>
+        </tr>
+        <tr class="ritenuta">
+          <td>Ritenuta d'acconto 20% (art. 25 DPR 600/1973) — trattenuta dal committente</td>
+          <td>- <strong class="placeholder">[RITENUTA,00]</strong></td>
+        </tr>
+        <tr class="netto">
+          <td>Netto a pagare al prestatore</td>
+          <td><strong class="placeholder">[NETTO,00]</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- NOTA BOLLO -->
+  <div class="nota-bollo">
+    <div class="bollo-box">Marca da Bollo € 2,00</div>
+    <span>assolta sull'originale — obbligatoria per importi lordi superiori a € 77,47</span>
+  </div>
+
+  <!-- DICHIARAZIONE -->
+  <div class="dichiarazione">
+    <strong>Dichiarazione del prestatore:</strong><br>
+    Il sottoscritto dichiara di <strong>non svolgere la presente attività in forma abituale, organizzata o continuativa</strong>
+    ai sensi dell'art. 67, comma 1, lett. l) del TUIR. Dichiara altresì che i compensi
+    percepiti nell'anno solare in corso a titolo di prestazione occasionale
+    <strong>non superano complessivamente € 5.000,00 lordi</strong>, soglia entro la quale
+    non sussiste l'obbligo di iscrizione alla Gestione Separata INPS
+    (Circolare INPS n. 8 del 3 febbraio 2026).
+  </div>
+
+  <!-- MODALITÀ PAGAMENTO -->
+  <div class="section">
+    <div class="section-title">Modalità di Pagamento</div>
+    <p>
+      Bonifico bancario — IBAN: <strong class="placeholder">[IBAN PRESTATORE]</strong><br>
+      Intestatario: <strong class="placeholder">[NOME COGNOME PRESTATORE]</strong><br>
+      Causale: <em>"Prestazione occasionale — scouting veicolo <strong class="placeholder">[MARCA/MODELLO]</strong>"</em>
+    </p>
+    <p style="margin-top:4pt; font-size:9pt; color:#5A5A5A;">
+      Il committente è tenuto a versare la ritenuta d'acconto di
+      <strong class="placeholder">[RITENUTA,00]</strong> EUR tramite Modello F24,
+      codice tributo <strong>1040</strong>, entro il 16 del mese successivo al pagamento.
+    </p>
+  </div>
+
+  <!-- FIRME -->
+  <div class="firme-grid">
+    <div class="firma-block">
+      <div class="firma-label">Data e Firma del Prestatore</div>
+      <div class="firma-line"></div>
+      <div class="firma-sub"><strong class="placeholder">[NOME COGNOME]</strong></div>
+    </div>
+    <div class="firma-block">
+      <div class="firma-label">Timbro e Firma del Committente</div>
+      <div class="firma-line"></div>
+      <div class="firma-sub"><strong class="placeholder">[RAGIONE SOCIALE DEALER]</strong></div>
+    </div>
+  </div>
+
+  <!-- AVVISI -->
+  <div class="avvisi">
+    <p><strong>Nota INPS:</strong> Per compensi occasionali annui superiori a € 5.000,00 lordi, il prestatore è obbligato all'iscrizione alla Gestione Separata INPS (aliquota 26,07% per il 2026 — Circ. INPS n. 8/2026). I contributi sono per 2/3 a carico del committente e 1/3 a carico del prestatore.</p>
+    <p><strong>Nota legale:</strong> La presente ricevuta è un documento fiscale ai sensi dell'art. 67, comma 1, lett. l) TUIR. Non è una fattura. Il committente la registra come costo deducibile.</p>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span class="footer-brand">ARGOS Automotive</span>
+    <span>Luca Ferretti &nbsp;|&nbsp; +39 328 153 6308 &nbsp;|&nbsp; argos-automotive.pages.dev</span>
+    <span>Ricevuta Prestazione Occasionale</span>
+  </div>
+
+</div>
+</body>
+</html>

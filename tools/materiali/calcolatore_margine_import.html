@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calcolatore Margine Import EU — ARGOS Automotive</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0a;
+    color: #e8e0d0;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  .header {
+    background: #0a0a0a;
+    border-bottom: 1px solid #c8a446;
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-shield {
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: 2px solid #c8a446;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #c8a446;
+    flex-shrink: 0;
+  }
+  .logo-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: #c8a446;
+    letter-spacing: 0.08em;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .header-title {
+    text-align: right;
+  }
+  .header-title h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: #e8e0d0;
+  }
+  .header-title p {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* MAIN */
+  .main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 32px 80px;
+  }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: #c8a446;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #222;
+  }
+
+  /* CALCOLATORE INTERATTIVO */
+  .calc-container {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 2px;
+    padding: 36px;
+    margin-bottom: 48px;
+  }
+  .calc-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    color: #e8e0d0;
+    margin-bottom: 8px;
+  }
+  .calc-subtitle {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 32px;
+    letter-spacing: 0.05em;
+  }
+
+  .calc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+
+  /* INPUTS */
+  .input-group {
+    margin-bottom: 18px;
+  }
+  .input-group label {
+    display: block;
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+  }
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .input-row input {
+    flex: 1;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    color: #e8e0d0;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 10px 14px;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-row input:focus {
+    border-color: #c8a446;
+  }
+  .currency {
+    font-size: 13px;
+    color: #555;
+    min-width: 20px;
+  }
+
+  .input-static {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #0d0d0d;
+    border: 1px solid #1e1e1e;
+    padding: 10px 14px;
+    border-radius: 2px;
+    margin-bottom: 18px;
+  }
+  .input-static .label {
+    font-size: 11px;
+    color: #666;
+    letter-spacing: 0.08em;
+  }
+  .input-static .value {
+    font-size: 14px;
+    color: #aaa;
+    font-weight: 500;
+  }
+
+  /* COSTS BREAKDOWN */
+  .costs-block {
+    background: #0d0d0d;
+    border: 1px solid #1e1e1e;
+    border-radius: 2px;
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+  .costs-block-title {
+    font-size: 10px;
+    color: #555;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .cost-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 9px;
+  }
+  .cost-line:last-child { margin-bottom: 0; }
+  .cost-line .name {
+    font-size: 12px;
+    color: #777;
+  }
+  .cost-line .amount {
+    font-size: 12px;
+    color: #aaa;
+    font-weight: 500;
+  }
+
+  /* SELECT DROPDOWN */
+  select {
+    background: #0a0a0a;
+    border: 1px solid #333;
+    color: #e8e0d0;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: 2px;
+    width: 100%;
+    outline: none;
+    cursor: pointer;
+  }
+  select:focus { border-color: #c8a446; }
+
+  /* RESULTS */
+  .results-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .result-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #0d0d0d;
+    border: 1px solid #1e1e1e;
+    border-radius: 2px;
+  }
+  .result-line .rl-label {
+    font-size: 12px;
+    color: #666;
+    letter-spacing: 0.06em;
+  }
+  .result-line .rl-value {
+    font-size: 14px;
+    color: #aaa;
+    font-weight: 600;
+  }
+  .result-line.negative .rl-value { color: #b55; }
+  .result-line.separator {
+    border-color: #c8a446;
+    border-top: 1px solid #c8a446;
+    margin-top: 4px;
+    padding-top: 16px;
+  }
+  .result-line.final {
+    background: #111;
+    border: 1px solid #c8a446;
+    padding: 16px;
+  }
+  .result-line.final .rl-label {
+    font-size: 13px;
+    color: #c8a446;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .result-line.final .rl-value {
+    font-size: 22px;
+    color: #c8a446;
+    font-weight: 700;
+  }
+
+  .note-iva {
+    font-size: 11px;
+    color: #555;
+    margin-top: 8px;
+    line-height: 1.5;
+    padding-left: 2px;
+  }
+
+  /* ESEMPI PRE-COMPILATI */
+  .esempi-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    color: #e8e0d0;
+    margin-bottom: 6px;
+  }
+  .esempi-sub {
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 28px;
+  }
+
+  .esempi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 12px;
+  }
+
+  .esempio-card {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 2px;
+    padding: 24px 20px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .esempio-card:hover { border-color: #c8a446; }
+  .esempio-card.active { border-color: #c8a446; background: #141208; }
+
+  .esempio-model {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    color: #e8e0d0;
+    margin-bottom: 3px;
+  }
+  .esempio-year {
+    font-size: 11px;
+    color: #555;
+    letter-spacing: 0.1em;
+    margin-bottom: 18px;
+  }
+  .esempio-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 7px;
+  }
+  .esempio-row .er-label {
+    font-size: 11px;
+    color: #666;
+  }
+  .esempio-row .er-value {
+    font-size: 12px;
+    color: #aaa;
+    font-weight: 500;
+  }
+  .esempio-divider {
+    border: none;
+    border-top: 1px solid #1e1e1e;
+    margin: 14px 0;
+  }
+  .esempio-margine {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .esempio-margine .em-label {
+    font-size: 11px;
+    color: #c8a446;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .esempio-margine .em-value {
+    font-size: 18px;
+    color: #c8a446;
+    font-weight: 700;
+  }
+
+  /* NOTE METODOLOGIA */
+  .note-block {
+    background: #0d0d0d;
+    border-left: 3px solid #c8a446;
+    padding: 20px 24px;
+    margin-top: 40px;
+    border-radius: 0 2px 2px 0;
+  }
+  .note-block-title {
+    font-size: 11px;
+    color: #c8a446;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .note-block p {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.7;
+    margin-bottom: 8px;
+  }
+  .note-block p:last-child { margin-bottom: 0; }
+  .note-block strong { color: #888; font-weight: 500; }
+
+  /* FOOTER */
+  .footer {
+    background: #060606;
+    border-top: 1px solid #1a1a1a;
+    padding: 20px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 60px;
+  }
+  .footer-left {
+    font-size: 12px;
+    color: #444;
+    letter-spacing: 0.08em;
+  }
+  .footer-left strong { color: #c8a446; }
+  .footer-right {
+    font-size: 11px;
+    color: #333;
+    text-align: right;
+  }
+
+  /* PRINT */
+  @media print {
+    body { background: white; color: #0a0a0a; }
+    .header { background: white; border-bottom: 2px solid #c8a446; }
+    .logo-shield { border-color: #c8a446; color: #c8a446; }
+    .logo-text { color: #c8a446; }
+    .header-title h1 { color: #0a0a0a; }
+    .calc-container { background: white; border-color: #ddd; }
+    .input-static, .costs-block { background: #f8f8f8; border-color: #ddd; }
+    .result-line { background: #f5f5f5; border-color: #ddd; }
+    .result-line.final { background: white; border-color: #c8a446; }
+    .esempio-card { background: white; border-color: #ddd; }
+    .note-block { background: #f8f8f8; }
+    .footer { background: white; border-top: 1px solid #ddd; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-shield">A</div>
+    <div>
+      <div class="logo-text">ARGOS Automotive</div>
+      <div class="logo-sub">Vehicle Intelligence — EU Markets</div>
+    </div>
+  </div>
+  <div class="header-title">
+    <h1>Calcolatore Margine Import EU</h1>
+    <p>Strumento interno — uso riservato dealer</p>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- CALCOLATORE -->
+  <div class="calc-container">
+    <div class="calc-title">Calcolo margine netto su singola operazione</div>
+    <div class="calc-subtitle">Inserire prezzo di acquisto in Germania e prezzo di vendita stimato in Italia. Il calcolo include tutti i costi fissi di importazione.</div>
+
+    <div class="calc-grid">
+
+      <!-- COLONNA SINISTRA: INPUTS + COSTI -->
+      <div>
+        <div class="input-group">
+          <label>Prezzo acquisto in Germania (EUR)</label>
+          <div class="input-row">
+            <input type="number" id="prezzoDe" value="33000" min="0" step="500" oninput="calcola()">
+            <span class="currency">EUR</span>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Zona trasporto (bisarca DE-IT)</label>
+          <select id="zonaTrasp" onchange="calcola()">
+            <option value="700">Nord Italia (TO, MI, VE) — circa EUR 700</option>
+            <option value="850" selected>Centro-Sud (NA, BA, SA) — circa EUR 850</option>
+            <option value="1000">Estremo Sud / Isole — circa EUR 1.000</option>
+          </select>
+        </div>
+
+        <div class="costs-block">
+          <div class="costs-block-title">Costi importazione — dettaglio</div>
+          <div class="cost-line"><span class="name">Trasporto bisarca</span><span class="amount" id="costoTrasp">EUR 850</span></div>
+          <div class="cost-line"><span class="name">Certificato di Conformita' (COC)</span><span class="amount">EUR 175</span></div>
+          <div class="cost-line"><span class="name">Immatricolazione italiana</span><span class="amount">EUR 550</span></div>
+          <div class="cost-line"><span class="name">IPT (Imposta Provinciale Trascrizione)</span><span class="amount">EUR 400</span></div>
+          <div class="cost-line"><span class="name">Assicurazione transit</span><span class="amount">EUR 100</span></div>
+          <div class="cost-line" style="border-top: 1px solid #1e1e1e; padding-top: 9px; margin-top: 4px;">
+            <span class="name" style="color:#aaa; font-weight:500;">Totale costi fissi import</span>
+            <span class="amount" id="totCosti" style="color:#aaa;">EUR 2.075</span>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Fee ARGOS scouting (success fee — solo ricerca e verifica)</label>
+          <select id="feeArgos" onchange="calcola()">
+            <option value="800">EUR 800 — operazione standard</option>
+            <option value="1000" selected>EUR 1.000 — standard</option>
+            <option value="1200">EUR 1.200 — auto premium / servizio esteso</option>
+          </select>
+        </div>
+
+        <div class="input-group" style="margin-top: 24px;">
+          <label>Prezzo vendita in Italia (EUR)</label>
+          <div class="input-row">
+            <input type="number" id="prezzoIt" value="38500" min="0" step="500" oninput="calcola()">
+            <span class="currency">EUR</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLONNA DESTRA: RISULTATI -->
+      <div class="results-col">
+        <div style="font-size: 11px; color: #555; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px;">Riepilogo economico</div>
+
+        <div class="result-line">
+          <span class="rl-label">Prezzo acquisto DE</span>
+          <span class="rl-value" id="r-acquisto">EUR 33.000</span>
+        </div>
+        <div class="result-line negative">
+          <span class="rl-label">Costi fissi importazione</span>
+          <span class="rl-value" id="r-costi-fissi">- EUR 2.075</span>
+        </div>
+        <div class="result-line negative">
+          <span class="rl-label">Fee ARGOS</span>
+          <span class="rl-value" id="r-fee">- EUR 1.000</span>
+        </div>
+        <div class="result-line" style="background:#0a0a0a; border-color:#333;">
+          <span class="rl-label" style="font-weight:600;">Costo totale in piazzale</span>
+          <span class="rl-value" id="r-costo-piazzale" style="color:#e8e0d0; font-size:16px;">EUR 36.075</span>
+        </div>
+
+        <div style="height: 8px;"></div>
+
+        <div class="result-line">
+          <span class="rl-label">Prezzo vendita IT</span>
+          <span class="rl-value" id="r-vendita">EUR 38.500</span>
+        </div>
+        <div class="result-line negative">
+          <span class="rl-label">IVA regime del margine (22% sul margine lordo)</span>
+          <span class="rl-value" id="r-iva">- EUR 435</span>
+        </div>
+
+        <div class="result-line final">
+          <span class="rl-label">Margine Netto</span>
+          <span class="rl-value" id="r-margine-netto">EUR 1.990</span>
+        </div>
+
+        <div class="note-iva">
+          Regime del margine art. 36 D.L. 41/1995: l'IVA si applica solo sulla differenza tra prezzo di vendita e costo totale (margine lordo), non sul prezzo pieno. Calcolo indicativo — verificare con il proprio commercialista.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ESEMPI PRE-COMPILATI -->
+  <div class="section-title">Esempi su dati di mercato reali — aprile 2026</div>
+
+  <div class="esempi-grid">
+
+    <div class="esempio-card active" id="es-bmw" onclick="caricaEsempio('bmw')">
+      <div class="esempio-model">BMW X3 xDrive20d</div>
+      <div class="esempio-year">2022 — 65.000 km — Automatico</div>
+      <div class="esempio-row"><span class="er-label">Acquisto DE</span><span class="er-value">EUR 33.000</span></div>
+      <div class="esempio-row"><span class="er-label">Trasporto + Import</span><span class="er-value">EUR 2.075</span></div>
+      <div class="esempio-row"><span class="er-label">Fee ARGOS</span><span class="er-value">EUR 1.000</span></div>
+      <div class="esempio-row"><span class="er-label">Costo piazzale</span><span class="er-value">EUR 36.075</span></div>
+      <div class="esempio-row"><span class="er-label">Vendita IT</span><span class="er-value">EUR 38.500</span></div>
+      <div class="esempio-row"><span class="er-label">IVA margine</span><span class="er-value">- EUR 435</span></div>
+      <hr class="esempio-divider">
+      <div class="esempio-margine">
+        <span class="em-label">Margine netto</span>
+        <span class="em-value">EUR 1.990</span>
+      </div>
+    </div>
+
+    <div class="esempio-card" id="es-merc" onclick="caricaEsempio('merc')">
+      <div class="esempio-model">Mercedes GLC 220d</div>
+      <div class="esempio-year">2022 — 55.000 km — Automatico 4MATIC</div>
+      <div class="esempio-row"><span class="er-label">Acquisto DE</span><span class="er-value">EUR 37.000</span></div>
+      <div class="esempio-row"><span class="er-label">Trasporto + Import</span><span class="er-value">EUR 2.075</span></div>
+      <div class="esempio-row"><span class="er-label">Fee ARGOS</span><span class="er-value">EUR 1.000</span></div>
+      <div class="esempio-row"><span class="er-label">Costo piazzale</span><span class="er-value">EUR 40.075</span></div>
+      <div class="esempio-row"><span class="er-label">Vendita IT</span><span class="er-value">EUR 42.000</span></div>
+      <div class="esempio-row"><span class="er-label">IVA margine</span><span class="er-value">- EUR 423</span></div>
+      <hr class="esempio-divider">
+      <div class="esempio-margine">
+        <span class="em-label">Margine netto</span>
+        <span class="em-value">EUR 1.502</span>
+      </div>
+    </div>
+
+    <div class="esempio-card" id="es-audi" onclick="caricaEsempio('audi')">
+      <div class="esempio-model">Audi Q5 40 TDI</div>
+      <div class="esempio-year">2022 — 70.000 km — S tronic quattro</div>
+      <div class="esempio-row"><span class="er-label">Acquisto DE</span><span class="er-value">EUR 34.000</span></div>
+      <div class="esempio-row"><span class="er-label">Trasporto + Import</span><span class="er-value">EUR 2.075</span></div>
+      <div class="esempio-row"><span class="er-label">Fee ARGOS</span><span class="er-value">EUR 1.000</span></div>
+      <div class="esempio-row"><span class="er-label">Costo piazzale</span><span class="er-value">EUR 37.075</span></div>
+      <div class="esempio-row"><span class="er-label">Vendita IT</span><span class="er-value">EUR 39.000</span></div>
+      <div class="esempio-row"><span class="er-label">IVA margine</span><span class="er-value">- EUR 350</span></div>
+      <hr class="esempio-divider">
+      <div class="esempio-margine">
+        <span class="em-label">Margine netto</span>
+        <span class="em-value">EUR 1.575</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- NOTE METODOLOGIA -->
+  <div class="note-block">
+    <div class="note-block-title">Note metodologia e fonti dati</div>
+    <p><strong>Prezzi acquisto DE:</strong> Media rilevazioni AutoScout24.de e Mobile.de, aprile 2026, filtro: privati e dealer tedeschi, tagliandi verificati, no incidenti.</p>
+    <p><strong>Prezzi vendita IT:</strong> Media AutoScout24.it e Autovit.it per stessa fascia km e anno, aprile 2026.</p>
+    <p><strong>Trasporto bisarca:</strong> EUR 700-1.000 in base a destinazione (Nord Italia / Centro-Sud / Estremo Sud). Valori da preventivi operativi 2025-2026.</p>
+    <p><strong>Costi importazione fissi:</strong> COC EUR 150-200 (ufficio immatricolazione), immatricolazione EUR 500-600, IPT variabile per provincia (EUR 350-500), assicurazione transit EUR 100 (stima media). Totale fisso stimato EUR 1.925 — arrotondato a EUR 2.075 con trasporto Sud.</p>
+    <p><strong>Regime del margine:</strong> art. 36 D.L. 41/1995 e successive modificazioni. Applicabile a dealer che acquistano da privati o soggetti non IVA. Verificare applicabilita' con il proprio consulente fiscale.</p>
+    <p><strong>Fee ARGOS:</strong> Success fee per il servizio di scouting e verifica — dovuta solo a operazione conclusa. I costi di importazione (trasporto, pratiche, immatricolazione) sono a carico del dealer e non inclusi nella fee. Zero costi in anticipo.</p>
+  </div>
+
+</div>
+
+<div class="footer">
+  <div class="footer-left">
+    <strong>ARGOS Automotive</strong> — Luca Ferretti — +39 328 153 6308
+  </div>
+  <div class="footer-right">
+    Documento interno — uso riservato<br>
+    Dati aggiornati aprile 2026
+  </div>
+</div>
+
+<script>
+  var esempi = {
+    bmw:  { de: 33000, zona: 850, fee: 1000, it: 38500 },
+    merc: { de: 37000, zona: 850, fee: 1000, it: 42000 },
+    audi: { de: 34000, zona: 850, fee: 1000, it: 39000 }
+  };
+
+  function fmt(n) {
+    return 'EUR ' + Math.round(n).toLocaleString('it-IT');
+  }
+  function fmtNeg(n) {
+    return '- EUR ' + Math.round(n).toLocaleString('it-IT');
+  }
+
+  function calcola() {
+    var de   = parseFloat(document.getElementById('prezzoDe').value) || 0;
+    var zona = parseFloat(document.getElementById('zonaTrasp').value) || 850;
+    var fee  = parseFloat(document.getElementById('feeArgos').value) || 1000;
+    var it   = parseFloat(document.getElementById('prezzoIt').value) || 0;
+
+    var costiFissiSenzaTrasp = 175 + 550 + 400 + 100; // 1225
+    var costiFissi = zona + costiFissiSenzaTrasp;
+    var totaleAcquisizione = de + costiFissi + fee;
+    var margineL = it - totaleAcquisizione;
+    var iva = margineL > 0 ? (margineL * 0.22 / 1.22) : 0;
+    var margineN = margineL > 0 ? (margineL - iva) : margineL;
+
+    document.getElementById('costoTrasp').textContent = 'EUR ' + zona.toLocaleString('it-IT');
+    document.getElementById('totCosti').textContent = 'EUR ' + costiFissi.toLocaleString('it-IT');
+    document.getElementById('r-acquisto').textContent = fmt(de);
+    document.getElementById('r-costi-fissi').textContent = fmtNeg(costiFissi);
+    document.getElementById('r-fee').textContent = fmtNeg(fee);
+    document.getElementById('r-costo-piazzale').textContent = fmt(totaleAcquisizione);
+    document.getElementById('r-vendita').textContent = fmt(it);
+    document.getElementById('r-iva').textContent = fmtNeg(Math.round(iva));
+
+    var el = document.getElementById('r-margine-netto');
+    el.textContent = fmt(Math.round(margineN));
+    el.style.color = margineN >= 0 ? '#c8a446' : '#b55';
+
+    var parentFinal = el.closest('.result-line');
+    if (parentFinal) {
+      parentFinal.style.borderColor = margineN >= 0 ? '#c8a446' : '#b55';
+    }
+  }
+
+  function caricaEsempio(key) {
+    var e = esempi[key];
+    document.getElementById('prezzoDe').value = e.de;
+    document.getElementById('zonaTrasp').value = e.zona;
+    document.getElementById('feeArgos').value = e.fee;
+    document.getElementById('prezzoIt').value = e.it;
+
+    ['bmw','merc','audi'].forEach(function(k) {
+      document.getElementById('es-' + k).classList.remove('active');
+    });
+    document.getElementById('es-' + key).classList.add('active');
+
+    calcola();
+  }
+
+  // init
+  calcola();
+</script>
+</body>
+</html>

@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disclaimer Legale Dossier — ARGOS Automotive</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #8B7355;
+      --gold-light: #C4A96B;
+      --black: #0D0D0D;
+      --gray-dark: #2C2C2C;
+      --gray-mid: #5A5A5A;
+      --gray-light: #EBEBEB;
+      --white: #FFFFFF;
+      --accent: #F5F1EB;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 9.5pt;
+      color: var(--black);
+      background: var(--white);
+      line-height: 1.6;
+    }
+
+    /* ── VERSIONE FOOTER (per inserimento in calce al dossier PDF) ── */
+    .footer-disclaimer {
+      width: 100%;
+      border-top: 0.5pt solid var(--gold);
+      padding-top: 5mm;
+      margin-top: 8mm;
+    }
+
+    .footer-disclaimer .fd-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 4mm;
+    }
+
+    .footer-disclaimer .fd-brand {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 14pt;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--black);
+    }
+
+    .footer-disclaimer .fd-brand span { color: var(--gold); }
+
+    .footer-disclaimer .fd-tagline {
+      font-size: 7pt;
+      color: var(--gray-mid);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 1pt;
+    }
+
+    .footer-disclaimer .fd-label {
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      text-align: right;
+    }
+
+    /* ── BOX DISCLAIMER ── */
+    .disclaimer-box {
+      background: var(--accent);
+      border: 0.3pt solid var(--gold-light);
+      border-left: 3pt solid var(--gold);
+      padding: 5mm 6mm;
+      margin-bottom: 4mm;
+    }
+
+    .disclaimer-box .db-title {
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 4pt;
+    }
+
+    .disclaimer-box p {
+      font-size: 8.5pt;
+      color: var(--gray-dark);
+      line-height: 1.65;
+      margin-bottom: 3pt;
+    }
+
+    .disclaimer-box p:last-child { margin-bottom: 0; }
+
+    .disclaimer-box ul {
+      padding-left: 13pt;
+      margin: 3pt 0;
+    }
+
+    .disclaimer-box li {
+      font-size: 8.5pt;
+      color: var(--gray-dark);
+      line-height: 1.6;
+      margin-bottom: 2pt;
+    }
+
+    /* ── GRIGLIA INFO ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4mm;
+      margin-bottom: 4mm;
+    }
+
+    .info-item {
+      border-left: 1.5pt solid var(--gold-light);
+      padding: 3pt 5pt;
+    }
+
+    .info-item .info-label {
+      font-size: 6.5pt;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 2pt;
+    }
+
+    .info-item .info-val {
+      font-size: 8pt;
+      color: var(--gray-dark);
+    }
+
+    .placeholder {
+      font-weight: 700;
+      color: var(--black);
+      background: #FFF9E6;
+      padding: 0 2pt;
+      border-radius: 2pt;
+    }
+
+    /* ── FOOTER DELLA PAGINA ── */
+    .page-footer {
+      border-top: 0.3pt solid var(--gray-light);
+      padding-top: 3pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .page-footer span {
+      font-size: 7pt;
+      color: var(--gray-mid);
+    }
+
+    .page-footer .pf-brand {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 600;
+      font-size: 7.5pt;
+      color: var(--gold);
+    }
+
+    /* ──────────────────────────────────────────────────
+       VERSIONE PAGINA INTERA (pagina autonoma stampabile)
+       ────────────────────────────────────────────────── */
+    .page-wrapper {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 16mm 20mm 22mm 20mm;
+      background: var(--white);
+      position: relative;
+    }
+
+    /* ── HEADER PAGINA ── */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 7mm;
+      border-bottom: 0.5pt solid var(--gold);
+      margin-bottom: 8mm;
+    }
+
+    .brand-block h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20pt;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--black);
+    }
+
+    .brand-block h1 span { color: var(--gold); }
+
+    .brand-block .tagline {
+      font-size: 7pt;
+      color: var(--gray-mid);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 2pt;
+    }
+
+    .doc-info { text-align: right; }
+
+    .doc-info .doc-type {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 12pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--gray-dark);
+    }
+
+    .doc-info .doc-ref {
+      font-size: 8pt;
+      color: var(--gray-mid);
+      margin-top: 3pt;
+      font-style: italic;
+    }
+
+    /* ── VEICOLO INFO ── */
+    .veicolo-banner {
+      background: var(--black);
+      color: var(--white);
+      padding: 5mm 6mm;
+      margin-bottom: 6mm;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .veicolo-banner .vb-label {
+      font-size: 7pt;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      margin-bottom: 3pt;
+    }
+
+    .veicolo-banner .vb-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 15pt;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    .veicolo-banner .vb-meta {
+      font-size: 8pt;
+      color: #AAAAAA;
+      margin-top: 2pt;
+    }
+
+    .veicolo-banner .vb-right {
+      text-align: right;
+    }
+
+    .veicolo-banner .vb-date {
+      font-size: 8pt;
+      color: #AAAAAA;
+    }
+
+    .veicolo-banner .vb-ref {
+      font-size: 9pt;
+      font-weight: 600;
+      color: var(--gold-light);
+      margin-top: 2pt;
+    }
+
+    /* ── SEZIONI DISCLAIMER ── */
+    .section { margin-bottom: 5mm; }
+
+    .section-title {
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      border-bottom: 0.3pt solid var(--gold-light);
+      padding-bottom: 2pt;
+      margin-bottom: 4pt;
+    }
+
+    .disclaimer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm;
+      margin-bottom: 5mm;
+    }
+
+    .d-card {
+      border: 0.3pt solid var(--gray-light);
+      border-top: 2pt solid var(--gold);
+      padding: 4mm 5mm;
+    }
+
+    .d-card .dc-title {
+      font-size: 7.5pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gray-dark);
+      margin-bottom: 3pt;
+    }
+
+    .d-card p {
+      font-size: 8.5pt;
+      color: var(--gray-mid);
+      line-height: 1.6;
+    }
+
+    /* ── DICHIARAZIONE RISERVATA ── */
+    .riservatezza-box {
+      background: #1A1A1A;
+      color: var(--white);
+      padding: 5mm 6mm;
+      margin: 5mm 0;
+    }
+
+    .riservatezza-box .rb-title {
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      margin-bottom: 4pt;
+    }
+
+    .riservatezza-box p {
+      font-size: 8.5pt;
+      color: #CCCCCC;
+      line-height: 1.65;
+    }
+
+    /* ── BOTTOM FOOTER ── */
+    .bottom-footer {
+      position: absolute;
+      bottom: 10mm;
+      left: 20mm;
+      right: 20mm;
+      border-top: 0.3pt solid var(--gold-light);
+      padding-top: 4pt;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .bottom-footer span {
+      font-size: 7pt;
+      color: var(--gray-mid);
+    }
+
+    .bottom-footer .bf-brand {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 600;
+      font-size: 8pt;
+      color: var(--gold);
+    }
+
+    @media print {
+      body { background: white; }
+      .page-wrapper { margin: 0; padding: 10mm 14mm 18mm 14mm; width: 100%; }
+      .veicolo-banner, .riservatezza-box {
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+      .placeholder { background: #FFF9E6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .bottom-footer { position: fixed; bottom: 8mm; }
+    }
+
+    /* ──── GUIDE USO (schermata, non stampa) ──── */
+    .usage-guide {
+      background: #F0F0F0;
+      border: 1pt dashed #999;
+      padding: 5mm 6mm;
+      margin: 8mm 0;
+      font-size: 8.5pt;
+      color: #444;
+    }
+
+    .usage-guide strong { color: #000; }
+
+    @media print {
+      .usage-guide { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════
+     NOTA DI UTILIZZO (non stampata)
+     ════════════════════════════════════════════════════════════════ -->
+<div style="width:210mm; margin:0 auto; padding: 8mm 20mm 0 20mm;">
+  <div class="usage-guide">
+    <strong>Questo file ha due utilizzi:</strong><br>
+    <strong>1. Pagina autonoma stampabile</strong> — stampa questa pagina come ultima pagina del dossier.<br>
+    <strong>2. Snippet footer</strong> — copia il blocco <code>.footer-disclaimer</code> (sotto) e incollalo in calce al template HTML del dossier.<br>
+    <em>La sezione "SNIPPET FOOTER" è separata dal layout a pagina intera ed è pensata per essere embedded nei dossier PDF generati da tools/scripts/pdf_generator_enterprise.py.</em>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGINA AUTONOMA — ULTIMA PAGINA DEL DOSSIER
+     ════════════════════════════════════════════════════════════════ -->
+<div class="page-wrapper">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="brand-block">
+      <h1>ARGOS <span>Automotive</span></h1>
+      <div class="tagline">Vehicle Scouting &amp; Intelligence EU</div>
+    </div>
+    <div class="doc-info">
+      <div class="doc-type">Nota Legale</div>
+      <div class="doc-ref">Disclaimer — Dossier Veicolo</div>
+    </div>
+  </div>
+
+  <!-- VEICOLO BANNER -->
+  <div class="veicolo-banner">
+    <div>
+      <div class="vb-label">Dossier relativo al veicolo</div>
+      <div class="vb-title"><span class="placeholder">[MARCA / MODELLO / ANNO]</span></div>
+      <div class="vb-meta">Committente: <span class="placeholder">[RAGIONE SOCIALE DEALER]</span></div>
+    </div>
+    <div class="vb-right">
+      <div class="vb-date">Data analisi: <span class="placeholder">[GG/MM/AAAA]</span></div>
+      <div class="vb-ref">Rif. dossier: <span class="placeholder">[RIFER./ANNO]</span></div>
+    </div>
+  </div>
+
+  <!-- DISCLAIMER GRID -->
+  <div class="section">
+    <div class="section-title">Natura e Limiti del Documento</div>
+    <div class="disclaimer-grid">
+
+      <div class="d-card">
+        <div class="dc-title">Fonti dei Dati</div>
+        <p>I dati contenuti nel presente dossier sono stati raccolti da <strong>fonti pubblicamente accessibili</strong>: portali automotive europei (AutoScout24, Mobile.de, Marktplaats, Autovit, LeBonCoin, e altri), banche dati commerciali di libero accesso, annunci pubblici di vendita. Nessun dato proviene da fonti riservate o da ispezione fisica del veicolo.</p>
+      </div>
+
+      <div class="d-card">
+        <div class="dc-title">Prezzi e Valutazioni</div>
+        <p>I prezzi riportati sono <strong>indicativi e soggetti a variazione</strong>. Riflettono i valori rilevati al momento dell'analisi sui mercati di riferimento. Il prezzo finale di acquisto dipende dalla trattativa diretta tra il Committente e il venditore europeo. ARGOS Automotive non garantisce la disponibilità del veicolo né la tenuta del prezzo.</p>
+      </div>
+
+      <div class="d-card">
+        <div class="dc-title">Stato del Veicolo</div>
+        <p>L'analisi <strong>non sostituisce una perizia tecnica</strong> né un'ispezione fisica del veicolo. Il chilometraggio, le condizioni meccaniche, la storia del veicolo e l'assenza di danni sono dati dichiarati dal venditore e/o disponibili da fonti pubbliche. Il Committente è tenuto a richiedere un'ispezione indipendente (ADAC, TÜV o equivalente) prima dell'acquisto.</p>
+      </div>
+
+      <div class="d-card">
+        <div class="dc-title">Responsabilità dell'Acquisto</div>
+        <p>ARGOS Automotive / Luca Ferretti <strong>non è parte nella compravendita</strong> del veicolo. L'acquisto avviene direttamente tra il Committente e il venditore europeo. Il Committente, in qualità di operatore professionale del settore (ATECO 45.11), è l'unico responsabile della verifica finale e della decisione di acquisto.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- INFO OPERATIVE -->
+  <div class="section">
+    <div class="section-title">Informazioni Operative</div>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Mercati analizzati</div>
+        <div class="info-val">DE, NL, BE, AT, FR, SE + altri EU (19 paesi)</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Portali verificati</div>
+        <div class="info-val">Minimo 15 fonti indipendenti per veicolo</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Data analisi</div>
+        <div class="info-val"><span class="placeholder">[GG/MM/AAAA HH:MM]</span></div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Validità prezzi indicativi</div>
+        <div class="info-val">48-72 ore dalla data di analisi</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Verifica VIN</div>
+        <div class="info-val"><span class="placeholder">[ESEGUITA / NON DISPONIBILE]</span></div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Rif. contratto scouting</div>
+        <div class="info-val"><span class="placeholder">[RIFER./ANNO]</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RISERVATEZZA -->
+  <div class="riservatezza-box">
+    <div class="rb-title">Riservatezza e Destinatario</div>
+    <p>
+      I dati contenuti nel presente dossier sono <strong style="color:#fff;">riservati e destinati esclusivamente al Committente</strong>
+      indicato nella presente analisi. È vietata la riproduzione, la diffusione o la trasmissione a terzi
+      in qualsiasi forma — anche parziale — senza autorizzazione scritta di ARGOS Automotive.
+      Il Committente si impegna a non divulgare prezzi di acquisto, contatti di venditori europei
+      o dati analitici contenuti nel dossier a soggetti terzi concorrenti.
+    </p>
+  </div>
+
+  <!-- DISCLAIMER COMPLETO -->
+  <div class="disclaimer-box">
+    <div class="db-title">Nota Legale Completa</div>
+    <p>
+      Il presente dossier è un <strong>documento informativo</strong> basato su dati raccolti da fonti
+      pubbliche e banche dati commerciali. Non costituisce perizia, valutazione ufficiale né
+      garanzia sullo stato del veicolo.
+    </p>
+    <p>
+      Il destinatario, in qualità di operatore professionale del settore automobilistico, è tenuto a
+      svolgere le proprie verifiche indipendenti prima di qualsiasi decisione di acquisto.
+    </p>
+    <p>
+      ARGOS Automotive / Luca Ferretti declina ogni responsabilità per:
+    </p>
+    <ul>
+      <li>Variazioni di prezzo successive alla data di analisi;</li>
+      <li>Vizi occulti, danni meccanici o sinistri non dichiarati dal venditore;</li>
+      <li>Difformità tra i dati del veicolo dichiarati e la realtà al momento dell'ispezione;</li>
+      <li>Decisioni di acquisto prese sulla base delle informazioni contenute nel presente documento.</li>
+    </ul>
+  </div>
+
+  <!-- BOTTOM FOOTER -->
+  <div class="bottom-footer">
+    <span class="bf-brand">ARGOS Automotive</span>
+    <span>Luca Ferretti &nbsp;|&nbsp; +39 328 153 6308 &nbsp;|&nbsp; argos-automotive.pages.dev</span>
+    <span>Nota Legale — Dossier Veicolo</span>
+  </div>
+
+</div><!-- /page-wrapper -->
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     SNIPPET FOOTER — da inserire in calce al template dossier HTML
+     ════════════════════════════════════════════════════════════════ -->
+<div style="width:210mm; margin:0 auto; padding: 4mm 20mm 8mm 20mm;">
+  <div class="usage-guide">
+    <strong>SNIPPET FOOTER</strong> — Copia tutto il blocco <code>&lt;div class="footer-disclaimer"&gt;</code>
+    qui sotto e incollalo come ultima sezione nel template HTML del dossier veicolo.
+  </div>
+</div>
+
+<!-- ┌─────────────────────────────────────────────────────┐ -->
+<!-- │   INIZIO SNIPPET — copiare da qui fino a /SNIPPET  │ -->
+<!-- └─────────────────────────────────────────────────────┘ -->
+<div style="width:210mm; margin:0 auto; padding: 0 20mm 10mm 20mm;">
+
+  <div class="footer-disclaimer">
+
+    <div class="fd-header">
+      <div>
+        <div class="fd-brand">ARGOS <span>Automotive</span></div>
+        <div class="fd-tagline">Vehicle Scouting &amp; Intelligence EU</div>
+      </div>
+      <div class="fd-label">Nota Legale &amp; Riservatezza</div>
+    </div>
+
+    <div class="disclaimer-box">
+      <div class="db-title">Disclaimer — Documento Riservato</div>
+      <p>
+        Il presente dossier è un <strong>documento informativo riservato</strong> basato su dati raccolti da fonti
+        pubblicamente accessibili (portali automotive EU). I prezzi riportati sono indicativi e soggetti a variazione.
+        L'analisi non sostituisce una perizia tecnica o un'ispezione fisica del veicolo.
+      </p>
+      <p>
+        ARGOS Automotive / Luca Ferretti non è parte nella compravendita del veicolo.
+        Il Committente è responsabile della verifica finale prima dell'acquisto.
+      </p>
+      <p>
+        I dati contenuti nel dossier sono <strong>riservati e destinati esclusivamente al Committente</strong>.
+        È vietata la diffusione a terzi senza autorizzazione scritta.
+      </p>
+    </div>
+
+    <div class="page-footer">
+      <span class="pf-brand">ARGOS Automotive</span>
+      <span>Luca Ferretti &nbsp;|&nbsp; +39 328 153 6308 &nbsp;|&nbsp; argos-automotive.pages.dev</span>
+      <span>Analisi: <strong class="placeholder">[GG/MM/AAAA]</strong> &nbsp;|&nbsp; Rif.: <strong class="placeholder">[RIFER./ANNO]</strong></span>
+    </div>
+
+  </div><!-- /footer-disclaimer -->
+
+</div>
+<!-- ┌─────────────────────────────────────────────────────┐ -->
+<!-- │   FINE SNIPPET                                      │ -->
+<!-- └─────────────────────────────────────────────────────┘ -->
+
+</body>
+</html>
