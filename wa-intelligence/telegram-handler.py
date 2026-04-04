@@ -147,15 +147,26 @@ def cmd_approva(reply_id: str) -> str:
         [reply_id]
     )
 
-    # Avvia invio in background (non blocca)
+    # Avvia invio in background (non blocca) — SAFE: no shell interpolation
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', reply_id):
+        return f'Invalid reply_id format: {reply_id}'
+
     env = os.environ.copy()
     env['CLIENT_ID'] = WA_CLIENT_ID
+    env['REPLY_ID'] = reply_id
+    env['REPLY_TEXT'] = r["reply_text"]
+    env['WA_ID'] = wa_id
+    env['SLEEP_S'] = str(sleep_s)
+    env['DB_PATH_SEND'] = DB_PATH
     subprocess.Popen(
         ['bash', '-c',
-         f'sleep {sleep_s} && node {WA_SENDER} "{wa_id}" "{r["reply_text"].replace(chr(34), chr(39))}" '
-         f'&& python3 -c "import sqlite3; c=sqlite3.connect(\'{DB_PATH}\'); '
-         f'c.execute(\'UPDATE pending_replies SET sent=1 WHERE id=\\\'{reply_id}\\\'\'); '
-         f'c.commit(); c.close()"'],
+         'sleep "$SLEEP_S" && node ' + WA_SENDER + ' "$WA_ID" "$REPLY_TEXT" '
+         '&& python3 -c "'
+         'import sqlite3, os; '
+         'c=sqlite3.connect(os.environ[\"DB_PATH_SEND\"]); '
+         'c.execute(\"UPDATE pending_replies SET sent=1 WHERE id=?\", [os.environ[\"REPLY_ID\"]]); '
+         'c.commit(); c.close()"'],
         env=env, close_fds=True
     )
 

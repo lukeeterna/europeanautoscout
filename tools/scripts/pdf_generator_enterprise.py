@@ -1444,6 +1444,106 @@ def _convert_webp_to_jpg(path: str) -> Optional[str]:
         return path
 
 
+def generate_dossier_from_data(
+    data_json: str,
+    dealer_name: str,
+    output_path: str,
+) -> str:
+    """Generate a PDF dossier from inline JSON data (no DB lookup needed).
+
+    Used by on_demand_runner when vehicles haven't been persisted to DuckDB yet.
+
+    Args:
+        data_json: JSON string with 'vehicles' list and 'search_params'.
+        dealer_name: Dealer name for watermark.
+        output_path: Full file path or directory for PDF output.
+
+    Returns:
+        Absolute path to generated PDF file.
+    """
+    data = json.loads(data_json)
+    vehicles = data.get('vehicles', [])
+    if not vehicles:
+        raise ValueError("No vehicles in data JSON")
+
+    best = vehicles[0]
+    make = best.get('make', 'Unknown')
+    model = best.get('model', 'Unknown')
+    year = best.get('year', 0)
+    km = best.get('km', 0)
+    price = best.get('price_eur', 0) or best.get('price', 0)
+    confidence = best.get('_cove_confidence', 0.7)
+
+    # Determine output directory and filename
+    if os.path.isdir(output_path):
+        output_dir = output_path
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        safe_dealer = dealer_name.replace(' ', '_').replace('/', '_')
+        fname = f"ARGOS_{make}_{model}_{year}_{safe_dealer}_{ts}.pdf"
+        output_path = os.path.join(output_dir, fname)
+    else:
+        output_dir = os.path.dirname(output_path) or '.'
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Market price IT estimate: EU price + 12%
+    market_it = int(price * 1.12) if price else 0
+
+    vehicle = VehicleData(
+        make=make,
+        model=model,
+        year=year,
+        km=km,
+        price_eu=int(price),
+        price_it_estimate=market_it,
+        confidence=float(confidence),
+        fuel_type=str(best.get('fuel', best.get('fuel_type', 'Diesel'))),
+        transmission=str(best.get('transmission', 'Automatico')),
+        color=best.get('color', 'Sconosciuto'),
+        source_country=best.get('country', 'Germania'),
+        source_url=best.get('listing_url', ''),
+        vin=best.get('vin'),
+        km_score=int(confidence * 90),
+        price_score=int(confidence * 100),
+        age_score=85,
+        history_score=75,
+    )
+
+    dealer = DealerInfo(
+        name=dealer_name,
+        company=dealer_name,
+        city="Sud Italia",
+    )
+
+    # Download image if available
+    image_url = best.get('image_url', '')
+    local_image_paths = []
+    if image_url:
+        local_path = _download_image_to_temp(image_url)
+        if local_path:
+            local_path = _convert_webp_to_jpg(local_path)
+            if local_path and os.path.exists(local_path) and os.path.getsize(local_path) > 500:
+                local_image_paths.append(local_path)
+
+    vehicle.local_image_paths = local_image_paths
+
+    print(f"Generating PDF from data: {output_path}")
+    generator = ARGOSPDFGenerator()
+    generator.generate_vehicle_sheet(vehicle, dealer, output_path, grade_data=None)
+
+    # Cleanup temp images
+    for p in local_image_paths:
+        if p and '/tmp/' in p:
+            try:
+                os.unlink(p)
+            except Exception:
+                pass
+
+    file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
+    print(f"Done. PDF at: {output_path} ({file_size:,} bytes)")
+    return os.path.abspath(output_path)
+
+
 def generate_dossier_from_db(
     listing_id: str,
     dealer_name: str,
@@ -1668,12 +1768,13 @@ Examples:
       --db src/cove/data/cove_tracker.duckdb
 """,
     )
-    parser.add_argument('--listing', required=True, help='Listing ID from cove_results DB')
-    parser.add_argument('--dealer', required=True, help='Dealer name for watermark (e.g. "Stile Car")')
-    parser.add_argument('--output', required=True, help='Output directory for PDF')
+    parser.add_argument('--listing', required=False, help='Listing ID from cove_results DB')
+    parser.add_argument('--dealer', required=False, help='Dealer name for watermark (e.g. "Stile Car")')
+    parser.add_argument('--output', required=True, help='Output directory for PDF (or full path in --data mode)')
     parser.add_argument('--db', default=None, help='Path to cove_tracker.duckdb (auto-detect if omitted)')
+    parser.add_argument('--data', default=None, help='JSON string with vehicle data (bypasses DB lookup)')
 
-    # Check if legacy mode (no --listing flag)
+    # Check if legacy mode (no --listing flag and no --data)
     if len(sys.argv) == 1 or (not any(a.startswith('--') for a in sys.argv[1:])):
         # Legacy: run generate_mario_bmw_sheet()
         generate_mario_bmw_sheet()
@@ -1681,12 +1782,25 @@ Examples:
 
     args = parser.parse_args()
 
-    output_path = generate_dossier_from_db(
-        listing_id=args.listing,
-        dealer_name=args.dealer,
-        output_dir=args.output,
-        db_path=args.db,
-    )
+    if args.data:
+        # --data mode: accept JSON directly, generate PDF without DB
+        output_path = generate_dossier_from_data(
+            data_json=args.data,
+            dealer_name=args.dealer or 'Dealer',
+            output_path=args.output,
+        )
+    elif args.listing:
+        if not args.dealer:
+            parser.error('--dealer is required when using --listing mode')
+        output_path = generate_dossier_from_db(
+            listing_id=args.listing,
+            dealer_name=args.dealer,
+            output_dir=args.output,
+            db_path=args.db,
+        )
+    else:
+        parser.error('Either --listing or --data is required')
+
     print(f"Done. PDF at: {output_path}")
 
 

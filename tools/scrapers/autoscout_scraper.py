@@ -518,7 +518,7 @@ class AutoScoutScraper(BaseScraper):
 
     def parse_search_results(self, html: str) -> List[Listing]:
         """Wrapper per compatibilità con BaseScraper (usa parse_listings con defaults)."""
-        return self.parse_listings(html, country='DE', make='', model='')
+        return self.parse_listings(html, country=self._country, make='', model='')
 
     def parse_listings(
         self, html: str, country: str, make: str, model: str
@@ -801,15 +801,23 @@ class AutoScoutScraper(BaseScraper):
 
         lid = self.generate_listing_id(self.portal_key, listing_url)
 
-        # Prezzo
+        # Prezzo — AS24 2026 structure: item.price = {priceFormatted, ...}
+        # Also check item.tracking.price (clean numeric string)
         price = None
+        tracking = item.get("tracking", {}) or {}
         price_raw = item.get("price", item.get("rawPrice", item.get("priceRaw", "")))
         if isinstance(price_raw, dict):
-            price = _parse_price(str(price_raw.get("value", price_raw.get("amount", ""))))
+            # AS24 2026: {priceFormatted: "€ 29.495", ...}
+            price = _parse_price(str(price_raw.get("priceFormatted", "")))
+            if not price:
+                price = _parse_price(str(price_raw.get("value", price_raw.get("amount", ""))))
         elif isinstance(price_raw, (int, float)):
             price = float(price_raw)
         elif isinstance(price_raw, str):
             price = _parse_price(price_raw)
+        # Fallback: tracking.price (clean numeric: "29495")
+        if not price and tracking.get("price"):
+            price = _parse_price(str(tracking["price"]))
 
         # Dati veicolo
         vehicle = item.get("vehicle", item)
@@ -817,17 +825,25 @@ class AutoScoutScraper(BaseScraper):
         if isinstance(variant, dict):
             variant = variant.get("raw", "")
 
+        # Anno — check vehicle.firstRegistration, tracking.firstRegistration ("06-2021")
         year_raw = vehicle.get("firstRegistration", vehicle.get("year", vehicle.get("yearOfRegistration", "")))
+        if not year_raw and tracking.get("firstRegistration"):
+            year_raw = tracking["firstRegistration"]
         year = _parse_year(str(year_raw)) if year_raw else None
 
-        km_raw = vehicle.get("mileage", vehicle.get("km", vehicle.get("mileageInKmRaw", "")))
+        # Km — check vehicle.mileageInKm ("39.000 km"), vehicle.mileage, tracking.mileage ("39000")
+        km_raw = vehicle.get("mileageInKm", vehicle.get("mileage", vehicle.get("km", vehicle.get("mileageInKmRaw", ""))))
         if isinstance(km_raw, dict):
             km_raw = km_raw.get("value", km_raw.get("raw", ""))
+        if not km_raw and tracking.get("mileage"):
+            km_raw = tracking["mileage"]
         km = _parse_km(str(km_raw)) if km_raw else None
 
         fuel_raw = vehicle.get("fuelType", vehicle.get("fuel", ""))
         if isinstance(fuel_raw, dict):
             fuel_raw = fuel_raw.get("label", fuel_raw.get("value", ""))
+        if not fuel_raw and tracking.get("fuelType"):
+            fuel_raw = tracking["fuelType"]
         fuel_type = _parse_fuel(str(fuel_raw))
 
         trans_raw = vehicle.get("transmissionType", vehicle.get("transmission", ""))
@@ -1204,6 +1220,110 @@ class AutoScoutScraper(BaseScraper):
             return True
 
         return False
+
+    # ─────────────────────────────────────────────────────────
+    # SCRAPE_MODEL OVERRIDE — Selenium fallback for JS-rendered pages
+    # ─────────────────────────────────────────────────────────
+
+    def scrape_model(
+        self,
+        make: str,
+        model: str,
+        year_min: int = YEAR_MIN,
+        year_max: int = YEAR_MAX,
+        km_max: Optional[int] = None,
+    ) -> List[Listing]:
+        """Override: if curl_cffi returns zero-data, re-fetch with Selenium."""
+        # First pass: use parent's curl_cffi-based fetch
+        listings = super().scrape_model(
+            make=make, model=model,
+            year_min=year_min, year_max=year_max, km_max=km_max,
+        )
+
+        if not listings:
+            return listings
+
+        # Check if all listings have zero data (AS24 JS-rendered issue)
+        zero_data = sum(1 for l in listings if l.price_eur == 0 and l.km == 0)
+        if zero_data < len(listings) * 0.8:
+            # Most listings have data, no need for Selenium fallback
+            return listings
+
+        logger.info(
+            "[%s] %d/%d listings con dati zero — retry con Selenium",
+            self.portal_key, zero_data, len(listings),
+        )
+
+        try:
+            from .resilient_fetcher import ResilientFetcher
+            fetcher = ResilientFetcher(timeout=30, max_retries=1)
+
+            # Re-fetch search pages with Selenium (renders JS)
+            if km_max is None:
+                from .config import km_limit_for
+                km_max = km_limit_for(make, model)
+
+            enriched_listings: List[Listing] = []
+            seen_ids: set = set()
+            max_pages = min(getattr(self.config, 'max_pages', 5), 5)
+
+            for page_num in range(1, max_pages + 1):
+                params = {
+                    "year_min": year_min, "year_max": year_max,
+                    "km_max": km_max, "page": page_num,
+                }
+                url = self.build_search_url(make, model, params)
+
+                try:
+                    html = fetcher.fetch(url, accept_language=self._accept_lang)
+                except Exception as e:
+                    logger.warning("[%s] Selenium fetch page %d errore: %s", self.portal_key, page_num, e)
+                    break
+
+                if not html or len(html) < 1000:
+                    break
+
+                page_listings = self.parse_listings(html, self._country, make, model)
+
+                for lst in page_listings:
+                    lst.portal = self.portal_key
+                    lst.country = self._country
+                    lst.make = make
+                    lst.model = model
+                    if lst.listing_id not in seen_ids:
+                        seen_ids.add(lst.listing_id)
+                        enriched_listings.append(lst)
+
+                has_data = sum(1 for l in page_listings if l.price_eur > 0 or l.km > 0)
+                logger.info(
+                    "[%s] Selenium page %d: %d listing (%d with data)",
+                    self.portal_key, page_num, len(page_listings), has_data,
+                )
+
+                if len(page_listings) < self.RESULTS_PER_PAGE:
+                    break
+
+                # Rate limit between Selenium requests
+                import time as _time
+                _time.sleep(3)
+
+            if enriched_listings:
+                # Check if Selenium results have data
+                has_data = sum(1 for l in enriched_listings if l.price_eur > 0)
+                if has_data > 0:
+                    logger.info(
+                        "[%s] Selenium fallback: %d listing con dati (%d totali)",
+                        self.portal_key, has_data, len(enriched_listings),
+                    )
+                    return enriched_listings
+
+        except ImportError:
+            logger.warning("[%s] ResilientFetcher non disponibile per Selenium fallback", self.portal_key)
+        except Exception as e:
+            logger.warning("[%s] Selenium fallback errore: %s", self.portal_key, e)
+
+        # Return original listings even if zero-data (enricher can handle them)
+        return listings
 
     # ─────────────────────────────────────────────────────────
     # SCRAPE OVERRIDE — passa kwargs extra

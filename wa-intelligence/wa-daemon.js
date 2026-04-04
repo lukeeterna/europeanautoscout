@@ -235,7 +235,7 @@ function updateConversationState(dealerId, newStep) {
 
 // ── Cap risposte per-dealer (max 3 auto-risposte/giorno) ────
 const DEALER_DAILY_REPLIES = new Map(); // dealerId → count today
-const MAX_REPLIES_PER_DEALER = 3;
+const MAX_REPLIES_PER_DEALER = 10;
 
 function canReplyToDealer(dealerId) {
     const today = TC.nowIT().toDateString();
@@ -590,8 +590,20 @@ function initClient() {
     _waClient = client;
 
     // ── HTTP Server (porta 9191): health + send + qr ────────
+    const API_KEY = process.env.ARGOS_API_KEY || '';
+
     http.createServer(async (req, res) => {
         checkDailyReset();
+
+        // ── Auth check (skip health check GET /) ──
+        if (API_KEY && !(req.method === 'GET' && (req.url === '/' || req.url === '/status'))) {
+            const reqKey = req.headers['x-api-key'] || '';
+            if (reqKey !== API_KEY) {
+                res.writeHead(401, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'unauthorized — X-API-Key header required' }));
+                return;
+            }
+        }
 
         // GET /qr — mostra QR code per autenticazione (HTML o JSON)
         if (req.method === 'GET' && req.url.startsWith('/qr')) {
@@ -645,10 +657,30 @@ function initClient() {
             req.on('data', chunk => { body += chunk; });
             req.on('end', async () => {
                 try {
-                    const { phone, message, dealer_id } = JSON.parse(body);
+                    const { phone, message, dealer_id, dry_run } = JSON.parse(body);
                     if (!phone || !message) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'phone and message required' }));
+                        return;
+                    }
+                    // Input validation
+                    const cleanPhone = phone.replace(/[^0-9]/g, '');
+                    if (!/^(39)?3\d{8,9}$/.test(cleanPhone)) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'invalid italian phone number', phone }));
+                        return;
+                    }
+                    if (message.length > 4096) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'message too long (max 4096 chars)' }));
+                        return;
+                    }
+                    // Dry run mode for E2E testing
+                    if (dry_run) {
+                        const fakeMsgId = `dry_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                        log('INFO', `[DRY RUN] Would send to ${phone}: ${message.slice(0, 50)}...`);
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ status: 'sent', msg_id: fakeMsgId, dry_run: true }));
                         return;
                     }
                     if (!HumanLike.isAllowedToSend()) {

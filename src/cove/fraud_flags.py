@@ -37,7 +37,7 @@ SUSPICIOUS_PRICE_DELTA: float = 0.35  # -35% → SUSPICIOUS (probabile frode/kee
 
 # Anno minimo veicolo accettato nel segmento target — [VERIFIED]
 MIN_YEAR: int = 2018
-MAX_YEAR: int = 2023
+MAX_YEAR: int = 2025  # Dynamic: aggiornare annualmente
 
 # Km massimi assoluti nel segmento target — [VERIFIED] da business spec
 MAX_KM_ABSOLUTE: int = 150_000
@@ -53,6 +53,7 @@ ODOMETER_RISK_BY_COUNTRY: dict[str, str] = {
     "Romania": "HIGH",      # 6.5%
     "Bulgaria": "HIGH",     # stimato >6% [ESTIMATED]
     "Poland": "HIGH",       # stimato >5% [ESTIMATED]
+    "Hungary": "HIGH",      # 5.3% [VERIFIED carVertical 2025]
     # MEDIO RISCHIO — fraud rate 3-6%
     "Italy": "MEDIUM",      # [ESTIMATED] EU enforcement variabile
     "Spain": "MEDIUM",      # [ESTIMATED] EU enforcement variabile
