@@ -35,7 +35,15 @@ def _load_dotenv():
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
                     key, _, val = line.partition('=')
-                    os.environ.setdefault(key.strip(), val.strip())
+                    val = val.strip()
+                    # Strip surrounding quotes FIRST, then leave value intact
+                    # (API keys can contain # so never split on # inside quotes)
+                    if (val.startswith('"') and val.endswith('"')) or \
+                       (val.startswith("'") and val.endswith("'")):
+                        val = val[1:-1]
+                    else:
+                        val = val.split('#')[0].strip()  # inline comments only for unquoted
+                    os.environ[key.strip()] = val  # force override stale env
 
 _load_dotenv()
 
@@ -48,6 +56,9 @@ OPENROUTER_URL     = 'https://openrouter.ai/api/v1/chat/completions'
 GOOGLE_AI_API_KEY  = os.environ.get('GOOGLE_AI_API_KEY', '')
 GEMINI_MODEL       = 'gemini-2.0-flash'
 GEMINI_URL         = 'https://generativelanguage.googleapis.com/v1beta/models'
+GROQ_API_KEY       = os.environ.get('GROQ_API_KEY', '')
+GROQ_MODEL         = 'llama-3.3-70b-versatile'
+GROQ_URL           = 'https://api.groq.com/openai/v1/chat/completions'
 DB_PATH            = os.environ.get('ARGOS_DB_PATH', '')
 
 # ── ARGOS Business Constants ──────────────────────────────
@@ -169,11 +180,16 @@ SYSTEM_PROMPT = """Sei Luca Ferretti. Scrivi messaggi WhatsApp come un UMANO REA
 
 CHI SEI:
 - Luca Ferretti, trovi auto premium (BMW, Mercedes, Audi, Porsche 2018-2025) in Germania, Belgio, Olanda, Austria per concessionari italiani
-- Fee fissa €1.000 a macchina consegnata, zero anticipi — il dealer paga SOLO quando ha la macchina in mano
 - Ogni macchina e' verificata: km certificati con storico tagliandi, ispezione 100 punti (carrozzeria, meccanica, elettronica), VIN check completo
 - Storico veicolo controllato: incidenti, richiami, passaggi proprieta'
 - Garanzia costruttore UE valida in Italia (BMW/Mercedes/Audi: 2 anni, basta il VIN)
 - Gestisci tutto: acquisto, documenti (COC, TD17, F24), trasporto, consegna in 5-7 giorni
+
+REGOLA FEE — CRITICA:
+- La fee e' €1.000 fissa a macchina consegnata, zero anticipi
+- MA: NON menzionare la fee FINCHE' il dealer non chiede esplicitamente "quanto costa" o "qual e' la fee"
+- Se il dealer chiede come funziona il servizio, parla del processo (trovo, verifico, consegno) SENZA menzionare il costo
+- Menzionare la fee nel primo contatto DISTRUGGE la credibilita' — il dealer pensa "vuole solo vendermi qualcosa"
 
 FORMATO OUTPUT — OBBLIGATORIO:
 Rispondi ESCLUSIVAMENTE con un JSON valido. Nessun testo fuori dal JSON.
@@ -378,14 +394,50 @@ def call_llm(system_prompt: str, user_prompt: str) -> dict:
                 return {'text': text, 'usage': usage, 'model': data.get('model', OPENROUTER_MODEL)}
             print('[WARN] OpenRouter returned empty response, trying Gemini...')
         except Exception as e:
-            print(f'[WARN] OpenRouter failed: {e} — switching to Gemini Flash (free)')
+            print(f'[WARN] OpenRouter failed: {e} — trying Groq')
 
-    # Tentativo 2: OpenRouter modelli FREE (cascade)
+    # Tentativo 1b: Groq (gratuito, rate-limited ma veloce)
+    if GROQ_API_KEY:
+        try:
+            import urllib.request
+
+            payload = json.dumps({
+                'model': GROQ_MODEL,
+                'messages': [
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': user_prompt},
+                ],
+                'max_tokens': 800,
+                'temperature': 0.7,
+            }).encode()
+
+            headers = {
+                'Authorization': f'Bearer {GROQ_API_KEY}',
+                'Content-Type': 'application/json',
+                'User-Agent': 'ARGOS/1.0',  # Groq blocca Python-urllib default UA
+            }
+
+            req = urllib.request.Request(GROQ_URL, data=payload, headers=headers)
+            resp = urllib.request.urlopen(req, timeout=30)
+            data = json.loads(resp.read())
+
+            text = data.get('choices', [{}])[0].get('message', {}).get('content', '')
+            usage = data.get('usage', {})
+
+            if text:
+                print(f'[OK] Groq {GROQ_MODEL} response received')
+                return {'text': text, 'usage': usage, 'model': GROQ_MODEL}
+            print('[WARN] Groq returned empty response')
+        except Exception as e:
+            print(f'[WARN] Groq failed: {e} — trying free models')
+
+    # Tentativo 2: OpenRouter modelli FREE (cascade aggiornata aprile 2026)
     FREE_MODELS = [
-        'qwen/qwen3.6-plus:free',
-        'meta-llama/llama-3.3-70b-instruct:free',
-        'google/gemma-3-27b-it:free',
-        'nousresearch/hermes-3-llama-3.1-405b:free',
+        'google/gemma-4-31b-it:free',                    # Top open, italiano nativo, ELO 1452
+        'nvidia/nemotron-3-super-120b-a12b:free',         # 120B MoE, italiano nativo
+        'openai/gpt-oss-120b:free',                       # MMLU 94.2%, forte JSON
+        'meta-llama/llama-3.3-70b-instruct:free',         # Collaudato, stabile
+        'qwen/qwen3-coder:free',                          # Fallback Qwen3
     ]
     if OPENROUTER_API_KEY:
         for free_model in FREE_MODELS:
@@ -545,7 +597,9 @@ def track_cost(db_path: str, model: str, usage: dict, dealer_id: str):
 # ── DB helpers ───────────────────────────────────────────────
 def load_dealer_context(db_path: str, dealer_id: str) -> dict:
     """Carica il profilo completo del dealer dal SQLite."""
-    con = sqlite3.connect(db_path)
+    con = sqlite3.connect(db_path, timeout=10)
+    con.execute('PRAGMA journal_mode=WAL')
+    con.execute('PRAGMA busy_timeout=10000')
     try:
         cur = con.execute("""
             SELECT * FROM conversations WHERE dealer_id = ? LIMIT 1
@@ -601,13 +655,15 @@ PATTERNS = {
     },
     'CURIOSITY': {
         'exact': [
-            'chi sei', 'chi è lei', 'come hai avuto', 'come ha avuto',
+            'chi sei', 'chi siete', 'chi è lei', 'chi è', 'chi e\'',
+            'come hai avuto', 'come ha avuto',
             'da dove', 'sei di', 'è di', 'quale azienda', 'che azienda',
             'come funziona', 'spiegami', 'mi spieghi', 'mi spiega',
             "cos'è", "che cos'è", 'come mai', 'dove hai preso',
             'dove ha preso', 'il mio numero', 'come ha trovato',
             'ma cosa fate', 'che servizio', 'in cosa consiste',
             'che tipo di', 'mi dica di più', 'vorrei capire',
+            'non vi conosco', 'non ti conosco', 'mai sentito',
         ],
         'weight': 0.80,
     },
@@ -691,11 +747,14 @@ def extract_vehicle_request(msg_body: str, db_path: str = '') -> dict:
               'anno_min': None, 'km_max': None, 'raw': msg_body[:200]}
 
     # Tentativo LLM (Haiku — ~$0.002 per extraction)
-    if OPENROUTER_API_KEY:
+    sanitized_body = _sanitize_dealer_message(msg_body)
+    if OPENROUTER_API_KEY or GROQ_API_KEY or GOOGLE_AI_API_KEY:
         extraction_prompt = f"""Estrai da questo messaggio WhatsApp di un dealer italiano i parametri per la ricerca auto.
 Rispondi SOLO con JSON valido, nient'altro.
 
-Messaggio: "{msg_body}"
+<dealer_message>
+{sanitized_body}
+</dealer_message>
 
 JSON richiesto:
 {{"marca": "BMW/Mercedes/Audi/VW/Porsche/null", "modello": "X3/GLC/A4/null", "budget_eur": 35000, "anno_min": 2020, "km_max": 80000}}
@@ -751,7 +810,34 @@ Se un campo non e' specificato, metti null. Budget in EUR interi (35k = 35000, t
     return result
 
 
+def _is_media_message(body: str) -> bool:
+    """Rileva se il body e' un media (immagine/audio/video) invece di testo."""
+    if not body or len(body) < 10:
+        return False
+    # JPEG base64 header
+    if body.startswith('/9j/'):
+        return True
+    # PNG base64 header
+    if body.startswith('iVBOR'):
+        return True
+    # PDF base64 header
+    if body.startswith('JVBER'):
+        return True
+    # Audio/video common patterns
+    if body.startswith(('AAAA', 'SUQz', 'Rklm')):
+        return True
+    # Body troppo lungo senza spazi = probabilmente base64
+    if len(body) > 500 and ' ' not in body[:200]:
+        return True
+    return False
+
+
 def classify_message(body: str) -> dict:
+    # BUG-4 fix: rileva media/immagini prima di classificare testo
+    if _is_media_message(body):
+        return {'type': 'MEDIA', 'confidence': 0.95, 'method': 'media_detect',
+                'matched': ['image/media']}
+
     b_lower = body.lower().strip()
     words = b_lower.split()
     if len(words) <= 1:
@@ -778,6 +864,9 @@ def classify_message(body: str) -> dict:
             if category == 'POSITIVE' and has_negated:
                 if any(kw in np and np in b_lower for np in negated_positives):
                     continue
+            # BUG-5 fix: NEGATIVE non vince se c'e' anche VEHICLE_REQUEST o CURIOSITY con ?
+            if category == 'NEGATIVE' and has_negated:
+                pass  # conta il match ma non ha priorita' assoluta
             score += config['weight']
             matched.append(kw)
         if score > 0:
@@ -787,6 +876,23 @@ def classify_message(body: str) -> dict:
         if '?' in body:
             return {'type': 'CURIOSITY', 'confidence': 0.60, 'method': 'question_fallback'}
         return {'type': 'UNKNOWN', 'confidence': 0.0, 'method': 'no_match'}
+
+    # BUG-5 fix: se NEGATIVE e VEHICLE_REQUEST/CURIOSITY coesistono con '?',
+    # il dealer sta chiedendo qualcosa, non rifiutando
+    if 'NEGATIVE' in scores and '?' in body:
+        non_negative = {k: v for k, v in scores.items() if k != 'NEGATIVE'}
+        if non_negative:
+            best = max(non_negative.items(), key=lambda x: x[1]['score'])
+            category = best[0]
+            matched = best[1]['matched']
+            if category == 'VEHICLE_REQUEST':
+                return {'type': 'VEHICLE_REQUEST', 'confidence': 0.90,
+                        'method': 'keyword_mixed_intent', 'matched': matched}
+            if category.startswith('OBJ-'):
+                return {'type': 'OBJECTION', 'obj_code': category,
+                        'confidence': 0.85, 'method': 'keyword_mixed_intent', 'matched': matched}
+            return {'type': category, 'confidence': 0.85, 'method': 'keyword_mixed_intent',
+                    'matched': matched}
 
     if 'NEGATIVE' in scores:
         return {'type': 'NEGATIVE', 'confidence': 0.95, 'method': 'keyword',
@@ -888,12 +994,19 @@ def validate_response(text: str) -> dict:
 
 # ── Auto-approvazione + invio schedulato ─────────────────────
 def auto_approve_and_send(db_path, reply_id, dealer, reply_text, reply_obj=None):
-    """Auto-approva e schedula invio via daemon /send o /send-multi (anti-ban sleep)."""
-    import random, subprocess, math
+    """Auto-approva e schedula invio via daemon /send o /send-multi (anti-ban sleep).
+    Usa Python diretto (no shell/curl) per evitare injection."""
+    import random, threading, math, time as _time
+    import urllib.request as _ureq
 
     phone = (dealer.get('phone_number', '') or '').replace('+', '').replace(' ', '').replace('-', '')
     if not phone:
         print(f'[WARN] No phone for auto-send {reply_id}')
+        return False
+
+    api_key = os.environ.get('ARGOS_API_KEY', os.environ.get('WA_API_KEY', ''))
+    if not api_key:
+        print(f'[ERROR] No API key for auto-send {reply_id}')
         return False
 
     dealer_id = dealer.get('dealer_id', 'UNKNOWN')
@@ -903,22 +1016,22 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text, reply_obj=None)
     if 'RESPONSE_RECEIVED' in current_step:
         sleep_s = random.randint(20, 60)
     else:
-        # Log-normale approssimato per outreach
         mean, std = 300, 120
-        sleep_s = int(max(60, min(mean * 3, math.exp(math.log(mean) + random.gauss(0, 1) * (std / mean)))))
+        sleep_s = int(max(180, min(mean * 3, math.exp(math.log(mean) + random.gauss(0, 1) * (std / mean)))))
 
     # Approva nel DB
     con = sqlite3.connect(db_path, timeout=10)
+    con.execute('PRAGMA journal_mode=WAL')
+    con.execute('PRAGMA busy_timeout=10000')
     con.execute('UPDATE pending_replies SET approved = 1 WHERE id = ?', [reply_id])
     con.commit()
     con.close()
 
-    # Determina se usare /send o /send-multi
+    # Determina payload
     messages = None
     if reply_obj and 'messages' in reply_obj:
         messages = reply_obj['messages']
     else:
-        # Prova a parsare reply_text come JSON multi-msg
         try:
             parsed = json.loads(reply_text)
             if isinstance(parsed, dict) and 'messages' in parsed:
@@ -927,37 +1040,45 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text, reply_obj=None)
             pass
 
     if messages and isinstance(messages, list) and len(messages) > 1:
-        # Multi-messaggio → usa /send-multi
-        payload = json.dumps({
-            'phone': phone,
-            'messages': messages,
-            'dealer_id': dealer_id,
-        })
+        payload_dict = {'phone': phone, 'messages': messages, 'dealer_id': dealer_id}
         endpoint = '/send-multi'
     else:
-        # Singolo messaggio → usa /send
         text = messages[0] if messages else reply_text
-        payload = json.dumps({
-            'phone': phone,
-            'message': text,
-            'dealer_id': dealer_id,
-        })
+        payload_dict = {'phone': phone, 'message': text, 'dealer_id': dealer_id}
         endpoint = '/send'
 
-    safe_payload = payload.replace("'", "'\\''")
-
-    cmd = (
-        f'sleep {sleep_s} && '
-        f"curl -s -X POST http://127.0.0.1:9191{endpoint} "
-        f"-H 'Content-Type: application/json' "
-        f"-d '{safe_payload}' "
-        f"&& python3 -c \""
-        f"import sqlite3; c=sqlite3.connect('{db_path}'); "
-        f"c.execute('UPDATE pending_replies SET sent=1 WHERE id=?', ['{reply_id}']); "
-        f"c.commit(); c.close()\""
+    # Invio differito via subprocess (NON thread — il processo analyzer esce prima del delay)
+    import subprocess as _sp
+    send_script = (
+        f"import time, json, sqlite3, urllib.request\n"
+        f"time.sleep({sleep_s})\n"
+        f"try:\n"
+        f"    data = json.dumps({json.dumps(payload_dict)}).encode('utf-8')\n"
+        f"    req = urllib.request.Request(\n"
+        f"        'http://127.0.0.1:9191{endpoint}',\n"
+        f"        data=data,\n"
+        f"        headers={{'Content-Type': 'application/json', 'X-API-Key': '{api_key}'}},\n"
+        f"        method='POST',\n"
+        f"    )\n"
+        f"    resp = urllib.request.urlopen(req, timeout=30)\n"
+        f"    result = json.loads(resp.read())\n"
+        f"    if result.get('status') in ('sent', 'queued'):\n"
+        f"        c = sqlite3.connect('{db_path}', timeout=10)\n"
+        f"        c.execute('PRAGMA journal_mode=WAL')\n"
+        f"        c.execute('UPDATE pending_replies SET sent=1 WHERE id=?', ['{reply_id}'])\n"
+        f"        c.commit(); c.close()\n"
+        f"        print(f'[AUTO] Reply {reply_id} inviata')\n"
+        f"    else:\n"
+        f"        print(f'[ERROR] Reply {reply_id} — daemon: {{result}}')\n"
+        f"except Exception as e:\n"
+        f"    print(f'[ERROR] Reply {reply_id} fallita: {{e}}')\n"
     )
-
-    subprocess.Popen(['bash', '-c', cmd], close_fds=True)
+    _sp.Popen(
+        [sys.executable, '-c', send_script],
+        close_fds=True,
+        stdout=open('/tmp/argos-auto-send.log', 'a'),
+        stderr=open('/tmp/argos-auto-send.log', 'a'),
+    )
 
     msg_count = len(messages) if messages else 1
     print(f'[AUTO] Approvata + schedulata reply {reply_id} — {msg_count} msg via {endpoint} — invio tra {sleep_s}s')
@@ -1119,6 +1240,16 @@ def main():
     llm_cost_info = ''
     cls_type = classification.get('type', 'UNKNOWN')
 
+    # MEDIA → il dealer ha inviato foto/audio/video. Rispondi riconoscendo il media.
+    if cls_type == 'MEDIA':
+        # Tratta come POSITIVE — il dealer sta interagendo
+        classification['type'] = 'POSITIVE'
+        classification['original_type'] = 'MEDIA'
+        cls_type = 'POSITIVE'
+        # Sovrascrivi il body per il prompt LLM
+        args.msg_body = '[Il dealer ha inviato una foto/immagine]'
+        print(f'  [MEDIA] Immagine rilevata — trattata come POSITIVE')
+
     if cls_type == 'NEGATIVE':
         # NEGATIVE → NON rispondere, chiudi dealer
         con = sqlite3.connect(args.db_path, timeout=10)
@@ -1180,12 +1311,12 @@ def main():
                 f"📋 *Estratto:*\n"
                 f"  Marca: {marca}\n"
                 f"  Modello: {modello or 'non specificato'}\n"
-                f"  Budget: €{budget:,}" if isinstance(budget, int) else f"  Budget: {budget}" + "\n"
-                f"  Anno min: {anno or '-'}\n"
+                + (f"  Budget: €{budget:,}\n" if isinstance(budget, int) else f"  Budget: {budget}\n")
+                + f"  Anno min: {anno or '-'}\n"
                 f"  KM max: {km or '-'}\n\n"
                 f"_Lancia pipeline:_\n"
-                f"`python3 tools/on_demand_runner.py --marca {marca} --budget {budget}"
-                f"{' --modello ' + modello if modello else ''}`"
+                f"`python3 tools/on_demand_runner.py --marca {re.sub(r'[^A-Za-z ]', '', str(marca))} --budget {int(budget) if isinstance(budget, int) else '?'}"
+                f"{' --modello ' + re.sub(r'[^A-Za-z0-9 ]', '', str(modello)) if modello else ''}`"
             )
             payload = {'chat_id': TELEGRAM_CHAT_ID, 'text': text, 'parse_mode': 'Markdown'}
             data = uparse.urlencode(payload).encode()
@@ -1200,7 +1331,7 @@ def main():
         # Continua con LLM per generare risposta di conferma al dealer
         # (es: "ricevuto, ci lavoro subito")
 
-    if OPENROUTER_API_KEY:
+    if OPENROUTER_API_KEY or GROQ_API_KEY or GOOGLE_AI_API_KEY:
         msg_history = dealer.get('message_history', [])
 
         # Se batch mode, avvisa il prompt che sono messaggi aggregati

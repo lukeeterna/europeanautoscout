@@ -19,15 +19,16 @@
 **Numero WA**: 368 3259045
 **Orario consigliato**: martedi o mercoledi, 8:30-9:00
 
-### Messaggio Day 1
+### Messaggio Day 1 (aggiornato S101 — dati reali CoVe)
 
 ```
-Buongiorno, ho una Porsche Macan 2022, 52.000 km, Monaco — €41.800.
-In Campania la stessa auto non scende sotto i €53-55.000.
+Buongiorno, ho una Porsche Macan 2022, 55.000 km, Germania — €62.500.
+In Campania la stessa auto non scende sotto i €72-75.000.
 Km verificati, tagliandi Porsche Italia compatibili.
 Ho visto che trattate gia' questa fascia — sono Luca Ferretti.
 Le mando la scheda completa?
 ```
+> Listing: autoscout24_de_d9204d82ff00 | CoVe PROCEED 0.82 | CLEAN
 
 **Nota interna:**
 - Archetipo: BARONE (luxury mix, Ferrari, Jaguar, Porsche — reputazione e selezione contano)
@@ -46,16 +47,17 @@ Foto HD Macan + secondo veicolo (BMW X3 M Competition o Porsche Cayenne 2021) co
 **Numero**: 0825 610208 (fisso — primo contatto telefonico, poi WA)
 **Orario consigliato**: martedi mattina, 8:30-9:00 (chiamata) — poi WA se non risponde
 
-### Messaggio Day 1
+### Messaggio Day 1 (aggiornato S101 — dati reali CoVe)
 
 ```
-Buongiorno, ho trovato una BMW X3 xDrive20d 2022, 65.000 km
-a €33.000 a Monaco. In Italia la stessa sta a €38.500.
-Trasporto Atripalda: circa €800. Netto per lei: ~€4.700.
+Buongiorno, ho trovato una BMW X3 xDrive20d 2022, 50.000 km
+a €34.000 in Germania. In Italia la stessa sta a €38.500.
+Trasporto Atripalda: circa €800. Netto per lei: ~€3.700.
 Trattate BMW — ha senso parlarne?
 
 Luca Ferretti
 ```
+> Listing: autoscout24_de_b0d65f095510 | CoVe PROCEED 0.84 | CLEAN
 
 **Nota interna:**
 - Archetipo: RAGIONIERE-TECNICO (stock BMW/Audi/Mercedes confermato, approccio analitico)
@@ -74,16 +76,17 @@ Secondo veicolo Audi Q5 40 TDI 2022 con stessa struttura numerica, specificando 
 **Numero WA**: 347 9227573
 **Orario consigliato**: martedi o mercoledi, 8:30-9:00
 
-### Messaggio Day 1
+### Messaggio Day 1 (aggiornato S101 — prezzo da verifica web mobile.de)
 
 ```
 Buongiorno, ho una Mercedes GLC 220d 2022, 55.000 km,
-Amburgo — €37.000. In Campania la stessa parte da €42.000.
+Germania — €39.000. In Campania la stessa parte da €45.000.
 Ho visto il vostro stock — SUV premium e' il vostro forte.
 Le mando la scheda con tutti i dettagli?
 
 Luca Ferretti
 ```
+> Scraper AS24 404 bug — prezzo verificato via web (mobile.de good price band €37.970-€45.447)
 
 **Nota interna:**
 - Archetipo: PERFORMANTE / NARCISO (premium multi-brand, SUV e sportive — vogliono selezione e velocita')
@@ -102,15 +105,16 @@ Foto HD GLC + aggiornamento disponibilita' ("ancora disponibile, un dealer di Na
 **Numero**: 0823 987096 (fisso — chiamata prima, poi WA se disponibile)
 **Orario consigliato**: martedi mattina, 8:30-9:00
 
-### Messaggio Day 1
+### Messaggio Day 1 (aggiornato S101 — dati reali CoVe)
 
 ```
 Buongiorno Domenico, ho trovato un'Audi Q5 40 TDI 2022,
-60.000 km, Dusseldorf — €34.000. In Italia la stessa sta a €39.000.
+63.000 km, Germania — €33.800. In Italia la stessa sta a €39.000.
 Tratta Audi — i numeri le tornano?
 
 Luca Ferretti
 ```
+> Listing: autoscout24_de_da6eb6e540f8 | CoVe PROCEED 0.84 | CLEAN
 
 **Nota interna:**
 - Archetipo: RAGIONIERE (stock Audi/Mercedes, approccio pratico, province casertane = concretezza)
@@ -129,16 +133,17 @@ BMW X3 xDrive20d come secondo veicolo su marchio diverso, mantenendo stessa stru
 **Numero**: 080 4249944 (fisso — chiamata, poi WA se disponibile)
 **Orario consigliato**: martedi mattina, 8:30-9:00
 
-### Messaggio Day 1
+### Messaggio Day 1 (aggiornato S101 — dati reali CoVe)
 
 ```
 Buongiorno, sono Luca Ferretti — lavoro con concessionari
 del Sud per trovare BMW e Audi dalla Germania.
 30 anni di attivita' come i suoi si vedono — sa gia' come funziona l'import.
-Ho una BMW X3 2022, 65.000 km, Monaco, €33.000. Le mando i numeri?
+Ho una BMW X3 2022, 50.000 km, Germania, €34.000. Le mando i numeri?
 
 Luca
 ```
+> Listing: autoscout24_de_b0d65f095510 | CoVe PROCEED 0.84 | CLEAN
 
 **Nota interna:**
 - Archetipo: RELAZIONALE-BARONE (30 anni attivita', 18 auto stock BMW/Audi — storia e rispetto contano)

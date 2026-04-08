@@ -54,9 +54,10 @@ DEALERS = [
         "titolare": None,
         "phone_wa": "393683259045",   # WA diretto
         "canale":   "wa",
+        "listing_id": "autoscout24_de_d9204d82ff00",
         "message":  (
-            "Buongiorno, ho una Porsche Macan 2022, 52.000 km, Monaco \u2014 \u20ac41.800.\n"
-            "In Campania la stessa auto non scende sotto i \u20ac53-55.000.\n"
+            "Buongiorno, ho una Porsche Macan 2022, 55.000 km, Germania \u2014 \u20ac62.500.\n"
+            "In Campania la stessa auto non scende sotto i \u20ac72-75.000.\n"
             "Km verificati, tagliandi Porsche Italia compatibili.\n"
             "Ho visto che trattate gi\u00e0 questa fascia \u2014 sono Luca Ferretti.\n"
             "Le mando la scheda completa?"
@@ -69,10 +70,11 @@ DEALERS = [
         "phone_wa": None,             # fisso — nessun WA disponibile
         "phone_tel": "0825610208",    # numero da chiamare
         "canale":   "tel_first",      # chiamare prima, WA se non risponde
+        "listing_id": "autoscout24_de_b0d65f095510",
         "message":  (
-            "Buongiorno, ho trovato una BMW X3 xDrive20d 2022, 65.000 km\n"
-            "a \u20ac33.000 a Monaco. In Italia la stessa sta a \u20ac38.500.\n"
-            "Trasporto Atripalda: circa \u20ac800. Netto per lei: ~\u20ac4.700.\n"
+            "Buongiorno, ho trovato una BMW X3 xDrive20d 2022, 50.000 km\n"
+            "a \u20ac34.000 in Germania. In Italia la stessa sta a \u20ac38.500.\n"
+            "Trasporto Atripalda: circa \u20ac800. Netto per lei: ~\u20ac3.700.\n"
             "Trattate BMW \u2014 ha senso parlarne?\n\n"
             "Luca Ferretti"
         ),
@@ -83,9 +85,10 @@ DEALERS = [
         "titolare": None,
         "phone_wa": "393479227573",   # WA diretto
         "canale":   "wa",
+        "listing_id": None,  # scraper AS24 404 — prezzo da verifica web mobile.de
         "message":  (
             "Buongiorno, ho una Mercedes GLC 220d 2022, 55.000 km,\n"
-            "Amburgo \u2014 \u20ac37.000. In Campania la stessa parte da \u20ac42.000.\n"
+            "Germania \u2014 \u20ac39.000. In Campania la stessa parte da \u20ac45.000.\n"
             "Ho visto il vostro stock \u2014 SUV premium \u00e8 il vostro forte.\n"
             "Le mando la scheda con tutti i dettagli?\n\n"
             "Luca Ferretti"
@@ -98,9 +101,10 @@ DEALERS = [
         "phone_wa": None,             # fisso — nessun WA disponibile
         "phone_tel": "0823987096",    # numero da chiamare
         "canale":   "tel_first",
+        "listing_id": "autoscout24_de_da6eb6e540f8",
         "message":  (
             "Buongiorno Domenico, ho trovato un\u2019Audi Q5 40 TDI 2022,\n"
-            "60.000 km, D\u00fcsseldorf \u2014 \u20ac34.000. In Italia la stessa sta a \u20ac39.000.\n"
+            "63.000 km, Germania \u2014 \u20ac33.800. In Italia la stessa sta a \u20ac39.000.\n"
             "Tratta Audi \u2014 i numeri le tornano?\n\n"
             "Luca Ferretti"
         ),
@@ -112,11 +116,12 @@ DEALERS = [
         "phone_wa": None,             # fisso — nessun WA disponibile
         "phone_tel": "0804249944",    # numero da chiamare
         "canale":   "tel_first",
+        "listing_id": "autoscout24_de_b0d65f095510",
         "message":  (
             "Buongiorno, sono Luca Ferretti \u2014 lavoro con concessionari\n"
             "del Sud per trovare BMW e Audi dalla Germania.\n"
             "30 anni di attivit\u00e0 come i suoi si vedono \u2014 sa gi\u00e0 come funziona l\u2019import.\n"
-            "Ho una BMW X3 2022, 65.000 km, Monaco, \u20ac33.000. Le mando i numeri?\n\n"
+            "Ho una BMW X3 2022, 50.000 km, Germania, \u20ac34.000. Le mando i numeri?\n\n"
             "Luca"
         ),
     },
@@ -174,6 +179,47 @@ def mark_contacted(conn: sqlite3.Connection, dealer_id: str) -> None:
         (today, dealer_id),
     )
     conn.commit()
+
+
+# ── Listing validation gate ───────────────────────────────────────────────────
+def validate_listing(dealer: dict) -> bool:
+    """Verifica che il listing CoVe referenziato esista ancora in DuckDB.
+    Se il dealer non ha listing_id (es. prezzo da web), skip validation."""
+    listing_id = dealer.get("listing_id")
+    if not listing_id:
+        log.info(f"  [GATE] No listing_id — skip validation (prezzo da web)")
+        return True
+
+    try:
+        import duckdb
+        db_path = BASE_DIR / "src" / "cove" / "data" / "cove_tracker.duckdb"
+        db = duckdb.connect(str(db_path), read_only=True)
+        row = db.execute(
+            "SELECT recommendation, confidence, fraud_overall FROM cove_results WHERE listing_id = ?",
+            [listing_id],
+        ).fetchone()
+        db.close()
+
+        if not row:
+            log.warning(f"  [GATE] BLOCCATO — listing {listing_id} non trovato in DuckDB")
+            return False
+
+        recommendation, confidence, fraud = row
+        if recommendation == "SKIP":
+            log.warning(f"  [GATE] BLOCCATO — listing {listing_id} ha recommendation=SKIP")
+            return False
+        if fraud and fraud != "CLEAN":
+            log.warning(f"  [GATE] BLOCCATO — listing {listing_id} ha fraud={fraud}")
+            return False
+
+        log.info(f"  [GATE] OK — {listing_id} | {recommendation} | conf={confidence} | {fraud}")
+        return True
+    except (ImportError, FileNotFoundError) as e:
+        log.error(f"  [GATE] BLOCCATO — DuckDB non disponibile: {e}")
+        return False
+    except Exception as e:
+        log.warning(f"  [GATE] Errore transiente: {e} — BLOCCATO per sicurezza")
+        return False
 
 
 # ── WA send ────────────────────────────────────────────────────────────────────
@@ -239,6 +285,12 @@ def main():
             skipped += 1
             continue
 
+        # Gate validazione: verifica listing CoVe prima di inviare
+        if not validate_listing(dealer):
+            log.error(f"  BLOCCATO — listing non valido, messaggio NON inviato")
+            failed += 1
+            continue
+
         # Dealer su fisso senza WA: solo log istruzione telefonica, nessun invio WA
         if canale == "tel_first" and not phone:
             log.info(
@@ -288,8 +340,8 @@ def main():
             log.error(f"  ERRORE imprevisto: {e} — continuo")
             failed += 1
 
-        # Delay anti-ban tra messaggi WA (skip su ultimo e in dry-run)
-        if not dry_run and i < len(DEALERS) - 1 and phone:
+        # Delay anti-ban tra messaggi WA (basato su ultimo invio reale, non posizione nel loop)
+        if not dry_run and phone and sent > 0:
             delay = random.randint(45, 90)
             log.info(f"  Attendo {delay}s prima del prossimo invio...")
             time.sleep(delay)

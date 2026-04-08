@@ -134,7 +134,7 @@ MODEL_SLUG: Dict[str, Dict[str, str]] = {
     },
     "GLA": {"universal": "gla"},
     "GLB": {"universal": "glb"},
-    "GLC": {"universal": "glc"},
+    "GLC": {"universal": "glc-klasse"},
     "GLE": {"universal": "gle"},
     "CLA": {"universal": "cla"},
     "AMG GT": {"universal": "amg-gt"},

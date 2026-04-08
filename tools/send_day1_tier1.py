@@ -35,20 +35,7 @@ MESSAGES = {
             "Luca"
         ),
     },
-    "dream_car_fg": {
-        "wa": "393494530357",
-        "name": "Dream Car",
-        "titolare": "Michele Cannone",
-        "archetype": "BARONE",
-        "text": (
-            "Buongiorno Michele, sono Luca Ferretti — mi occupo di auto "
-            "tedesche per concessionari del Sud Italia.\n\n"
-            "Ho visto le sue recensioni su AutoScout — 4.9 su 34, "
-            "i clienti parlano di serietà. Le chiedo 1 minuto: "
-            "come gestisce oggi le richieste di auto dalla Germania?\n\n"
-            "Luca"
-        ),
-    },
+    # Dream Car (Cerignola) ESCLUSO su richiesta founder
 }
 
 
