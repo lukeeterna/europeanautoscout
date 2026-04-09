@@ -33,43 +33,71 @@ Non usare ragionamento generale quando esiste un agent specializzato.
 
 ### ENGINEERING
 
-| Task keywords | Agent | Path |
-|---|---|---|
-| API, schema DB, SQLite, migration, query, Python/Node.js backend | `backend-architect` | `.claude/agents/engineering/backend-architect.md` |
-| LLM, prompt, agent pipeline, classificatore, Anthropic API, tool use | `ai-engineer` | `.claude/agents/engineering/ai-engineer.md` |
+| Task keywords | Skill `/` | Agent | Path |
+|---|---|---|---|
+| React, TypeScript, CSS, Tauri UI, bundle, Vite, componente | `/frontend-developer` | `frontend-developer` | `.claude/agents/engineering/frontend-developer.md` |
+| API, schema DB, SQLite, migration, query, Python/Node.js backend | `/backend-architect` | `backend-architect` | `.claude/agents/engineering/backend-architect.md` |
+| mobile, touch, PWA, React Native, offline, push notification | `/mobile-app-builder` | `mobile-app-builder` | `.claude/agents/engineering/mobile-app-builder.md` |
+| LLM, prompt, agent pipeline, classificatore, Anthropic API, tool use | `/ai-engineer` | `ai-engineer` | `.claude/agents/engineering/ai-engineer.md` |
+| bash script, LaunchAgent, PM2, CI/CD, deploy, SSH, cron, backup | `/devops-automator` | `devops-automator` | `.claude/agents/engineering/devops-automator.md` |
+| prototipo, proof of concept, MVP, demo, spike, POC | `/rapid-prototyper` | `rapid-prototyper` | `.claude/agents/engineering/rapid-prototyper.md` |
 
 ### PRODUCT
 
-| Task keywords | Agent | Path |
-|---|---|---|
-| ricerca mercato, competitor, trend, benchmark, pricing | `trend-researcher` | `.claude/agents/product/trend-researcher.md` |
+| Task keywords | Skill `/` | Agent | Path |
+|---|---|---|---|
+| ricerca mercato, competitor, trend, benchmark, pricing | `/trend-researcher` | `trend-researcher` | `.claude/agents/product/trend-researcher.md` |
+| feedback utenti, recensioni, ticket, NPS, sintetizzare commenti | `/feedback-synthesizer` | `feedback-synthesizer` | `.claude/agents/product/feedback-synthesizer.md` |
+| prioritizzare backlog, sprint planning, RICE, roadmap | `/sprint-prioritizer` | `sprint-prioritizer` | `.claude/agents/product/sprint-prioritizer.md` |
 
 ### MARKETING
 
-| Task keywords | Agent | Path |
-|---|---|---|
-| blog, newsletter, email, landing copy, caso studio, materiali dealer | `content-creator` | `.claude/agents/marketing/content-creator.md` |
-| crescita, funnel, A/B, acquisizione, referral, conversione dealer | `growth-hacker` | `.claude/agents/marketing/growth-hacker.md` |
+| Task keywords | Skill `/` | Agent | Path |
+|---|---|---|---|
+| blog, newsletter, email, landing copy, caso studio, materiali dealer | `/content-creator` | `content-creator` | `.claude/agents/marketing/content-creator.md` |
+| crescita, funnel, A/B, acquisizione, referral, conversione dealer | `/growth-hacker` | `growth-hacker` | `.claude/agents/marketing/growth-hacker.md` |
+| TikTok, video script, hook, reel verticale | `/tiktok-strategist` | `tiktok-strategist` | `.claude/agents/marketing/tiktok-strategist.md` |
+| Instagram, caption, carousel, stories, bio | `/instagram-curator` | `instagram-curator` | `.claude/agents/marketing/instagram-curator.md` |
+| Twitter/X, thread, tweet | `/twitter-engager` | `twitter-engager` | `.claude/agents/marketing/twitter-engager.md` |
+| App Store, Google Play, ASO, keyword app | `/app-store-optimizer` | `app-store-optimizer` | `.claude/agents/marketing/app-store-optimizer.md` |
+
+### DESIGN
+
+| Task keywords | Skill `/` | Agent | Path |
+|---|---|---|---|
+| componente UI, design token, color system, dark mode, spacing | `/ui-designer` | `ui-designer` | `.claude/agents/design/ui-designer.md` |
+| ricerca UX, interviste, usability test, journey map | `/ux-researcher` | `ux-researcher` | `.claude/agents/design/ux-researcher.md` |
+| brand, voce, tono, naming, identita' | `/brand-guardian` | `brand-guardian` | `.claude/agents/design/brand-guardian.md` |
+| script video, storyboard, narrazione, pitch deck | `/visual-storyteller` | `visual-storyteller` | `.claude/agents/design/visual-storyteller.md` |
+| microcopy, empty state, error message, onboarding, 404 | `/whimsy-injector` | `whimsy-injector` | `.claude/agents/design/whimsy-injector.md` |
 
 ### STUDIO OPERATIONS
 
-| Task keywords | Agent | Path |
-|---|---|---|
-| report analytics, metriche, KPI, dashboard, dati pipeline | `analytics-reporter` | `.claude/agents/studio-operations/analytics-reporter.md` |
-| GDPR, privacy, compliance, contratto, termini, disclaimer | `legal-compliance-checker` | `.claude/agents/studio-operations/legal-compliance-checker.md` |
-| finanza, fee tracking, P&L, cash flow, costi import | `finance-tracker` | `.claude/agents/studio-operations/finance-tracker.md` |
+| Task keywords | Skill `/` | Agent | Path |
+|---|---|---|---|
+| report analytics, metriche, KPI, dashboard, dati pipeline | `/analytics-reporter` | `analytics-reporter` | `.claude/agents/studio-operations/analytics-reporter.md` |
+| GDPR, privacy, compliance, contratto, termini, disclaimer | `/legal-compliance-checker` | `legal-compliance-checker` | `.claude/agents/studio-operations/legal-compliance-checker.md` |
+| finanza, fee tracking, P&L, cash flow, costi import | `/finance-tracker` | `finance-tracker` | `.claude/agents/studio-operations/finance-tracker.md` |
+| server, monitoring, backup, CVE, SSL, uptime, sicurezza infra | `/infrastructure-maintainer` | `infrastructure-maintainer` | `.claude/agents/studio-operations/infrastructure-maintainer.md` |
+| risposta cliente, ticket support, refund, escalation | `/support-responder` | `support-responder` | `.claude/agents/studio-operations/support-responder.md` |
 
 ### PROJECT MANAGEMENT
 
-| Task keywords | Agent | Path |
-|---|---|---|
-| kickoff, milestone, blockers, pre-launch, checklist, post-mortem | `project-shipper` | `.claude/agents/project-management/project-shipper.md` |
+| Task keywords | Skill `/` | Agent | Path |
+|---|---|---|---|
+| kickoff, milestone, blockers, pre-launch, checklist, post-mortem | `/project-shipper` | `project-shipper` | `.claude/agents/project-management/project-shipper.md` |
+| esperimento, A/B test, hypothesis, statistical significance | `/experiment-tracker` | `experiment-tracker` | `.claude/agents/project-management/experiment-tracker.md` |
+| produzione creativa, brief, campagna, shooting, risorse | `/studio-producer` | `studio-producer` | `.claude/agents/project-management/studio-producer.md` |
 
 ### TESTING
 
-| Task keywords | Agent | Path |
-|---|---|---|
-| testare API, endpoint test, WA daemon 9191, integration test | `api-tester` | `.claude/agents/testing-suite/api-tester.md` |
+| Task keywords | Skill `/` | Agent | Path |
+|---|---|---|---|
+| testare API, endpoint test, WA daemon 9191, integration test | `/api-tester` | `api-tester` | `.claude/agents/testing-suite/api-tester.md` |
+| valutare libreria, confrontare tool, build vs buy, dipendenza | `/tool-evaluator` | `tool-evaluator` | `.claude/agents/testing/tool-evaluator.md` |
+| performance, profiling, load test, benchmark, bottleneck | `/performance-benchmarker` | `performance-benchmarker` | `.claude/agents/testing/performance-benchmarker.md` |
+| ottimizzare CI, pipeline, code review, developer experience | `/workflow-optimizer` | `workflow-optimizer` | `.claude/agents/testing/workflow-optimizer.md` |
+| analizzare test results, CI failures, flaky test, coverage gap | `/test-results-analyzer` | `test-results-analyzer` | `.claude/agents/testing/test-results-analyzer.md` |
 
 ### RICERCA (trasversale)
 
@@ -90,6 +118,15 @@ Non usare ragionamento generale quando esiste un agent specializzato.
 | dealer silente, recovery, riattivazione | `agent-recovery` | `.claude/agents/agent-recovery.md` |
 | ROI, fee, P&L, fiscale, reverse charge | `agent-finance` | `.claude/agents/agent-finance.md` |
 | contenuti brand, landing, social, SEO | `agent-marketing` | `.claude/agents/agent-marketing.md` |
+
+### SKILL TRASVERSALI (attivare indipendentemente dal dominio)
+
+| Quando | Skill |
+|--------|-------|
+| Prima di scegliere stack, architettura, versioni, prezzi | `/deep-researcher` |
+| Qualsiasi task ARGOS/WA/dealer/CoVe/sales agent | `/argos-domain` |
+| Scrittura o modifica template WA, logica di invio | `/wa-compliance` |
+| Prima di ogni commit o code review | `/code-quality` |
 
 ---
 
@@ -142,12 +179,75 @@ RICERCA MERCATO:
 
 ---
 
-## Skill Orchestration
+## Skill Orchestration — Sistema Due Livelli
 
+**Livello 1 — SKILLS** `.claude/skills/<nome>/SKILL.md`
+Standard di qualita', checklist, pattern, regole di dominio.
+Si attivano automaticamente (Claude Code legge le `description`) o con `/nome-skill`.
+
+**Livello 2 — AGENTS** `.claude/agents/<categoria>/<nome>.md`
+Esecutori con context window propria e tool access dedicato.
+Claude li delega autonomamente per task complessi.
+
+**Regola pratica:**
+- Task semplice (< 30min, file singolo): skill senza agent
+- Task complesso (multi-step, ricerca + implementazione): skill + agent
+- La **skill** e' il manuale. L'**agent** e' l'esecutore
+
+**Operativo:**
 - Invoca `/skill-loader` come prima azione per task non banali
-- MAI caricare tutte le 20+ skill — solo quelle necessarie per il task
+- MAI caricare tutte le 30+ skill — solo quelle necessarie per il task
 - Ogni skill pesante va in `context: fork` per non consumare contesto principale
 - Dopo modifiche significative, verifica con `bash .claude/scripts/session_start.sh`
+
+---
+
+## Protocollo per Task Tipo
+
+### Nuova feature
+```
+1. /deep-researcher    → verifica dati/versioni se incerti
+2. /backend-architect  → schema + API contract (prima del codice)
+3. /frontend-developer → implementa UI (se frontend)
+4. /ai-engineer        → se coinvolge LLM
+5. /code-quality       → checklist pre-commit
+```
+
+### Messaggio WA ARGOS
+```
+1. /argos-domain       → regole dealer, OBJ codes, state machine, brand
+2. /wa-compliance      → formato, anti-ban, guardrail, cap
+3. Scrivi seguendo entrambe le skill
+4. validate() BLOCCA prima dell'invio — non logga soltanto
+```
+
+### Deploy / Infra
+```
+1. /devops-automator         → standard script, process management
+2. /infrastructure-maintainer → health check, backup, security hardening
+3. /code-quality             → checklist sicurezza script
+```
+
+---
+
+## Guardrails Permanenti
+
+### Prima di scrivere codice
+```
+[ ] Skill del dominio caricata (/nome-skill)?
+[ ] Letti i file esistenti nella directory interessata?
+[ ] Verificato che non esiste gia' una soluzione nel codebase?
+[ ] Se tocca DB: letto lo schema attuale?
+[ ] Se usa API esterna: verificato versione e pricing su docs ufficiali?
+```
+
+### Prima di ogni commit
+```
+[ ] Il codice compila senza errori?
+[ ] I test esistenti passano?
+[ ] Nessun secret o credential nel codice?
+[ ] Nessun console.log / print di debug?
+```
 
 ---
 

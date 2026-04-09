@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title_suffix %} — CRM Dealer{% endblock %}
+{% block page_title %}CRM Dealer{% endblock %}
+
+{% block content %}
+<!-- KPI Cards -->
+<div class="row row-deck row-cards mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="subheader">Totale Dealer</div>
+        </div>
+        <div class="h1 mb-0 mt-2">{{ stats.get('total', 0) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card">
+      <div class="card-body">
+        <div class="subheader">TIER 0</div>
+        <div class="h1 mb-0 mt-2" style="color: var(--argos-gold, #B8960C)">{{ stats.get('by_tier', {}).get('TIER0', 0) }}</div>
+        <div class="text-muted small">Lead d'oro</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card">
+      <div class="card-body">
+        <div class="subheader">Contattati</div>
+        <div class="h1 mb-0 mt-2">{{ stats.get('by_status', {}).get('CONTACTED', 0) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card">
+      <div class="card-body">
+        <div class="subheader">Nuovi</div>
+        <div class="h1 mb-0 mt-2">{{ stats.get('by_status', {}).get('NEW', 0) }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pipeline Kanban -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h3 class="card-title">Pipeline per Stato</h3>
+  </div>
+  <div class="card-body" style="overflow-x: auto;">
+    <div class="row g-3" style="min-width: 900px;">
+      {% set statuses = ['NEW', 'CONTACTED', 'INTERESTED', 'NEGOTIATING', 'CONVERTED', 'LOST'] %}
+      {% set status_colors = {'NEW': '#6c757d', 'CONTACTED': '#0dcaf0', 'INTERESTED': '#ffc107', 'NEGOTIATING': '#fd7e14', 'CONVERTED': '#198754', 'LOST': '#dc3545'} %}
+      {% for status in statuses %}
+      <div class="col-2">
+        <div class="p-2 rounded" style="background: rgba(255,255,255,0.03); min-height: 200px;">
+          <div class="d-flex align-items-center mb-3">
+            <span class="badge" style="background: {{ status_colors.get(status, '#6c757d') }}">{{ status }}</span>
+            <span class="ms-auto text-muted small">
+              {{ dealers | selectattr('pipeline_status', 'equalto', status) | list | length if dealers else 0 }}
+            </span>
+          </div>
+          {% for d in dealers if d.get('pipeline_status', 'NEW') == status %}
+          <a href="/crm/{{ d.dealer_id }}" class="card card-sm mb-2" style="text-decoration: none;">
+            <div class="card-body p-2">
+              <div class="d-flex align-items-center">
+                <div>
+                  <div class="fw-bold small">{{ d.name }}</div>
+                  <div class="text-muted" style="font-size: .7rem;">{{ d.city }} ({{ d.province }})</div>
+                </div>
+                <div class="ms-auto">
+                  {% if d.tier == 'TIER0' %}
+                  <span class="badge" style="background: var(--argos-gold, #B8960C); font-size: .6rem;">T0</span>
+                  {% elif d.tier == 'TIER1' %}
+                  <span class="badge bg-info" style="font-size: .6rem;">T1</span>
+                  {% else %}
+                  <span class="badge bg-secondary" style="font-size: .6rem;">T2</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="d-flex mt-1 gap-2" style="font-size: .65rem;">
+                <span class="text-muted">{{ d.archetype }}</span>
+                <span class="text-muted">{{ d.stock_size }} auto</span>
+                {% if d.interaction_count %}
+                <span style="color: var(--argos-gold, #B8960C)">{{ d.interaction_count }} int.</span>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Dealer Table -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Tutti i Dealer</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th>Dealer</th>
+          <th>Citta'</th>
+          <th>Tier</th>
+          <th>Archetipo</th>
+          <th>Stock</th>
+          <th>Rating</th>
+          <th>Stato</th>
+          <th>Score</th>
+          <th>Int.</th>
+          <th>Veicoli</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in dealers %}
+        <tr>
+          <td>
+            <a href="/crm/{{ d.dealer_id }}" style="color: var(--argos-gold, #B8960C); text-decoration: none;">
+              {{ d.name }}
+            </a>
+            {% if d.titolare_name %}
+            <div class="text-muted small">{{ d.titolare_name }}</div>
+            {% endif %}
+          </td>
+          <td>{{ d.city }} ({{ d.province }})</td>
+          <td>
+            {% if d.tier == 'TIER0' %}
+            <span class="badge" style="background: var(--argos-gold, #B8960C)">TIER 0</span>
+            {% elif d.tier == 'TIER1' %}
+            <span class="badge bg-info">TIER 1</span>
+            {% else %}
+            <span class="badge bg-secondary">TIER 2</span>
+            {% endif %}
+          </td>
+          <td><span class="badge bg-dark">{{ d.archetype }}</span></td>
+          <td>{{ d.stock_size }}</td>
+          <td>
+            {% if d.rating %}
+            {{ d.rating }}/5 <span class="text-muted small">({{ d.reviews }})</span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% set sc = {'NEW': '#6c757d', 'CONTACTED': '#0dcaf0', 'INTERESTED': '#ffc107', 'NEGOTIATING': '#fd7e14', 'CONVERTED': '#198754', 'LOST': '#dc3545'} %}
+            <span class="badge" style="background: {{ sc.get(d.pipeline_status or 'NEW', '#6c757d') }}">
+              {{ d.pipeline_status or 'NEW' }}
+            </span>
+          </td>
+          <td>{{ d.score_fit }}</td>
+          <td>{{ d.interaction_count or 0 }}</td>
+          <td>{{ d.vehicles_count or 0 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

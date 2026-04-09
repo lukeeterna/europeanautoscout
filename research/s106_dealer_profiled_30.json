@@ -1,0 +1,514 @@
+[
+  {
+    "dealer_id": "GRANDINETTI_CZ_001",
+    "name": "Grandinetti Auto",
+    "phone_wa": "393281088737",
+    "province": "CZ",
+    "city": "Soveria Mannelli",
+    "brands": [
+      "BMW",
+      "Jaguar",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "BARONE",
+    "source_found": "Subito.it",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "AUTOQUARTA_LE_001",
+    "name": "AutoQuarta Monteroni",
+    "phone_wa": "393803442964",
+    "province": "LE",
+    "city": "Monteroni di Lecce",
+    "brands": [
+      "BMW",
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "BARONE",
+    "source_found": "Subito.it",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "MOTORVIP_ME_001",
+    "name": "MOTORVIP",
+    "phone_wa": "393273069742",
+    "province": "ME",
+    "city": "Milazzo",
+    "brands": [
+      "BMW",
+      "Volvo",
+      "Mercedes"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "BARONE",
+    "source_found": "Subito.it",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "DAVIDS_ME_001",
+    "name": "Davids Auto",
+    "phone_wa": "393467844480",
+    "province": "ME",
+    "city": "San Filippo del Mela",
+    "brands": [
+      "BMW",
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "BARONE",
+    "source_found": "Subito.it",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "2F_MOTORS_CZ_001",
+    "name": "2F MOTORS LAMEZIA",
+    "phone_wa": "393713040093",
+    "province": "CZ",
+    "city": "Lamezia Terme",
+    "brands": [
+      "Range Rover",
+      "BMW",
+      "Porsche"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "NARCISO",
+    "source_found": "Subito.it",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "MARTINAUTO_TS_001",
+    "name": "MartinAuto",
+    "phone_wa": "393337836425",
+    "province": "TS",
+    "city": "Trieste",
+    "brands": [
+      "Maserati",
+      "Mercedes",
+      "Porsche"
+    ],
+    "premium_pct": 0.67,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Mercedes",
+    "archetype": "NARCISO",
+    "source_found": "AutoScout24",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "MIXAUTO_LT_001",
+    "name": "MIXAUTO S.R.L.",
+    "phone_wa": "393484723335",
+    "province": "LT",
+    "city": "Latina",
+    "brands": [
+      "Lamborghini",
+      "BMW",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "NARCISO",
+    "source_found": "AutoScout24",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "CAR2001_MC_001",
+    "name": "CAR 2001",
+    "phone_wa": "393668713191",
+    "province": "MC",
+    "city": "San Severino Marche",
+    "brands": [
+      "Mercedes"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Mercedes",
+    "archetype": "RAGIONIERE",
+    "source_found": "AutoScout24",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "FA_AUTO_BR_001",
+    "name": "F.A. AUTO SRLS",
+    "phone_wa": "393273245894",
+    "province": "BR",
+    "city": "San Michele Salentino",
+    "brands": [
+      "BMW",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "RELAZIONALE",
+    "source_found": "Subito.it",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "MACCHITELLA_BR_001",
+    "name": "MACCHITELLA SRL",
+    "phone_wa": "393482538909",
+    "province": "BR",
+    "city": "San Vito dei Normanni",
+    "brands": [
+      "BMW",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "RELAZIONALE",
+    "source_found": "Subito.it",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "SIRIO_TE_001",
+    "name": "SIRIO S.r.l.",
+    "phone_wa": "393455603870",
+    "province": "TE",
+    "city": "Mosciano Sant Angelo",
+    "brands": [
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Mercedes",
+    "archetype": "TECNICO",
+    "source_found": "AutoScout24",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "MM_AUTO_AQ_001",
+    "name": "MM AUTO",
+    "phone_wa": "393894397325",
+    "province": "AQ",
+    "city": "Avezzano",
+    "brands": [
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Mercedes",
+    "archetype": "TECNICO",
+    "source_found": "AutoScout24",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "EUROTARGET_BO_001",
+    "name": "Eurotarget S.p.A",
+    "phone_wa": "393930000760",
+    "province": "BO",
+    "city": "Pieve di Cento",
+    "brands": [
+      "BMW",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "TECNICO",
+    "source_found": "AutoScout24",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "LINEACAR_MO_001",
+    "name": "Linea Car Guicciardi",
+    "phone_wa": "393459830651",
+    "province": "MO",
+    "city": "Mirandola",
+    "brands": [
+      "Volvo",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Audi",
+    "archetype": "TECNICO",
+    "source_found": "AutoScout24",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "AB_AUTO_LT_001",
+    "name": "A.B. AUTO SHOP",
+    "phone_wa": "393770406170",
+    "province": "LT",
+    "city": "Latina",
+    "brands": [
+      "BMW",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "TECNICO",
+    "source_found": "AutoScout24",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "GALLOTTI_VA_001",
+    "name": "Gallotti Auto",
+    "phone_wa": "393345768604",
+    "province": "VA",
+    "city": "Gallarate",
+    "brands": [
+      "BMW"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "TECNICO",
+    "source_found": "AutoScout24",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "REDAUTO_MC_001",
+    "name": "RedAuto Civitanova",
+    "phone_wa": "393208340517",
+    "province": "MC",
+    "city": "Civitanova Marche",
+    "brands": [
+      "Audi",
+      "Mercedes"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Audi",
+    "archetype": "TECNICO",
+    "source_found": "AutoScout24",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "CARVILLAGE_FI_001",
+    "name": "Car Village",
+    "phone_wa": "393351900979",
+    "province": "FI",
+    "city": "Sesto Fiorentino",
+    "brands": [
+      "BMW",
+      "Mercedes"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "TECNICO",
+    "source_found": "AutoScout24",
+    "fit_score": 8.5
+  },
+  {
+    "dealer_id": "AUTOITALY_BS_001",
+    "name": "Auto Italy",
+    "phone_wa": "393277442224",
+    "province": "BS",
+    "city": "Brescia",
+    "brands": [
+      "Mercedes"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Mercedes",
+    "archetype": "RAGIONIERE",
+    "source_found": "AutoScout24",
+    "fit_score": 7.5
+  },
+  {
+    "dealer_id": "LB_AUTO_CA_001",
+    "name": "LB AUTOMOBILI SRL",
+    "phone_wa": "393405863425",
+    "province": "CA",
+    "city": "Sestu",
+    "brands": [
+      "Mercedes"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Mercedes",
+    "archetype": "RELAZIONALE",
+    "source_found": "Subito.it",
+    "fit_score": 7.5
+  },
+  {
+    "dealer_id": "GRECO_CS_001",
+    "name": "Greco Auto",
+    "phone_wa": "393381668681",
+    "province": "CS",
+    "city": "Rende",
+    "brands": [
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Mercedes",
+    "archetype": "RELAZIONALE",
+    "source_found": "Subito.it",
+    "fit_score": 7.5
+  },
+  {
+    "dealer_id": "GP_AUTO_LE_001",
+    "name": "GP Auto",
+    "phone_wa": "393453582093",
+    "province": "LE",
+    "city": "Gallipoli",
+    "brands": [
+      "Land Rover",
+      "Mercedes"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Mercedes",
+    "archetype": "RELAZIONALE",
+    "source_found": "Subito.it",
+    "fit_score": 7.5
+  },
+  {
+    "dealer_id": "AZ_AUTO_AV_001",
+    "name": "AZ AUTO EVOLUTION",
+    "phone_wa": "393454146671",
+    "province": "AV",
+    "city": "Solofra",
+    "brands": [
+      "Mercedes",
+      "BMW",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Mercedes",
+    "archetype": "BARONE",
+    "source_found": "Subito.it",
+    "fit_score": 7.1
+  },
+  {
+    "dealer_id": "PUNTOAUTO_IS_001",
+    "name": "PUNTO AUTO SRL",
+    "phone_wa": "393471706128",
+    "province": "IS",
+    "city": "Isernia",
+    "brands": [
+      "Land Rover",
+      "BMW",
+      "Volvo"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "BARONE",
+    "source_found": "Subito.it",
+    "fit_score": 7.1
+  },
+  {
+    "dealer_id": "PRONTERAUTO_LE_001",
+    "name": "PRONTERAUTO",
+    "phone_wa": "393356690803",
+    "province": "LE",
+    "city": "Surano",
+    "brands": [
+      "BMW",
+      "Range Rover"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "NARCISO",
+    "source_found": "Subito.it",
+    "fit_score": 6.5
+  },
+  {
+    "dealer_id": "STEFANO_FG_001",
+    "name": "Stefano Auto",
+    "phone_wa": "393388199414",
+    "province": "FG",
+    "city": "Cerignola",
+    "brands": [
+      "Mercedes"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Mercedes",
+    "archetype": "RELAZIONALE",
+    "source_found": "Subito.it",
+    "fit_score": 6.5
+  },
+  {
+    "dealer_id": "SAINAUTO_SA_001",
+    "name": "SAINAUTO",
+    "phone_wa": "393333620122",
+    "province": "SA",
+    "city": "Sala Consilina",
+    "brands": [
+      "BMW",
+      "Mercedes"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "RELAZIONALE",
+    "source_found": "Subito.it",
+    "fit_score": 6.5
+  },
+  {
+    "dealer_id": "3D_AUTO_TA_001",
+    "name": "3D Automotive",
+    "phone_wa": "393289163991",
+    "province": "TA",
+    "city": "Manduria",
+    "brands": [
+      "BMW"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "RELAZIONALE",
+    "source_found": "Subito.it",
+    "fit_score": 5.5
+  },
+  {
+    "dealer_id": "CARLEO_SA_001",
+    "name": "CARLEO SERVICE",
+    "phone_wa": "393334457867",
+    "province": "SA",
+    "city": "Ricigliano",
+    "brands": [
+      "BMW"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "BMW",
+    "archetype": "RELAZIONALE",
+    "source_found": "Subito.it",
+    "fit_score": 5.5
+  },
+  {
+    "dealer_id": "CUOMO_SA_001",
+    "name": "CUOMO CARS",
+    "phone_wa": "393515672993",
+    "province": "SA",
+    "city": "Sant Egidio del Monte Albino",
+    "brands": [
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "day1_variant": "DAY1_PREMIUM",
+    "brand_focus": "Mercedes",
+    "archetype": "RELAZIONALE",
+    "source_found": "Subito.it",
+    "fit_score": 5.5
+  }
+]

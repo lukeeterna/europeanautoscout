@@ -67,6 +67,14 @@ DB_PATH            = os.environ.get('ARGOS_DB_PATH', '')
 ARGOS_PERSONA = 'Luca Ferretti'
 ARGOS_BRAND = 'ARGOS Automotive'
 
+# ── State Machine + Template Engine (S106) ────────────────
+# Template-first architecture: templates.py PRIMA, LLM DOPO
+_SM_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _SM_DIR)
+from state_machine import process_inbound as sm_process_inbound, get_dealer_state as sm_get_dealer_state, ensure_state_columns as sm_ensure_columns
+from templates import select_template as tpl_select, fill_template as tpl_fill
+from validator import validate as tpl_validate
+
 # ── Prompt Injection Defense ──────────────────────────────
 _INJECTION_PATTERNS = [
     r'ignora.*istruzioni', r'ignore.*instructions', r'system prompt',
@@ -1453,23 +1461,62 @@ def main():
     classification = classify_message(args.msg_body)
     print(f'  Classificazione: {classification}')
 
-    # 3. Genera risposte via LLM
-    candidates = []
-    llm_cost_info = ''
+    # 2b. State Machine — aggiorna stato dealer (S106)
     cls_type = classification.get('type', 'UNKNOWN')
+    sm_intent = cls_type  # Mappa diretta: POSITIVE, NEGATIVE, CURIOSITY, VEHICLE_REQUEST, OBJECTION
+    if cls_type == 'OBJECTION':
+        sm_intent = 'OBJECTION'
+    try:
+        sm_ensure_columns(args.db_path)
+        new_state = sm_process_inbound(args.db_path, args.dealer_id, sm_intent)
+        print(f'  [STATE MACHINE] Intent={sm_intent} → new_state={new_state}')
+    except Exception as e:
+        new_state = 'UNKNOWN'
+        print(f'  [STATE MACHINE] Error: {e} — continuing with LLM flow')
 
-    # MEDIA → il dealer ha inviato foto/audio/video. Rispondi riconoscendo il media.
-    if cls_type == 'MEDIA':
-        # Tratta come POSITIVE — il dealer sta interagendo
-        classification['type'] = 'POSITIVE'
-        classification['original_type'] = 'MEDIA'
-        cls_type = 'POSITIVE'
-        # Sovrascrivi il body per il prompt LLM
-        args.msg_body = '[Il dealer ha inviato una foto/immagine]'
-        print(f'  [MEDIA] Immagine rilevata — trattata come POSITIVE')
+    # 2c. Template-first (S106): prova template PRIMA di LLM
+    template_handled = False
+    if new_state != 'UNKNOWN' and cls_type not in ('UNKNOWN', 'MEDIA'):
+        template_id = tpl_select(sm_intent, new_state)
+        if template_id:
+            # Build data dict for template fill
+            tpl_data = {
+                'dealer_name': dealer.get('dealer_name', args.dealer_name),
+                'source': dealer.get('source', '') or 'un portale di concessionari',
+                'brand_focus': dealer.get('brand_focus', '') or 'auto premium',
+                'city': dealer.get('city', '') or dealer.get('province', '') or 'la sua zona',
+                'reference_area': 'Sud Italia',
+                'followup_days': '10',
+            }
+            filled = tpl_fill(template_id, tpl_data)
+            if filled:
+                # Validate with blocking validator
+                val_result = tpl_validate(filled, template_id, {})
+                if val_result['result'] == 'PASS':
+                    print(f'  [TEMPLATE-FIRST] Template={template_id} → PASS → invio diretto')
+                    template_handled = True
+                    # Package as candidate in same format as LLM
+                    candidates = [{
+                        'label': f'TEMPLATE_{template_id}',
+                        'text': json.dumps({"messages": [filled]}),
+                        'messages': [filled],
+                    }]
+                    llm_cost_info = f'template:{template_id}'
+                else:
+                    print(f'  [TEMPLATE-FIRST] Template={template_id} → BLOCK: {val_result["reason"]}')
+                    # Fall through to LLM
+            else:
+                print(f'  [TEMPLATE-FIRST] Template={template_id} → fill vuoto, fallback LLM')
+        else:
+            print(f'  [TEMPLATE-FIRST] Nessun template per ({sm_intent}, {new_state}) → LLM')
 
+    # 3. Genera risposte via LLM (solo se template-first non ha gestito)
+    if not template_handled:
+        candidates = []
+    llm_cost_info = llm_cost_info if template_handled else ''
+
+    # NEGATIVE → NON rispondere, chiudi dealer (sempre, anche se template-first)
     if cls_type == 'NEGATIVE':
-        # NEGATIVE → NON rispondere, chiudi dealer
         con = sqlite3.connect(args.db_path, timeout=10)
         con.execute("""
             UPDATE conversations SET current_step = 'CLOSED_NO', analyzed_at = datetime('now')
@@ -1478,7 +1525,6 @@ def main():
         con.commit()
         con.close()
 
-        # Solo notifica, nessuna risposta
         if TELEGRAM_BOT_TOKEN:
             import urllib.request, urllib.parse
             text = (
@@ -1499,7 +1545,17 @@ def main():
         print(f'[{now_it()}] NEGATIVE — dealer chiuso, nessuna risposta.')
         return
 
-    # 2b. VEHICLE_REQUEST → estrai parametri e notifica per pipeline
+    # ── LLM flow (solo se template-first NON ha gestito) ─────
+    if not template_handled:
+        # MEDIA → il dealer ha inviato foto/audio/video
+        if cls_type == 'MEDIA':
+            classification['type'] = 'POSITIVE'
+            classification['original_type'] = 'MEDIA'
+            cls_type = 'POSITIVE'
+            args.msg_body = '[Il dealer ha inviato una foto/immagine]'
+            print(f'  [MEDIA] Immagine rilevata — trattata come POSITIVE')
+
+    # 2b. VEHICLE_REQUEST → estrai parametri e notifica per pipeline (sempre)
     if cls_type == 'VEHICLE_REQUEST':
         extracted = extract_vehicle_request(args.msg_body, args.db_path)
         dealer_label = dealer.get('dealer_name', args.dealer_name)
@@ -1550,56 +1606,58 @@ def main():
         dealer['_extracted_request'] = extracted
         # Continua con LLM per generare risposta di conferma al dealer
 
-    if OPENROUTER_API_KEY or GROQ_API_KEY or GOOGLE_AI_API_KEY:
-        msg_history = dealer.get('message_history', [])
+    # LLM flow — solo se template-first NON ha gestito
+    if not template_handled:
+        if OPENROUTER_API_KEY or GROQ_API_KEY or GOOGLE_AI_API_KEY:
+            msg_history = dealer.get('message_history', [])
 
-        # Se batch mode, avvisa il prompt che sono messaggi aggregati
-        msg_body_for_prompt = args.msg_body
-        if args.batch:
-            msg_body_for_prompt = (
-                '[Il dealer ha inviato questi messaggi in rapida successione. '
-                'Rispondi a TUTTI i temi in un\'unica risposta coerente, '
-                'non ripetere saluti per ogni messaggio.]\n\n' + args.msg_body
-            )
+            # Se batch mode, avvisa il prompt che sono messaggi aggregati
+            msg_body_for_prompt = args.msg_body
+            if args.batch:
+                msg_body_for_prompt = (
+                    '[Il dealer ha inviato questi messaggi in rapida successione. '
+                    'Rispondi a TUTTI i temi in un\'unica risposta coerente, '
+                    'non ripetere saluti per ogni messaggio.]\n\n' + args.msg_body
+                )
 
-        user_prompt = build_user_prompt(dealer, msg_body_for_prompt, classification, msg_history)
+            user_prompt = build_user_prompt(dealer, msg_body_for_prompt, classification, msg_history)
 
-        # v2: prompt modulare dinamico per archetipo
-        archetype = dealer.get('persona_type', 'DEFAULT')
-        system_prompt = build_system_prompt(archetype, cls_type)
+            # v2: prompt modulare dinamico per archetipo
+            archetype = dealer.get('persona_type', 'DEFAULT')
+            system_prompt = build_system_prompt(archetype, cls_type)
 
-        print(f'  Chiamata LLM (prompt v2, arch={archetype})...')
-        result = call_llm(system_prompt, user_prompt)
+            print(f'  Chiamata LLM (prompt v2, arch={archetype})...')
+            result = call_llm(system_prompt, user_prompt)
 
-        if result.get('text'):
-            candidates = parse_llm_responses(result['text'])
-            usage = result.get('usage', {})
-            model = result.get('model', OPENROUTER_MODEL)
+            if result.get('text'):
+                candidates = parse_llm_responses(result['text'])
+                usage = result.get('usage', {})
+                model = result.get('model', OPENROUTER_MODEL)
 
-            if usage:
-                track_cost(args.db_path, model, usage, args.dealer_id)
-                in_tok = usage.get('prompt_tokens', 0)
-                out_tok = usage.get('completion_tokens', 0)
-                llm_cost_info = f'{model}: {in_tok}+{out_tok} tok'
+                if usage:
+                    track_cost(args.db_path, model, usage, args.dealer_id)
+                    in_tok = usage.get('prompt_tokens', 0)
+                    out_tok = usage.get('completion_tokens', 0)
+                    llm_cost_info = f'{model}: {in_tok}+{out_tok} tok'
 
-            print(f'  LLM OK: {len(candidates)} risposte generate')
-        else:
-            print(f'  LLM FALLBACK: {result.get("error", "unknown")}')
+                print(f'  LLM OK: {len(candidates)} risposte generate')
+            else:
+                print(f'  LLM FALLBACK: {result.get("error", "unknown")}')
 
-    # Fallback template (multi-msg format)
-    if not candidates:
-        candidates = [{
-            'label': 'TEMPLATE_FALLBACK',
-            'text': json.dumps({"messages": [
-                "ciao, grazie per il riscontro",
-                "guarda, ti mando i dettagli completi entro 48h con km certificati e storico verificato. zero anticipi, paghi solo a veicolo approvato\n\nLuca"
-            ]}),
-            'messages': [
-                "ciao, grazie per il riscontro",
-                "guarda, ti mando i dettagli completi entro 48h con km certificati e storico verificato. zero anticipi, paghi solo a veicolo approvato\n\nLuca"
-            ]
-        }]
-        llm_cost_info = 'fallback template'
+        # Fallback template (multi-msg format)
+        if not candidates:
+            candidates = [{
+                'label': 'TEMPLATE_FALLBACK',
+                'text': json.dumps({"messages": [
+                    "ciao, grazie per il riscontro",
+                    "guarda, ti mando i dettagli completi entro 48h con km certificati e storico verificato. zero anticipi, paghi solo a veicolo approvato\n\nLuca"
+                ]}),
+                'messages': [
+                    "ciao, grazie per il riscontro",
+                    "guarda, ti mando i dettagli completi entro 48h con km certificati e storico verificato. zero anticipi, paghi solo a veicolo approvato\n\nLuca"
+                ]
+            }]
+            llm_cost_info = 'fallback template'
 
     # 4. Salva nel DB
     reply_ids = [
@@ -1626,8 +1684,8 @@ def main():
     vehicle_ctx = dealer.get('_vehicle_context', '')
     blocking, warnings = _validate_candidate(best['text'], cls_type, msg_history, vehicle_ctx)
 
-    # RETRY: se bloccante, riprova UNA volta con prompt rafforzato
-    if blocking and (OPENROUTER_API_KEY or GROQ_API_KEY or GOOGLE_AI_API_KEY):
+    # RETRY: se bloccante, riprova UNA volta con prompt rafforzato (solo per LLM, non template)
+    if blocking and not template_handled and (OPENROUTER_API_KEY or GROQ_API_KEY or GOOGLE_AI_API_KEY):
         print(f'  [VALIDATOR] BLOCKING: {blocking} — RETRY con prompt ridotto...')
         retry_prompt = (
             "CORREZIONE: la risposta precedente violava queste regole: "

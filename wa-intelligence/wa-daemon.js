@@ -37,6 +37,8 @@ const CONFIG = {
                    || `${process.env.HOME}/Documents/app-antigravity-auto/dealer_network.sqlite`,
     TELEGRAM_SCRIPT: path.join(__dirname, 'telegram-handler.py'),
     ANALYZER_SCRIPT: path.join(__dirname, 'response-analyzer.py'),
+    OUTBOUND_GUARD:  path.join(__dirname, 'outbound_guard.py'),
+    POST_SEND_UPDATE: path.join(__dirname, 'post_send_update.py'),
     PYTHON_BIN:    'python3',
     SEND_QUEUE:    [],          // coda messaggi in uscita
     DAILY_SENT:    0,
@@ -308,6 +310,43 @@ function sendTelegramAlert(text, replyMarkup = null) {
     }
 }
 
+// ── Outbound Guard: pre-send validation via Python (S106) ───
+function runOutboundGuard(dealerId, templateId, message) {
+    try {
+        const result = execSync(
+            `${CONFIG.PYTHON_BIN} ${CONFIG.OUTBOUND_GUARD} ` +
+            `--db-path "${CONFIG.DB_PATH}" ` +
+            `--dealer-id "${dealerId}" ` +
+            `--template-id "${templateId}" ` +
+            `--message "${message.replace(/"/g, '\\"').slice(0, 2000)}"`,
+            { timeout: 10000, encoding: 'utf-8' }
+        );
+        return JSON.parse(result.trim());
+    } catch (e) {
+        log('ERROR', 'outbound_guard failed:', e.message);
+        return { ok: false, reason: `GUARD_ERROR: ${e.message}`, check: 'error' };
+    }
+}
+
+// ── Post-Send Update: state machine transition via Python (S106) ─
+function runPostSendUpdate(dealerId, templateId) {
+    try {
+        const result = execSync(
+            `${CONFIG.PYTHON_BIN} ${CONFIG.POST_SEND_UPDATE} ` +
+            `--db-path "${CONFIG.DB_PATH}" ` +
+            `--dealer-id "${dealerId}" ` +
+            `--template-id "${templateId}"`,
+            { timeout: 10000, encoding: 'utf-8' }
+        );
+        const parsed = JSON.parse(result.trim());
+        log('INFO', `[STATE] ${dealerId}: → ${parsed.new_state} (out=${parsed.outbound_count})`);
+        return parsed;
+    } catch (e) {
+        log('ERROR', 'post_send_update failed:', e.message);
+        return { ok: false };
+    }
+}
+
 // ── Message Buffer (debounce multi-input) — modulo-level ──
 const MESSAGE_BUFFER = new Map();
 const DEBOUNCE_MS = 15000;  // 15 secondi silence window
@@ -426,9 +465,9 @@ async function handleInboundMessage(msg) {
         sendTelegramAlert(alertText);
     }
 
-    // 5. Aggiorna step se dealer noto
+    // 5. Aggiorna step se dealer noto (S106: state machine update avviene in response-analyzer.py)
     if (dealer) {
-        updateConversationState(dealer.dealer_id, `RESPONSE_RECEIVED_${Date.now()}`);
+        updateConversationState(dealer.dealer_id, 'INBOUND_RECEIVED');
     }
 
     // 6. Buffer debounce (aspetta 15s di silenzio prima di analizzare)
@@ -657,7 +696,7 @@ function initClient() {
             req.on('data', chunk => { body += chunk; });
             req.on('end', async () => {
                 try {
-                    const { phone, message, dealer_id, dry_run } = JSON.parse(body);
+                    const { phone, message, dealer_id, template_id, dry_run } = JSON.parse(body);
                     if (!phone || !message) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'phone and message required' }));
@@ -683,6 +722,20 @@ function initClient() {
                         res.end(JSON.stringify({ status: 'sent', msg_id: fakeMsgId, dry_run: true }));
                         return;
                     }
+
+                    // S106: Outbound Guard — state machine + validator check
+                    if (dealer_id && template_id) {
+                        const guard = runOutboundGuard(dealer_id, template_id, message);
+                        if (!guard.ok) {
+                            log('WARN', `[GUARD] BLOCKED: ${dealer_id} — ${guard.reason}`);
+                            sendTelegramAlert(`🛑 *Invio BLOCCATO*\n👤 ${dealer_id}\n📋 ${template_id}\n❌ ${guard.reason}`);
+                            res.writeHead(403, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ error: 'outbound_guard_blocked', reason: guard.reason, check: guard.check }));
+                            return;
+                        }
+                        log('INFO', `[GUARD] OK: ${dealer_id} — ${template_id}`);
+                    }
+
                     if (!HumanLike.isAllowedToSend()) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'outside business hours' }));
@@ -725,11 +778,19 @@ function initClient() {
                       .run(msgId, dealer_id || 'MANUAL', chatId, message, now.toISOString(), msgId);
 
                     if (dealer_id) {
+                        // S106: State machine update via Python
+                        const tplId = template_id || 'DAY1_INTRO';
+                        const postResult = runPostSendUpdate(dealer_id, tplId);
+
+                        // Also update legacy current_step for backward compat
                         db.prepare(`UPDATE conversations
-                                SET current_step = 'DAY1_SENT',
+                                SET current_step = ?,
                                     last_contact_at = datetime('now'),
                                     analyzed_at = datetime('now')
-                                WHERE dealer_id = ?`).run(dealer_id);
+                                WHERE dealer_id = ?`).run(
+                            postResult.ok ? postResult.new_state : 'DAY1_SENT',
+                            dealer_id
+                        );
                     }
 
                     log('INFO', `✅ INVIATO via HTTP: ${chatId} (${dealer_id || 'manual'})`);

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title_suffix %} — {{ dealer.name }}{% endblock %}
+{% block page_title %}{{ dealer.name }}{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-3">
+  <a href="/crm" class="text-muted" style="text-decoration: none;">&larr; Torna alla lista</a>
+</div>
+
+<div class="row row-deck row-cards">
+  <!-- Dealer Info -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Informazioni Dealer</h3>
+        <div class="card-actions">
+          {% if dealer.tier == 'TIER0' %}
+          <span class="badge" style="background: var(--argos-gold, #B8960C)">TIER 0</span>
+          {% elif dealer.tier == 'TIER1' %}
+          <span class="badge bg-info">TIER 1</span>
+          {% else %}
+          <span class="badge bg-secondary">TIER 2</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <div class="text-muted small">Titolare</div>
+          <div class="fw-bold">{{ dealer.titolare_name or '—' }}</div>
+        </div>
+        <div class="mb-3">
+          <div class="text-muted small">Citta'</div>
+          <div>{{ dealer.city }} ({{ dealer.province }}) — {{ dealer.region }}</div>
+        </div>
+        <div class="mb-3">
+          <div class="text-muted small">Archetipo</div>
+          <div><span class="badge bg-dark">{{ dealer.archetype }}</span></div>
+        </div>
+        <div class="mb-3">
+          <div class="text-muted small">Stock</div>
+          <div>{{ dealer.stock_size }} auto</div>
+        </div>
+        <div class="mb-3">
+          <div class="text-muted small">Brand</div>
+          <div>{{ dealer.brands }}</div>
+        </div>
+        {% if dealer.rating %}
+        <div class="mb-3">
+          <div class="text-muted small">Rating</div>
+          <div>{{ dealer.rating }}/5 ({{ dealer.reviews }} recensioni)</div>
+        </div>
+        {% endif %}
+        <div class="mb-3">
+          <div class="text-muted small">Telefono/WA</div>
+          <div>{{ dealer.phone or '—' }}</div>
+        </div>
+        <div class="mb-3">
+          <div class="text-muted small">Score Fit</div>
+          <div class="h3 mb-0" style="color: var(--argos-gold, #B8960C)">{{ dealer.score_fit }}</div>
+        </div>
+        <div class="mb-3">
+          <div class="text-muted small">Stato Pipeline</div>
+          <div>
+            {% set sc = {'NEW': '#6c757d', 'CONTACTED': '#0dcaf0', 'INTERESTED': '#ffc107', 'NEGOTIATING': '#fd7e14', 'CONVERTED': '#198754', 'LOST': '#dc3545'} %}
+            <span class="badge" style="background: {{ sc.get(dealer.pipeline_status or 'NEW', '#6c757d') }}">
+              {{ dealer.pipeline_status or 'NEW' }}
+            </span>
+          </div>
+        </div>
+        {% if dealer.import_signal %}
+        <div class="mb-3">
+          <div class="text-muted small">Segnale Import</div>
+          <div class="small" style="color: var(--argos-gold, #B8960C)">{{ dealer.import_signal }}</div>
+        </div>
+        {% endif %}
+        {% if dealer.notes %}
+        <div class="mb-3">
+          <div class="text-muted small">Note</div>
+          <div class="small">{{ dealer.notes }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: interactions + vehicles -->
+  <div class="col-lg-8">
+    <!-- Interactions -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h3 class="card-title">Interazioni</h3>
+        <div class="card-actions">
+          <span class="badge bg-dark">{{ interactions | length }}</span>
+        </div>
+      </div>
+      {% if interactions %}
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Direzione</th>
+              <th>Contenuto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for i in interactions %}
+            <tr>
+              <td class="text-muted small" style="white-space: nowrap;">{{ i.timestamp }}</td>
+              <td><span class="badge bg-dark">{{ i.type }}</span></td>
+              <td>
+                {% if i.direction == 'OUT' %}
+                <span class="badge bg-info">OUT</span>
+                {% else %}
+                <span class="badge bg-success">IN</span>
+                {% endif %}
+              </td>
+              <td class="small">{{ i.content }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body">
+        <div class="text-muted text-center py-4">Nessuna interazione registrata</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Vehicles Proposed -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Veicoli Proposti</h3>
+        <div class="card-actions">
+          <span class="badge bg-dark">{{ vehicles | length }}</span>
+        </div>
+      </div>
+      {% if vehicles %}
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+          <thead>
+            <tr>
+              <th>Veicolo</th>
+              <th>Prezzo EU</th>
+              <th>Prezzo IT</th>
+              <th>Margine</th>
+              <th>Stato</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in vehicles %}
+            <tr>
+              <td class="fw-bold">{{ v.description }}</td>
+              <td>&euro;{{ '{:,.0f}'.format(v.price_eu) if v.price_eu else '—' }}</td>
+              <td>&euro;{{ '{:,.0f}'.format(v.price_it) if v.price_it else '—' }}</td>
+              <td style="color: var(--argos-gold, #B8960C); font-weight: 600;">
+                {% if v.price_it and v.price_eu %}
+                +&euro;{{ '{:,.0f}'.format(v.price_it - v.price_eu) }}
+                {% else %}
+                —
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge bg-dark">{{ v.status or 'PROPOSED' }}</span>
+              </td>
+              <td class="text-muted small">{{ v.proposed_at }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body">
+        <div class="text-muted text-center py-4">Nessun veicolo proposto</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
