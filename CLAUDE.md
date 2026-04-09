@@ -25,6 +25,123 @@ MAI presentare problemi senza soluzioni. Se trovi un bug, la risposta include il
 
 ---
 
+## Agent Routing Table — QUALE AGENT PER QUALE TASK
+
+**REGOLA ZERO:** Prima di pianificare, scrivere codice o rispondere a un task non banale,
+identifica la task category e attiva l'agent corretto dalla tabella sotto.
+Non usare ragionamento generale quando esiste un agent specializzato.
+
+### ENGINEERING
+
+| Task keywords | Agent | Path |
+|---|---|---|
+| API, schema DB, SQLite, migration, query, Python/Node.js backend | `backend-architect` | `.claude/agents/engineering/backend-architect.md` |
+| LLM, prompt, agent pipeline, classificatore, Anthropic API, tool use | `ai-engineer` | `.claude/agents/engineering/ai-engineer.md` |
+
+### PRODUCT
+
+| Task keywords | Agent | Path |
+|---|---|---|
+| ricerca mercato, competitor, trend, benchmark, pricing | `trend-researcher` | `.claude/agents/product/trend-researcher.md` |
+
+### MARKETING
+
+| Task keywords | Agent | Path |
+|---|---|---|
+| blog, newsletter, email, landing copy, caso studio, materiali dealer | `content-creator` | `.claude/agents/marketing/content-creator.md` |
+| crescita, funnel, A/B, acquisizione, referral, conversione dealer | `growth-hacker` | `.claude/agents/marketing/growth-hacker.md` |
+
+### STUDIO OPERATIONS
+
+| Task keywords | Agent | Path |
+|---|---|---|
+| report analytics, metriche, KPI, dashboard, dati pipeline | `analytics-reporter` | `.claude/agents/studio-operations/analytics-reporter.md` |
+| GDPR, privacy, compliance, contratto, termini, disclaimer | `legal-compliance-checker` | `.claude/agents/studio-operations/legal-compliance-checker.md` |
+| finanza, fee tracking, P&L, cash flow, costi import | `finance-tracker` | `.claude/agents/studio-operations/finance-tracker.md` |
+
+### PROJECT MANAGEMENT
+
+| Task keywords | Agent | Path |
+|---|---|---|
+| kickoff, milestone, blockers, pre-launch, checklist, post-mortem | `project-shipper` | `.claude/agents/project-management/project-shipper.md` |
+
+### TESTING
+
+| Task keywords | Agent | Path |
+|---|---|---|
+| testare API, endpoint test, WA daemon 9191, integration test | `api-tester` | `.claude/agents/testing-suite/api-tester.md` |
+
+### RICERCA (trasversale)
+
+| Quando | Agent | Path |
+|---|---|---|
+| Prima di pianificare architetture o scegliere stack | `deep-researcher` | `.claude/agents/intelligence/deep-researcher.md` |
+| Dati sbagliati = architettura sbagliata | `deep-researcher` | `.claude/agents/intelligence/deep-researcher.md` |
+| Versioni, prezzi, compatibilita' non certe | `deep-researcher` | `.claude/agents/intelligence/deep-researcher.md` |
+
+### ARGOS SPECIFICI (agent custom pre-esistenti)
+
+| Task keywords | Agent | Path |
+|---|---|---|
+| outreach dealer, WA, sequenza, messaggio, follow-up | `agent-sales` | `.claude/agents/agent-sales.md` |
+| CoVe score, DuckDB, confidence, recommendation | `agent-cove` | `.claude/agents/agent-cove.md` |
+| nuovi lead, scouting dealer, territorio, intel | `agent-research` | `.claude/agents/agent-research.md` |
+| PM2, daemon, deploy, health check, iMac | `agent-ops` | `.claude/agents/agent-ops.md` |
+| dealer silente, recovery, riattivazione | `agent-recovery` | `.claude/agents/agent-recovery.md` |
+| ROI, fee, P&L, fiscale, reverse charge | `agent-finance` | `.claude/agents/agent-finance.md` |
+| contenuti brand, landing, social, SEO | `agent-marketing` | `.claude/agents/agent-marketing.md` |
+
+---
+
+## Protocollo Attivazione Agent
+
+```
+1. Identifica task category dalla tabella sopra
+2. Leggi il file .md dell'agent con Read tool
+3. Segui le istruzioni come system prompt aggiuntivo
+4. Se multi-dominio: attiva agent in sequenza
+```
+
+### Task multi-agent (ordine obbligatorio)
+
+```
+SALES AGENT MODIFICHE:
+  1. deep-researcher → verifica dati/versioni
+  2. ai-engineer → pipeline LLM/classificatore
+  3. backend-architect → schema DB/API
+
+NUOVO OUTREACH:
+  1. agent-research → discovery dealer
+  2. content-creator → copy messaggio
+  3. agent-sales → invio + tracking
+
+DEPLOY:
+  1. backend-architect → verifica codice
+  2. agent-ops → deploy + healthcheck
+
+RICERCA MERCATO:
+  1. deep-researcher → dati verificati
+  2. trend-researcher → analisi trend
+  3. agent-cove → scoring veicoli
+```
+
+### Quando NON usare un agent
+
+- Task di una riga (risposta diretta)
+- Domanda su codice gia' in contesto
+- Chiarimento su istruzioni precedenti
+
+### Checklist pre-invio WA (ARGOS specifico)
+
+```
+[ ] validate() restituisce PASS?
+[ ] outbound_count < cap per stato corrente (can_send)?
+[ ] Nessuna fee nel messaggio (a meno che template = OBJ_2_FEE)?
+[ ] Nessun duplicato nelle ultime 24h (is_duplicate)?
+```
+
+---
+
 ## Skill Orchestration
 
 - Invoca `/skill-loader` come prima azione per task non banali
@@ -112,6 +229,12 @@ _Auto-aggiornato dopo ogni sessione — vedi memory/_
 - S98: Cap 3 reply/dealer bloccava test → alzato a 10
 - S98: Cron MacBook non gira se in sleep → spostare su iMac
 - S98: Due DB con schema diversi → unificare in Sprint 1
+- S105: "Strade perfette tedesche" era FALSO (DE 5.3/7, NL 6.4) → MAI claim senza dati verificati
+- S105: Fee nel system prompt → LLM la rigurgita → fee SOLO in template OBJ_2_FEE
+- S105: Validatore che logga senza bloccare = inutile → validate() DEVE return BLOCK
+- S105: Modelli free non rispettano istruzioni negative → template-first, LLM-second
+- S105: Ferrari = mercato controllato con blacklist → MAI proporre
+- S105: Maserati perde 72% in 3 anni → MAI proporre
 
 ---
 
