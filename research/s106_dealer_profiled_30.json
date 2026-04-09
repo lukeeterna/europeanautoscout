@@ -2,7 +2,7 @@
   {
     "dealer_id": "GRANDINETTI_CZ_001",
     "name": "Grandinetti Auto",
-    "phone_wa": "393281088737",
+    "phone_wa": "39XXX_8737",
     "province": "CZ",
     "city": "Soveria Mannelli",
     "brands": [
@@ -20,7 +20,7 @@
   {
     "dealer_id": "AUTOQUARTA_LE_001",
     "name": "AutoQuarta Monteroni",
-    "phone_wa": "393803442964",
+    "phone_wa": "39XXX_2964",
     "province": "LE",
     "city": "Monteroni di Lecce",
     "brands": [
@@ -38,7 +38,7 @@
   {
     "dealer_id": "MOTORVIP_ME_001",
     "name": "MOTORVIP",
-    "phone_wa": "393273069742",
+    "phone_wa": "39XXX_9742",
     "province": "ME",
     "city": "Milazzo",
     "brands": [
@@ -56,7 +56,7 @@
   {
     "dealer_id": "DAVIDS_ME_001",
     "name": "Davids Auto",
-    "phone_wa": "393467844480",
+    "phone_wa": "39XXX_4480",
     "province": "ME",
     "city": "San Filippo del Mela",
     "brands": [
@@ -74,7 +74,7 @@
   {
     "dealer_id": "2F_MOTORS_CZ_001",
     "name": "2F MOTORS LAMEZIA",
-    "phone_wa": "393713040093",
+    "phone_wa": "39XXX_0093",
     "province": "CZ",
     "city": "Lamezia Terme",
     "brands": [
@@ -92,7 +92,7 @@
   {
     "dealer_id": "MARTINAUTO_TS_001",
     "name": "MartinAuto",
-    "phone_wa": "393337836425",
+    "phone_wa": "39XXX_6425",
     "province": "TS",
     "city": "Trieste",
     "brands": [
@@ -110,7 +110,7 @@
   {
     "dealer_id": "MIXAUTO_LT_001",
     "name": "MIXAUTO S.R.L.",
-    "phone_wa": "393484723335",
+    "phone_wa": "39XXX_3335",
     "province": "LT",
     "city": "Latina",
     "brands": [
@@ -128,7 +128,7 @@
   {
     "dealer_id": "CAR2001_MC_001",
     "name": "CAR 2001",
-    "phone_wa": "393668713191",
+    "phone_wa": "39XXX_3191",
     "province": "MC",
     "city": "San Severino Marche",
     "brands": [
@@ -144,7 +144,7 @@
   {
     "dealer_id": "FA_AUTO_BR_001",
     "name": "F.A. AUTO SRLS",
-    "phone_wa": "393273245894",
+    "phone_wa": "39XXX_5894",
     "province": "BR",
     "city": "San Michele Salentino",
     "brands": [
@@ -161,7 +161,7 @@
   {
     "dealer_id": "MACCHITELLA_BR_001",
     "name": "MACCHITELLA SRL",
-    "phone_wa": "393482538909",
+    "phone_wa": "39XXX_8909",
     "province": "BR",
     "city": "San Vito dei Normanni",
     "brands": [
@@ -178,7 +178,7 @@
   {
     "dealer_id": "SIRIO_TE_001",
     "name": "SIRIO S.r.l.",
-    "phone_wa": "393455603870",
+    "phone_wa": "39XXX_3870",
     "province": "TE",
     "city": "Mosciano Sant Angelo",
     "brands": [
@@ -195,7 +195,7 @@
   {
     "dealer_id": "MM_AUTO_AQ_001",
     "name": "MM AUTO",
-    "phone_wa": "393894397325",
+    "phone_wa": "39XXX_7325",
     "province": "AQ",
     "city": "Avezzano",
     "brands": [
@@ -212,7 +212,7 @@
   {
     "dealer_id": "EUROTARGET_BO_001",
     "name": "Eurotarget S.p.A",
-    "phone_wa": "393930000760",
+    "phone_wa": "39XXX_0760",
     "province": "BO",
     "city": "Pieve di Cento",
     "brands": [
@@ -229,7 +229,7 @@
   {
     "dealer_id": "LINEACAR_MO_001",
     "name": "Linea Car Guicciardi",
-    "phone_wa": "393459830651",
+    "phone_wa": "39XXX_0651",
     "province": "MO",
     "city": "Mirandola",
     "brands": [
@@ -246,7 +246,7 @@
   {
     "dealer_id": "AB_AUTO_LT_001",
     "name": "A.B. AUTO SHOP",
-    "phone_wa": "393770406170",
+    "phone_wa": "39XXX_6170",
     "province": "LT",
     "city": "Latina",
     "brands": [
@@ -263,7 +263,7 @@
   {
     "dealer_id": "GALLOTTI_VA_001",
     "name": "Gallotti Auto",
-    "phone_wa": "393345768604",
+    "phone_wa": "39XXX_8604",
     "province": "VA",
     "city": "Gallarate",
     "brands": [
@@ -279,7 +279,7 @@
   {
     "dealer_id": "REDAUTO_MC_001",
     "name": "RedAuto Civitanova",
-    "phone_wa": "393208340517",
+    "phone_wa": "39XXX_0517",
     "province": "MC",
     "city": "Civitanova Marche",
     "brands": [
@@ -296,7 +296,7 @@
   {
     "dealer_id": "CARVILLAGE_FI_001",
     "name": "Car Village",
-    "phone_wa": "393351900979",
+    "phone_wa": "39XXX_0979",
     "province": "FI",
     "city": "Sesto Fiorentino",
     "brands": [
@@ -313,7 +313,7 @@
   {
     "dealer_id": "AUTOITALY_BS_001",
     "name": "Auto Italy",
-    "phone_wa": "393277442224",
+    "phone_wa": "39XXX_2224",
     "province": "BS",
     "city": "Brescia",
     "brands": [
@@ -329,7 +329,7 @@
   {
     "dealer_id": "LB_AUTO_CA_001",
     "name": "LB AUTOMOBILI SRL",
-    "phone_wa": "393405863425",
+    "phone_wa": "39XXX_3425",
     "province": "CA",
     "city": "Sestu",
     "brands": [
@@ -345,7 +345,7 @@
   {
     "dealer_id": "GRECO_CS_001",
     "name": "Greco Auto",
-    "phone_wa": "393381668681",
+    "phone_wa": "39XXX_8681",
     "province": "CS",
     "city": "Rende",
     "brands": [
@@ -362,7 +362,7 @@
   {
     "dealer_id": "GP_AUTO_LE_001",
     "name": "GP Auto",
-    "phone_wa": "393453582093",
+    "phone_wa": "39XXX_2093",
     "province": "LE",
     "city": "Gallipoli",
     "brands": [
@@ -379,7 +379,7 @@
   {
     "dealer_id": "AZ_AUTO_AV_001",
     "name": "AZ AUTO EVOLUTION",
-    "phone_wa": "393454146671",
+    "phone_wa": "39XXX_6671",
     "province": "AV",
     "city": "Solofra",
     "brands": [
@@ -397,7 +397,7 @@
   {
     "dealer_id": "PUNTOAUTO_IS_001",
     "name": "PUNTO AUTO SRL",
-    "phone_wa": "393471706128",
+    "phone_wa": "39XXX_6128",
     "province": "IS",
     "city": "Isernia",
     "brands": [
@@ -415,7 +415,7 @@
   {
     "dealer_id": "PRONTERAUTO_LE_001",
     "name": "PRONTERAUTO",
-    "phone_wa": "393356690803",
+    "phone_wa": "39XXX_0803",
     "province": "LE",
     "city": "Surano",
     "brands": [
@@ -432,7 +432,7 @@
   {
     "dealer_id": "STEFANO_FG_001",
     "name": "Stefano Auto",
-    "phone_wa": "393388199414",
+    "phone_wa": "39XXX_9414",
     "province": "FG",
     "city": "Cerignola",
     "brands": [
@@ -448,7 +448,7 @@
   {
     "dealer_id": "SAINAUTO_SA_001",
     "name": "SAINAUTO",
-    "phone_wa": "393333620122",
+    "phone_wa": "39XXX_0122",
     "province": "SA",
     "city": "Sala Consilina",
     "brands": [
@@ -465,7 +465,7 @@
   {
     "dealer_id": "3D_AUTO_TA_001",
     "name": "3D Automotive",
-    "phone_wa": "393289163991",
+    "phone_wa": "39XXX_3991",
     "province": "TA",
     "city": "Manduria",
     "brands": [
@@ -481,7 +481,7 @@
   {
     "dealer_id": "CARLEO_SA_001",
     "name": "CARLEO SERVICE",
-    "phone_wa": "393334457867",
+    "phone_wa": "39XXX_7867",
     "province": "SA",
     "city": "Ricigliano",
     "brands": [
@@ -497,7 +497,7 @@
   {
     "dealer_id": "CUOMO_SA_001",
     "name": "CUOMO CARS",
-    "phone_wa": "393515672993",
+    "phone_wa": "39XXX_2993",
     "province": "SA",
     "city": "Sant Egidio del Monte Albino",
     "brands": [

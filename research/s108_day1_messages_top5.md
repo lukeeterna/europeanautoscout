@@ -5,7 +5,7 @@ Messaggi personalizzati, validati agent-sales. Pronti per invio via daemon.
 ---
 
 ## 1. STILE CAR — Orta Nova (FG)
-**WA:** +39 333 425 4654 (Alessandro)
+**WA:** +39 XXX XXX XXXX(Alessandro)
 **Dossier allegato Day 3:** BMW X3 xDrive 2022
 
 ```
@@ -21,8 +21,7 @@ Ha 2 minuti per riceverlo?
 ---
 
 ## 2. BD AUTO — Macerata Campania (CE)
-**WA:** +39 320 864 9717
-
+**WA:** +39 XXX XXX XXXX
 ```
 Buongiorno, sono Luca Ferretti.
 Ho visto BD Auto su AutoScout24 — 321 recensioni in 4 anni, crescita notevole: trattate BMW e Audi, giusto?
@@ -36,8 +35,7 @@ Ha 2 minuti per capire come funziona?
 ---
 
 ## 3. STEFANO AUTO — Cerignola (FG)
-**WA:** +39 338 819 9414
-
+**WA:** +39 XXX XXX XXXX
 ```
 Buongiorno, sono Luca Ferretti.
 Ho visto il suo salone su AutoScout24 — 4.98 su 5, lavora con BMW e Land Rover, giusto?
@@ -51,8 +49,7 @@ Ha 2 minuti per capire come funziona?
 ---
 
 ## 4. CUOMO CARS — Sant'Egidio del Monte Albino (SA)
-**WA:** +39 351 567 2993
-
+**WA:** +39 XXX XXX XXXX
 ```
 Buongiorno, sono Luca Ferretti.
 Ho visto Cuomo Cars su AutoScout24 — trattate Mercedes e Porsche, e anche noleggio supercar: un salone che lavora con il premium, giusto?
@@ -66,7 +63,7 @@ Ha 2 minuti per capire come funziona?
 ---
 
 ## 5. AZ AUTO EVOLUTION — Solofra (AV)
-**WA:** +39 345 414 6671 (Antonio Cucciniello)
+**WA:** +39 XXX XXX XXXX(Antonio Cucciniello)
 
 ```
 Buongiorno, sono Luca Ferretti.
