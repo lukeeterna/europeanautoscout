@@ -14,7 +14,7 @@ INSTALLAZIONE: vedi deploy.sh → LaunchAgent che lo esegue ogni 5 min
 LOG: /tmp/argos-scheduler.log
 """
 
-import duckdb
+import sqlite3
 import json
 import os
 import sys
@@ -26,7 +26,7 @@ from datetime import datetime, timedelta
 # ── Config ─────────────────────────────────────────────────
 TIMEZONE           = zoneinfo.ZoneInfo('Europe/Rome')
 DB_PATH            = os.environ.get('ARGOS_DB_PATH',
-    os.path.expanduser('~/Documents/app-antigravity-auto/dealer_network.duckdb'))
+    os.path.expanduser('~/Documents/app-antigravity-auto/dealer_network.sqlite'))
 TELEGRAM_TOKEN     = os.environ.get('ARGOS_TELEGRAM_TOKEN', '')
 TELEGRAM_CHAT_ID   = os.environ.get('ARGOS_TELEGRAM_CHAT_ID', '931063621')
 LOG_FILE           = '/tmp/argos-scheduler.log'
@@ -98,10 +98,11 @@ def save_state(state: dict):
 
 
 def load_active_dealers():
-    """Carica dealer con sequenza in corso da DuckDB."""
+    """Carica dealer con sequenza in corso da SQLite."""
     try:
-        con = duckdb.connect(DB_PATH)
-        rows = con.execute("""
+        con = sqlite3.connect(DB_PATH)
+        con.row_factory = sqlite3.Row
+        cur = con.execute("""
             SELECT dealer_id, dealer_name, persona_type,
                    current_step, last_contact_at, recommendation
             FROM conversations
@@ -110,8 +111,9 @@ def load_active_dealers():
             )
             AND current_step IS NOT NULL
             ORDER BY last_contact_at ASC
-        """).fetchall()
-        cols = [d[0] for d in con.description]
+        """)
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchall()
         con.close()
         return [dict(zip(cols, r)) for r in rows]
     except Exception as e:

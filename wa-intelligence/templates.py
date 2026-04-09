@@ -25,9 +25,8 @@ TEMPLATES = {
         "Buongiorno, sono Luca Ferretti.\n"
         "Ho visto il suo salone su {source} — tra le altre, tratta anche {brand_focus}.\n"
         "Le capita che un cliente le chieda una {brand_focus} specifica e non la trova in Italia?\n"
-        "In Europa ci sono migliaia di auto premium con storico tagliandi completo, "
-        "km certificati e garanzia costruttore — a 3-5.000 euro in meno.\n"
-        "Il margine per lei e' netto, l'auto arriva pronta per la vetrina.\n"
+        "In Europa ci sono migliaia di auto premium con km certificati, garanzia costruttore "
+        "e margine netto di 3-5.000 euro per lei.\n"
         "Ha 2 minuti per capire come funziona?"
     ),
 
@@ -57,7 +56,7 @@ TEMPLATES = {
         "Ho trovato il suo contatto su {source}.\n"
         "Mi chiamo Luca Ferretti — seleziono auto premium in tutta Europa per concessionari italiani.\n"
         "Km certificati TUV, storico tagliandi completo, garanzia costruttore valida in Italia.\n"
-        "Auto che arrivano da strade perfette, con margini netti di 3-5.000 euro per lei.\n"
+        "Auto con km certificati dalla revisione TUV e margini netti di 3-5.000 euro per lei.\n"
         "{dealer_name}, le capita di avere clienti che cercano {brand_focus} con allestimenti che qui non girano?"
     ),
 

@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 # ── State definitions ──────────────────────────────────────
 STATES = {
     "COLD": {
-        "allowed_templates": ["DAY1_INTRO"],
+        "allowed_templates": ["DAY1_INTRO", "DAY1_PREMIUM", "DAY1_MIXED", "DAY1_GENERALIST"],
         "max_outbound": 1,
         "requires_inbound": False,
     },

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Case Study — ARGOS Automotive</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #8B7355;
+    --gold-light: #C4A96B;
+    --black: #0D0D0D;
+    --gray-dark: #2C2C2C;
+    --gray-mid: #5A5A5A;
+    --gray-light: #EBEBEB;
+    --white: #FFFFFF;
+    --accent: #F5F1EB;
+    --green: #2E7D32;
+    --green-light: #E8F5E9;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    font-size: 10pt;
+    color: var(--black);
+    background: var(--white);
+    line-height: 1.6;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 16mm 20mm 22mm 20mm;
+    background: var(--white);
+    position: relative;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 8mm;
+    border-bottom: 0.5pt solid var(--gold);
+    margin-bottom: 8mm;
+  }
+
+  .brand h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20pt;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--black);
+  }
+
+  .brand h1 span { color: var(--gold); }
+
+  .brand .tagline {
+    font-size: 7pt;
+    font-weight: 400;
+    color: var(--gray-mid);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 2pt;
+  }
+
+  .doc-label { text-align: right; }
+
+  .doc-label .doc-type {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13pt;
+    font-weight: 600;
+    color: var(--gray-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .doc-label .doc-ref {
+    font-size: 8pt;
+    color: var(--gray-mid);
+    margin-top: 3pt;
+    font-style: italic;
+  }
+
+  /* HERO SECTION */
+  .hero {
+    background: var(--accent);
+    border-left: 4pt solid var(--gold);
+    padding: 6mm 7mm;
+    margin-bottom: 8mm;
+  }
+
+  .hero h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16pt;
+    font-weight: 700;
+    color: var(--black);
+    margin-bottom: 3pt;
+  }
+
+  .hero .subtitle {
+    font-size: 9pt;
+    color: var(--gray-mid);
+  }
+
+  /* KPI GRID */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4mm;
+    margin-bottom: 8mm;
+  }
+
+  .kpi-box {
+    text-align: center;
+    padding: 5mm 3mm;
+    border: 0.5pt solid var(--gray-light);
+  }
+
+  .kpi-box .kpi-label {
+    font-size: 7pt;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gray-mid);
+    margin-bottom: 3pt;
+  }
+
+  .kpi-box .kpi-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18pt;
+    font-weight: 700;
+    color: var(--black);
+  }
+
+  .kpi-box .kpi-detail {
+    font-size: 7.5pt;
+    color: var(--gray-mid);
+    margin-top: 2pt;
+  }
+
+  .kpi-box.highlight {
+    background: var(--green-light);
+    border-color: var(--green);
+  }
+
+  .kpi-box.highlight .kpi-value {
+    color: var(--green);
+  }
+
+  /* SECTIONS */
+  .section {
+    margin-bottom: 6mm;
+  }
+
+  .section-title {
+    font-size: 7.5pt;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 4pt;
+    border-bottom: 0.3pt solid var(--gold-light);
+    padding-bottom: 2pt;
+  }
+
+  .section-body {
+    font-size: 9pt;
+    color: var(--gray-dark);
+    line-height: 1.65;
+  }
+
+  /* TIMELINE */
+  .timeline {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2mm 4mm;
+    margin-top: 3mm;
+  }
+
+  .timeline .step-marker {
+    width: 6mm;
+    height: 6mm;
+    border-radius: 50%;
+    background: var(--gold);
+    color: var(--white);
+    font-size: 7pt;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .timeline .step-text {
+    font-size: 8.5pt;
+    color: var(--gray-dark);
+    padding-top: 1mm;
+  }
+
+  /* QUOTE */
+  .quote-box {
+    background: var(--accent);
+    border-left: 3pt solid var(--gold);
+    padding: 4mm 5mm;
+    margin-top: 5mm;
+    font-style: italic;
+    font-size: 9pt;
+    color: var(--gray-dark);
+  }
+
+  .quote-box .quote-author {
+    font-style: normal;
+    font-weight: 600;
+    font-size: 8pt;
+    color: var(--gold);
+    margin-top: 3pt;
+  }
+
+  /* PLACEHOLDER */
+  .placeholder {
+    font-weight: 700;
+    color: var(--black);
+    background: #FFF9E6;
+    padding: 0 2pt;
+    border-radius: 2pt;
+  }
+
+  /* FOOTER */
+  .footer {
+    position: absolute;
+    bottom: 10mm;
+    left: 20mm;
+    right: 20mm;
+    border-top: 0.3pt solid var(--gold-light);
+    padding-top: 4pt;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer span {
+    font-size: 7pt;
+    color: var(--gray-mid);
+  }
+
+  .footer .footer-brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: 8pt;
+    color: var(--gold);
+  }
+
+  @media print {
+    body { background: white; }
+    .page { margin: 0; padding: 10mm 14mm 18mm 14mm; width: 100%; }
+    .placeholder { background: #FFF9E6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .hero, .kpi-box, .kpi-box.highlight, .quote-box {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .footer { position: fixed; bottom: 8mm; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand">
+      <h1>ARGOS <span>Automotive</span></h1>
+      <div class="tagline">Vehicle Scouting &amp; Intelligence EU</div>
+    </div>
+    <div class="doc-label">
+      <div class="doc-type">Case Study</div>
+      <div class="doc-ref">Rif.: <strong class="placeholder">[#001]</strong> &nbsp;|&nbsp; Data: <strong class="placeholder">[MM/AAAA]</strong></div>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <h2><span class="placeholder">[MARCA]</span> <span class="placeholder">[MODELLO]</span> <span class="placeholder">[ANNO]</span></h2>
+    <div class="subtitle">Scouting completato per <strong class="placeholder">[NOME DEALER]</strong> — <span class="placeholder">[CITTA', PROVINCIA]</span></div>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpi-grid">
+    <div class="kpi-box">
+      <div class="kpi-label">Prezzo EU</div>
+      <div class="kpi-value"><span class="placeholder">[€XX.XXX]</span></div>
+      <div class="kpi-detail">Mercato: <span class="placeholder">[DE/NL/BE]</span></div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">Prezzo Italia</div>
+      <div class="kpi-value"><span class="placeholder">[€XX.XXX]</span></div>
+      <div class="kpi-detail">Media mercato IT</div>
+    </div>
+    <div class="kpi-box highlight">
+      <div class="kpi-label">Margine Dealer</div>
+      <div class="kpi-value"><span class="placeholder">[€X.XXX]</span></div>
+      <div class="kpi-detail">Netto, fee inclusa</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">Tempo Totale</div>
+      <div class="kpi-value"><span class="placeholder">[N]</span> gg</div>
+      <div class="kpi-detail">Dalla richiesta alla consegna</div>
+    </div>
+  </div>
+
+  <!-- VEICOLO -->
+  <div class="section">
+    <div class="section-title">Il Veicolo</div>
+    <div class="section-body">
+      <strong class="placeholder">[MARCA MODELLO ALLESTIMENTO]</strong> — Anno <strong class="placeholder">[ANNO]</strong>,
+      <strong class="placeholder">[KM]</strong> km certificati dalla revisione TUV tedesca.
+      Storico tagliandi completo (Scheckheft), garanzia costruttore europea valida in Italia.
+      Provenienza: <strong class="placeholder">[PAESE, CITTA' VENDITORE]</strong>.
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="section">
+    <div class="section-title">Come si e' svolto</div>
+    <div class="timeline">
+      <div class="step-marker">1</div>
+      <div class="step-text"><strong>Richiesta</strong> — Il dealer ci comunica marca, modello, budget e specifiche desiderate.</div>
+      <div class="step-marker">2</div>
+      <div class="step-text"><strong>Scouting</strong> — Ricerca su <span class="placeholder">[N]</span> portali europei. Identificati <span class="placeholder">[N]</span> candidati, selezionato il migliore per rapporto qualita'/prezzo.</div>
+      <div class="step-marker">3</div>
+      <div class="step-text"><strong>Verifica</strong> — Analisi prezzo di mercato, controllo VIN, verifica km, segnalazione rischi nel dossier.</div>
+      <div class="step-marker">4</div>
+      <div class="step-text"><strong>Dossier</strong> — Consegna dossier completo con foto HD, dati tecnici, contatto venditore, stima margine.</div>
+      <div class="step-marker">5</div>
+      <div class="step-text"><strong>Acquisto</strong> — Il dealer contatta il venditore e conclude l'acquisto direttamente.</div>
+      <div class="step-marker">6</div>
+      <div class="step-text"><strong>Consegna</strong> — Veicolo arrivato in <span class="placeholder">[N]</span> giorni. Fee pagata solo a consegna avvenuta.</div>
+    </div>
+  </div>
+
+  <!-- CITAZIONE (opzionale) -->
+  <div class="quote-box">
+    "<span class="placeholder">[Citazione del dealer — es: "Non pensavo fosse cosi' semplice. L'auto e' arrivata esattamente come nel dossier."]</span>"
+    <div class="quote-author">— <span class="placeholder">[Nome]</span>, <span class="placeholder">[Nome Concessionaria]</span></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span class="footer-brand">ARGOS Automotive</span>
+    <span>Luca Ferretti &nbsp;|&nbsp; +39 328 153 6308 &nbsp;|&nbsp; argos-automotive.pages.dev</span>
+    <span>Case Study <span class="placeholder">[#001]</span></span>
+  </div>
+
+</div>
+</body>
+</html>

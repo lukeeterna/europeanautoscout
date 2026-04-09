@@ -1,0 +1,5 @@
+# wa-intelligence dependencies
+# Python 3.11+ required
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+itsdangerous==2.1.2
