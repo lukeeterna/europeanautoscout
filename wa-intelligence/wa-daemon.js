@@ -48,6 +48,17 @@ const CONFIG = {
     SCHEDULER_INTERVAL: 30 * 60 * 1000,  // 30 minuti
 };
 
+// ── Shell argument sanitizer (CT-14 fix: prevent command injection) ──
+function sanitizeShellArg(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/"/g, '\\"')
+        .replace(/\$/g, '\\$')
+        .replace(/`/g, '\\`')
+        .replace(/\\/g, '\\\\')
+        .replace(/!/g, '\\!');
+}
+
 // ── Utility log con timestamp IT ────────────────────────────
 function log(level, ...args) {
     const ts  = TC.formatIT(TC.nowIT());
@@ -294,17 +305,20 @@ function triggerAnalyzer(inboundMsgId, msgBody, dealer) {
         stdio:    ['ignore', analyzerLogFd, analyzerLogFd],
     });
     child.unref(); // non blocca il daemon
+    fs.closeSync(analyzerLogFd); // CT-12 fix: prevent EMFILE fd leak
 }
 
-// ── Invia alert Telegram IMMEDIATO (non async) ───────────────
+// ── Invia alert Telegram (fire-and-forget, non blocca event loop — CT-09 fix) ─
 function sendTelegramAlert(text, replyMarkup = null) {
     const markupStr = replyMarkup ? JSON.stringify(replyMarkup) : '{}';
     try {
-        execSync(`${CONFIG.PYTHON_BIN} ${CONFIG.TELEGRAM_SCRIPT} alert \
-            "${text.replace(/"/g, '\\"')}" \
-            '${markupStr}'`,
-            { timeout: 10000, stdio: 'pipe' });
-        log('INFO', 'Telegram alert inviato');
+        const child = spawn(CONFIG.PYTHON_BIN, [
+            CONFIG.TELEGRAM_SCRIPT, 'alert',
+            text.slice(0, 4000),
+            markupStr
+        ], { detached: true, stdio: 'ignore' });
+        child.unref();
+        log('INFO', 'Telegram alert dispatched');
     } catch (e) {
         log('ERROR', 'Telegram alert fallito:', e.message);
     }
@@ -316,9 +330,9 @@ function runOutboundGuard(dealerId, templateId, message) {
         const result = execSync(
             `${CONFIG.PYTHON_BIN} ${CONFIG.OUTBOUND_GUARD} ` +
             `--db-path "${CONFIG.DB_PATH}" ` +
-            `--dealer-id "${dealerId}" ` +
-            `--template-id "${templateId}" ` +
-            `--message "${message.replace(/"/g, '\\"').slice(0, 2000)}"`,
+            `--dealer-id "${sanitizeShellArg(dealerId)}" ` +
+            `--template-id "${sanitizeShellArg(templateId)}" ` +
+            `--message "${sanitizeShellArg(message.slice(0, 2000))}"`,
             { timeout: 10000, encoding: 'utf-8' }
         );
         return JSON.parse(result.trim());
@@ -744,6 +758,13 @@ function initClient() {
                     if (CONFIG.DAILY_SENT >= CONFIG.DAILY_LIMIT) {
                         res.writeHead(429, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'daily limit reached', daily_sent: CONFIG.DAILY_SENT }));
+                        return;
+                    }
+
+                    // CT-16 fix: check WA connected before send
+                    if (!QR_STATE || QR_STATE.status !== 'connected') {
+                        res.writeHead(503, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'wa_not_connected', wa_status: QR_STATE?.status || 'unknown' }));
                         return;
                     }
 
@@ -1219,14 +1240,29 @@ setInterval(async () => {
 // ── Entry point ──────────────────────────────────────────────
 const waClient = initClient();
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-    log('INFO', 'SIGTERM ricevuto — shutdown graceful');
+// Graceful shutdown (CT-20 fix: flush buffers, cleanup Chrome)
+async function gracefulShutdown(signal) {
+    log('INFO', `${signal} ricevuto — shutdown graceful`);
+    try {
+        // Flush pending message buffers
+        if (typeof MESSAGE_BUFFER !== 'undefined') {
+            for (const [dealerId] of MESSAGE_BUFFER) {
+                log('INFO', `Flushing buffer for ${dealerId}`);
+                try { flushBuffer(dealerId); } catch (_) {}
+            }
+        }
+    } catch (_) {}
     try { await waClient.destroy(); } catch (_) {}
     try { if (_db) _db.close(); } catch (_) {}
+    // Kill orphan Chrome processes (CT-03 fix)
+    try { execSync('pkill -f "chromium.*--user-data-dir.*argos" 2>/dev/null || true', { timeout: 3000 }); } catch (_) {}
     process.exit(0);
-});
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 process.on('unhandledRejection', (reason) => {
     log('ERROR', 'UnhandledRejection:', reason?.message || reason);
+    sendTelegramAlert(`⚠️ *UnhandledRejection*\n${String(reason?.message || reason).slice(0, 500)}`);
 });
