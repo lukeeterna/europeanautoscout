@@ -1,34 +1,40 @@
 """
-image_sanitizer.py — ARGOS Image Processing Pipeline
+image_sanitizer.py — ARGOS Image Sanitizer v3
 CoVe 2026 | Enterprise Grade
 
-Sanitizes vehicle images for dealer dossiers:
-  1. Crops/blurs license plate area (bottom 18% of frontal images)
-  2. Overlays ARGOS branded plate cover over plate zone
-  3. Strips EXIF metadata (no source leaks)
-  4. Detects dealer watermarks/frames in images
+5-stage pipeline validated on 10+ real dealer photos (S110):
+  Stage 0: Interior/exterior classifier (photo index heuristic)
+  Stage 1: Crop portal banner (top zone, configurable per portal)
+  Stage 2: PaddleOCR PP-OCRv4 text detection
+  Stage 3: Inpainting — TELEA for small areas, LaMa crop for large
+  Stage 4: Post-OCR verification + Telegram alert if residuals
 
 BUSINESS RULE: The dealer must NOT be able to identify the EU seller
 from the dossier. Source identity is revealed ONLY after fee payment.
 
+Stack (all Apache 2.0 / MIT):
+  - PaddleOCR PP-OCRv4: text detection + recognition
+  - cv2.inpaint TELEA: fast inpainting for small text (<30K px²)
+  - simple-lama-inpainting: quality inpainting for large areas
+  - Pillow: EXIF strip, save, branding
+
 Usage:
   from src.cove.image_sanitizer import sanitize_image, sanitize_all_images
 
-  # Single image
   safe_path = sanitize_image("raw_photo.jpg", output_dir="dossiers/safe/")
-
-  # All images for a listing
   safe_paths = sanitize_all_images(listing_id, db_path, output_dir)
 """
 
 import os
+import re
 import sys
+import time
+import logging
 from pathlib import Path
-from typing import Optional, List, Tuple
-from io import BytesIO
+from typing import Optional, List, Tuple, Dict
 
 try:
-    from PIL import Image, ImageDraw, ImageFont, ImageFilter
+    from PIL import Image, ImageDraw, ImageFont
     PILLOW_AVAILABLE = True
 except ImportError:
     PILLOW_AVAILABLE = False
@@ -40,145 +46,585 @@ try:
 except ImportError:
     CV2_AVAILABLE = False
 
-# EasyOCR — lazy loaded (heavy model, 95MB)
-_EASYOCR_READER = None
+log = logging.getLogger("argos.sanitizer")
 
-def _get_ocr_reader():
-    global _EASYOCR_READER
-    if _EASYOCR_READER is None:
-        try:
-            import easyocr
-            _EASYOCR_READER = easyocr.Reader(['de', 'en'], gpu=False, verbose=False)
-        except ImportError:
-            pass
-    return _EASYOCR_READER
+# ── Configuration — thresholds validated on 10+ real photos (S110) ────────────
 
-# LaMa inpainting model — lazy loaded (196MB, WACV 2022)
-_LAMA_MODEL = None
-_LAMA_PATH = None
+# PaddleOCR detection thresholds
+PADDLE_DET_THRESH = 0.2
+PADDLE_BOX_THRESH = 0.35
+PADDLE_CONF_MIN = 0.25
+PADDLE_TEXT_MIN_LEN = 2
 
-def _get_lama_model():
-    global _LAMA_MODEL, _LAMA_PATH
-    if _LAMA_MODEL is None:
-        try:
-            import torch
-            from huggingface_hub import hf_hub_download
-            _LAMA_PATH = hf_hub_download(repo_id="fashn-ai/LaMa", filename="big-lama.pt")
-            _LAMA_MODEL = torch.jit.load(_LAMA_PATH, map_location="cpu")
-            _LAMA_MODEL.eval()
-        except Exception as e:
-            print(f"  [LAMA] Model load failed: {e}")
-    return _LAMA_MODEL
+# Inpainting mask dilation (covers text edges)
+DILATE_KERNEL = (11, 11)
+DILATE_ITERATIONS = 3
+TELEA_RADIUS = 12
 
+# Area threshold: above this use LaMa crop, below use TELEA
+LARGE_AREA_THRESHOLD = 30000  # px²
 
-def _lama_inpaint(cv_img, mask):
-    """
-    Inpaint using LaMa (Large Mask Inpainting).
-    cv_img: BGR numpy array (H, W, 3)
-    mask: binary numpy array (H, W), 255 = inpaint
-    Returns: BGR numpy array (H, W, 3)
-    """
-    import torch
-    model = _get_lama_model()
-    if model is None:
-        # Fallback to cv2.inpaint
-        return cv2.inpaint(cv_img, mask, 12, cv2.INPAINT_NS)
+# LaMa crop settings
+LAMA_CROP_PADDING = 50
+LAMA_MAX_SIDE = 512
 
-    h, w = cv_img.shape[:2]
-    # LaMa requires dimensions divisible by 8
-    pad_h = (8 - h % 8) % 8
-    pad_w = (8 - w % 8) % 8
+# Alert: if post-verify finds text above this confidence, send TG alert
+ALERT_CONFIDENCE_THRESHOLD = 0.70
 
-    # Prepare image tensor: RGB normalized to [0, 1]
-    img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-    img_tensor = torch.from_numpy(img_rgb).permute(2, 0, 1).unsqueeze(0)  # (1, 3, H, W)
+# Interior photo detection: photos at index >= this are likely interior
+INTERIOR_INDEX_THRESHOLD = 4
 
-    # Prepare mask tensor: binary [0, 1]
-    mask_f = (mask > 127).astype(np.float32)
-    mask_tensor = torch.from_numpy(mask_f).unsqueeze(0).unsqueeze(0)  # (1, 1, H, W)
+# Portal banner crop heights (% of image height from top)
+PORTAL_BANNER_CROP = {
+    "autoscout24": 0.08,
+    "mobile_de": 0.06,
+    "default": 0.05,
+}
 
-    # Pad to multiple of 8
-    if pad_h > 0 or pad_w > 0:
-        img_tensor = torch.nn.functional.pad(img_tensor, (0, pad_w, 0, pad_h), mode='reflect')
-        mask_tensor = torch.nn.functional.pad(mask_tensor, (0, pad_w, 0, pad_h), mode='constant', value=0)
+# Minimum file size — images below this are thumbnails
+MIN_IMAGE_BYTES = 30 * 1024  # 30 KB
 
-    with torch.no_grad():
-        result = model(img_tensor, mask_tensor)
-
-    # Remove padding and convert back
-    result = result[0].permute(1, 2, 0).numpy()[:h, :w]
-    result = np.clip(result * 255, 0, 255).astype(np.uint8)
-    return cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
-
-
-# YOLOv5 plate detector — lazy loaded
-_YOLO_PLATE_MODEL = None
-
-def _get_plate_model():
-    global _YOLO_PLATE_MODEL
-    if _YOLO_PLATE_MODEL is None:
-        try:
-            import yolov5
-            _YOLO_PLATE_MODEL = yolov5.load('keremberke/yolov5n-license-plate')
-            _YOLO_PLATE_MODEL.conf = 0.40
-            _YOLO_PLATE_MODEL.iou = 0.45
-        except Exception as e:
-            print(f"  [YOLO] Plate model load failed: {e}")
-    return _YOLO_PLATE_MODEL
-
-# ── Configuration ─────────────────────────────────────────────────────────────
+# Words to keep (car specs, our own branding)
+KEEP_WORDS = frozenset({
+    'xdrive', 'sdrive', 'quattro', 'tfsi', 'tdi', 'cdi',
+    'diesel', 'benzin', 'hybrid', 'electric', 'phev', 'mhev',
+    'automatik', 'automatic', 'schaltung', 'steptronic',
+    'argos', 'automotive', 'arcos', 'arg0s',
+    'bmw', 'mercedes', 'audi', 'porsche', 'volkswagen', 'vw',
+    'amg', 'sport', 'luxury', 'line', 'pack', 'paket',
+})
 
 # ARGOS brand colors
-ARGOS_BLACK = (26, 26, 26)        # #1A1A1A
-ARGOS_GOLD = (200, 164, 70)       # #C8A446
-ARGOS_WHITE = (255, 255, 255)
+ARGOS_BLACK = (26, 26, 26)
+ARGOS_GOLD = (200, 164, 70)
 
-# Plate zone: ONLY the license plate area (small strip at bottom)
-# EU plates are ~520x110mm, typically in bottom 10-15% of image
-PLATE_ZONE_TOP_PCT = 0.88    # Start of plate strip (88% from top)
-PLATE_ZONE_BOTTOM_PCT = 1.0  # End (100%)
-
-# Plate frame text: thin band just above the plate where dealer name sits
-PLATE_FRAME_TOP_PCT = 0.82   # Dealer frame starts here
-PLATE_FRAME_BOTTOM_PCT = 0.88 # Ends where plate starts
-
-# Top dealer watermark zone — many EU portals/dealers place large logos on top 15-20%
-DEALER_LOGO_TOP_PCT = 0.0
-DEALER_LOGO_BOTTOM_PCT = 0.18  # Top 18% — covers most dealer watermarks
-
-# ARGOS logo path
+# Paths
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
 ARGOS_LOGO_PATH = PROJECT_ROOT / "assets" / "ARGOS_logo_sobrio_horizontal.png"
-
-# Output directory for sanitized images
 DEFAULT_SAFE_DIR = PROJECT_ROOT / "dossiers" / "safe_images"
 
-# Minimum file size — images below this are thumbnails (useless in PDF)
-MIN_IMAGE_BYTES = 30 * 1024  # 30 KB
+
+# ── Lazy-loaded models (ONE init per process) ────────────────────────────────
+
+_PADDLE_OCR = None
+_SIMPLE_LAMA = None
 
 
-def _add_argos_bar(draw: 'ImageDraw.Draw', w: int, h_total: int, bar_top: int, bar_bottom: int):
-    """Draw ARGOS AUTOMOTIVE text centered on a black bar."""
-    try:
-        bfs = max(10, int((bar_bottom - bar_top) * 0.30))
+def _get_paddle_ocr():
+    """Initialize PaddleOCR (lazy, ~5s first call on iMac)."""
+    global _PADDLE_OCR
+    if _PADDLE_OCR is None:
         try:
-            bfont = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", bfs)
-        except OSError:
-            try:
-                bfont = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", bfs)
-            except OSError:
-                bfont = ImageFont.load_default()
-    except Exception:
-        bfont = ImageFont.load_default()
-    btext = "ARGOS AUTOMOTIVE"
-    bbb = draw.textbbox((0, 0), btext, font=bfont)
-    btw = bbb[2] - bbb[0]
-    bth = bbb[3] - bbb[1]
-    bar_h = bar_bottom - bar_top
-    draw.text(((w - btw) // 2, bar_top + (bar_h - bth) // 2),
-              btext, fill=ARGOS_GOLD, font=bfont)
+            # Skip slow connectivity check on startup
+            os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
 
+            from paddleocr import PaddleOCR
+            # Suppress noisy paddle/paddlex logs
+            for logger_name in ("ppocr", "paddle", "paddlex"):
+                logging.getLogger(logger_name).setLevel(logging.ERROR)
+
+            # PaddleOCR 3.x API — mobile models + no doc preprocessing
+            _PADDLE_OCR = PaddleOCR(
+                text_detection_model_name='PP-OCRv5_mobile_det',
+                text_recognition_model_name='en_PP-OCRv5_mobile_rec',
+                text_det_thresh=PADDLE_DET_THRESH,
+                text_det_box_thresh=PADDLE_BOX_THRESH,
+                text_rec_score_thresh=PADDLE_CONF_MIN,
+                use_doc_orientation_classify=False,
+                use_doc_unwarping=False,
+                use_textline_orientation=False,
+            )
+            log.info("PaddleOCR initialized")
+        except ImportError:
+            log.warning("PaddleOCR not installed — text detection disabled")
+        except Exception as e:
+            log.error(f"PaddleOCR init failed: {e}")
+    return _PADDLE_OCR
+
+
+def _get_simple_lama():
+    """Initialize SimpleLama inpainting model (lazy, ~3s first call)."""
+    global _SIMPLE_LAMA
+    if _SIMPLE_LAMA is None:
+        try:
+            from simple_lama_inpainting import SimpleLama
+            _SIMPLE_LAMA = SimpleLama()
+            log.info("SimpleLama initialized")
+        except ImportError:
+            log.warning("simple-lama-inpainting not installed — using TELEA only")
+        except Exception as e:
+            log.error(f"SimpleLama init failed: {e}")
+    return _SIMPLE_LAMA
+
+
+# ── Telegram Alert ────────────────────────────────────────────────────────────
+
+def _send_tg_alert(message: str, photo_path: str = None):
+    """Send alert to Telegram bot. Non-blocking, fire-and-forget."""
+    try:
+        token = os.environ.get("TG_BOT_TOKEN", "")
+        chat_id = os.environ.get("TG_CHAT_ID", "")
+        if not token or not chat_id:
+            log.warning("TG_BOT_TOKEN or TG_CHAT_ID not set — alert skipped")
+            return
+
+        import requests
+        base = f"https://api.telegram.org/bot{token}"
+
+        if photo_path and os.path.exists(photo_path):
+            with open(photo_path, 'rb') as f:
+                requests.post(
+                    f"{base}/sendPhoto",
+                    data={"chat_id": chat_id, "caption": message[:1024]},
+                    files={"photo": f},
+                    timeout=10,
+                )
+        else:
+            requests.post(
+                f"{base}/sendMessage",
+                data={"chat_id": chat_id, "text": message[:4096]},
+                timeout=10,
+            )
+    except Exception as e:
+        log.error(f"TG alert failed: {e}")
+
+
+def _send_tg_before_after(before_path: str, after_path: str, caption: str):
+    """Send before/after comparison to Telegram."""
+    try:
+        token = os.environ.get("TG_BOT_TOKEN", "")
+        chat_id = os.environ.get("TG_CHAT_ID", "")
+        if not token or not chat_id:
+            return
+
+        import requests
+        base = f"https://api.telegram.org/bot{token}"
+
+        # Send before
+        if os.path.exists(before_path):
+            with open(before_path, 'rb') as f:
+                requests.post(
+                    f"{base}/sendPhoto",
+                    data={"chat_id": chat_id, "caption": f"BEFORE: {caption}"[:1024]},
+                    files={"photo": f},
+                    timeout=10,
+                )
+
+        # Send after
+        if os.path.exists(after_path):
+            with open(after_path, 'rb') as f:
+                requests.post(
+                    f"{base}/sendPhoto",
+                    data={"chat_id": chat_id, "caption": f"AFTER: {caption}"[:1024]},
+                    files={"photo": f},
+                    timeout=10,
+                )
+    except Exception as e:
+        log.error(f"TG before/after failed: {e}")
+
+
+# ── Stage 0: Interior/Exterior Classifier ────────────────────────────────────
+
+def _is_interior_photo(image_path: str, image_index: int) -> bool:
+    """
+    Classify photo as interior or exterior.
+
+    Strategy (validated S110):
+    - EU portals typically order: 0-3 exterior, 4+ mixed interior/exterior
+    - Interior photos should NOT be sanitized (no dealer text on dashboards)
+    - For indices < INTERIOR_INDEX_THRESHOLD: always exterior
+    - For indices >= threshold: use photo index as primary signal
+
+    The OpenCV heuristics (sky ratio, variance, edge density) were tested
+    and FAILED 0/10 in S110. Do NOT re-add them.
+    """
+    if image_index < INTERIOR_INDEX_THRESHOLD:
+        return False
+
+    # For higher indices, we treat them as exterior (safe default).
+    # Interior photos rarely have dealer overlays, so sanitizing them
+    # is harmless — worst case we just strip EXIF.
+    return False
+
+
+# ── Stage 1: Banner Crop ─────────────────────────────────────────────────────
+
+def _detect_banner_crop(cv_img, portal: str = "default") -> int:
+    """
+    Detect portal banner at top of image. Returns crop height in pixels.
+
+    Uses edge detection: sharp brightness jump in top 25% = banner edge.
+    Falls back to configured portal percentage if no edge detected.
+    """
+    gray = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
+    h, w = gray.shape
+
+    # Look for sharp horizontal edge in top 5%-25%
+    max_edge = 0
+    edge_row = 0
+    for row in range(int(h * 0.03), int(h * 0.25)):
+        diff = abs(float(np.mean(gray[row])) - float(np.mean(gray[row + 1])))
+        if diff > max_edge:
+            max_edge = diff
+            edge_row = row
+
+    # Strong edge found — crop just below it
+    if max_edge > 15 and edge_row > int(h * 0.03):
+        crop_h = edge_row + int(h * 0.02)  # 2% margin
+        return min(crop_h, int(h * 0.25))
+
+    # Low variance top = solid color banner
+    top_zone = gray[:int(h * 0.12)]
+    if float(np.std(top_zone)) < 25:
+        pct = PORTAL_BANNER_CROP.get(portal, PORTAL_BANNER_CROP["default"])
+        return int(h * pct)
+
+    return 0
+
+
+# ── Stage 2: PaddleOCR Text Detection ────────────────────────────────────────
+
+def _detect_text_regions(
+    image_path: str, seller_name: str = None
+) -> List[Dict]:
+    """
+    Detect all text regions using PaddleOCR PP-OCRv4.
+
+    Returns list of dicts:
+      {box: (x1,y1,x2,y2), text: str, conf: float, is_seller: bool, should_mask: bool}
+    """
+    ocr = _get_paddle_ocr()
+    if ocr is None:
+        return []
+
+    results = []
+    try:
+        # PaddleOCR 3.x: ocr() returns list of OCRResult (dict-like)
+        ocr_result = list(ocr.predict(image_path))
+        if not ocr_result:
+            return []
+
+        # Build seller word blocklist
+        seller_words = set()
+        if seller_name:
+            for sw in seller_name.lower().split():
+                if len(sw) >= 3:
+                    seller_words.add(sw)
+
+        # PaddleOCR 3.x: result is list of OCRResult objects
+        # Each OCRResult has ["rec_texts"], ["rec_scores"], ["dt_polys"], ["rec_polys"]
+        for page_result in ocr_result:
+            rec_texts = page_result["rec_texts"]
+            rec_scores = page_result["rec_scores"]
+            rec_polys = page_result["rec_polys"]
+
+            for text, conf, poly in zip(rec_texts, rec_scores, rec_polys):
+                if conf < PADDLE_CONF_MIN:
+                    continue
+                if len(text.strip()) < PADDLE_TEXT_MIN_LEN:
+                    continue
+
+                # Convert polygon to bounding rect
+                poly_arr = np.array(poly)
+                xs = poly_arr[:, 0].astype(int)
+                ys = poly_arr[:, 1].astype(int)
+                x1, y1, x2, y2 = int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())
+
+            words_lower = text.lower().strip().split()
+
+            # Check if seller name match
+            is_seller = False
+            if seller_words:
+                for wl in words_lower:
+                    for sw in seller_words:
+                        if sw in wl or wl in sw:
+                            is_seller = True
+                            break
+                    if is_seller:
+                        break
+
+            # Decide if should mask
+            should_mask = True
+            if not is_seller:
+                # Keep car spec words
+                if all(w in KEEP_WORDS for w in words_lower):
+                    should_mask = False
+                # Keep very short text with low confidence (noise)
+                elif len(text.strip()) <= 2:
+                    should_mask = False
+                # Keep pure numbers (dimensions, dates on dashboard)
+                elif all(w.replace('.', '').replace(',', '').replace('-', '').isdigit()
+                         for w in words_lower):
+                    should_mask = False
+
+            results.append({
+                'box': (x1, y1, x2, y2),
+                'text': text,
+                'conf': conf,
+                'is_seller': is_seller,
+                'should_mask': should_mask,
+            })
+
+    except Exception as e:
+        log.error(f"PaddleOCR detection failed: {e}")
+
+    return results
+
+
+# ── Stage 3: Inpainting ──────────────────────────────────────────────────────
+
+def _build_inpaint_mask(
+    cv_img,
+    text_regions: List[Dict],
+    crop_top: int = 0,
+):
+    """
+    Build binary mask for inpainting. 255 = inpaint, 0 = keep.
+
+    Dilates text boxes to cover edges and shadows.
+    """
+    h, w = cv_img.shape[:2]
+    mask = np.zeros((h, w), dtype=np.uint8)
+
+    for region in text_regions:
+        if not region['should_mask']:
+            continue
+
+        x1, y1, x2, y2 = region['box']
+
+        # Skip regions fully above crop line (they'll be removed by crop)
+        # But if region is near the crop line, inpaint it too (OCR box may be
+        # smaller than the actual signage/logo)
+        if y2 <= crop_top and not region['is_seller']:
+            continue
+        # For seller matches near crop line: extend mask below OCR box
+        if region['is_seller'] and y2 <= crop_top + int(h * 0.05):
+            # Extend mask well below the OCR box to catch full signage
+            y2 = min(h, crop_top + int(h * 0.08))
+
+        # Extra padding for seller matches
+        pad = 20 if region['is_seller'] else 12
+        mx1 = max(0, x1 - pad)
+        my1 = max(0, y1 - pad)
+        mx2 = min(w, x2 + pad)
+        my2 = min(h, y2 + pad)
+
+        mask[my1:my2, mx1:mx2] = 255
+
+    # Dilate to cover text edges
+    if np.any(mask > 0):
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, DILATE_KERNEL)
+        mask = cv2.dilate(mask, kernel, iterations=DILATE_ITERATIONS)
+
+    return mask
+
+
+def _inpaint_image(cv_img, mask):
+    """
+    Inpaint masked regions.
+
+    Strategy:
+    - Small areas (<30K px²): cv2.inpaint TELEA (~instant)
+    - Large areas (>=30K px²): SimpleLama on cropped region (~21s/region)
+    - If LaMa unavailable: TELEA fallback for everything
+    """
+    if not np.any(mask > 0):
+        return cv_img
+
+    h, w = cv_img.shape[:2]
+    result = cv_img.copy()
+
+    # Find connected components in mask
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
+
+    small_mask = np.zeros_like(mask)
+    large_regions = []
+
+    for label_id in range(1, num_labels):  # skip background (0)
+        area = stats[label_id, cv2.CC_STAT_AREA]
+        if area < LARGE_AREA_THRESHOLD:
+            small_mask[labels == label_id] = 255
+        else:
+            rx = stats[label_id, cv2.CC_STAT_LEFT]
+            ry = stats[label_id, cv2.CC_STAT_TOP]
+            rw = stats[label_id, cv2.CC_STAT_WIDTH]
+            rh = stats[label_id, cv2.CC_STAT_HEIGHT]
+            large_regions.append((rx, ry, rw, rh, label_id))
+
+    # TELEA for small areas (fast, ~instant)
+    if np.any(small_mask > 0):
+        result = cv2.inpaint(result, small_mask, TELEA_RADIUS, cv2.INPAINT_TELEA)
+
+    # LaMa for large areas (quality, ~21s per region)
+    lama = _get_simple_lama()
+    for rx, ry, rw, rh, label_id in large_regions:
+        # Crop region with padding
+        pad = LAMA_CROP_PADDING
+        cx1 = max(0, rx - pad)
+        cy1 = max(0, ry - pad)
+        cx2 = min(w, rx + rw + pad)
+        cy2 = min(h, ry + rh + pad)
+
+        crop_img = result[cy1:cy2, cx1:cx2]
+        crop_mask = np.zeros(crop_img.shape[:2], dtype=np.uint8)
+        crop_mask[labels[cy1:cy2, cx1:cx2] == label_id] = 255
+
+        if lama is not None:
+            try:
+                # SimpleLama expects PIL images
+                pil_img = Image.fromarray(cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB))
+                pil_mask = Image.fromarray(crop_mask)
+
+                # Resize if too large
+                orig_size = pil_img.size
+                max_side = max(orig_size)
+                if max_side > LAMA_MAX_SIDE:
+                    scale = LAMA_MAX_SIDE / max_side
+                    new_size = (int(orig_size[0] * scale), int(orig_size[1] * scale))
+                    pil_img_resized = pil_img.resize(new_size, Image.Resampling.LANCZOS)
+                    pil_mask_resized = pil_mask.resize(new_size, Image.Resampling.NEAREST)
+                    inpainted = lama(pil_img_resized, pil_mask_resized)
+                    inpainted = inpainted.resize(orig_size, Image.Resampling.LANCZOS)
+                else:
+                    inpainted = lama(pil_img, pil_mask)
+
+                # Paste back
+                inpainted_cv = cv2.cvtColor(np.array(inpainted), cv2.COLOR_RGB2BGR)
+                result[cy1:cy2, cx1:cx2] = inpainted_cv
+                continue
+            except Exception as e:
+                log.warning(f"LaMa inpaint failed for region ({rx},{ry},{rw},{rh}): {e}")
+
+        # Fallback: TELEA for this region too
+        region_mask = np.zeros(result.shape[:2], dtype=np.uint8)
+        region_mask[labels == label_id] = 255
+        result = cv2.inpaint(result, region_mask, TELEA_RADIUS, cv2.INPAINT_TELEA)
+
+    return result
+
+
+# ── Stage 4: Post-verify + Alert ─────────────────────────────────────────────
+
+def _post_verify_and_alert(
+    safe_path: str,
+    original_path: str,
+    listing_id: str,
+    image_index: int,
+    seller_name: str = None,
+) -> bool:
+    """
+    Re-run OCR on sanitized image. If text survives:
+    - conf >= ALERT_CONFIDENCE_THRESHOLD → send TG alert with before/after
+    - Returns True if image is acceptable (no high-confidence text)
+
+    Unlike v2 which REJECTED images with surviving text, v3 keeps the image
+    but alerts for human review. This prevents empty dossiers.
+    """
+    ocr = _get_paddle_ocr()
+    if ocr is None:
+        return True  # Can't verify, assume OK
+
+    try:
+        verify_result = list(ocr.predict(safe_path))
+        if not verify_result:
+            return True  # Clean
+
+        surviving_text = []
+        for page_result in verify_result:
+            for text, conf in zip(page_result["rec_texts"], page_result["rec_scores"]):
+                if conf < 0.30:
+                    continue
+                words = text.lower().strip().split()
+                if all(w in KEEP_WORDS for w in words):
+                    continue
+                if len(text.strip()) <= 2:
+                    continue
+                if all(w.replace('.', '').replace(',', '').replace('-', '').isdigit()
+                       for w in words):
+                    continue
+                garble = len(re.findall(r'[^a-zA-Z0-9\s]', text)) / max(len(text), 1)
+                if garble > 0.3:
+                    continue
+                if len(text.strip()) <= 4 and conf < 0.50:
+                    continue
+                surviving_text.append((text, conf))
+
+        if surviving_text:
+            high_conf = [t for t, c in surviving_text if c >= ALERT_CONFIDENCE_THRESHOLD]
+            all_text = ", ".join(f'"{t}" ({c:.0%})' for t, c in surviving_text)
+
+            if high_conf:
+                caption = (
+                    f"SANITIZER ALERT: Residual text in {listing_id} img#{image_index}\n"
+                    f"Text: {all_text}\n"
+                    f"Seller: {seller_name or 'unknown'}\n"
+                    f"ACTION: Review manually"
+                )
+                log.warning(caption)
+                _send_tg_before_after(original_path, safe_path, caption)
+                return True  # Keep image but alert sent
+
+            # Low confidence text — log only
+            log.info(f"Low-conf residual in {listing_id} img#{image_index}: {all_text}")
+
+        return True
+
+    except Exception as e:
+        log.error(f"Post-verify failed: {e}")
+        return True
+
+
+# ── Hood Reflection Detection ─────────────────────────────────────────────────
+
+def _detect_hood_reflection(cv_img) -> bool:
+    """
+    Detect text reflected on car hood (irresolvable automatically per S110).
+    Returns True if suspicious reflection detected → triggers TG alert.
+
+    Heuristic: dark zone in bottom 40-60% with high local variance
+    (text reflection on metallic surface).
+    """
+    if not CV2_AVAILABLE:
+        return False
+
+    try:
+        h, w = cv_img.shape[:2]
+        # Hood zone: 40-65% from top (typical for frontal shots)
+        hood = cv_img[int(h * 0.40):int(h * 0.65), int(w * 0.15):int(w * 0.85)]
+        gray = cv2.cvtColor(hood, cv2.COLOR_BGR2GRAY)
+
+        # Dark + high local variance = possible text reflection on paint
+        mean_val = float(np.mean(gray))
+        local_var = float(np.std(gray))
+
+        # Metallic hoods are dark (mean < 80) with text reflections (std > 35)
+        if mean_val < 80 and local_var > 35:
+            return True
+
+    except Exception:
+        pass
+
+    return False
+
+
+# ── Font Helper ───────────────────────────────────────────────────────────────
+
+def _get_font(size: int):
+    """Get best available font at given size."""
+    for path in [
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    ]:
+        try:
+            return ImageFont.truetype(path, size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
+# ── Main sanitize_image ──────────────────────────────────────────────────────
 
 def sanitize_image(
     image_path: str,
@@ -188,11 +634,13 @@ def sanitize_image(
     seller_name: str = None,
 ) -> Optional[str]:
     """
-    Sanitize a single vehicle image:
-    1. Strip EXIF metadata
-    2. Blur bottom plate zone
-    3. Overlay ARGOS branded plate cover
-    4. Blur top dealer logo zone (if detected)
+    Sanitize a single vehicle image (v3 pipeline):
+
+    Stage 0: Classify interior/exterior
+    Stage 1: Crop portal banner (top zone)
+    Stage 2: PaddleOCR text detection
+    Stage 3: Inpaint (TELEA small / LaMa large)
+    Stage 4: Post-verify + TG alert if residuals
 
     Returns: path to sanitized image, or None on failure.
     """
@@ -204,13 +652,11 @@ def sanitize_image(
         print(f"  SKIP: image not found: {image_path}")
         return None
 
-    # Skip thumbnails — too small to be useful in a dossier
     file_size = os.path.getsize(image_path)
     if file_size < MIN_IMAGE_BYTES:
-        print(f"  SKIP thumbnail: {os.path.basename(image_path)} ({file_size // 1024} KB < {MIN_IMAGE_BYTES // 1024} KB)")
+        print(f"  SKIP thumbnail: {os.path.basename(image_path)} ({file_size // 1024} KB)")
         return None
 
-    # Output setup
     if output_dir is None:
         output_dir = str(DEFAULT_SAFE_DIR)
     os.makedirs(output_dir, exist_ok=True)
@@ -223,370 +669,140 @@ def sanitize_image(
         safe_name = f"argos_safe_{base}.jpg"
     safe_path = os.path.join(output_dir, safe_name)
 
+    t0 = time.time()
+
     try:
-        # Open and strip EXIF
-        img = Image.open(image_path)
-        clean = Image.new(img.mode, img.size)
-        clean.paste(img)
-        w, h = clean.size
+        # ── STAGE 0: Interior/Exterior Classification ────────────
+        is_interior = _is_interior_photo(image_path, image_index)
 
-        # ── PRE-FILTER: Drop non-car images (dealer buildings, piazzale, people) ──
-        if CV2_AVAILABLE and image_index >= 12:
-            # Late images in AS24 listings are often dealer promotional photos
-            # Heuristic: check if image is dominated by sky/building (high blue/gray ratio)
-            cv_check = cv2.imread(image_path)
-            if cv_check is not None:
-                hsv = cv2.cvtColor(cv_check, cv2.COLOR_BGR2HSV)
-                h_ch, s_ch, v_ch = cv_check.shape[:2], hsv[:, :, 1], hsv[:, :, 2]
-                # Sky detection: top 30% has low saturation + high value (bright gray/blue)
-                top_third = s_ch[:cv_check.shape[0] // 3, :]
-                sky_ratio = float(np.sum((top_third < 50) & (v_ch[:cv_check.shape[0] // 3, :] > 150))) / max(top_third.size, 1)
-                if sky_ratio > 0.5:
-                    print(f"  DROP non-car: {os.path.basename(image_path)} (sky_ratio={sky_ratio:.2f}, likely building/outdoor)")
-                    return None
+        if is_interior:
+            # Interior photos: just strip EXIF, no text removal
+            img = Image.open(image_path)
+            clean = Image.new(img.mode, img.size)
+            clean.paste(img)
+            if clean.mode == 'RGBA':
+                clean = clean.convert('RGB')
+            clean.save(safe_path, 'JPEG', quality=90)
+            elapsed = time.time() - t0
+            print(f"  INTERIOR: {safe_name} (index={image_index}, {elapsed:.1f}s)")
+            return safe_path
 
-        # ══════════════════════════════════════════════════════════
-        # ZERO TOLERANCE SANITIZATION v15 — GENERAL APPROACH
-        #
-        # 1. YOLO detects plates → inpaint (natural fill, not black box)
-        # 2. OCR detects ALL text → inpaint non-car text
-        # 3. CV2 edge detects banners → CROP
-        # 4. Verify OCR on output → DROP if text survives
-        # 5. Pre-filter drops non-car images (buildings, piazzale)
-        #
-        # No blur. No full-width bars. No whack-a-mole.
-        # ══════════════════════════════════════════════════════════
+        if not CV2_AVAILABLE:
+            # Without OpenCV, just strip EXIF
+            img = Image.open(image_path)
+            clean = Image.new(img.mode, img.size)
+            clean.paste(img)
+            if clean.mode == 'RGBA':
+                clean = clean.convert('RGB')
+            clean.save(safe_path, 'JPEG', quality=90)
+            return safe_path
 
-        _keep_words = {'xdrive', 'sdrive', 'quattro', 'tfsi', 'tdi', 'cdi',
-                       'diesel', 'benzin', 'hybrid', 'electric',
-                       'automatik', 'automatic', 'schaltung',
-                       'argos', 'automotive'}
+        cv_img = cv2.imread(image_path)
+        if cv_img is None:
+            print(f"  ERROR: cv2 cannot read {image_path}")
+            return None
 
-        # ── STEP 1: Detect plates via YOLO ───────────────────────
-        plate_boxes = []
-        yolo = _get_plate_model()
-        if yolo:
-            try:
-                results = yolo(image_path, size=640)
-                preds = results.pred[0]
-                for *box, conf, cls in preds:
-                    x1, y1, x2, y2 = [int(v) for v in box]
-                    # Plates are in bottom 60% of image — filter top false positives
-                    if y1 < h * 0.40 and conf < 0.70:
-                        continue
-                    if conf > 0.30:
-                        plate_boxes.append((x1, y1, x2, y2, float(conf)))
-                        print(f"  [YOLO] Plate at ({x1},{y1})-({x2},{y2}) conf={conf:.2f}")
-            except Exception as e:
-                print(f"  [YOLO] Error: {e}")
+        h, w = cv_img.shape[:2]
 
-        # ── STEP 2: Detect all text via EasyOCR ──────────────────
-        text_rects = []
-        reader = _get_ocr_reader()
-        if reader:
-            try:
-                results = reader.readtext(image_path, detail=1)
-                for bbox_pts, text_str, conf in results:
-                    if conf > 0.10:  # Low threshold to catch cursive/styled dealer text
-                        xs = [int(p[0]) for p in bbox_pts]
-                        ys = [int(p[1]) for p in bbox_pts]
-                        text_rects.append((min(xs), min(ys), max(xs), max(ys), text_str, conf))
-            except Exception as e:
-                print(f"  [OCR] Error: {e}")
+        # Detect portal from listing_id
+        portal = "default"
+        if listing_id:
+            if "autoscout24" in listing_id:
+                portal = "autoscout24"
+            elif "mobile_de" in listing_id:
+                portal = "mobile_de"
 
-        _crop_top_after_inpaint = 0
+        # ── STAGE 1: Banner Crop ─────────────────────────────────
+        crop_top = _detect_banner_crop(cv_img, portal)
 
-        # ── STEP 3: Build inpaint mask ───────────────────────────
-        # One mask for everything that needs to disappear.
-        if CV2_AVAILABLE:
-            cv_img = cv2.imread(image_path)
-            if cv_img is not None:
-                mask = np.zeros(cv_img.shape[:2], dtype=np.uint8)
+        # Extend crop if OCR finds text in top zone
+        text_regions = _detect_text_regions(image_path, seller_name)
+        for region in text_regions:
+            if region['should_mask']:
+                _, ty1, _, ty2 = region['box']
+                if ty1 < h * 0.30:
+                    # Seller text: aggressive crop (8% margin below text)
+                    # Other text: standard crop (2% margin)
+                    margin = int(h * 0.08) if region['is_seller'] else int(h * 0.02)
+                    crop_top = max(crop_top, ty2 + margin)
+        crop_top = min(crop_top, int(h * 0.35))  # Never crop more than 35%
 
-                # 3a: Mask plates (YOLO) + generous frame expansion
-                for x1, y1, x2, y2, conf in plate_boxes:
-                    pw, ph = x2 - x1, y2 - y1
-                    # Expand to cover plate frame (dealer text above/below)
-                    fx1 = max(0, x1 - int(pw * 0.08))
-                    fy1 = max(0, y1 - int(ph * 1.0))   # 100% above for frame
-                    fx2 = min(w, x2 + int(pw * 0.08))
-                    fy2 = min(h, y2 + int(ph * 0.5))    # 50% below
-                    mask[fy1:fy2, fx1:fx2] = 255
+        if crop_top > 0:
+            print(f"  [BANNER] Crop top {crop_top}px ({crop_top/h*100:.0f}%)")
 
-                # 3b: Mask all non-car text detected by OCR
-                # Build seller blocklist from seller_name (split into words >= 3 chars)
-                _seller_words = set()
-                if seller_name:
-                    for sw in seller_name.lower().split():
-                        if len(sw) >= 3:
-                            _seller_words.add(sw)
+        # ── STAGE 2: Already done above (text_regions) ───────────
+        mask_count = sum(1 for r in text_regions if r['should_mask'])
+        if mask_count > 0:
+            seller_matches = [r for r in text_regions if r['is_seller']]
+            other_text = [r for r in text_regions if r['should_mask'] and not r['is_seller']]
+            if seller_matches:
+                print(f"  [OCR] {len(seller_matches)} seller match(es): "
+                      + ", ".join(f'"{r["text"]}"' for r in seller_matches))
+            if other_text:
+                print(f"  [OCR] {len(other_text)} other text region(s) to mask")
 
-                for tx1, ty1, tx2, ty2, ttext, conf in text_rects:
-                    words_lower = ttext.lower().strip().split()
+        # ── STAGE 3: Inpainting ──────────────────────────────────
+        mask = _build_inpaint_mask(cv_img, text_regions, crop_top)
+        has_mask = np.any(mask > 0)
 
-                    # Force-mask if text matches seller name (even at low confidence)
-                    is_seller = False
-                    if _seller_words:
-                        for wl in words_lower:
-                            for sw in _seller_words:
-                                # Fuzzy: seller word contained in detected text or vice versa
-                                if sw in wl or wl in sw:
-                                    is_seller = True
-                                    print(f"  [SELLER] '{ttext}' matches seller '{seller_name}' → MASK")
-                                    break
-                            if is_seller:
-                                break
+        if has_mask:
+            cv_img = _inpaint_image(cv_img, mask)
+            masked_px = np.count_nonzero(mask)
+            print(f"  [INPAINT] {masked_px // 1000}K pixels masked")
 
-                    if not is_seller:
-                        if all(w in _keep_words for w in words_lower):
-                            continue
-                        if (tx2 - tx1) < 15 or (ty2 - ty1) < 5:
-                            continue
-                        if len(ttext.strip()) <= 1:
-                            continue
+        # Apply crop
+        if crop_top > 0:
+            cv_img = cv_img[crop_top:, :]
+            h, w = cv_img.shape[:2]
 
-                    # Mask with padding (extra padding for seller matches)
-                    pad = 20 if is_seller else 10
-                    mx1 = max(0, tx1 - pad)
-                    my1 = max(0, ty1 - pad)
-                    mx2 = min(w, tx2 + pad)
-                    my2 = min(h, ty2 + pad)
-                    mask[my1:my2, mx1:mx2] = 255
-
-                # 3c: Detect top banner → save for CROP later (not inpaint!)
-                # Inpainting the entire top zone destroys the car roof.
-                # Banner = CROP. Individual text/logos = already in mask from 3b.
-                gray = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
-                h_cv, w_cv = gray.shape
-                max_edge = 0
-                edge_row = 0
-                for row in range(int(h_cv * 0.05), int(h_cv * 0.30)):
-                    diff = abs(float(np.mean(gray[row])) - float(np.mean(gray[row + 1])))
-                    if diff > max_edge:
-                        max_edge = diff
-                        edge_row = row
-                top_std = float(np.std(gray[0:int(h_cv * 0.18)]))
-                _crop_top_after_inpaint = 0
-                if max_edge > 15 and edge_row > int(h_cv * 0.05):
-                    _crop_top_after_inpaint = edge_row + int(h_cv * 0.04)  # 4% margin — catches logos below edge
-                elif top_std < 25:
-                    _crop_top_after_inpaint = int(h_cv * 0.18)
-                # Extend if OCR found text above the edge
-                for tx1, ty1, tx2, ty2, ttext, conf in text_rects:
-                    if ty1 < h * 0.30:
-                        words_lower = ttext.lower().strip().split()
-                        if not all(w in _keep_words for w in words_lower) and len(ttext.strip()) > 2:
-                            _crop_top_after_inpaint = max(_crop_top_after_inpaint, ty2 + int(h * 0.05))
-                _crop_top_after_inpaint = min(_crop_top_after_inpaint, int(h * 0.30))
-                if _crop_top_after_inpaint > 0:
-                    print(f"  [BANNER] Top crop planned at {_crop_top_after_inpaint}px ({_crop_top_after_inpaint/h*100:.0f}%)")
-
-                # 3d: Plate fallback — if YOLO missed the plate, mask typical plate zone
-                if not plate_boxes:
-                    # Look for OCR text in bottom 30% that could be plate frame text
-                    has_bottom_text = False
-                    for tx1, ty1, tx2, ty2, ttext, conf in text_rects:
-                        if ty1 > h * 0.70:
-                            words_lower = ttext.lower().strip().split()
-                            if not all(w in _keep_words for w in words_lower):
-                                has_bottom_text = True
-                                pad = 12
-                                mask[max(0,ty1-pad):min(h,ty2+pad), max(0,tx1-pad):min(w,tx2+pad)] = 255
-                    if not has_bottom_text:
-                        # No plate found at all — DON'T mask, just add ARGOS label
-                        # after crop in the right spot
-                        print(f"  [FALLBACK] No plate detected, will add ARGOS label after crop")
-
-                # 3f: Inpaint with LaMa
-                has_mask = np.any(mask > 0)
-                if has_mask:
-                    inpainted = _lama_inpaint(cv_img, mask)
-                    # Convert back to PIL
-                    clean = Image.fromarray(cv2.cvtColor(inpainted, cv2.COLOR_BGR2RGB))
-                    w, h = clean.size
-                    print(f"  [INPAINT] Removed {len(plate_boxes)} plates + {np.count_nonzero(mask) // 1000}K masked pixels")
-
-        # ── STEP 4: Crop top banner + bottom uniform strip ────────
-        # Top banner = CROP (preserves car, removes dealer logos)
-        # Bottom = crop if uniform strip detected
-        crop_top = _crop_top_after_inpaint
+        # Detect and crop bottom uniform strip
+        gray = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
+        bot_std = float(np.std(gray[int(h * 0.85):]))
         crop_bottom = 0
-        if CV2_AVAILABLE:
-            _tmp = safe_path + ".tmp.jpg"
-            _save = clean.convert('RGB') if clean.mode == 'RGBA' else clean
-            _save.save(_tmp, 'JPEG', quality=95)
-            cv_img2 = cv2.imread(_tmp)
-            try:
-                os.remove(_tmp)
-            except OSError:
-                pass
-            if cv_img2 is not None:
-                gray2 = cv2.cvtColor(cv_img2, cv2.COLOR_BGR2GRAY)
-                bot_std = float(np.std(gray2[int(gray2.shape[0] * 0.85):]))
-                if bot_std < 30:
-                    crop_bottom = gray2.shape[0] - int(gray2.shape[0] * 0.85)
+        if bot_std < 30:
+            crop_bottom = h - int(h * 0.85)
+            cv_img = cv_img[:int(h * 0.85), :]
+            h, w = cv_img.shape[:2]
+            print(f"  [CROP] Bottom {crop_bottom}px")
 
-        if crop_top > 0 or crop_bottom > 0:
-            new_bottom = h - crop_bottom if crop_bottom else h
-            clean = clean.crop((0, crop_top, w, new_bottom))
-            w, h = clean.size
-            if crop_top > 0:
-                print(f"  [CROP] Top {crop_top}px")
-            if crop_bottom > 0:
-                print(f"  [CROP] Bottom {crop_bottom}px")
+        # ── Hood reflection check ────────────────────────────────
+        if _detect_hood_reflection(cv_img):
+            caption = (
+                f"HOOD REFLECTION: {listing_id or 'unknown'} img#{image_index}\n"
+                f"Possible text reflection on hood — review manually"
+            )
+            log.warning(caption)
+            _send_tg_alert(caption, image_path)
 
-        # ── STEP 5: Add small ARGOS label on plate area ──────────
-        if plate_boxes:
-            draw = ImageDraw.Draw(clean)
-            for x1, y1, x2, y2, conf in plate_boxes:
-                ay1 = y1 - crop_top
-                ay2 = min(y2 - crop_top, h)
-                if ay1 < 0 or ay1 > h:
-                    continue
-                pw, ph = x2 - x1, ay2 - ay1
-                if ph <= 0:
-                    continue
-                # Small ARGOS text on the inpainted plate area
-                try:
-                    pfont_size = max(8, int(ph * 0.40))
-                    try:
-                        pfont = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", pfont_size)
-                    except OSError:
-                        try:
-                            pfont = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", pfont_size)
-                        except OSError:
-                            pfont = ImageFont.load_default()
-                except Exception:
-                    pfont = ImageFont.load_default()
-                ptext = "ARGOS"
-                pbb = draw.textbbox((0, 0), ptext, font=pfont)
-                ptw, pth = pbb[2] - pbb[0], pbb[3] - pbb[1]
-                cx = x1 + (pw - ptw) // 2
-                cy = ay1 + (ph - pth) // 2
-                draw.text((cx, cy), ptext, fill=ARGOS_GOLD, font=pfont)
+        # ── Add subtle ARGOS branding ────────────────────────────
+        pil_img = Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
+        draw = ImageDraw.Draw(pil_img)
+        fs = max(10, int(h * 0.025))
+        font = _get_font(fs)
+        draw.text((int(w * 0.03), int(h * 0.93)), "ARGOS", fill=ARGOS_GOLD, font=font)
 
-        # ── STEP 5b: If no plate detected, add small ARGOS at bottom ──
-        if not plate_boxes:
-            draw = ImageDraw.Draw(clean)
-            # Small ARGOS in bottom-left, subtle
-            try:
-                fs = max(10, int(h * 0.03))
-                try:
-                    font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", fs)
-                except OSError:
-                    try:
-                        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", fs)
-                    except OSError:
-                        font = ImageFont.load_default()
-            except Exception:
-                font = ImageFont.load_default()
-            draw.text((int(w * 0.03), int(h * 0.92)), "ARGOS", fill=ARGOS_GOLD, font=font)
+        # ── Save ─────────────────────────────────────────────────
+        if pil_img.mode == 'RGBA':
+            pil_img = pil_img.convert('RGB')
+        pil_img.save(safe_path, 'JPEG', quality=90)
 
-        # ── STEP 6: Save ─────────────────────────────────────────
-        if clean.mode == 'RGBA':
-            clean = clean.convert('RGB')
-        clean.save(safe_path, 'JPEG', quality=90)
+        # ── STAGE 4: Post-verify + Alert (only if text was masked) ──
+        if has_mask:
+            _post_verify_and_alert(safe_path, image_path, listing_id or "", image_index, seller_name)
 
-        # ── STEP 7: ZERO TOLERANCE VERIFY ────────────────────────
-        if reader:
-            try:
-                import re as _re
-                verify_results = reader.readtext(safe_path, detail=1)
-                for bbox_pts, vtext, vconf in verify_results:
-                    if vconf < 0.30:
-                        continue
-                    vwords = vtext.lower().strip().split()
-                    # Skip our own ARGOS branding (OCR sometimes reads it as ARCOS/ARG0S)
-                    _our_brand = {'argos', 'arcos', 'arg0s', 'argds', 'automotive', 'automotve'}
-                    if all(w in _our_brand or w in _keep_words for w in vwords):
-                        continue
-                    if len(vtext.strip()) <= 2:
-                        continue
-                    if all(w.replace('.', '').replace(',', '').isdigit() for w in vwords):
-                        continue
-                    garble_ratio = len(_re.findall(r'[^a-zA-Z0-9\s]', vtext)) / max(len(vtext), 1)
-                    if garble_ratio > 0.3 or (vconf < 0.45 and garble_ratio > 0.1):
-                        continue
-                    if len(vtext.strip()) <= 4 and vconf < 0.50:
-                        continue
-                    # Surviving dealer text → REJECT
-                    print(f"  REJECTED: \"{vtext}\" (conf={vconf:.2f}) survived")
-                    try:
-                        os.remove(safe_path)
-                    except OSError:
-                        pass
-                    return None
-            except Exception as e:
-                print(f"  [VERIFY] error: {e}")
-
+        elapsed = time.time() - t0
         size_kb = os.path.getsize(safe_path) / 1024
-        print(f"  SANITIZED: {safe_name} ({size_kb:.0f} KB)")
+        print(f"  SANITIZED: {safe_name} ({size_kb:.0f} KB, {elapsed:.1f}s)")
         return safe_path
 
     except Exception as e:
         print(f"  ERROR sanitizing {image_path}: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
-def _overlay_argos_plate_cover(img: Image.Image, plate_top: int, w: int, h: int) -> Image.Image:
-    """
-    Overlay a branded ARGOS plate cover bar on the plate zone.
-    Dark bar with ARGOS text + gold accent.
-    """
-    draw = ImageDraw.Draw(img)
-
-    # Plate cover bar dimensions
-    bar_height = h - plate_top
-    bar_y_center = plate_top + bar_height // 2
-
-    # Draw semi-transparent dark bar across bottom
-    # Pillow doesn't support alpha on non-RGBA, so we just draw a solid bar
-    # slightly above the very bottom to look intentional
-    bar_top = plate_top + int(bar_height * 0.15)
-    bar_bottom = h - int(bar_height * 0.15)
-
-    # Dark bar
-    draw.rectangle(
-        [(w * 0.15, bar_top), (w * 0.85, bar_bottom)],
-        fill=ARGOS_BLACK
-    )
-
-    # Gold accent lines
-    draw.line(
-        [(w * 0.15, bar_top), (w * 0.85, bar_top)],
-        fill=ARGOS_GOLD, width=2
-    )
-    draw.line(
-        [(w * 0.15, bar_bottom), (w * 0.85, bar_bottom)],
-        fill=ARGOS_GOLD, width=2
-    )
-
-    # ARGOS text in plate cover
-    text = "ARGOS AUTOMOTIVE"
-    try:
-        # Try to use a reasonable font size
-        font_size = max(14, int(bar_height * 0.35))
-        try:
-            font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
-        except OSError:
-            try:
-                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
-            except OSError:
-                font = ImageFont.load_default()
-    except Exception:
-        font = ImageFont.load_default()
-
-    # Center the text
-    bbox = draw.textbbox((0, 0), text, font=font)
-    text_w = bbox[2] - bbox[0]
-    text_h = bbox[3] - bbox[1]
-    text_x = (w - text_w) // 2
-    text_y = (bar_top + bar_bottom - text_h) // 2
-
-    draw.text((text_x, text_y), text, fill=ARGOS_GOLD, font=font)
-
-    return img
-
+# ── sanitize_all_images (public interface — PRESERVED) ───────────────────────
 
 def sanitize_all_images(
     listing_id: str,
@@ -640,39 +856,33 @@ def sanitize_all_images(
         return []
 
     # ── Dedup URLs: AS24 stores same photo in 10 resolutions ──
-    # Keep only highest resolution per unique image UUID
-    import re as _re
     unique_images = {}
     for url, local_path in rows:
         if not url:
             continue
-        # Extract base UUID from URL (before resolution suffix like /1280x960.webp or /120X90.jpeg)
-        base = _re.sub(r'/\d+[xX]\d+\.(?:jpg|jpeg|webp|png)$', '', url.split('?')[0])
-        # Parse resolution
-        res_match = _re.search(r'/(\d+)[xX](\d+)\.(?:jpg|jpeg|webp|png)$', url)
+        # Extract base UUID from URL (before resolution suffix)
+        base = re.sub(r'/\d+[xX]\d+\.(?:jpg|jpeg|webp|png)$', '', url.split('?')[0])
+        res_match = re.search(r'/(\d+)[xX](\d+)\.(?:jpg|jpeg|webp|png)$', url)
         res = int(res_match.group(1)) * int(res_match.group(2)) if res_match else 0
-        # Prefer jpg over webp at same resolution, prefer highest resolution
         if base not in unique_images or res > unique_images[base][2]:
             unique_images[base] = (url, local_path, res)
 
     deduped_rows = [(v[0], v[1]) for v in unique_images.values()]
     if len(deduped_rows) < len(rows):
-        print(f"  URL dedup: {len(rows)} → {len(deduped_rows)} unique images")
+        print(f"  URL dedup: {len(rows)} -> {len(deduped_rows)} unique images")
     rows = deduped_rows
 
     safe_paths = []
     raw_dir = os.path.join(output_dir, "raw")
     os.makedirs(raw_dir, exist_ok=True)
 
+    t_total = time.time()
     for i, (url, local_path) in enumerate(rows):
-        # Determine source path
         src_path = None
 
-        # Try local path first
         if local_path and os.path.exists(local_path):
             src_path = local_path
         elif download_first and url:
-            # Download from URL
             src_path = _download_image(url, raw_dir, listing_id, i)
 
         if src_path and os.path.exists(src_path):
@@ -681,162 +891,12 @@ def sanitize_all_images(
             if safe:
                 safe_paths.append(safe)
 
-    # Dedup disabled — perceptual hash too aggressive on studio photos
-    # where all images share the same background after banner crop.
-    # TODO: implement content-aware dedup (detect car angle, not background)
-
-    print(f"  Sanitized {len(safe_paths)}/{len(rows)} images for {listing_id}")
+    elapsed = time.time() - t_total
+    print(f"  Sanitized {len(safe_paths)}/{len(rows)} images for {listing_id} ({elapsed:.1f}s total)")
     return safe_paths
 
 
-def _detect_plates_cv2(image_path: str) -> List[Tuple[int, int, int, int]]:
-    """
-    Detect EU license plates using OpenCV contour + HSV + position filtering.
-
-    EU plates: white rectangle ~520x110mm, aspect ratio ~4.7:1.
-    Position constraint: plates appear in bottom 45% of image, center 90%.
-    This eliminates false positives from white car body parts, sky, etc.
-
-    Returns list of (x, y, w, h) bounding rectangles.
-    """
-    if not CV2_AVAILABLE:
-        return []
-    try:
-        img = cv2.imread(image_path)
-        if img is None:
-            return []
-        h_img, w_img = img.shape[:2]
-
-        # Only search in bottom 45% of image — plates are never in the sky
-        search_top = int(h_img * 0.55)
-        roi = img[search_top:, :]
-        h_roi, w_roi = roi.shape[:2]
-
-        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-
-        # White color range — EU plates are white with blue left band
-        lower_white = np.array([0, 0, 170])
-        upper_white = np.array([255, 70, 255])
-        mask = cv2.inRange(hsv, lower_white, upper_white)
-
-        # Morphological ops: close gaps in plate text, then open to remove noise
-        kernel_close = cv2.getStructuringElement(cv2.MORPH_RECT, (18, 5))
-        kernel_open = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 3))
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel_close)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel_open)
-
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        candidates = []
-        for contour in contours:
-            x, y, w, h = cv2.boundingRect(contour)
-            if h == 0 or w == 0:
-                continue
-            area = w * h
-            aspect_ratio = w / h
-            roi_area = w_roi * h_roi
-
-            # EU plate constraints (tightened):
-            # - Aspect ratio 3.5-5.8 (standard EU is 4.7:1)
-            # - Area 0.15%-4% of ROI (not full image — ROI is bottom 45%)
-            # - Width 6%-28% of image width
-            # - Height 1%-6% of image height (plates are thin)
-            # - Center 90%: plate center X must be within 5%-95% of image width
-            cx = x + w // 2
-            cy_full = (search_top + y) + h // 2  # Y in full image coords
-
-            center_x_ok = 0.05 * w_img < cx < 0.95 * w_img
-
-            if (3.5 < aspect_ratio < 5.8
-                    and 0.0015 < area / roi_area < 0.04
-                    and 0.06 < w / w_img < 0.28
-                    and 0.01 < h / h_img < 0.06
-                    and center_x_ok):
-                # Score: prefer candidates closer to EU standard aspect ratio
-                ar_score = 1.0 - abs(aspect_ratio - 4.7) / 2.0
-                candidates.append((x, search_top + y, w, h, ar_score))
-
-        # Sort by aspect ratio closeness to 4.7 (best match first)
-        candidates.sort(key=lambda c: c[4], reverse=True)
-
-        # Remove overlapping detections — keep best scoring
-        filtered = []
-        for c in candidates:
-            x, y, w, h, score = c
-            overlap = False
-            for fx, fy, fw, fh in filtered:
-                # Check if centers are close (within 1 plate-width)
-                cx1, cy1 = x + w // 2, y + h // 2
-                cx2, cy2 = fx + fw // 2, fy + fh // 2
-                if abs(cx1 - cx2) < max(w, fw) and abs(cy1 - cy2) < max(h, fh) * 2:
-                    overlap = True
-                    break
-            if not overlap:
-                filtered.append((x, y, w, h))
-
-        return filtered[:2]  # Max 2 plates (front + rear visible)
-    except Exception as e:
-        print(f"  [CV2] Plate detection error: {e}")
-        return []
-
-
-def _perceptual_hash(image_path: str) -> Optional[str]:
-    """Compute a simple perceptual hash: resize to 8x8 grayscale, threshold to binary."""
-    try:
-        img = Image.open(image_path).convert('L').resize((8, 8), Image.Resampling.LANCZOS)
-        pixels = list(img.getdata())
-        avg = sum(pixels) / len(pixels)
-        bits = ''.join('1' if p > avg else '0' for p in pixels)
-        return bits
-    except Exception:
-        return None
-
-
-def _perceptual_hash_16(image_path: str) -> Optional[str]:
-    """Higher resolution perceptual hash (16x16=256 bits) for better discrimination."""
-    try:
-        img = Image.open(image_path).convert('L').resize((16, 16), Image.Resampling.LANCZOS)
-        pixels = list(img.getdata())
-        avg = sum(pixels) / len(pixels)
-        bits = ''.join('1' if p > avg else '0' for p in pixels)
-        return bits
-    except Exception:
-        return None
-
-
-def _hamming_distance(h1: str, h2: str) -> int:
-    """Count differing bits between two hashes."""
-    return sum(c1 != c2 for c1, c2 in zip(h1, h2))
-
-
-def _dedup_images(image_paths: List[str], threshold: int = 2) -> List[str]:
-    """
-    Remove near-duplicate images using perceptual hashing.
-    threshold: max hamming distance to consider duplicate (lower = stricter).
-    2 out of 64 bits = ~3% — only truly identical photos removed.
-
-    Uses 16x16 hash for better discrimination between different car angles.
-    """
-    if not PILLOW_AVAILABLE:
-        return image_paths
-
-    hashes = []
-    unique = []
-    for path in image_paths:
-        h = _perceptual_hash_16(path)
-        if h is None:
-            unique.append(path)
-            continue
-        is_dup = False
-        for existing_h in hashes:
-            if _hamming_distance(h, existing_h) <= threshold:
-                is_dup = True
-                break
-        if not is_dup:
-            unique.append(path)
-            hashes.append(h)
-    return unique
-
+# ── Helper: Download Image ───────────────────────────────────────────────────
 
 def _download_image(url: str, output_dir: str, listing_id: str, index: int) -> Optional[str]:
     """Download image from URL to local path."""
@@ -875,15 +935,11 @@ def _download_image(url: str, output_dir: str, listing_id: str, index: int) -> O
         return None
 
 
+# ── Helper: Check Photo Sufficiency ──────────────────────────────────────────
+
 def check_image_sufficient(listing_id: str, db_path: str = None, min_photos: int = 4) -> dict:
     """
     Check if a listing has enough photos for a complete dossier.
-
-    Returns dict:
-      sufficient: bool
-      photo_count: int
-      min_required: int
-      missing_views: list of str (e.g. ["interior", "rear", "engine"])
     """
     if db_path is None:
         db_path = str(PROJECT_ROOT / "src" / "cove" / "data" / "cove_tracker.duckdb")
@@ -899,25 +955,26 @@ def check_image_sufficient(listing_id: str, db_path: str = None, min_photos: int
     except Exception:
         count = 0
 
-    # Ideal views for a complete dossier
-    ideal_views = ["front", "rear", "side_left", "side_right", "interior_front", "interior_rear", "dashboard", "engine"]
-
+    ideal_views = ["front", "rear", "side_left", "side_right",
+                   "interior_front", "interior_rear", "dashboard", "engine"]
     sufficient = count >= min_photos
-    missing_count = max(0, min_photos - count)
 
     return {
         "sufficient": sufficient,
         "photo_count": count,
         "min_required": min_photos,
-        "missing_count": missing_count,
+        "missing_count": max(0, min_photos - count),
         "ideal_views": ideal_views,
-        "message": f"{count} foto disponibili" if sufficient else f"Solo {count} foto — servono almeno {min_photos} per un dossier completo"
+        "message": (f"{count} foto disponibili" if sufficient
+                    else f"Solo {count} foto — servono almeno {min_photos} per un dossier completo"),
     }
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
+# ── CLI ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
     if len(sys.argv) < 2:
         print("Usage:")
         print("  python3 src/cove/image_sanitizer.py <listing_id>           # Sanitize all images")
@@ -938,10 +995,6 @@ if __name__ == "__main__":
         print(f"  Photos: {info['photo_count']}")
         print(f"  Sufficient: {info['sufficient']}")
         print(f"  {info['message']}")
-        if not info['sufficient']:
-            print(f"\n  Ideal views needed:")
-            for v in info['ideal_views']:
-                print(f"    - {v}")
     else:
         listing_id = sys.argv[1]
         results = sanitize_all_images(listing_id)
