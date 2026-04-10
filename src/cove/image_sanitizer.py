@@ -33,6 +33,13 @@ import logging
 from pathlib import Path
 from typing import Optional, List, Tuple, Dict
 
+# Load .env for TG alerts (if dotenv available)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent.parent / ".env")
+except ImportError:
+    pass
+
 try:
     from PIL import Image, ImageDraw, ImageFont
     PILLOW_AVAILABLE = True
@@ -163,10 +170,10 @@ def _get_simple_lama():
 def _send_tg_alert(message: str, photo_path: str = None):
     """Send alert to Telegram bot. Non-blocking, fire-and-forget."""
     try:
-        token = os.environ.get("TG_BOT_TOKEN", "")
-        chat_id = os.environ.get("TG_CHAT_ID", "")
+        token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+        chat_id = os.environ.get("TELEGRAM_ADMIN_CHAT_IDS", "")
         if not token or not chat_id:
-            log.warning("TG_BOT_TOKEN or TG_CHAT_ID not set — alert skipped")
+            log.warning("TELEGRAM_BOT_TOKEN or TELEGRAM_ADMIN_CHAT_IDS not set — alert skipped")
             return
 
         import requests
@@ -193,8 +200,8 @@ def _send_tg_alert(message: str, photo_path: str = None):
 def _send_tg_before_after(before_path: str, after_path: str, caption: str):
     """Send before/after comparison to Telegram."""
     try:
-        token = os.environ.get("TG_BOT_TOKEN", "")
-        chat_id = os.environ.get("TG_CHAT_ID", "")
+        token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+        chat_id = os.environ.get("TELEGRAM_ADMIN_CHAT_IDS", "")
         if not token or not chat_id:
             return
 
