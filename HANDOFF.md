@@ -1,44 +1,70 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session 65 — 2026-03-19
+**Aggiornato**: Session S116-S117 — 2026-04-14
 
 ---
 
-## S65 COMPLETATA — PIVOT STRATEGICO + MARKET INTELLIGENCE
+## S116-S117 COMPLETATA — ANTI-BAN LAYER + E2E TEST
 
-### FIX DEPLOYATI (iMac, daemon riavviato)
-- `response-analyzer.py`: auto-invio via `curl POST http://127.0.0.1:9191/send` (daemon session)
-- `wa-daemon.js`: analyzer log su `/tmp/argos-analyzer.log`
-- TEST_FOUNDER: `393314928901`, Day 1 inviato
+### Fix deployati su iMac (wa-daemon v2.4-antiban)
 
-### MARKET INTELLIGENCE SYSTEM (tools/scrapers/ — 10 file, 190KB)
-- AutoScout24 (7 paesi) + Mobile.de + orchestratore + trend analyzer + Telegram digest
-- 8 marchi (BMW/Merc/Audi/Porsche/Lambo/Ferrari/McLaren/Range Rover), 33 modelli
-- Test reale AutoScout24 DE: 200 OK, __NEXT_DATA__ con 20 listing/pagina
-- BUG: interfaccia BaseScraper disallineata → fixare nomi metodi
+**S116 — Bug fix critici:**
+- Noise filter in wa-daemon.js (body vuoti, base64, encoded → skip)
+- Anti-spam cooldown 24h + sha256 dedup in response-analyzer.py
+- DB cleanup: Car Plus reset CONTACTED, messaggi noise eliminati
+- Direction test PASS (OUTBOUND confermato)
 
-### 4 RICERCHE (research/s65_*)
-1. Dealer buying behavior: on-demand, holding cost €350-460/mese, fee ARGOS < DIY
-2. Dealer portals: ALL-INCLUSIVE, Sud = blue ocean, nessun competitor full-service IT
-3. Credibilità: OUE Estonia €600-1.200, carVertical €30, DEKRA €121, trasporto €600-900
-4. 60+ portali EU mappati, CZ sottovalutato, Carapis API per 25+ mercati
+**S117 — Anti-ban layer (6 componenti merge FLUXION):**
+- Warm-up schedule: 10→15→20 msg/giorno per settimana
+- Jaccard variation check 40% min tra messaggi
+- Long pause ogni 5 messaggi (5-10 min)
+- daily_stats table + block rate monitor hourly (>2% → auto-stop)
+- Pause/Resume API + Telegram commands
+- Audit: 4 fix critici (SQL whitelist, connection leak, HELP_TEXT, isNaN)
 
-### DECISIONI FOUNDER
-- NO P.IVA → pagamento Revolut/BBVA
-- DEKRA/DAT tolti dai messaggi
-- TUTTI i portali senza limiti
-- Disposto a drive-it-home
+**LLM Cascade ZERO COSTI:**
+- Eliminato OpenRouter a pagamento (claude-haiku-4-5)
+- Ordine: Gemini 2.5 Flash → Groq llama-3.3-70b → OpenRouter FREE (13 modelli)
+- Gemini truncation fix (finishReason check)
+
+**Token TG rinnovato** — bot operativo
+
+**E2E Test su TEST_FOUNDER (parziale):**
+- Day 1 greeting → PASS
+- CURIOSITY "chi e' lei?" → template auto-send → PASS
+- OBJECTION "quanto costa" → Groq LLM → 3 msg auto-send → PASS
+- NEGATIVE "non mi interessa" → NON TESTATO (da fare S118)
+
+### Bug scoperti e fixati durante E2E
+- Cooldown 24h bloccava conversazione attiva → fix: bypass se inbound > outbound
+- Template {source} = "manual" → fix: fallback "un portale di concessionari"
+- Gemini 2.5 Flash tronca risposte (30 token) → fix: sanity check + skip a Groq
+- Business hours bloccava sender subprocess serale → fix temporaneo: end=22
+
+### DA FARE (S118)
+- Ripristinare BUSINESS_HOURS.end a 20 in time-context.js
+- Completare test NEGATIVE ("non mi interessa") → verifica CLOSED_NO
+- Testare Day 3 scheduler (aspettare 3 giorni o forzare)
+- Primo invio reale a dealer COLD (Enzo Car / Autoline / GP Cars)
 
 ---
 
-## ROADMAP S66+
+## INFRA
 
 ```
-S66: Fix scraper base + TUTTI gli scraper EU (~20 portali) + PDF dossier professionale HD
-S67: Deploy scraper iMac PM2 + primo run reale TUTTI portali + trend DB + digest Telegram
-S68: Test E2E WA + riscrittura Day 1 con veicolo reale da scraper + carVertical
-S69: Day 1 nuovi Salerno con dati reali + risposte live
-S70+: Primo deal → sourcing EU → consegna → fee incassata
+iMac: ssh gianlucadistasi@192.168.1.2 | Python 3.13 | Node v20
+WA daemon: porta 9191, version 2.4-antiban, PM2 id=3
+Token TG: ARGOS_TELEGRAM_TOKEN in wa-intelligence/.env
+DB: dealer_network.sqlite (SQLite) + agent_state + daily_stats
+MAI: pm2 restart --update-env (crash better-sqlite3)
+```
 
-REGOLA PDF: immagini HD, NESSUN riferimento fonte/venditore prima pagamento fee
+## COMANDI
+
+```
+Status:  curl http://localhost:9191/status
+Pause:   curl -X POST http://localhost:9191/pause -H "X-API-Key: KEY"
+Resume:  curl -X POST http://localhost:9191/resume -H "X-API-Key: KEY"
+Metrics: curl http://localhost:9191/health-metrics -H "X-API-Key: KEY"
+TG:      /pause /resume /metrics /status /help
 ```

@@ -48,6 +48,89 @@ const CONFIG = {
     SCHEDULER_INTERVAL: 30 * 60 * 1000,  // 30 minuti
 };
 
+// S117: Anti-ban — agent_state table + warm-up schedule
+function initAntibanTables() {
+    const db = getDb();
+    try {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS agent_state (
+                key        TEXT PRIMARY KEY,
+                value      TEXT NOT NULL,
+                updated_at TEXT DEFAULT (datetime('now'))
+            )
+        `);
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS daily_stats (
+                date           TEXT PRIMARY KEY,
+                sent           INTEGER DEFAULT 0,
+                delivered      INTEGER DEFAULT 0,
+                read_count     INTEGER DEFAULT 0,
+                replied        INTEGER DEFAULT 0,
+                failed         INTEGER DEFAULT 0,
+                blocked        INTEGER DEFAULT 0,
+                new_contacts   INTEGER DEFAULT 0
+            )
+        `);
+        // Seed defaults
+        db.prepare(`INSERT OR IGNORE INTO agent_state (key, value) VALUES (?, ?)`).run('status', 'active');
+        db.prepare(`INSERT OR IGNORE INTO agent_state (key, value) VALUES (?, ?)`).run('pause_until', '0');
+        db.prepare(`INSERT OR IGNORE INTO agent_state (key, value) VALUES (?, ?)`).run('account_start_date', new Date().toISOString().split('T')[0]);
+        log('INFO', 'Anti-ban tables initialized');
+    } catch (e) {
+        log('WARN', `Anti-ban tables init: ${e.message}`);
+    }
+}
+
+function getDailyLimit() {
+    const db = getDb();
+    try {
+        const row = db.prepare("SELECT value FROM agent_state WHERE key='account_start_date'").get();
+        if (!row) return 10;
+        const startDate = new Date(row.value);
+        if (isNaN(startDate.getTime())) { log('WARN', `Malformed account_start_date: ${row.value}`); return 10; }
+        const now = new Date();
+        const weekAge = Math.floor((now - startDate) / (7 * 24 * 60 * 60 * 1000));
+        // Warm-up: 10 → 15 → 20 (never exceed 20 for unofficial API)
+        if (weekAge <= 1) return 10;
+        if (weekAge <= 3) return 15;
+        return 20;
+    } catch (e) {
+        return 10;
+    }
+}
+
+function getAgentStatus() {
+    const db = getDb();
+    try {
+        const row = db.prepare("SELECT value FROM agent_state WHERE key='status'").get();
+        return row ? row.value : 'active';
+    } catch (e) {
+        return 'active';
+    }
+}
+
+function getPauseUntil() {
+    const db = getDb();
+    try {
+        const row = db.prepare("SELECT value FROM agent_state WHERE key='pause_until'").get();
+        return row ? parseInt(row.value) || 0 : 0;
+    } catch (e) {
+        return 0;
+    }
+}
+
+function incrementDailyStats(field) {
+    const ALLOWED = {sent:1, delivered:1, read_count:1, replied:1, failed:1, blocked:1, new_contacts:1};
+    if (!ALLOWED[field]) { log('ERROR', `incrementDailyStats: invalid field '${field}'`); return; }
+    const db = getDb();
+    const today = new Date().toISOString().split('T')[0];
+    try {
+        db.prepare(`INSERT INTO daily_stats (date, ${field}) VALUES (?, 1) ON CONFLICT(date) DO UPDATE SET ${field} = ${field} + 1`).run(today);
+    } catch (e) {
+        log('WARN', `daily_stats increment ${field}: ${e.message}`);
+    }
+}
+
 // ── Shell argument sanitizer (CT-14 fix: prevent command injection) ──
 function sanitizeShellArg(str) {
     if (!str) return '';
@@ -439,6 +522,25 @@ async function handleInboundMessage(msg) {
 
     // 2. Logga sul DB (usa phone risolto, non raw LID)
     msg._resolvedPhone = phone; // passa il numero risolto
+
+    // S116: Noise filter — skip empty, media, and broadcast noise
+    const body = (msg.body || '').trim();
+    if (body.length < 3) {
+        log('INFO', `⏭️ Noise filter: body troppo corto (${body.length} chars) — skipped`);
+        return;
+    }
+    // Base64 media detection (JPEG, PNG, PDF, audio/video)
+    if (body.startsWith('/9j/') || body.startsWith('iVBOR') || body.startsWith('JVBER') ||
+        body.startsWith('AAAA') || body.startsWith('SUQz') || body.startsWith('Rklm')) {
+        log('INFO', `⏭️ Noise filter: base64 media detected — skipped`);
+        return;
+    }
+    // Long body without spaces = likely base64 or encoded media
+    if (body.length > 500 && !body.substring(0, 200).includes(' ')) {
+        log('INFO', `⏭️ Noise filter: encoded content detected (${body.length} chars, no spaces) — skipped`);
+        return;
+    }
+
     const msgId = persistInboundMessage(msg, dealer);
 
     // 3. Aggiorna audit log
@@ -647,6 +749,7 @@ function initClient() {
 
     http.createServer(async (req, res) => {
         checkDailyReset();
+        if (!CONFIG._antibanInit) { CONFIG._antibanInit = true; initAntibanTables(); }
 
         // ── Auth check (skip health check GET /) ──
         if (API_KEY && !(req.method === 'GET' && (req.url === '/' || req.url === '/status'))) {
@@ -755,9 +858,27 @@ function initClient() {
                         res.end(JSON.stringify({ error: 'outside business hours' }));
                         return;
                     }
-                    if (CONFIG.DAILY_SENT >= CONFIG.DAILY_LIMIT) {
+                    // S117: Warm-up daily limit
+                    const dynamicLimit = getDailyLimit();
+                    if (CONFIG.DAILY_SENT >= dynamicLimit) {
                         res.writeHead(429, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ error: 'daily limit reached', daily_sent: CONFIG.DAILY_SENT }));
+                        res.end(JSON.stringify({ error: 'daily limit reached', daily_sent: CONFIG.DAILY_SENT, daily_limit: dynamicLimit }));
+                        return;
+                    }
+
+                    // S117: Agent paused check
+                    if (getAgentStatus() === 'paused') {
+                        res.writeHead(503, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'agent_paused', message: 'POST /resume to restart' }));
+                        return;
+                    }
+
+                    // S117: Long pause check
+                    const pauseUntil = getPauseUntil();
+                    if (Date.now() < pauseUntil) {
+                        const remaining = Math.round((pauseUntil - Date.now()) / 60000);
+                        res.writeHead(503, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'long_pause_active', resume_in_minutes: remaining }));
                         return;
                     }
 
@@ -787,6 +908,16 @@ function initClient() {
                     await client.sendMessage(chatId, message);
                     await HumanLike.clearPresence(client, chatId);
                     CONFIG.DAILY_SENT++;
+                    incrementDailyStats('sent');
+                    // S117: Long pause every 5 messages (anti-bot pattern)
+                    if (CONFIG.DAILY_SENT % 5 === 0 && CONFIG.DAILY_SENT > 0) {
+                        const pauseMs = Math.floor(Math.random() * 300000) + 300000; // 5-10 min
+                        const pauseMin = Math.round(pauseMs / 60000);
+                        const db2 = getDb();
+                        db2.prepare("INSERT OR REPLACE INTO agent_state (key, value, updated_at) VALUES ('pause_until', ?, datetime('now'))").run(String(Date.now() + pauseMs));
+                        log('INFO', `S117 long pause: ${pauseMin}min after ${CONFIG.DAILY_SENT} msgs`);
+                        sendTelegramAlert(`⏳ Pausa ${pauseMin}min (ogni 5 msg — pattern umano)`);
+                    }
 
                     const msgId = `out_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
                     const now = TC.nowIT();
@@ -840,6 +971,13 @@ function initClient() {
                         res.end(JSON.stringify({ error: 'phone and messages (array) required' }));
                         return;
                     }
+                    // Italian phone validation (same as /send)
+                    const cleanMultiPhone = phone.replace(/[^0-9]/g, '');
+                    if (!/^(39)?3\d{8,9}$/.test(cleanMultiPhone)) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'invalid italian phone number', phone }));
+                        return;
+                    }
                     if (messages.length > 5) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'max 5 messages per call' }));
@@ -883,6 +1021,7 @@ function initClient() {
                         // Invia messaggio
                         await client.sendMessage(chatId, msg);
                         CONFIG.DAILY_SENT++;
+                        incrementDailyStats('sent');
 
                         const msgId = `multi_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
                         msgIds.push(msgId);
@@ -963,6 +1102,7 @@ function initClient() {
                     await client.sendMessage(chatId, media, { sendAudioAsVoice: true });
                     await HumanLike.clearPresence(client, chatId);
                     CONFIG.DAILY_SENT++;
+                    incrementDailyStats('sent');
 
                     const msgId = `voice_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
                     log('INFO', `🎤 VOICE NOTE INVIATO: ${chatId} (${dealer_id || 'manual'}) — ${audio_path}`);
@@ -979,18 +1119,130 @@ function initClient() {
             return;
         }
 
-        // GET / — health check
+        // POST /send-doc — invia documento (PDF, immagine) via WA
+        if (req.method === 'POST' && req.url === '/send-doc') {
+            let body = '';
+            req.on('data', chunk => { body += chunk; });
+            req.on('end', async () => {
+                try {
+                    const { phone, file_path, caption, dealer_id } = JSON.parse(body);
+                    if (!phone || !file_path) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'phone and file_path required' }));
+                        return;
+                    }
+                    // Italian phone validation
+                    const cleanPhone = phone.replace(/[^0-9]/g, '');
+                    if (!/^(39)?3\d{8,9}$/.test(cleanPhone)) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'invalid italian phone number' }));
+                        return;
+                    }
+                    if (!fs.existsSync(file_path)) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'file not found', file_path }));
+                        return;
+                    }
+                    if (!HumanLike.isAllowedToSend()) {
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'outside business hours' }));
+                        return;
+                    }
+                    if (CONFIG.DAILY_SENT >= CONFIG.DAILY_LIMIT) {
+                        res.writeHead(429, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'daily limit reached', daily_sent: CONFIG.DAILY_SENT }));
+                        return;
+                    }
+
+                    const { MessageMedia } = require('whatsapp-web.js');
+                    const media = MessageMedia.fromFilePath(file_path);
+                    const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
+
+                    await HumanLike.simulateTyping(client, chatId, 3);
+                    await client.sendMessage(chatId, media, { caption: caption || '' });
+                    await HumanLike.clearPresence(client, chatId);
+                    CONFIG.DAILY_SENT++;
+                    incrementDailyStats('sent');
+
+                    const msgId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                    log('INFO', `📄 DOC INVIATO: ${chatId} (${dealer_id || 'manual'}) — ${file_path}`);
+                    sendTelegramAlert(`📄 *Doc INVIATO*\n👤 ${dealer_id || chatId}\n📎 ${file_path.split('/').pop()}\n📊 ${CONFIG.DAILY_SENT}/${CONFIG.DAILY_LIMIT}`);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ status: 'sent', msg_id: msgId, daily_sent: CONFIG.DAILY_SENT }));
+                } catch (err) {
+                    log('ERROR', 'Send-doc failed:', err.message);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: err.message }));
+                }
+            });
+            return;
+        }
+
+        // POST /pause — S117 anti-ban
+        if (req.method === 'POST' && req.url === '/pause') {
+            const db = getDb();
+            db.prepare("INSERT OR REPLACE INTO agent_state (key, value, updated_at) VALUES ('status', 'paused', datetime('now'))").run();
+            log('WARN', 'Agent PAUSED via API');
+            sendTelegramAlert('⏸ *ARGOS Agent PAUSED* — nessun messaggio verrà inviato.');
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'paused' }));
+            return;
+        }
+
+        // POST /resume — S117 anti-ban
+        if (req.method === 'POST' && req.url === '/resume') {
+            const db = getDb();
+            db.prepare("INSERT OR REPLACE INTO agent_state (key, value, updated_at) VALUES ('status', 'active', datetime('now'))").run();
+            db.prepare("INSERT OR REPLACE INTO agent_state (key, value, updated_at) VALUES ('pause_until', '0', datetime('now'))").run();
+            log('INFO', 'Agent RESUMED via API');
+            sendTelegramAlert('▶️ *ARGOS Agent RESUMED* — operatività ripristinata.');
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ status: 'active' }));
+            return;
+        }
+
+        // GET /health-metrics — S117 block rate monitoring
+        if (req.method === 'GET' && req.url === '/health-metrics') {
+            const db = getDb();
+            const today = new Date().toISOString().split('T')[0];
+            const stats = db.prepare('SELECT * FROM daily_stats WHERE date = ?').get(today) || {};
+            const sent = stats.sent || 0;
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                date: today,
+                sent,
+                delivered:     stats.delivered || 0,
+                read_count:    stats.read_count || 0,
+                replied:       stats.replied || 0,
+                failed:        stats.failed || 0,
+                blocked:       stats.blocked || 0,
+                delivery_rate: sent > 0 ? ((stats.delivered||0)/sent).toFixed(3) : 'N/A',
+                block_rate:    sent > 0 ? ((stats.blocked||0)/sent).toFixed(3) : 'N/A',
+                reply_rate:    sent > 0 ? ((stats.replied||0)/sent).toFixed(3) : 'N/A',
+                risk_level:    sent >= 20
+                    ? ((stats.blocked||0)/sent > 0.02 ? 'RED'
+                       : (stats.delivered||0)/sent < 0.85 ? 'YELLOW' : 'GREEN')
+                    : 'INSUFFICIENT_DATA',
+            }, null, 2));
+            return;
+        }
+
+        // GET / or /status — health check
+        const dynamicLimit = getDailyLimit();
+        const agentStatus = getAgentStatus();
         const ctx = TC.buildAgentTimeContext();
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
-            status:           'OK',
+            status:           agentStatus === 'paused' ? 'PAUSED' : 'OK',
             daemon:           'argos-wa-daemon',
-            version:          '2.3-ambra',
+            version:          '2.4-antiban',
             now_it:           ctx.now_it,
             is_business_hours: ctx.is_business_hours,
             daily_sent:       CONFIG.DAILY_SENT,
-            daily_limit:      CONFIG.DAILY_LIMIT,
-            daily_remaining:  CONFIG.DAILY_LIMIT - CONFIG.DAILY_SENT,
+            daily_limit:      dynamicLimit,
+            daily_remaining:  Math.max(0, dynamicLimit - CONFIG.DAILY_SENT),
+            agent_status:     agentStatus,
             uptime_sec:       Math.round(process.uptime()),
             wa_status:        QR_STATE.status,
             qr_available:     !!QR_STATE.qr,
@@ -1087,6 +1339,7 @@ function startScheduler(client) {
                 await client.sendMessage(chatId, template);
                 await HumanLike.clearPresence(client, chatId);
                 CONFIG.DAILY_SENT++;
+                incrementDailyStats('sent');
 
                 const msgId = `day3_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
                 db.prepare(`INSERT OR IGNORE INTO messages
@@ -1169,6 +1422,7 @@ function startScheduler(client) {
                 await client.sendMessage(chatId, media, { sendAudioAsVoice: true });
                 await HumanLike.clearPresence(client, chatId);
                 CONFIG.DAILY_SENT++;
+                incrementDailyStats('sent');
 
                 db.prepare(`UPDATE conversations
                     SET current_step = 'DAY7_VOICE_SENT', last_contact_at = datetime('now'), analyzed_at = datetime('now')
@@ -1209,6 +1463,28 @@ function startScheduler(client) {
         checkScheduledActions().catch(e => log('ERROR', 'Scheduler error:', e.message));
     }, CONFIG.SCHEDULER_INTERVAL);
 }
+
+// S117: Block rate monitoring — every hour
+setInterval(() => {
+    const db = getDb();
+    const today = new Date().toISOString().split('T')[0];
+    try {
+        const stats = db.prepare('SELECT sent, blocked, delivered, replied FROM daily_stats WHERE date = ?').get(today);
+        if (!stats || stats.sent < 20) return; // sample too small
+        const blockRate = stats.blocked / stats.sent;
+        if (blockRate > 0.02) {
+            log('ERROR', `BLOCK RATE CRITICO: ${(blockRate*100).toFixed(1)}% > 2%`);
+            sendTelegramAlert(`🚨 *ARGOS AUTO-STOP*\nBlock rate: ${(blockRate*100).toFixed(1)}% > 2%\nInviati: ${stats.sent} | Bloccati: ${stats.blocked}\nNumero WA a rischio BAN. Agent fermato.\n_/resume per riprendere dopo verifica._`);
+            db.prepare("INSERT OR REPLACE INTO agent_state (key, value, updated_at) VALUES ('status', 'paused', datetime('now'))").run();
+        }
+        const deliveryRate = stats.delivered / stats.sent;
+        if (deliveryRate < 0.85 && stats.sent >= 20) {
+            sendTelegramAlert(`⚠️ Delivery rate bassa: ${(deliveryRate*100).toFixed(1)}% < 85%`);
+        }
+    } catch (e) {
+        log('WARN', `Block rate check: ${e.message}`);
+    }
+}, 60 * 60 * 1000); // every hour
 
 // ── Health Monitor: verifica connessione WA ogni 5 min ──────
 let _lastHealthOk = Date.now();

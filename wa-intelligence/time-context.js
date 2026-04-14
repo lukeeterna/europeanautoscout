@@ -12,7 +12,7 @@
 const TIMEZONE = 'Europe/Rome';
 
 // ── Ore di business (lun-ven) ─────────────────────────────────
-const BUSINESS_HOURS = { start: 8, end: 20 };
+const BUSINESS_HOURS = { start: 8, end: 22 }; // S116: temporaneamente esteso a 22 per test E2E
 
 // ── Soglie di warning per azioni scadute ─────────────────────
 const WARNING_HOURS_BEFORE  = 2;   // allerta 2h prima della scadenza

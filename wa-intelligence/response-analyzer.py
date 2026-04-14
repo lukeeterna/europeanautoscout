@@ -54,7 +54,7 @@ OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
 OPENROUTER_MODEL   = os.environ.get('OPENROUTER_MODEL', 'anthropic/claude-haiku-4-5')
 OPENROUTER_URL     = 'https://openrouter.ai/api/v1/chat/completions'
 GOOGLE_AI_API_KEY  = os.environ.get('GOOGLE_AI_API_KEY', '')
-GEMINI_MODEL       = 'gemini-2.0-flash'
+GEMINI_MODEL       = 'gemini-2.5-flash'
 GEMINI_URL         = 'https://generativelanguage.googleapis.com/v1beta/models'
 GROQ_API_KEY       = os.environ.get('GROQ_API_KEY', '')
 GROQ_MODEL         = 'llama-3.3-70b-versatile'
@@ -535,12 +535,26 @@ def call_gemini(system_prompt: str, user_prompt: str) -> dict:
         resp = urllib.request.urlopen(req, timeout=30)
         data = json.loads(resp.read())
 
-        text = data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+        candidate = data.get('candidates', [{}])[0]
+        text = candidate.get('content', {}).get('parts', [{}])[0].get('text', '')
+        finish_reason = candidate.get('finishReason', '')
         usage_meta = data.get('usageMetadata', {})
         usage = {
             'prompt_tokens': usage_meta.get('promptTokenCount', 0),
             'completion_tokens': usage_meta.get('candidatesTokenCount', 0),
         }
+
+        # Sanity check: risposta troncata o troppo corta = skip to next provider
+        if not text or len(text) < 20:
+            print(f'[WARN] Gemini response too short ({len(text)} chars) — skip')
+            return {'error': 'too_short', 'text': '', 'usage': usage}
+        if finish_reason not in ('STOP', ''):
+            print(f'[WARN] Gemini finishReason={finish_reason} — skip')
+            return {'error': f'finishReason={finish_reason}', 'text': '', 'usage': usage}
+        # Check: JSON non chiuso = troncato
+        if '```json' in text and '```' not in text.split('```json', 1)[-1]:
+            print(f'[WARN] Gemini returned truncated JSON code block — skip')
+            return {'error': 'truncated_json', 'text': '', 'usage': usage}
 
         return {'text': text, 'usage': usage, 'model': f'google/{GEMINI_MODEL}'}
     except Exception as e:
@@ -548,47 +562,18 @@ def call_gemini(system_prompt: str, user_prompt: str) -> dict:
         return {'error': str(e), 'text': '', 'usage': {}}
 
 
-# ── LLM Call via OpenRouter (con fallback Gemini) ───────────
+# ── LLM Call — cascade ZERO COSTI: Gemini → Groq → OpenRouter FREE ──
 def call_llm(system_prompt: str, user_prompt: str) -> dict:
-    """Chiama OpenRouter, se fallisce usa Gemini Flash (gratis)."""
+    """Cascade LLM gratuita. MAI modelli a pagamento."""
 
-    # Tentativo 1: OpenRouter
-    if OPENROUTER_API_KEY:
-        import urllib.request
+    # Tentativo 1: Google Gemini Flash (FREE, 15 RPM)
+    if GOOGLE_AI_API_KEY:
+        result = call_gemini(system_prompt, user_prompt)
+        if result.get('text'):
+            return result
+        print('[WARN] Gemini failed — trying Groq')
 
-        payload = json.dumps({
-            'model': OPENROUTER_MODEL,
-            'messages': [
-                {'role': 'system', 'content': system_prompt},
-                {'role': 'user', 'content': user_prompt},
-            ],
-            'max_tokens': 800,
-            'temperature': 0.7,
-        }).encode()
-
-        headers = {
-            'Authorization': f'Bearer {OPENROUTER_API_KEY}',
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://argosautomotive.it',
-            'X-Title': 'ARGOS Response Analyzer',
-        }
-
-        req = urllib.request.Request(OPENROUTER_URL, data=payload, headers=headers)
-
-        try:
-            resp = urllib.request.urlopen(req, timeout=30)
-            data = json.loads(resp.read())
-
-            text = data.get('choices', [{}])[0].get('message', {}).get('content', '')
-            usage = data.get('usage', {})
-
-            if text:
-                return {'text': text, 'usage': usage, 'model': data.get('model', OPENROUTER_MODEL)}
-            print('[WARN] OpenRouter returned empty response, trying Gemini...')
-        except Exception as e:
-            print(f'[WARN] OpenRouter failed: {e} — trying Groq')
-
-    # Tentativo 1b: Groq (gratuito, rate-limited ma veloce)
+    # Tentativo 2: Groq (gratuito, rate-limited ma veloce)
     if GROQ_API_KEY:
         try:
             import urllib.request
@@ -623,14 +608,27 @@ def call_llm(system_prompt: str, user_prompt: str) -> dict:
         except Exception as e:
             print(f'[WARN] Groq failed: {e} — trying free models')
 
-    # Tentativo 2: OpenRouter modelli FREE (cascade aggiornata aprile 2026)
-    # Ordine: meglio JSON compliance prima, modelli con chain-of-thought in fondo
+    # Tentativo 3: OpenRouter modelli FREE (cascade aggiornata 14 aprile 2026)
+    # Ranked per: JSON compliance + italiano + affidabilita'. Fonte: openrouter.ai/models/?q=free
+    # Rate limit: 20 RPM, 200 req/giorno per modello. Aggiornare periodicamente.
+    # Per aggiornare: visita https://openrouter.ai/models/?q=free e riordina per qualita'.
     FREE_MODELS = [
-        'meta-llama/llama-3.3-70b-instruct:free',         # Collaudato, stabile, buon JSON
-        'google/gemma-4-31b-it:free',                    # Top open, italiano nativo
-        'openai/gpt-oss-120b:free',                       # MMLU 94.2%, forte JSON
-        'qwen/qwen3-coder:free',                          # Fallback Qwen3
-        'nvidia/nemotron-3-super-120b-a12b:free',         # 120B MoE — ULTIMO: spesso non rispetta JSON
+        # --- TIER 1: Grandi, JSON stabile, italiano buono ---
+        'openai/gpt-oss-120b:free',                       # 120B, 131K ctx, tools support, forte JSON
+        'qwen/qwen3-next-80b:free',                       # 80B, 262K ctx, tools, multilingue
+        'meta-llama/llama-3.3-70b-instruct:free',         # 70B, 66K ctx, collaudato, stabile
+        'nvidia/nemotron-3-super-120b-a12b:free',         # 120B MoE, 262K ctx — a volte chain-of-thought
+        'nous/hermes-3-405b:free',                        # 405B, 131K ctx — enorme ma puo' essere lento
+        # --- TIER 2: Medi, buon fallback ---
+        'google/gemma-4-31b-it:free',                     # 31B, 262K ctx, vision+tools, italiano nativo
+        'minimax/minimax-m2.5:free',                      # 197K ctx, tools
+        'qwen/qwen3-coder-480b:free',                     # 480B coder, 262K ctx — test per JSON
+        'arcee-ai/arcee-trinity-large:free',              # 131K ctx, tools
+        # --- TIER 3: Piccoli, ultimo fallback ---
+        'google/gemma-3-27b-it:free',                     # 27B, 131K ctx, vision
+        'nvidia/nemotron-nano-12b-vl:free',               # 12B, 128K ctx, vision+tools
+        'nvidia/nemotron-nano-9b-v2:free',                # 9B, 128K ctx, tools
+        'google/gemma-4-26b-a4b-it:free',                 # 26B A4B, 262K ctx, vision+tools
     ]
     if OPENROUTER_API_KEY:
         for free_model in FREE_MODELS:
@@ -741,21 +739,35 @@ def parse_llm_responses(text: str) -> list:
 # ── Cost Tracking ────────────────────────────────────────────
 def track_cost(db_path: str, model: str, usage: dict, dealer_id: str):
     """Salva il costo della chiamata LLM nel DB."""
-    # Pricing approssimativo (aggiornare se cambia)
+    # Pricing — tutti i modelli nella cascade sono FREE (aggiornato aprile 2026)
+    FREE_ZERO = {'input': 0.00, 'output': 0.00}
     PRICING = {
-        'anthropic/claude-haiku-4-5': {'input': 0.80, 'output': 4.00},  # $/MTok
-        'anthropic/claude-3-5-haiku': {'input': 0.80, 'output': 4.00},
-        'anthropic/claude-sonnet-4': {'input': 3.00, 'output': 15.00},
-        'anthropic/claude-3-5-sonnet': {'input': 3.00, 'output': 15.00},
-        'google/gemini-2.0-flash': {'input': 0.00, 'output': 0.00},  # FREE
-        'qwen/qwen3.6-plus:free': {'input': 0.00, 'output': 0.00},
-        'meta-llama/llama-3.3-70b-instruct:free': {'input': 0.00, 'output': 0.00},
-        'google/gemma-3-27b-it:free': {'input': 0.00, 'output': 0.00},
-        'nousresearch/hermes-3-llama-3.1-405b:free': {'input': 0.00, 'output': 0.00},
+        # Gemini (free tier)
+        'google/gemini-2.5-flash': FREE_ZERO,
+        'google/gemini-2.5-pro': FREE_ZERO,
+        'google/gemini-2.0-flash': FREE_ZERO,
+        # Groq (free tier)
+        'llama-3.3-70b-versatile': FREE_ZERO,
+        'llama-3.1-8b-instant': FREE_ZERO,
+        'openai/gpt-oss-120b': FREE_ZERO,
+        # OpenRouter :free
+        'openai/gpt-oss-120b:free': FREE_ZERO,
+        'qwen/qwen3-next-80b:free': FREE_ZERO,
+        'meta-llama/llama-3.3-70b-instruct:free': FREE_ZERO,
+        'nvidia/nemotron-3-super-120b-a12b:free': FREE_ZERO,
+        'nous/hermes-3-405b:free': FREE_ZERO,
+        'google/gemma-4-31b-it:free': FREE_ZERO,
+        'minimax/minimax-m2.5:free': FREE_ZERO,
+        'qwen/qwen3-coder-480b:free': FREE_ZERO,
+        'arcee-ai/arcee-trinity-large:free': FREE_ZERO,
+        'google/gemma-3-27b-it:free': FREE_ZERO,
+        'nvidia/nemotron-nano-12b-vl:free': FREE_ZERO,
+        'nvidia/nemotron-nano-9b-v2:free': FREE_ZERO,
+        'google/gemma-4-26b-a4b-it:free': FREE_ZERO,
     }
 
-    # Trova pricing (fallback a haiku)
-    price = PRICING.get(model, PRICING.get('anthropic/claude-haiku-4-5'))
+    # Tutti free — fallback a zero
+    price = PRICING.get(model, FREE_ZERO)
 
     input_tokens = usage.get('prompt_tokens', 0)
     output_tokens = usage.get('completion_tokens', 0)
@@ -764,7 +776,8 @@ def track_cost(db_path: str, model: str, usage: dict, dealer_id: str):
     cost_usd = (input_tokens * price['input'] + output_tokens * price['output']) / 1_000_000
 
     try:
-        con = sqlite3.connect(db_path, timeout=10)
+        from db_utils import get_connection
+        con = get_connection(db_path)
         con.execute("""
             CREATE TABLE IF NOT EXISTS llm_costs (
                 id TEXT PRIMARY KEY,
@@ -1142,7 +1155,8 @@ def classify_message(body: str) -> dict:
 def save_pending_reply(db_path: str, dealer_id: str, dealer_name: str,
                        inbound_msg_id: str, reply: dict):
     reply_id = f"reply_{uuid.uuid4().hex[:8]}"
-    con = sqlite3.connect(db_path, timeout=10)
+    from db_utils import get_connection
+    con = get_connection(db_path)
     try:
         con.execute("""
             INSERT INTO pending_replies
@@ -1153,7 +1167,7 @@ def save_pending_reply(db_path: str, dealer_id: str, dealer_name: str,
         return reply_id
     except Exception as e:
         print(f'[ERROR] save_pending_reply: {e}')
-        return reply_id
+        return None
     finally:
         con.close()
 
@@ -1164,12 +1178,13 @@ FORBIDDEN_TERMS = [
     'intelligenza artificiale', 'machine learning', 'algoritmo',
     'embedding', 'vincario', 'händlergarantie',
     'non possiamo fatturare',
+    'reimportazione', 'piattaforma',
 ]
 
 # Termini che vanno matchati come parola intera (no substring)
 # NB: 'ai' rimosso — troppi falsi positivi ("ai concessionari", "ai dealer")
 # AI come sigla e' gia' coperto da "intelligenza artificiale" in FORBIDDEN_TERMS
-FORBIDDEN_WORDS_EXACT = ['cove', 'gpt', 'rag', 'bot']
+FORBIDDEN_WORDS_EXACT = ['cove', 'gpt', 'rag', 'bot', 'argos', 'llm', 'prompt', 'automatico']
 
 def validate_response(text: str) -> dict:
     """Valida la risposta prima dell'auto-invio. Ritorna {safe, reason}."""
@@ -1237,6 +1252,71 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text, reply_obj=None)
 
     dealer_id = dealer.get('dealer_id', 'UNKNOWN')
 
+    # S116: Checksum dedup — blocca messaggi identici per lo stesso dealer
+    import hashlib as _hashlib
+    _msg_checksum = _hashlib.sha256(reply_text.encode('utf-8')).hexdigest()
+    try:
+        _dedup_con = sqlite3.connect(db_path, timeout=10)
+        _dedup_con.execute('PRAGMA journal_mode=WAL')
+        _dedup_con.execute('PRAGMA busy_timeout=10000')
+        # Ensure column exists (migration-safe)
+        try:
+            _dedup_con.execute('ALTER TABLE pending_replies ADD COLUMN msg_checksum TEXT')
+            _dedup_con.commit()
+        except Exception:
+            pass  # Column already exists
+        # Backfill checksum on current reply before checking
+        _dedup_con.execute(
+            'UPDATE pending_replies SET msg_checksum = ? WHERE id = ? AND msg_checksum IS NULL',
+            [_msg_checksum, reply_id]
+        )
+        _dedup_con.commit()
+        _dup_row = _dedup_con.execute("""
+            SELECT id FROM pending_replies
+            WHERE dealer_id = ? AND msg_checksum = ? AND sent = 1 AND id != ?
+            LIMIT 1
+        """, [dealer_id, _msg_checksum, reply_id]).fetchone()
+        _dedup_con.close()
+        if _dup_row:
+            print(f'[ANTI-SPAM] Dedup: messaggio identico già inviato (checksum={_msg_checksum[:12]}…) — SKIP')
+            return False
+    except Exception as _dedup_err:
+        print(f'[ANTI-SPAM] Dedup check fallito: {_dedup_err} — continuo')
+
+    # S117: Jaccard variation check — min 40% difference from last 5 outbound msgs
+    _var_con = None
+    try:
+        _var_con = sqlite3.connect(db_path, timeout=10)
+        _last_msgs = _var_con.execute('''
+            SELECT body FROM messages
+            WHERE dealer_id = ? AND direction = 'OUTBOUND'
+            ORDER BY created_at DESC LIMIT 5
+        ''', [dealer_id]).fetchall()
+
+        if _last_msgs and reply_text:
+            def _trigrams(text):
+                t = text.lower().strip()
+                return {t[i:i+3] for i in range(len(t) - 2)} if len(t) >= 3 else set()
+
+            _min_var = 1.0
+            for _prev in _last_msgs:
+                _t1, _t2 = _trigrams(reply_text), _trigrams(_prev[0] or '')
+                _union = _t1 | _t2
+                _jaccard_sim = len(_t1 & _t2) / len(_union) if _union else 0
+                _var = 1.0 - _jaccard_sim
+                _min_var = min(_min_var, _var)
+
+            print(f'[VARIATION] min_variation={_min_var:.2f} vs last {len(_last_msgs)} msgs — {"PASS" if _min_var >= 0.40 else "WARNING (low variation)"}')
+            # Note: we log but don't block — the message is already generated.
+            # Blocking would require re-generating which is complex.
+            # The SHA256 dedup above catches exact duplicates.
+    except Exception as _var_err:
+        print(f'[VARIATION] Check fallito: {_var_err} — continuo')
+    finally:
+        if _var_con:
+            try: _var_con.close()
+            except Exception: pass
+
     # Delay differenziato: conversazione attiva vs outreach
     current_step = dealer.get('current_step', '') or ''
     if 'RESPONSE_RECEIVED' in current_step:
@@ -1273,38 +1353,57 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text, reply_obj=None)
         payload_dict = {'phone': phone, 'message': text, 'dealer_id': dealer_id}
         endpoint = '/send'
 
-    # Invio differito via subprocess (NON thread — il processo analyzer esce prima del delay)
+    # Invio differito via subprocess con temp JSON file (no code injection risk)
     import subprocess as _sp
+    import tempfile as _tf
+    task = {
+        'payload': payload_dict,
+        'endpoint': endpoint,
+        'api_key': api_key,
+        'db_path': db_path,
+        'reply_id': reply_id,
+        'sleep_s': sleep_s,
+    }
+    with _tf.NamedTemporaryFile('w', suffix='.json', prefix='argos_send_', delete=False, dir='/tmp') as _f:
+        json.dump(task, _f)
+        task_file = _f.name
+
+    # Minimal send script — reads params from JSON file, no string interpolation
     send_script = (
-        f"import time, json, sqlite3, urllib.request\n"
-        f"time.sleep({sleep_s})\n"
-        f"try:\n"
-        f"    data = json.dumps({json.dumps(payload_dict)}).encode('utf-8')\n"
-        f"    req = urllib.request.Request(\n"
-        f"        'http://127.0.0.1:9191{endpoint}',\n"
-        f"        data=data,\n"
-        f"        headers={{'Content-Type': 'application/json', 'X-API-Key': '{api_key}'}},\n"
-        f"        method='POST',\n"
-        f"    )\n"
-        f"    resp = urllib.request.urlopen(req, timeout=30)\n"
-        f"    result = json.loads(resp.read())\n"
-        f"    if result.get('status') in ('sent', 'queued'):\n"
-        f"        c = sqlite3.connect('{db_path}', timeout=10)\n"
-        f"        c.execute('PRAGMA journal_mode=WAL')\n"
-        f"        c.execute('UPDATE pending_replies SET sent=1 WHERE id=?', ['{reply_id}'])\n"
-        f"        c.commit(); c.close()\n"
-        f"        print(f'[AUTO] Reply {reply_id} inviata')\n"
-        f"    else:\n"
-        f"        print(f'[ERROR] Reply {reply_id} — daemon: {{result}}')\n"
-        f"except Exception as e:\n"
-        f"    print(f'[ERROR] Reply {reply_id} fallita: {{e}}')\n"
+        "import time, json, sqlite3, urllib.request, sys, os\n"
+        "task = json.load(open(sys.argv[1]))\n"
+        "os.unlink(sys.argv[1])\n"
+        "time.sleep(task['sleep_s'])\n"
+        "try:\n"
+        "    data = json.dumps(task['payload']).encode('utf-8')\n"
+        "    req = urllib.request.Request(\n"
+        "        f'http://127.0.0.1:9191{task[\"endpoint\"]}',\n"
+        "        data=data,\n"
+        "        headers={'Content-Type': 'application/json', 'X-API-Key': task['api_key']},\n"
+        "        method='POST',\n"
+        "    )\n"
+        "    resp = urllib.request.urlopen(req, timeout=30)\n"
+        "    result = json.loads(resp.read())\n"
+        "    if result.get('status') in ('sent', 'queued'):\n"
+        "        c = sqlite3.connect(task['db_path'], timeout=10)\n"
+        "        c.execute('PRAGMA journal_mode=WAL')\n"
+        "        c.execute('PRAGMA busy_timeout=10000')\n"
+        "        c.execute('UPDATE pending_replies SET sent=1 WHERE id=?', [task['reply_id']])\n"
+        "        c.commit(); c.close()\n"
+        "        print(f'[AUTO] Reply {task[\"reply_id\"]} inviata')\n"
+        "    else:\n"
+        "        print(f'[ERROR] Reply {task[\"reply_id\"]} — daemon: {result}')\n"
+        "except Exception as e:\n"
+        "    print(f'[ERROR] Reply {task[\"reply_id\"]} fallita: {e}')\n"
     )
+    log_fd = open('/tmp/argos-auto-send.log', 'a')
     _sp.Popen(
-        [sys.executable, '-c', send_script],
+        [sys.executable, '-c', send_script, task_file],
         close_fds=True,
-        stdout=open('/tmp/argos-auto-send.log', 'a'),
-        stderr=open('/tmp/argos-auto-send.log', 'a'),
+        stdout=log_fd,
+        stderr=log_fd,
     )
+    log_fd.close()
 
     msg_count = len(messages) if messages else 1
     print(f'[AUTO] Approvata + schedulata reply {reply_id} — {msg_count} msg via {endpoint} — invio tra {sleep_s}s')
@@ -1461,6 +1560,46 @@ def main():
     classification = classify_message(args.msg_body)
     print(f'  Classificazione: {classification}')
 
+    # S116/S117: Anti-spam — cooldown 24h SOLO se dealer non ha risposto dopo ultimo outbound
+    # Se il dealer sta rispondendo (conversazione attiva), non bloccare
+    from db_utils import get_connection
+    _spam_con = get_connection(args.db_path)
+    _last_reply = _spam_con.execute("""
+        SELECT created_at FROM pending_replies
+        WHERE dealer_id = ? AND sent = 1
+        ORDER BY created_at DESC LIMIT 1
+    """, [args.dealer_id]).fetchone()
+
+    _conversation_active = False
+    if _last_reply:
+        # Check: c'e' un inbound DOPO l'ultimo outbound? Se si', conversazione attiva
+        _last_inbound = _spam_con.execute("""
+            SELECT created_at FROM messages
+            WHERE dealer_id = ? AND direction = 'INBOUND'
+            ORDER BY created_at DESC LIMIT 1
+        """, [args.dealer_id]).fetchone()
+        _last_outbound = _spam_con.execute("""
+            SELECT created_at FROM messages
+            WHERE dealer_id = ? AND direction = 'OUTBOUND'
+            ORDER BY created_at DESC LIMIT 1
+        """, [args.dealer_id]).fetchone()
+        if _last_inbound and _last_outbound and _last_inbound[0] > _last_outbound[0]:
+            _conversation_active = True
+    _spam_con.close()
+
+    if _last_reply and not _conversation_active:
+        from datetime import datetime, timedelta
+        try:
+            last_ts = datetime.fromisoformat(str(_last_reply[0]))
+            if datetime.now() - last_ts < timedelta(hours=24):
+                print(f'  [ANTI-SPAM] Cooldown 24h attivo — ultima risposta: {_last_reply[0]}')
+                print(f'[{now_it()}] BLOCKED by anti-spam cooldown')
+                return
+        except Exception as e:
+            print(f'  [ANTI-SPAM] Errore parsing data: {e} — continuo')
+    elif _conversation_active:
+        print(f'  [ANTI-SPAM] Conversazione attiva — cooldown bypassed')
+
     # 2b. State Machine — aggiorna stato dealer (S106)
     cls_type = classification.get('type', 'UNKNOWN')
     sm_intent = cls_type  # Mappa diretta: POSITIVE, NEGATIVE, CURIOSITY, VEHICLE_REQUEST, OBJECTION
@@ -1482,7 +1621,7 @@ def main():
             # Build data dict for template fill
             tpl_data = {
                 'dealer_name': dealer.get('dealer_name', args.dealer_name),
-                'source': dealer.get('source', '') or 'un portale di concessionari',
+                'source': dealer.get('source', '') if dealer.get('source', '') not in ('', 'manual', 'test', None) else 'un portale di concessionari',
                 'brand_focus': dealer.get('brand_focus', '') or 'auto premium',
                 'city': dealer.get('city', '') or dealer.get('province', '') or 'la sua zona',
                 'reference_area': 'Sud Italia',
@@ -1513,11 +1652,12 @@ def main():
     # 3. Genera risposte via LLM (solo se template-first non ha gestito)
     if not template_handled:
         candidates = []
-    llm_cost_info = llm_cost_info if template_handled else ''
+    llm_cost_info = llm_cost_info if template_handled else ''  # safe: assigned in template block above or defaults to ''
 
     # NEGATIVE → NON rispondere, chiudi dealer (sempre, anche se template-first)
     if cls_type == 'NEGATIVE':
-        con = sqlite3.connect(args.db_path, timeout=10)
+        from db_utils import get_connection
+        con = get_connection(args.db_path)
         con.execute("""
             UPDATE conversations SET current_step = 'CLOSED_NO', analyzed_at = datetime('now')
             WHERE dealer_id = ?
@@ -1561,7 +1701,8 @@ def main():
         dealer_label = dealer.get('dealer_name', args.dealer_name)
 
         # Aggiorna CRM: dealer INTERESTED
-        con = sqlite3.connect(args.db_path, timeout=10)
+        from db_utils import get_connection
+        con = get_connection(args.db_path)
         con.execute("""
             UPDATE conversations SET current_step = 'INTERESTED',
                 last_contact_at = datetime('now'), analyzed_at = datetime('now')

@@ -90,7 +90,9 @@ def send(text: str, chat_id: str = TELEGRAM_CHAT_ID):
 
 def db_query(sql: str, params: list = None) -> list:
     try:
-        con = sqlite3.connect(DB_PATH)
+        from db_utils import get_connection
+        con = get_connection()
+        con.row_factory = sqlite3.Row
         cur = con.execute(sql, params or [])
         rows = cur.fetchall()
         cols = [d[0] for d in cur.description] if cur.description else []
@@ -104,7 +106,8 @@ def db_query(sql: str, params: list = None) -> list:
 def db_exec(sql: str, params: list = None):
     for attempt in range(3):
         try:
-            con = sqlite3.connect(DB_PATH, timeout=10)
+            from db_utils import get_connection
+            con = get_connection()
             con.execute(sql, params or [])
             con.commit()
             con.close()
@@ -460,6 +463,68 @@ def cmd_costi() -> str:
     return '\n'.join(lines)
 
 
+def cmd_pause():
+    """Pause the WA agent — no messages will be sent."""
+    import urllib.request as _ureq
+    api_key = os.environ.get('ARGOS_API_KEY', '')
+    try:
+        req = _ureq.Request(
+            'http://127.0.0.1:9191/pause',
+            method='POST',
+            headers={'X-API-Key': api_key, 'Content-Type': 'application/json'},
+            data=b'{}',
+        )
+        resp = _ureq.urlopen(req, timeout=10)
+        return '⏸ *Agent PAUSED* — nessun messaggio verrà inviato.\nUsa `/resume` per riprendere.'
+    except Exception as e:
+        return f'❌ Errore pause: {e}'
+
+
+def cmd_resume():
+    """Resume the WA agent."""
+    import urllib.request as _ureq
+    api_key = os.environ.get('ARGOS_API_KEY', '')
+    try:
+        req = _ureq.Request(
+            'http://127.0.0.1:9191/resume',
+            method='POST',
+            headers={'X-API-Key': api_key, 'Content-Type': 'application/json'},
+            data=b'{}',
+        )
+        resp = _ureq.urlopen(req, timeout=10)
+        return '▶️ *Agent RESUMED* — operatività ripristinata.'
+    except Exception as e:
+        return f'❌ Errore resume: {e}'
+
+
+def cmd_metrics():
+    """Show today's health metrics."""
+    import urllib.request as _ureq
+    import json as _json
+    api_key = os.environ.get('ARGOS_API_KEY', '')
+    try:
+        req = _ureq.Request(
+            'http://127.0.0.1:9191/health-metrics',
+            headers={'X-API-Key': api_key},
+        )
+        resp = _ureq.urlopen(req, timeout=10)
+        d = _json.loads(resp.read())
+        risk = d.get('risk_level', 'N/A')
+        emoji = {'GREEN': '🟢', 'YELLOW': '🟡', 'RED': '🔴'}.get(risk, '⚪')
+        return (
+            f"📊 *Health Metrics* — {d.get('date', '?')}\n\n"
+            f"Inviati: {d.get('sent', 0)} | Consegnati: {d.get('delivered', 0)}\n"
+            f"Letti: {d.get('read_count', 0)} | Risposte: {d.get('replied', 0)}\n"
+            f"Bloccati: {d.get('blocked', 0)} | Falliti: {d.get('failed', 0)}\n\n"
+            f"Delivery rate: {d.get('delivery_rate', 'N/A')}\n"
+            f"Block rate: {d.get('block_rate', 'N/A')}\n"
+            f"Reply rate: {d.get('reply_rate', 'N/A')}\n\n"
+            f"{emoji} Risk: *{risk}*"
+        )
+    except Exception as e:
+        return f'❌ Errore metrics: {e}'
+
+
 # ── Router comandi ───────────────────────────────────────────
 HELP_TEXT = """*ARGOS™ Bot — Comandi disponibili*
 
@@ -482,6 +547,11 @@ HELP_TEXT = """*ARGOS™ Bot — Comandi disponibili*
 
 💰 *Costi*
 `/costi` — report costi LLM OpenRouter
+
+⏸ *Controllo Agent*
+`/pause` — pausa agent, blocca tutti gli invii
+`/resume` — riprendi operativita'
+`/metrics` — metriche salute e rischio ban
 
 ℹ️ *Info*
 `/help` — questo messaggio
@@ -518,6 +588,12 @@ def dispatch(text: str, chat_id: str):
         reply = cmd_pending()
     elif cmd == '/costi':
         reply = cmd_costi()
+    elif cmd == '/pause':
+        reply = cmd_pause()
+    elif cmd == '/resume':
+        reply = cmd_resume()
+    elif cmd == '/metrics':
+        reply = cmd_metrics()
     elif cmd in ('/help', '/start'):
         reply = HELP_TEXT
     else:
