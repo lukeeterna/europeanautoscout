@@ -934,13 +934,18 @@ function initClient() {
                         const tplId = template_id || 'DAY1_INTRO';
                         const postResult = runPostSendUpdate(dealer_id, tplId);
 
-                        // Also update legacy current_step for backward compat
+                        // current_step tracks the outreach step, not conversation_state
+                        // DAY1* templates → 'DAY1_SENT', DAY3* → 'DAY3_SENT', etc.
+                        const stepFromTemplate = tplId.startsWith('DAY1') ? 'DAY1_SENT'
+                            : tplId.startsWith('DAY3') ? 'DAY3_SENT'
+                            : tplId.startsWith('DAY7') ? 'DAY7_SENT'
+                            : (postResult.ok ? postResult.new_state : 'DAY1_SENT');
                         db.prepare(`UPDATE conversations
                                 SET current_step = ?,
                                     last_contact_at = datetime('now'),
                                     analyzed_at = datetime('now')
                                 WHERE dealer_id = ?`).run(
-                            postResult.ok ? postResult.new_state : 'DAY1_SENT',
+                            stepFromTemplate,
                             dealer_id
                         );
                     }

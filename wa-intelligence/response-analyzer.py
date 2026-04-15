@@ -1587,7 +1587,11 @@ def main():
             _conversation_active = True
     _spam_con.close()
 
-    if _last_reply and not _conversation_active:
+    # NEGATIVE bypassa sempre l'anti-spam — è un segnale definitivo di chiusura
+    _cls_type_early = classification.get('type', 'UNKNOWN')
+    if _cls_type_early == 'NEGATIVE':
+        print(f'  [ANTI-SPAM] NEGATIVE intent — cooldown bypassed (segnale chiusura)')
+    elif _last_reply and not _conversation_active:
         from datetime import datetime, timedelta
         try:
             last_ts = datetime.fromisoformat(str(_last_reply[0]))
