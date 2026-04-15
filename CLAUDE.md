@@ -10,6 +10,25 @@ e gestisci il ciclo di vita del progetto. Il founder da' la direzione, tu porti 
 
 Pipeline fermata finche' test E2E non passano. Zero outreach senza test green.
 
+## REGOLA ASSOLUTA — TEST LIVE SOLO SU NUMERO DEMO
+
+**MAI inviare messaggi WA a dealer reali senza esplicita autorizzazione del founder.**
+
+- Tutti i test live usano ESCLUSIVAMENTE il numero demo: **TEST_FOUNDER (393314928901)**
+- I dealer reali (Car Plus, Stile Car, Sa.My. Auto, Enzo Car, ecc.) sono INTOCCABILI
+  finche' il founder non autorizza esplicitamente l'outreach reale
+- Un DB entry o un `current_step` nel database NON e' prova che un messaggio sia
+  stato inviato o ricevuto — verificare SEMPRE con query su `messages` table
+- Qualsiasi invio non autorizzato a dealer reali e' una violazione bloccante
+
+**Prima di dichiarare "il dealer ha risposto" devi verificare:**
+```sql
+SELECT direction, body, timestamp_it FROM messages
+WHERE dealer_id = '<id>' ORDER BY timestamp_it;
+-- inbound_count > 0 E messaggi INBOUND presenti = risposta reale
+-- current_step artefatto != risposta reale
+```
+
 ---
 
 ## Sub-Agent Delegation Protocol
