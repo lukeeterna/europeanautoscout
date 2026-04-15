@@ -8,6 +8,7 @@ Il DB e' condiviso con wa-daemon e tg-bot via SQLite WAL mode.
 
 import sqlite3
 import os
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 DB_PATH = os.environ.get(
@@ -360,6 +361,76 @@ def get_db_stats() -> dict:
             'tables': tables,
             'size_kb': size_kb,
             'journal_mode': wal,
+        }
+    finally:
+        con.close()
+
+
+def get_operational_kpis() -> dict:
+    """KPI operativi per controllo quotidiano 5 minuti."""
+    con = _connect()
+    try:
+        # Response rate
+        total_outbound = con.execute(
+            "SELECT COUNT(*) FROM conversations WHERE outbound_count > 0"
+        ).fetchone()[0]
+        total_responded = con.execute(
+            "SELECT COUNT(*) FROM conversations WHERE inbound_count > 0"
+        ).fetchone()[0]
+        response_rate = round((total_responded / total_outbound * 100) if total_outbound > 0 else 0)
+
+        # Messaggi inviati oggi
+        today = datetime.now().strftime('%Y-%m-%d')
+        sent_today = con.execute(
+            "SELECT COUNT(*) FROM messages WHERE direction='OUTBOUND' AND created_at LIKE ?",
+            (f'{today}%',)
+        ).fetchone()[0]
+
+        # Dealer con scadenza nelle prossime 24h
+        days_map = {'DAY1_SENT': 3, 'DAY3_SENT': 4, 'DAY7_VOICE_SENT': 7, 'DAY7_SENT': 7}
+        rows = con.execute(
+            "SELECT dealer_name, dealer_id, current_step, last_contact_at FROM conversations "
+            "WHERE current_step IN ('DAY1_SENT','DAY3_SENT','DAY7_VOICE_SENT','DAY7_SENT') "
+            "AND last_contact_at IS NOT NULL"
+        ).fetchall()
+
+        now = datetime.now()
+        due_soon = []
+        for dealer_name, dealer_id, step, last_contact in rows:
+            days = days_map.get(step, 7)
+            try:
+                last_dt = datetime.fromisoformat(last_contact)
+                deadline = last_dt + timedelta(days=days)
+                hours_until = (deadline - now).total_seconds() / 3600
+                if hours_until <= 24:
+                    due_soon.append({
+                        'name': dealer_name,
+                        'step': step,
+                        'hours': round(hours_until, 1),
+                        'overdue': hours_until < 0,
+                    })
+            except Exception:
+                pass
+
+        # Ultima risposta inbound
+        last_inbound = con.execute(
+            "SELECT dealer_name, body, timestamp_it FROM messages "
+            "WHERE direction='INBOUND' ORDER BY created_at DESC LIMIT 1"
+        ).fetchone()
+
+        # Dealer con risposta in attesa di approvazione (pending replies)
+        pending_urgent = con.execute(
+            "SELECT COUNT(*) FROM pending_replies WHERE approved IS NULL AND sent=0"
+        ).fetchone()[0]
+
+        return {
+            'response_rate':            response_rate,
+            'total_responded':          total_responded,
+            'total_outbound_dealers':   total_outbound,
+            'sent_today':               sent_today,
+            'due_soon':                 due_soon,
+            'pending_urgent':           pending_urgent,
+            'last_inbound':             dict(zip(['dealer_name', 'body', 'timestamp_it'], last_inbound)) if last_inbound else None,
         }
     finally:
         con.close()

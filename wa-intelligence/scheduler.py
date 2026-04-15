@@ -37,11 +37,13 @@ WARN_HOURS         = 24    # primo avviso: 24h prima
 CRITICAL_HOURS     = 2     # avviso critico: 2h prima
 OVERDUE_GRACE_HOURS = 1    # tolleranza dopo scadenza prima di "OVERDUE" alert
 
-# Mappa step → giorni al prossimo step (calendario)
+# Mappa step → giorni al prossimo step (allineato con wa-daemon.js)
+# DAY1_SENT → DAY3 in 3gg | DAY3_SENT → DAY7 voice in 4gg | DAY7_VOICE_SENT → close in 7gg
 SEQUENCE_MAP = {
-    'WA_DAY1_SENT':    {'next': 'EMAIL_DAY7',        'days': 7},
-    'EMAIL_DAY7_SENT': {'next': 'WA_DAY12',          'days': 5},
-    'WA_DAY12_SENT':   {'next': 'CLOSED_TIMEOUT',    'days': 7},
+    'DAY1_SENT':       {'next': 'DAY3',              'days': 3},
+    'DAY3_SENT':       {'next': 'DAY7_VOICE',        'days': 4},
+    'DAY7_VOICE_SENT': {'next': 'CLOSED_TIMEOUT',    'days': 7},
+    'DAY7_SENT':       {'next': 'CLOSED_TIMEOUT',    'days': 7},
 }
 
 BUSINESS_START = 9
@@ -100,8 +102,8 @@ def save_state(state: dict):
 def load_active_dealers():
     """Carica dealer con sequenza in corso da SQLite."""
     try:
-        con = sqlite3.connect(DB_PATH)
-        con.row_factory = sqlite3.Row
+        from db_utils import get_connection
+        con = get_connection(row_factory=sqlite3.Row)
         cur = con.execute("""
             SELECT dealer_id, dealer_name, persona_type,
                    current_step, last_contact_at, recommendation

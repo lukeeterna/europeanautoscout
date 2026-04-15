@@ -1,27 +1,100 @@
 <!-- KPI Cards partial — refreshed via HTMX ogni 30s -->
-<div class="row g-3">
+
+<!-- Riga 1: metriche strutturali -->
+<div class="row g-3 mb-2">
   <div class="col-6 col-lg-3">
     <div class="kpi-card">
       <div class="kpi-value">{{ stats.total_dealers }}</div>
-      <div class="kpi-label">Dealer Totali</div>
+      <div class="kpi-label">Dealer Pipeline</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card {% if ops and ops.pending_urgent > 0 %}border-warning{% endif %}">
+      <div class="kpi-value" style="{% if ops and ops.pending_urgent > 0 %}color:#f59f00{% endif %}">
+        {{ ops.pending_urgent if ops else stats.pending_replies }}
+      </div>
+      <div class="kpi-label">Risposte da Approvare</div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
     <div class="kpi-card">
-      <div class="kpi-value">{{ stats.active_dealers }}</div>
-      <div class="kpi-label">Dealer Attivi</div>
+      <div class="kpi-value">
+        {% if ops and ops.total_outbound_dealers > 0 %}
+          {{ ops.response_rate }}%
+        {% else %}
+          —
+        {% endif %}
+      </div>
+      <div class="kpi-label">Response Rate</div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
     <div class="kpi-card">
-      <div class="kpi-value">{{ stats.pending_replies }}</div>
-      <div class="kpi-label">Risposte Pending</div>
-    </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="kpi-card">
-      <div class="kpi-value">${{ "%.3f"|format(cost_total.total_cost) }}</div>
-      <div class="kpi-label">Costi LLM</div>
+      <div class="kpi-value">{{ ops.sent_today if ops else '—' }}</div>
+      <div class="kpi-label">Inviati Oggi</div>
     </div>
   </div>
 </div>
+
+<!-- Riga 2: stato sistema + scadenze -->
+<div class="row g-3">
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card">
+      <div class="kpi-value" style="font-size:1rem; {% if wa.wa_status == 'connected' %}color:#2fb344{% else %}color:#e53935{% endif %}">
+        {% if wa %}
+          {{ '🟢 Connesso' if wa.wa_status == 'connected' else '🔴 ' + (wa.wa_status or 'offline') }}
+        {% else %}
+          —
+        {% endif %}
+      </div>
+      <div class="kpi-label">WA Daemon</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card">
+      <div class="kpi-value">
+        {% if wa %}{{ wa.daily_remaining }}/{{ wa.daily_limit }}{% else %}—{% endif %}
+      </div>
+      <div class="kpi-label">Invii Rimanenti Oggi</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card {% if ops and ops.due_soon|length > 0 %}border-warning{% endif %}">
+      <div class="kpi-value" style="{% if ops and ops.due_soon|length > 0 %}color:#f59f00{% endif %}">
+        {{ ops.due_soon|length if ops else '—' }}
+      </div>
+      <div class="kpi-label">Scadenze 24h</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card">
+      <div class="kpi-value" style="font-size:0.85rem; color: var(--argos-gold)">
+        {% if ops and ops.last_inbound %}
+          {{ ops.last_inbound.dealer_name }}
+        {% else %}
+          Nessuna
+        {% endif %}
+      </div>
+      <div class="kpi-label">Ultima Risposta</div>
+    </div>
+  </div>
+</div>
+
+{% if ops and ops.due_soon %}
+<!-- Alert scadenze -->
+<div class="row g-2 mt-1">
+  <div class="col-12">
+    <div style="background:rgba(245,159,0,0.1); border:1px solid #f59f00; border-radius:6px; padding:8px 12px; font-size:0.8rem;">
+      <strong style="color:#f59f00;">⏰ Scadenze imminenti:</strong>
+      {% for d in ops.due_soon %}
+        <span style="margin-left:12px; color:#ccc;">
+          {% if d.overdue %}🚨{% else %}⚠️{% endif %}
+          <strong>{{ d.name }}</strong>
+          ({{ d.step }})
+          {% if d.overdue %}SCADUTO {{ (-d.hours)|round(0)|int }}h fa{% else %}tra {{ d.hours }}h{% endif %}
+        </span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}

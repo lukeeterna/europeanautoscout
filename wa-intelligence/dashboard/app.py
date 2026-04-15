@@ -13,6 +13,15 @@ import json
 import logging
 import os
 import subprocess
+
+# Load .env from wa-intelligence/ (same as ecosystem.config.js)
+try:
+    from dotenv import load_dotenv
+    _env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+    if os.path.exists(_env_path):
+        load_dotenv(_env_path)
+except ImportError:
+    pass  # python-dotenv not installed — env vars must be set externally
 import time
 from pathlib import Path
 
@@ -93,6 +102,15 @@ async def dashboard(request: Request):
     archetypes = db.get_archetype_distribution()
     recent_msgs = db.get_all_recent_messages(10)
     cost_total = db.get_llm_cost_total()
+    ops = db.get_operational_kpis()
+    wa_status = {}
+    try:
+        import urllib.request as _ur
+        req = _ur.Request('http://localhost:9191/status',
+                          headers={'X-API-Key': os.environ.get('ARGOS_API_KEY', '')})
+        wa_status = json.loads(_ur.urlopen(req, timeout=2).read())
+    except Exception:
+        pass
 
     return templates.TemplateResponse('dashboard.html', {
         'request': request,
@@ -102,6 +120,8 @@ async def dashboard(request: Request):
         'archetypes': json.dumps(archetypes),
         'recent_msgs': recent_msgs,
         'cost_total': cost_total,
+        'ops': ops,
+        'wa': wa_status,
     })
 
 
@@ -496,10 +516,23 @@ async def partial_kpi(request: Request):
         return HTMLResponse('')
     stats = db.get_pipeline_stats()
     cost_total = db.get_llm_cost_total()
+    ops = db.get_operational_kpis()
+    # WA daemon status (best-effort)
+    wa_status = {}
+    try:
+        import urllib.request as _ur
+        req = _ur.Request('http://localhost:9191/status',
+                          headers={'X-API-Key': os.environ.get('ARGOS_API_KEY', '')})
+        import json as _json
+        wa_status = _json.loads(_ur.urlopen(req, timeout=2).read())
+    except Exception:
+        pass
     return templates.TemplateResponse('partials/_kpi_cards.html', {
         'request': request,
         'stats': stats,
         'cost_total': cost_total,
+        'ops': ops,
+        'wa': wa_status,
     })
 
 
