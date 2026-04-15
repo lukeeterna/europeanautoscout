@@ -1,0 +1,108 @@
+[
+  {
+    "dealer_id": "TIER0_FG_001",
+    "name": "Stile Car",
+    "city": "Orta Nova (FG)",
+    "phone": "393334254654",
+    "titolare": "Domenico",
+    "segment": "dealer_classico",
+    "segment_confidence": 0.92,
+    "segment_evidence": [
+      "Sito dichiara 'importazioni europee dirette' — acquisto diretto, non conto terzi",
+      "Stock 36 auto coerente (BMW/Mercedes/Audi/Volvo) — fascia premium omogenea",
+      "4.98/5 su 860 recensioni AutoScout24 — showroom consolidato con reputazione solida",
+      "Partita IVA Srls (non impresa individuale) — struttura aziendale",
+      "Zona Orta Nova FG — showroom su statale, tipologia dealer classico",
+      "Nessuna dicitura 'conto vendita' o 'su mandato' trovata negli annunci"
+    ],
+    "archetype": "NARCISO",
+    "archetype_changed": false,
+    "archetype_evidence": "860 recensioni 4.98/5 = dealer orgoglioso del proprio standard. Segnale 'importazioni europee dirette' = si posiziona sopra i concorrenti locali. Risponde a esclusivita' e selezione ('2-3 concessionari della zona'). Domina Foggia = vuole sentirsi il riferimento del territorio. NARCISO confermato.",
+    "pitch_type": "margine",
+    "research_sources": [
+      "autoscout24.it — dealer page Stile Car Srls",
+      "google_business — Stile Car Orta Nova recensioni e foto",
+      "research/s73_dealer_target_list.md — target list ARGOS",
+      "research/s73_dealer_persona.md — archetype NARCISO",
+      "tools/outreach/send_day1_stile_car.py — dati veicolo reali Phase 3"
+    ],
+    "vehicle_ref": {
+      "model": "BMW X3 xDrive20d 2022",
+      "km": "50.000 km",
+      "price_eu": 34140,
+      "price_it_est": 37369,
+      "country": "Germania",
+      "listing_id": "autoscout24_de_b0d65f095510"
+    },
+    "day1_message_final": "Buongiorno, ho trovato una BMW X3 xDrive20d 2022, 50.000 km,\nin Germania — \u20ac34.140. In Puglia gli stessi esemplari partono da \u20ac37-39.000.\n\nSto cercando 2-3 concessionari della zona per questo tipo di auto.\nHo visto il suo stock su AutoScout24 — tratta questa fascia.\n\nLe mando la scheda completa?\n\nLuca Ferretti"
+  },
+  {
+    "dealer_id": "TIER0_CS_001",
+    "name": "Sa.My. Auto",
+    "city": "Rende (CS)",
+    "phone": "393492587423",
+    "titolare": "Antonio Salerni",
+    "segment": "ibrido",
+    "segment_confidence": 0.72,
+    "segment_evidence": [
+      "99 auto in stock — grande dimensione suggerisce mix conto terzi + stock proprio",
+      "Marchi: BMW/Mercedes/Porsche/Lambo — fascia premium eterogenea, segnale ibrido",
+      "Titolare vissuto in Germania — conosce prezzi EU, gestisce import diretto",
+      "Instagram attivo con contenuti auto — auto proprie e in conto deposito",
+      "Provincia Cosenza, zona Rende — area con autosalon su statale frequenti",
+      "Segnale ibrido: stock grande (99) = probabile mix stock proprio + veicoli in conto"
+    ],
+    "archetype": "RELAZIONALE",
+    "archetype_changed": false,
+    "archetype_evidence": "Antonio Salerni ~30 anni, vissuto in DE = approccio peer-to-peer, conosce il mercato in prima persona. Instagram attivo = costruisce relazione digitale. 99 auto = vuole partner affidabili nel lungo termine. Titolare giovane con esperienza diretta EU = si fida di chi parla la stessa lingua (conosce prezzi, mercato, burocrazia). RELAZIONALE confermato con sfumatura peer.",
+    "pitch_type": "rotazione",
+    "research_sources": [
+      "research/s73_dealer_target_list.md — Sa.My. Auto target TIER0",
+      "research/s73_dealer_persona.md — archetype RELAZIONALE",
+      "memory/MEMORY.md — stato dealer TIER0_CS_001"
+    ],
+    "vehicle_ref": {
+      "model": "BMW X3 xDrive20d 2022",
+      "km": "50.000 km",
+      "price_eu": 34140,
+      "price_it_est": 37369,
+      "country": "Germania",
+      "listing_id": "autoscout24_de_b0d65f095510"
+    },
+    "day1_message_final": "Buongiorno Antonio, ho trovato una BMW X3 xDrive20d 2022, 50.000 km,\ndalla Germania — \u20ac34.140. Km certificati, storia pulita.\n\nLei conosce bene il mercato tedesco — sa che questi esemplari in Calabria\npartono da \u20ac37-39.000. Zero anticipo: la metto nel suo stock, paga solo quando vende.\n\nCi facciamo due chiacchiere?\n\nLuca Ferretti"
+  },
+  {
+    "dealer_id": "TIER0_AV_001",
+    "name": "Car Plus",
+    "city": "Grottaminarda (AV)",
+    "phone": "393289617180",
+    "titolare": "Francesco",
+    "segment": "dealer_classico",
+    "segment_confidence": 0.85,
+    "segment_evidence": [
+      "Sito dichiara 'importazioni dall'estero' — acquisto diretto EU confermato",
+      "Stock 19 auto coerente (BMW/Mercedes/Jaguar/Land Rover) — fascia premium omogenea",
+      "4.85/5 su 66 recensioni — piccolo ma con buona reputazione",
+      "Gestiti da Francesco + Luca, giovani — struttura aziendale, non impresa individuale",
+      "Nessuna dicitura 'conto vendita' trovata — acquisto diretto dichiarato"
+    ],
+    "archetype": "RAGIONIERE",
+    "archetype_changed": true,
+    "archetype_evidence": "MEMORY indicava BARONE, ma target list originale dice 'PERFORMANTE' per Francesco+Luca giovani. Con 19 auto e import gia' attivo, i giovani imprenditori ragionano su numeri: quanto risparmiano in tempo e costi delegando la ricerca? Il Ragioniere vuole i conti chiari — margine netto in EUR, costi espliciti, nessuna sorpresa. Car Plus gia' fa i conti sull'import: RAGIONIERE e' piu' preciso del BARONE per profilo giovane + orientamento numerico. Archetipo rivisto da BARONE a RAGIONIERE con evidenza da target list e comportamento import attivo.",
+    "pitch_type": "margine",
+    "research_sources": [
+      "research/s73_dealer_target_list.md — Car Plus TIER0 con note 'PERFORMANTE'",
+      "research/s73_dealer_persona.md — archetype RAGIONIERE",
+      "memory/MEMORY.md — stato dealer TIER0_AV_001"
+    ],
+    "vehicle_ref": {
+      "model": "BMW X3 xDrive20d 2022",
+      "km": "50.000 km",
+      "price_eu": 34140,
+      "price_it_est": 37369,
+      "country": "Germania",
+      "listing_id": "autoscout24_de_b0d65f095510"
+    },
+    "day1_message_final": "Buongiorno, ho trovato una BMW X3 xDrive20d 2022, 50.000 km,\na \u20ac34.140 in Germania. In Campania la stessa auto sta a \u20ac37-39.000.\n\nHo visto che importa gi\u00e0 dall'estero — conosce i costi del fai-da-te.\nCon me: zero anticipo, paga solo se la prende. Margine netto stimato: \u20ac2.500-3.200.\n\nVuole i numeri precisi?\n\nLuca Ferretti"
+  }
+]
