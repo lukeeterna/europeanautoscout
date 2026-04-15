@@ -1066,7 +1066,9 @@ def classify_message(body: str) -> dict:
     if len(words) <= 1:
         if b_lower in ('ok', 'sì', 'si', 'certo', 'perfetto', 'ottimo', 'bene'):
             return {'type': 'POSITIVE', 'confidence': 0.90, 'method': 'short_match'}
-        if b_lower in ('no', 'stop'):
+        if b_lower in ('no', 'stop', 'nulla', 'niente', 'passa', 'lascia',
+                       'non serve', 'non interessa', 'grazie no', 'no grazie',
+                       'no tx', 'no thx', 'x nulla', 'per nulla'):
             return {'type': 'NEGATIVE', 'confidence': 0.95, 'method': 'short_match'}
         if '?' in body:
             return {'type': 'CURIOSITY', 'confidence': 0.75, 'method': 'question_mark'}
