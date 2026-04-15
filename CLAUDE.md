@@ -319,9 +319,11 @@ Status:  ssh gianlucadistasi@192.168.1.2 "curl -s localhost:9191/status"
 ## Protocollo Fine Sessione
 
 1. Aggiorna `memory/MEMORY.md` — stato corrente
-2. Crea/aggiorna `prompts/s{N+1}_*.md` — prossima sessione
-3. Aggiorna `memory/project_s{N}_*.md` — dettagli sessione
-4. git commit (se richiesto)
+   (path: `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/MEMORY.md`)
+   NOTA: questo file e' FUORI dal repo git — non va committato, solo scritto con Write tool
+2. Crea/aggiorna `prompts/s{N+1}_*.md` — prossima sessione (DENTRO il repo, va committato)
+3. Aggiorna `HANDOFF.md` — riepilogo sessione (DENTRO il repo, va committato)
+4. `git add HANDOFF.md prompts/s{N+1}_*.md && git commit && git push`
 
 ---
 
