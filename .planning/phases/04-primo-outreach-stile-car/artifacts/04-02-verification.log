@@ -1,0 +1,14 @@
+=== Plan 04-02 DB Reset Verification ===
+Timestamp: 2026-04-15T14:33:05Z
+
+--- Pre-check: messages count for 3 dealers ---
+(zero rows = no real messages — confirmed safe to reset)
+
+--- Post-reset state (conversations table) ---
+TIER0_AV_001|PENDING|0|0|
+TIER0_CS_001|PENDING|0|0|
+TIER0_FG_001|PENDING|0|0|
+TIER1_FG_002|CLOSED_NO|1|1|2026-04-15 06:55:52
+
+--- Double-check messages table (must be empty for 3 dealers) ---
+(zero rows = confirmed)

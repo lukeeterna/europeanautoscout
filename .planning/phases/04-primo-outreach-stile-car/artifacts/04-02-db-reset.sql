@@ -3,14 +3,12 @@
 -- Eseguire su: /Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite
 -- TIER1_FG_002 (Enzo Car) NON incluso — resta CLOSED_NO.
 
-BEGIN TRANSACTION;
+-- SAFETY NOTE: RAISE(ABORT) non supportato fuori da trigger in SQLite 3.x.
+-- Il pre-check (zero messages) va eseguito PRIMA di questo script via:
+--   sqlite3 DB "SELECT COUNT(*) FROM messages WHERE dealer_id IN ('TIER0_FG_001','TIER0_CS_001','TIER0_AV_001');"
+-- Se COUNT > 0 → NON eseguire questo script.
 
--- Pre-check assert: abort se esistono messages reali
-SELECT CASE
-  WHEN (SELECT COUNT(*) FROM messages
-        WHERE dealer_id IN ('TIER0_FG_001','TIER0_CS_001','TIER0_AV_001')) > 0
-  THEN RAISE(ABORT, 'Messages reali presenti — reset non sicuro')
-  ELSE 1 END;
+BEGIN TRANSACTION;
 
 UPDATE conversations
 SET current_step = 'PENDING',
