@@ -58,8 +58,50 @@ Verifica partner attivi:
 - Commits: 4a92e62 (04-02) + fe8e88e (04-03)
 
 ### Gate Wave 2
-- [ ] Founder approva i 3 template Day 1
+- [ ] **Founder approva i 3 template Day 1** (testi in `tools/outreach/day1_templates/`)
 - [ ] `/gsd:execute-phase 4` → esegue 04-01 (Stile Car singolo) + 04-04 (multi-dealer)
+
+---
+
+## S123 COMPLETATA — SCHEDULER FIX + DASHBOARD KPI + FIDELIZZAZIONE
+
+### Commit: f21e0e9 + c6c16d1
+
+### Fix critici eseguiti
+
+**1. Scheduler (era completamente rotto)**
+- Bug: LaunchAgent puntava a `dealer_network.duckdb` → `ERROR: file is not a database` ogni 5 min
+- Bug: `SEQUENCE_MAP` usava `WA_DAY1_SENT` — DB ha `DAY1_SENT` → zero match
+- Bug: `ARGOS_TELEGRAM_TOKEN` assente nel plist → alert Telegram mai inviati
+- Fix: plist corretto + SEQUENCE_MAP allineato a wa-daemon.js + token iniettato
+- **Verificato**: scheduler trova 6 dealer, calcola TEST_FOUNDER Day3 scadenza Sab 18/04 15:29
+
+**2. Dashboard KPI (erano 4 numeri inutili)**
+- Aggiunti: WA status live, response rate, sent today, daily_remaining, scadenze 24h, pending urgenti
+- Banner alert scadenze imminenti (auto-refresh 30s via HTMX)
+- File: `wa-intelligence/dashboard/db.py` + `app.py` + `_kpi_cards.html`
+
+**3. Fidelizzazione implementata**
+- DB migration iMac: 6 colonne (is_active_partner, partner_since, total_transactions, total_revenue_dealer, last_analytics_sent, trusted_partner_sent)
+- `tools/fidelizzazione/promote_partner.py` — promuove dealer dopo transazione
+- `tools/fidelizzazione/trusted_partner_letter.py` — PDF lettera fisica (~€5 spedizione)
+- `tools/fidelizzazione/analytics_dossier.py` — PDF trimestrale "quanto hai guadagnato"
+
+**4. Pipeline test**
+- Day 1 inviato a TEST_FOUNDER (393314928901) — confermato ricevuto dal founder
+
+### Gap production-ready rimanenti (prossima sessione)
+| # | Gap | Priorità |
+|---|-----|----------|
+| 1 | **Pending reply E2E** — verificare che alert Telegram + approvazione dashboard funzioni end-to-end | ALTA |
+| 2 | **Scraper scheduling** — automatizzare on_demand_runner su cron/LaunchAgent | MEDIA |
+| 3 | **Wave 2 go-live** — in attesa approvazione template founder | BLOCCANTE |
+| 4 | **Landing area formazione** — research in `s99_formazione_integrata_operazione.md`, da implementare | BASSA |
+
+### Research già fatta (NON rifare)
+- `research/s99_PIANO_OPERATIVO_COMPLETO.md` — piano 24 mesi
+- `research/s99_DATI_CERTI_segmentazione_province.md` — volumi per regione/provincia
+- `research/s99_formazione_integrata_operazione.md` — modello "learn by earning"
 
 ---
 
