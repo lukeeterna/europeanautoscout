@@ -1,6 +1,44 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S122 — 2026-04-15
+**Aggiornato**: Session S125 — 2026-04-15
+
+---
+
+## S125 COMPLETATA — DEEP RESEARCH DEALER TUTTA ITALIA + ALLINEAMENTO STRATEGICO
+
+### Cosa è stato fatto
+
+1. **3 research parallele completate** (agent-research, ~10 min):
+   - Research A: Self-perception dealer TUTTA Italia (Nord/Centro/Sud) — confidenza 6.5/10
+   - Research B: Come dealer italiano parla ai clienti premium oggi — canali, gap, confronto UK/DE
+   - Research C: Gap di mercato — territorio vuoto al 90%, nessun competitor su formazione premium per indipendenti
+
+2. **Sintesi presentata al founder** — mappa per macroarea, 5 gap documentati, 3 opzioni costruttive
+
+3. **Allineamento strategico raggiunto** — decisioni founder:
+   - Opzione **C** (area formazione) come direzione principale
+   - Frame **per macroaree** — ma serve più segmentazione → altra research necessaria
+   - Sequenza: **materiali prima, poi come leva nel Day 1** (non go-live subito)
+
+4. **Proposta CTO accettata**: parallelizzare, non serializzare. Stile Car come MVP pilota (Sud già researched), research Nord/Centro in parallelo.
+
+### Correzioni critiche confermate in S125
+
+- Self-perception dealer: NON "già nel premium", ma "seri e affidabili con auto buone" — in tutta Italia
+- "Premium" = categoria veicolo (BMW/Mercedes), MAI identità del dealer — in tutta Italia
+- Frame per area: Nord → "processo più efficiente" | Sud → "auto che i tuoi clienti cercano, più veloce"
+- Domanda latente: i dealer non cercano "formazione premium" — va creata la categoria mentale
+
+### Stato pipeline (invariato da S123)
+
+| Nome | dealer_id | Step | Note |
+|------|-----------|------|------|
+| Enzo Car | TIER1_FG_002 | CLOSED_NO | CHIUSO — NEGATIVE |
+| Stile Car | TIER0_FG_001 | PENDING | Day 1 pronto — MVP materiale formativo da costruire |
+| Sa.My. Auto | TIER0_CS_001 | PENDING | In attesa materiali + go-live founder |
+| Car Plus | TIER0_AV_001 | PENDING | In attesa materiali + go-live founder |
+
+---
 
 ---
 
