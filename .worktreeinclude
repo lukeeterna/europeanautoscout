@@ -1,0 +1,4 @@
+# File gitignored copiati in ogni nuovo worktree
+.env
+.env.local
+config/secrets.yaml
