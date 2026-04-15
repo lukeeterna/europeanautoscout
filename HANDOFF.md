@@ -1,6 +1,65 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S120 — 2026-04-15
+**Aggiornato**: Session S122 — 2026-04-15
+
+---
+
+## S123 COMPLETATA — PIPELINE TEST + FIDELIZZAZIONE IMPLEMENTATA
+
+### Cosa è stato fatto
+1. **Pipeline test live su TEST_FOUNDER (393314928901)** — PASS
+   - dry_run PASS → invio reale `msg_id: out_1776266941757_bxnw3` → loggato in DB
+   - Template Day 1 Stile Car inviato correttamente via WA daemon 9191
+2. **Fidelizzazione: DB migration** — 6 colonne aggiunte su iMac DB:
+   `is_active_partner, partner_since, total_transactions, total_revenue_dealer, last_analytics_sent, trusted_partner_sent`
+3. **3 script fidelizzazione** in `tools/fidelizzazione/`:
+   - `promote_partner.py` — promuove dealer a partner dopo transazione (update DB)
+   - `analytics_dossier.py` — PDF "quanto hai guadagnato con ARGOS" (trimestrale, dopo 2-3 tx)
+   - `trusted_partner_letter.py` — lettera fisica firmata Luca (dopo 1ª tx)
+4. **Test fidelizzazione E2E**: promote → preview → PDF generato → rollback ✅
+
+### Flusso fidelizzazione operativo
+```
+1ª conversione completata:
+  → python3 tools/fidelizzazione/promote_partner.py --dealer <id> --transactions 1 --revenue <€>
+  → python3 tools/fidelizzazione/trusted_partner_letter.py --dealer <id> --mark-sent
+  → Stampa PDF + spedisci (€5 spedizione)
+
+Dopo 2-3 transazioni (trimestrale):
+  → python3 tools/fidelizzazione/analytics_dossier.py --dealer <id> --output /tmp/ --mark-sent
+  → Invia PDF via WA
+
+Verifica partner attivi:
+  → ssh iMac "python3 tools/fidelizzazione/promote_partner.py --list"
+```
+
+---
+
+## S122 COMPLETATA — PHASE 4 WAVE 1 + TEMPLATE DAY 1
+
+### Stato corrente
+**Phase 4 Wave 1 DONE** — DB pulito, WA green, E2E 3/3 PASS, 3 template Day 1 pronti.
+
+**Prossima azione immediata**: founder approva template → `/gsd:execute-phase 4` Wave 2.
+
+### Dealer pipeline
+| Nome | dealer_id | Step | Note |
+|------|-----------|------|------|
+| Enzo Car | TIER1_FG_002 | CLOSED_NO | CHIUSO — NEGATIVE |
+| Stile Car | TIER0_FG_001 | PENDING | Day 1 pronto (NARCISO) |
+| Sa.My. Auto | TIER0_CS_001 | PENDING | Day 1 pronto (RELAZIONALE) |
+| Car Plus | TIER0_AV_001 | PENDING | Day 1 pronto (RAGIONIERE) |
+| Autoline | TIER1_AV_002 | PENDING/COLD | In attesa autorizzazione |
+| GP Cars | TIER1_TA_001 | PENDING/COLD | In attesa autorizzazione |
+
+### Artifacts pronti
+- `tools/outreach/dealer_profiles_validated.json` — profili validati
+- `tools/outreach/day1_templates/` — 3 template Day 1 personalizzati
+- Commits: 4a92e62 (04-02) + fe8e88e (04-03)
+
+### Gate Wave 2
+- [ ] Founder approva i 3 template Day 1
+- [ ] `/gsd:execute-phase 4` → esegue 04-01 (Stile Car singolo) + 04-04 (multi-dealer)
 
 ---
 
