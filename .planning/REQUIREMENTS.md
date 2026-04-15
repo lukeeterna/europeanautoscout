@@ -36,7 +36,7 @@
 
 - [ ] **OUT-01**: Dossier BMW X3 xDrive20d 2022 generato per Stile Car con tutti i dati reali verificati
 - [ ] **OUT-02**: Messaggio Day 1 per Domenico (NARCISO) con riferimento al dossier, max 5 righe, domanda chiusa
-- [ ] **OUT-03**: WA daemon operativo e messaggio inviato con successo
+- [x] **OUT-03**: WA daemon operativo e messaggio inviato con successo
 - [ ] **OUT-04**: CRM aggiornato con stato dealer e timestamp invio
 
 ## v2 Requirements
@@ -88,7 +88,7 @@
 | PDF-05 | Phase 3 | Complete |
 | OUT-01 | Phase 4 | Pending |
 | OUT-02 | Phase 4 | Pending |
-| OUT-03 | Phase 4 | Pending |
+| OUT-03 | Phase 4 | Complete |
 | OUT-04 | Phase 4 | Pending |
 
 **Coverage:**
