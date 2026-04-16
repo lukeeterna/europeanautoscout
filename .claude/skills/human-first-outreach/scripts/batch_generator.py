@@ -110,7 +110,11 @@ def get_dealer_stock_from_db(dealer_id: str) -> dict:
 
 
 def load_hypothesis(persona_type: str) -> str:
-    """Carica hypothesis per archetipo dal JSON."""
+    """
+    Carica hypothesis per archetipo dal JSON.
+    NOTA: NON usare per Day 1 — Day 1 usa framework V3 (CHI+PERCHÉ+DOMANDA).
+    Riservato per Day 7+ (Reframe / Rational Drowning).
+    """
     try:
         with open(HYPOTHESIS_FILE) as f:
             data = json.load(f)
@@ -122,15 +126,38 @@ def load_hypothesis(persona_type: str) -> str:
 
 
 def generate_day1_message(dealer: dict, signal: SignalEvent) -> str:
-    """Genera messaggio Day 1 con hypothesis framing."""
-    hypothesis = load_hypothesis(dealer.get("persona_type", "NEUTRO"))
-    anchor = signal.anchor_text()
+    """
+    Genera messaggio Day 1 — Framework V3 (s94_MESSAGGI_DEFINITIVI_V3).
+
+    RIGA 1: CHI SEI + COSA FAI (max 15 parole)
+    RIGA 2: PERCHÉ LUI — 1 dato concreto sul SUO stock, archetipo-specifico
+    RIGA 3: DOMANDA no-oriented (Chris Voss — basso impegno, invita risposta)
+    RIGA 4: Nome
+
+    NESSUN veicolo, NESSUN prezzo, NESSUNA fee nel Day 1.
+    Il veicolo arriva al Day 3 quando il dealer SA chi sei.
+    """
+    persona = dealer.get("persona_type", "NEUTRO")
+    city = dealer.get("city", "") or ""
+
+    # RIGA 2: personalizzata per archetipo — dato sul SUO stock, non su ARGOS
+    perche_lui_map = {
+        "NARCISO":     "Ho visto il suo stock, tratta BMW e premium.",
+        "BARONE":      "Ho visto le sue recensioni — i clienti parlano di serietà.",
+        "RAGIONIERE":  "Ho notato che tratta BMW e Mercedes — capisce i numeri.",
+        "TECNICO":     "Ho visto il suo stock, tratta marchi tedeschi.",
+        "RELAZIONALE": f"Ho visto il suo lavoro nella zona di {city}." if city else "Ho visto il suo stock, tratta premium.",
+        "PERFORMANTE": "Ho visto il suo turnover — muove auto di questa fascia velocemente.",
+        "CONSERVATORE":"Ho visto il suo stock, lavora su segmenti che conosco bene.",
+        "DELEGATORE":  "Ho visto il suo stock, tratta marchi per cui ho disponibilità.",
+    }
+    perche_lui = perche_lui_map.get(persona, "Ho visto che tratta BMW e auto premium.")
 
     return (
-        f"Buongiorno, sono Luca Ferretti.\n\n"
-        f"Ho visto la {signal.vehicle} che {anchor}.\n\n"
-        f"{hypothesis}.\n\n"
-        f"È così, o mi sto sbagliando?\n\n"
+        f"Buongiorno, sono Luca Ferretti — cerco auto premium\n"
+        f"in Germania per concessionari del Sud.\n\n"
+        f"{perche_lui}\n"
+        f"Le capita di cercare questi modelli all'estero?\n\n"
         f"Luca"
     )
 
