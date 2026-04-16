@@ -1,0 +1,29 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "created": "S128",
+    "rule": "UNA sola ipotesi per messaggio. Template usa {hypothesis} dal JSON. Template usa {days_on_market} ESATTO dal signal_event.",
+    "confidence_routing": {
+      ">=0.85": "archetype_specific (rarissimo Day 1)",
+      "0.65-0.85": "blending top-2 (es. 70% RAGIONIERE + 30% CONSERVATORE)",
+      "<0.65": "NEUTRO fallback"
+    }
+  },
+  "hypotheses": {
+    "RAGIONIERE": "Ipotizzo che il costo di tenerla in listino stia iniziando a pesare più del margine atteso",
+    "BARONE": "Ipotizzo che a questo prezzo il cliente tipo della sua zona la stia già cercando altrove",
+    "PERFORMANTE": "Ipotizzo che abbia un target di rotazione mensile e questa auto stia rallentando il numero",
+    "NARCISO": "Ipotizzo che stia cercando qualcosa di specifico che il mercato italiano non offre a questi km",
+    "TECNICO": "Ipotizzo che sia in attesa di verifica documentale o perizia prima di procedere al ribasso",
+    "RELAZIONALE": "Ipotizzo che stia aspettando il cliente giusto piuttosto che svenderla",
+    "CONSERVATORE": "Ipotizzo che preferisca perdere qualcosa sul prezzo piuttosto che rischiare cambi di canale",
+    "DELEGATORE": "Ipotizzo che il ribasso dipenda da qualcuno che non ha ancora dato il via libera",
+    "NEUTRO": "Ipotizzo che stia aspettando il momento giusto per ribassare senza compromettere il margine"
+  },
+  "day1_template": "Buongiorno, sono Luca Ferretti.\n\nHo visto la {vehicle} che {anchor_text}.\n\n{hypothesis}.\n\nÈ così, o mi sto sbagliando?\n\nLuca",
+  "notes": {
+    "RAGIONIERE": "focus: costo finanziario implicito (floor-plan interest, costo capitale immobilizzato)",
+    "NARCISO": "focus: unicità del veicolo EU non reperibile in IT — NON menzionare prezzo",
+    "NEUTRO": "usare solo se confidence < 0.65 — massima genericità, massima sicurezza"
+  }
+}
