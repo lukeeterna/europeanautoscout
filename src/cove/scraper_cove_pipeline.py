@@ -481,12 +481,13 @@ class ScraperCovePipeline:
                 source = getattr(lst, 'portal', 'unknown')
                 url = getattr(lst, 'listing_url', '') or ''
 
+                seller_name = getattr(lst, 'seller_name', '') or ''
                 con.execute("""
                     INSERT INTO vehicle_listings
                         (listing_id, make, model, year, mileage, price_eu,
-                         source, detail_url, pipeline_state, scraped_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'DISCOVERED', NOW())
-                """, [lid, make, model, year, km, price, source, url])
+                         source, detail_url, pipeline_state, scraped_at, seller_name)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'DISCOVERED', NOW(), ?)
+                """, [lid, make, model, year, km, price, source, url, seller_name or None])
                 inserted += 1
 
             # Also persist CoVe results for opportunities

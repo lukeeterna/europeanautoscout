@@ -91,18 +91,10 @@ MAKE_SLUG: Dict[str, str] = {
 MODEL_SLUG: Dict[str, Dict[str, str]] = {
     # BMW
     "Serie 3": {
-        "DE": "3er-reihe", "AT": "3er-reihe",
-        "NL": "3-reeks", "BE": "3-reeks",
-        "FR": "serie-3", "IT": "serie-3",
-        "SE": "3-serie",
-        "universal": "3er-reihe",
+        "universal": "3er-(alle)",
     },
     "Serie 5": {
-        "DE": "5er-reihe", "AT": "5er-reihe",
-        "NL": "5-reeks", "BE": "5-reeks",
-        "FR": "serie-5", "IT": "serie-5",
-        "SE": "5-serie",
-        "universal": "5er-reihe",
+        "universal": "5er-(alle)",
     },
     "X1": {"universal": "x1"},
     "X3": {"universal": "x3"},
@@ -112,30 +104,18 @@ MODEL_SLUG: Dict[str, Dict[str, str]] = {
     "M4": {"universal": "m4"},
     # Mercedes-Benz
     "Classe A": {
-        "DE": "a-klasse", "AT": "a-klasse",
-        "NL": "a-klasse", "BE": "a-klasse",
-        "FR": "classe-a", "IT": "classe-a",
-        "SE": "a-klass",
-        "universal": "a-klasse",
+        "universal": "a-klasse-(alle)",
     },
     "Classe C": {
-        "DE": "c-klasse", "AT": "c-klasse",
-        "NL": "c-klasse", "BE": "c-klasse",
-        "FR": "classe-c", "IT": "classe-c",
-        "SE": "c-klass",
-        "universal": "c-klasse",
+        "universal": "c-klasse-(alle)",
     },
     "Classe E": {
-        "DE": "e-klasse", "AT": "e-klasse",
-        "NL": "e-klasse", "BE": "e-klasse",
-        "FR": "classe-e", "IT": "classe-e",
-        "SE": "e-klass",
-        "universal": "e-klasse",
+        "universal": "e-klasse-(alle)",
     },
-    "GLA": {"universal": "gla"},
-    "GLB": {"universal": "glb"},
-    "GLC": {"universal": "glc-klasse"},
-    "GLE": {"universal": "gle"},
+    "GLA": {"universal": "gla-(alle)"},
+    "GLB": {"universal": "glb-(alle)"},
+    "GLC": {"universal": "glc-(alle)"},
+    "GLE": {"universal": "gle-(alle)"},
     "CLA": {"universal": "cla"},
     "AMG GT": {"universal": "amg-gt"},
     # Audi
