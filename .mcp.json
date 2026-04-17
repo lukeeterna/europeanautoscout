@@ -6,8 +6,8 @@
       "timeout": 30000
     },
     "sqlite-argos": {
-      "command": "/tmp/mcp-sqlite-venv/bin/mcp-server-sqlite",
-      "args": ["--db-path", "/tmp/argos_dashboard_snapshot.db"]
+      "command": "/Users/macbook/Library/Application Support/argos/venv/bin/mcp-server-sqlite",
+      "args": ["--db-path", "/Users/macbook/Library/Application Support/argos/data/argos_dashboard_snapshot.db"]
     }
   }
 }
