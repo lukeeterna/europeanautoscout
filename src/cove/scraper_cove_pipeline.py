@@ -482,12 +482,16 @@ class ScraperCovePipeline:
                 url = getattr(lst, 'listing_url', '') or ''
 
                 seller_name = getattr(lst, 'seller_name', '') or ''
+                # Prefer listing-level make/model (set by scraper parser);
+                # fall back to pipeline parameters when listing has empty values.
+                lst_make = getattr(lst, 'make', '') or make
+                lst_model = getattr(lst, 'model', '') or model
                 con.execute("""
                     INSERT INTO vehicle_listings
                         (listing_id, make, model, year, mileage, price_eu,
                          source, detail_url, pipeline_state, scraped_at, seller_name)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'DISCOVERED', NOW(), ?)
-                """, [lid, make, model, year, km, price, source, url, seller_name or None])
+                """, [lid, lst_make, lst_model, year, km, price, source, url, seller_name or None])
                 inserted += 1
 
             # Also persist CoVe results for opportunities
