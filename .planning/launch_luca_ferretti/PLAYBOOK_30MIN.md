@@ -5,7 +5,11 @@
 **Pre-requisiti**:
 - Un browser pulito (incognito o profilo browser separato dal tuo personale)
 - Gli asset in `.planning/launch_luca_ferretti/` (tutti pronti)
-- Le 2 foto AI in `assets/luca_ferretti_ai_v1.png` e `_v2.png` (scegli quella che preferisci)
+- Foto AI coerenti da usare (**tutte dal set Imagen-4 in `assets/luca_ferretti/`** — 16 foto, stesso soggetto, generate 2026-04-04):
+  - `assets/luca_ferretti/luca_portrait_formal.jpg` → **foto profilo LinkedIn** (ritratto studio, blazer navy, camicia bianca)
+  - `assets/luca_ferretti/luca_munich_street.jpg` → **banner LinkedIn** (Monaco, Marienplatz, cappotto navy)
+  - Le 16 foto sono già referenziate dal sito (`landing/index.html`) — stesso volto ovunque = credibilità
+- **IMPORTANTE**: NON usare le foto orfane `assets/luca_ferretti_v1-v5.png` (generate il 23 marzo, volto diverso da Imagen set).
 
 ---
 
@@ -39,7 +43,8 @@
    - Azienda: ARGOS Automotive
    - Data inizio: gennaio 2025
    - Descrizione ruolo: `Scouting proattivo auto premium EU per concessionari Sud Italia. Success fee, zero anticipo, DAT report su ogni veicolo.`
-8. **Upload foto profilo**: scegli tra `luca_ferretti_ai_v1.png` (formale) o `luca_ferretti_ai_v2.png` (casual). Crop square.
+8. **Upload foto profilo**: usa `assets/luca_ferretti/luca_portrait_formal.jpg`. Crop square, centra sul viso.
+8b. **Upload banner LinkedIn**: usa `assets/luca_ferretti/luca_munich_street.jpg`. LinkedIn chiederà crop 1584×396 — tieni volto + Marienplatz sullo sfondo, lascia spazio respiro sopra. Comunica: "opero davvero nei mercati tedeschi".
 9. **About**: apri `.planning/launch_luca_ferretti/LINKEDIN_ABOUT.md`, copia il testo tra gli `---`, incolla nel campo About LinkedIn
 10. **Pubblica il post fissato**:
     - Click "Avvia un post" in home
@@ -55,6 +60,10 @@
     - Se un dealer non ha pagina aziendale, cerca il titolare per nome (spesso trovabile).
 
 **Fatto**: Luca Ferretti è live su LinkedIn.
+
+---
+
+**Nota sul sito**: il landing `argos-automotive.pages.dev` **era già pronto** e usa il set Imagen-4 (16 foto stesso volto). I percorsi erano rotti (foto in `assets/luca_ferretti/` ma landing cercava in `landing/assets/luca_ferretti/`) — **FIXED in S143** copiando le foto nella cartella corretta. Prossimo deploy Cloudflare le renderà visibili. Non serve integrare nient'altro sul sito — è già completo (Chi sono, Come funziona, Differenziale, FAQ, Fee).
 
 ---
 
@@ -80,13 +89,11 @@
 
 ---
 
-## FASE 4 — Aggiornamento sito argos-automotive.pages.dev (5 min)
+## FASE 4 — Sito argos-automotive.pages.dev (già pronto, zero azione)
 
-**Opzione A — lascia fare a me (consigliato)**:
-Appena dai OK, integro le 3 sezioni da `SITO_SEZIONI.html` nel tuo `landing/index.html`, committo e pusho. Cloudflare Pages deploya automatico in 2-3 min.
+Il sito è **già completo** con Chi sono, Come funziona, Differenziale, 19 paesi, FAQ, Fee. In S143 ho solo fixato il bug dei percorsi foto (16 immagini Imagen non caricavano). Dopo il push su master, Cloudflare Pages auto-deploya in 2-3 minuti e le foto diventano visibili.
 
-**Opzione B — fai tu manualmente**:
-Apri `landing/index.html`, incolla le 3 sezioni da `SITO_SEZIONI.html` nel punto opportuno, salva, commit, push.
+Il file `SITO_SEZIONI.html` resta come backup/versione alternativa semplificata — non integrato, utile solo se in futuro si decide di rifare il sito in chiave minimale.
 
 ---
 

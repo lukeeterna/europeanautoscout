@@ -1,13 +1,33 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S142 — 2026-04-24
+**Aggiornato**: Session S143 — 2026-04-24
 
 ---
 
 ## COME RIPARTIRE
 1. Leggi questo file
-2. Leggi `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/MEMORY.md` (entry S138-S142)
-3. NON iniziare nuovi task: c'è un kit launch Luca Ferretti pronto, aspetta decisione Luke
+2. Leggi `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/MEMORY.md` (entry S138-S143)
+3. Se non è ancora stato fatto `git push`, valutare con Luke (S143 ha commit locale non pushato)
+
+---
+
+## S143 — PIVOT FOTO (2026-04-24 pomeriggio)
+
+### Scoperte che invalidano S142
+1. Le 5 foto `assets/luca_ferretti_v1-v5.png` (23 marzo, HF) contengono **due volti diversi**: v1/v2/v5 (uomo ~40, barba grigia) vs v3/v4 (uomo ~33, barba scura). La memoria S142 diceva "soggetto coerente" — FALSO.
+2. Esistono **16 foto Imagen-4 Ultra** in `assets/luca_ferretti/` (generate 2026-04-04, $0.90) con volto coerente — sono queste le foto di produzione. v3/v4 appartengono a questo volto, v1/v2/v5 no.
+3. Il **landing `argos-automotive.pages.dev` era già completo** (Chi sono, Metodo, Differenziale, Processo, 19 Paesi, FAQ, Fee) costruito attorno al set Imagen. Integrare `SITO_SEZIONI.html` sarebbe stato duplicativo e con mismatch estetico (bianco/sans vs dark/gold/Cormorant).
+4. **Bug critico**: il landing referenzia `assets/luca_ferretti/X.jpg` che risolve a `landing/assets/luca_ferretti/X.jpg` → **cartella inesistente**. Verificato con curl: tutte le 16 foto volto di Luca sono rotte sul deploy Cloudflare (server serve fallback HTML 200).
+
+### Azioni completate in S143
+- Rimossi `assets/luca_ferretti_ai_v1.png` + `ai_v2.png` (creati per errore in S142 da v2/v5 sbagliati)
+- Copiati i 16 Imagen `assets/luca_ferretti/*.jpg` in `landing/assets/luca_ferretti/` (fix bug foto rotte)
+- Aggiornato `PLAYBOOK_30MIN.md`: LinkedIn profile = `luca_portrait_formal.jpg`, banner = `luca_munich_street.jpg` (entrambi Imagen, coerenti con sito)
+- Aggiornato `SITO_SEZIONI.html` Chi siamo: tolta foto (file resta come backup non integrato)
+- Nessuna modifica a `landing/index.html` (contenuto già ok)
+
+### Stato pre-push
+Modifiche solo locali. Dopo push: Cloudflare auto-deploya in 2-3 min → foto landing si sbloccano.
 
 ---
 
@@ -28,23 +48,20 @@
 - **Foto AI nuove via Hugging Face**: ZeroGPU quota exhausted (0s left). Fallback proposto su foto già su disco `assets/luca_ferretti_v1-v5.png` (generate 23 Mar, mai pubblicate).
 
 ### In attesa di decisione Luke (PRIORITÀ 1)
-1. **Foto AI v2/v3/v5 proposte** (assegnazione S142):
-   - v2 (studio, blazer navy + camicia bianca) → LinkedIn profile + Google Business Profile
-   - v3 (piazzale dealer con BMW/Mercedes, luce tramonto) → sezione "Chi siamo" sito
-   - v5 (appoggiato BMW Serie 5, strada acciottolata, full body) → LinkedIn banner
-   - Scartate: v1 (sorriso forzato), v4 (braccia conserte difensiva)
-   - Luke deve confermare o scegliere diverse
-2. **Se OK foto**: rename v2→`luca_ferretti_ai_v1.png`, v3→`luca_ferretti_ai_v2.png` per allineare ai ref dentro `PLAYBOOK_30MIN.md` + `SITO_SEZIONI.html`
-3. **Integrazione sito** (Opzione A playbook): incollare 3 sezioni di `SITO_SEZIONI.html` in `landing/index.html`, commit, push → Cloudflare Pages deploy auto
+~~Le decisioni foto S142 sono state superate da S143 (vedi sopra).~~
+
+**Nuova decisione richiesta**: `git push` delle modifiche S143? Contiene:
+- `landing/assets/luca_ferretti/` (16 foto Imagen, 3MB) — fix bug deploy
+- `HANDOFF.md` + PLAYBOOK + SITO_SEZIONI aggiornati
+
+Dopo push: Cloudflare auto-deploya, il sito diventa visivamente completo (con volti coerenti).
 
 ---
 
-## PROSSIMI STEP (dopo approvazione foto)
+## PROSSIMI STEP
 
-### Step 1 — io faccio (5 min)
-- Rename foto
-- Integro HTML in `landing/index.html`
-- Commit + push
+### Step 1 — commit+push (in attesa OK Luke)
+- Contenuto commit S143 già strutturato (vedi sezione S143 sopra)
 
 ### Step 2 — Luke fa manualmente (30 min usando PLAYBOOK_30MIN.md)
 - Gmail dedicato `luca.ferretti.argos@gmail.com`
