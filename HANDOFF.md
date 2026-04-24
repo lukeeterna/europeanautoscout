@@ -25,6 +25,7 @@
 - Aggiornato `PLAYBOOK_30MIN.md`: LinkedIn profile = `luca_portrait_formal.jpg`, banner = `luca_munich_street.jpg` (entrambi Imagen, coerenti con sito)
 - Aggiornato `SITO_SEZIONI.html` Chi siamo: tolta foto (file resta come backup non integrato)
 - Nessuna modifica a `landing/index.html` (contenuto già ok)
+- **Creato `.claude/NORTH_STAR.md` v1** evidence-based (TAM, dolore, 3 claim testabili, scope exclusions, vincoli immutabili, 3 gap strutturali dichiarati). Framework: `PROMPT_CC_ENTERPRISE_UNIVERSALE.md` Sessione B.
 
 ### Stato pre-push
 Modifiche solo locali. Dopo push: Cloudflare auto-deploya in 2-3 min → foto landing si sbloccano.
