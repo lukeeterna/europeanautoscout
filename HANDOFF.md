@@ -35,20 +35,24 @@
 
 ### Findings critici S144 (correggono assunzioni precedenti)
 
-**1. Cloudflare Pages OUT OF SYNC da 23 giorni**
-Il sito live (`argos-automotive.pages.dev`) serve `landing/index.html` *vecchio* (con `profile_placeholder_v2.png` e copy "Veicoli Premium dall'Europa"). Il `landing/index.html` su master (commit S100, 4 Aprile) referenzia le 16 foto Imagen ed è quello "production". Curl test:
-- `argos-shield.svg` → 200 image/svg+xml ✅
-- `assets/luca_ferretti/luca_portrait_formal.jpg` → 200 ma `text/html` (SPA fallback)
-- `assets/luca_ferretti/_generation_log.json` → idem
+**1. Cloudflare Pages OUT OF SYNC da 23 giorni → RISOLTO 2026-04-27 12:17**
 
-Il commit `ce70830` (16 foto in `landing/assets/luca_ferretti/`) è correttamente su master, ma Cloudflare non rebuilda. **Push S143 era inutile per il problema "foto rotte landing"**.
+Il progetto Cloudflare `argos-automotive` ha **`Git Provider: No`** (mai stato collegato al repo) e **production branch = `main`** (NON `master`). Per questo nessun push ha mai triggerato un deploy.
 
-**Risoluzione (richiede Luke)**: aprire Cloudflare Pages dashboard, verificare:
-- Project connesso al repo `lukeeterna/europeanautoscout`?
-- Branch deploy = `master`?
-- Publish dir = `landing/`?
-- Trigger manual rebuild/redeploy ultimo commit
-- Se project non collegato: deploy via wrangler `wrangler pages deploy landing/ --project-name argos-automotive`
+Comando che funziona (da rieseguire ad ogni cambio in `landing/`):
+```bash
+wrangler pages deploy landing/ --project-name argos-automotive --branch main --commit-dirty=true
+```
+
+Verifica post-deploy obbligatoria:
+```bash
+curl -sI https://argos-automotive.pages.dev/assets/luca_ferretti/luca_portrait_formal.jpg | head -3
+# Atteso: HTTP/2 200 + content-type: image/jpeg (NON text/html)
+```
+
+In S144 deploy CLI eseguito con successo (deployment id `6b9da0b9`). Production ora serve correttamente le 16 foto Imagen.
+
+**Why**: ipotesi sbagliata in S143 — assumevo auto-deploy da push. **How to apply**: ogni modifica a `landing/` richiede il comando wrangler sopra; senza `--branch main` finisce in preview e production resta vecchio.
 
 **2. DB iMac discrepa da MEMORY S140**
 Schema DB: tabella `dealers` (NON `conversations` come da MEMORY). Stato attuale:
@@ -70,7 +74,7 @@ Su BMW X4 budget €32k: 0 PROCEED su 3 listing (54 grezzi NL+DE). ADAC ritorna 
 
 ### Rifiuti deliberati S144
 - **NON inviato WA a Stile Car**: pre-requisito non superabile = Luke deve completare PLAYBOOK_30MIN (Gmail+LinkedIn+GBP) + 3 giorni pre-warming. Inviare ora = dealer cerca "Luca Ferretti" su Google → vuoto → autogol.
-- **NON modificato landing/index.html**: locale è già la versione corretta, il problema è deploy Cloudflare (out of repo scope).
+- **NON modificato landing/index.html**: locale è già la versione corretta. Il deploy Cloudflare è stato risolto via wrangler CLI (vedi finding 1).
 - **NON committato modifiche DAY1_STILE_CAR.md**: il messaggio è draft pronto, ma push automatico no — Luke deve approvare formulazione NARCISO prima.
 
 ---
