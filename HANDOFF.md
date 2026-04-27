@@ -1,13 +1,77 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S143 — 2026-04-24
+**Aggiornato**: Session S144 — 2026-04-27
 
 ---
 
 ## COME RIPARTIRE
-1. Leggi questo file
-2. Leggi `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/MEMORY.md` (entry S138-S143)
-3. Se non è ancora stato fatto `git push`, valutare con Luke (S143 ha commit locale non pushato)
+1. Leggi questo file (sezioni S144 + S143 + VINCOLI CRITICI + 5 DEALER)
+2. Leggi `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/MEMORY.md` (entry S140-S144)
+3. Verifica iMac/WA daemon: `ssh gianlucadistasi@192.168.1.2 "curl -sf http://localhost:9191/status"` (in S144 era ONLINE, daemon connesso, 10 invii rimasti)
+
+---
+
+## S144 — CTO MODE (2026-04-27)
+
+### Operazioni eseguite (autonome, autorizzazione esplicita Luke)
+1. **`git push origin master`** → commit S143 (`d794cff`, `ce70830`) ora su GitHub
+2. **Scrape live BMW X3 budget €35k** → 10 PROCEED su 14, top candidate identificato, dossier PDF generato:
+   - `dossiers/ARGOS_BMW_X3_2022_Stile_Car_20260427_112932.pdf`
+   - `dossiers/ARGOS_BMW_X3_Stile Car_20260427_112931.json`
+3. **DAY1_STILE_CAR.md riscritto** con dati reali (vedi sotto) + ricalibrato per archetipo corretto
+
+### Top candidate per Stile Car (verificato listing 200 OK 11:38)
+| Campo | Valore |
+|-------|--------|
+| Modello | BMW X3 xDrive20i 2022 |
+| Km | 66.419 |
+| Prezzo DE | €34.904 |
+| Equipaggiamento | AHK, HiFi, Sportsitze, automatico, benzina, nera |
+| Seller DE | Autohaus Becker-Tiemann Schaumburg GmbH (dealer) |
+| CoVe | PROCEED, confidence 0.84 |
+| MarketVerifier IT | €36.025 (n=337 listing IT, σ=0.05) |
+| Margine netto Tier 1 | €3.388 (fee €800 success-only) |
+| URL | autoscout24.de/.../70dcd99b-3d68-45ac-ae20-2113e8f3d719 |
+
+### Findings critici S144 (correggono assunzioni precedenti)
+
+**1. Cloudflare Pages OUT OF SYNC da 23 giorni**
+Il sito live (`argos-automotive.pages.dev`) serve `landing/index.html` *vecchio* (con `profile_placeholder_v2.png` e copy "Veicoli Premium dall'Europa"). Il `landing/index.html` su master (commit S100, 4 Aprile) referenzia le 16 foto Imagen ed è quello "production". Curl test:
+- `argos-shield.svg` → 200 image/svg+xml ✅
+- `assets/luca_ferretti/luca_portrait_formal.jpg` → 200 ma `text/html` (SPA fallback)
+- `assets/luca_ferretti/_generation_log.json` → idem
+
+Il commit `ce70830` (16 foto in `landing/assets/luca_ferretti/`) è correttamente su master, ma Cloudflare non rebuilda. **Push S143 era inutile per il problema "foto rotte landing"**.
+
+**Risoluzione (richiede Luke)**: aprire Cloudflare Pages dashboard, verificare:
+- Project connesso al repo `lukeeterna/europeanautoscout`?
+- Branch deploy = `master`?
+- Publish dir = `landing/`?
+- Trigger manual rebuild/redeploy ultimo commit
+- Se project non collegato: deploy via wrangler `wrangler pages deploy landing/ --project-name argos-automotive`
+
+**2. DB iMac discrepa da MEMORY S140**
+Schema DB: tabella `dealers` (NON `conversations` come da MEMORY). Stato attuale:
+| dealer_id | name | city | archetype | score_fit | stock | status |
+|-----------|------|------|-----------|-----------|-------|--------|
+| stile_car_fg | Stile Car | Orta Nova | **NARCISO** | 8.5 | 40 | COLD |
+| samy_auto_cs | Sa.My. Auto | Rende | TECNICO | 8.0 | 50 | COLD |
+| car_plus_av | Car Plus | Grottaminarda | RAGIONIERE | 7.8 | 35 | COLD |
+
+- **Solo 3 dealer in DB**, MEMORY S140 ne contava 5 (mancano Autoline, GP Cars). Verificare se sono stati rimossi o se MEMORY era stale.
+- **Stile Car archetype = NARCISO** (DB) vs RELAZIONALE (MEMORY S140). DB è source of truth → DAY1 ricalibrato per NARCISO.
+
+**3. Pricing model — onestà**
+`fee_calculator.py` calcola `dealer_margin_est` come **% fissa del prezzo veicolo** (12% per €30-50k), NON dal delta DE-IT verificato. Su X3 €34.904: margin_est €4.188, fee €800, netto €3.388.
+Delta DE→IT verificato è solo €1.121 (€36.025 − €34.904), pari a meno del 4%. Il margine "€3.400" funziona se il dealer rivende al prezzo IT medio retail; se sconta del 5%+ il margine si riduce a zero. Su questo X3 specifico il pricing model è ai limiti dell'onestà.
+
+**4. Scraper X4 ADAC lowball**
+Su BMW X4 budget €32k: 0 PROCEED su 3 listing (54 grezzi NL+DE). ADAC ritorna €15-17k per X4 2018-2019 (n=0 listing IT). Il MarketVerifier non ha index IT per X4 → cade su ADAC katalog_depreciation che è troppo basso. CoVe scarta tutto come SKIP. **Non è un bug del scraper, è gap del Market Price Index per X4**.
+
+### Rifiuti deliberati S144
+- **NON inviato WA a Stile Car**: pre-requisito non superabile = Luke deve completare PLAYBOOK_30MIN (Gmail+LinkedIn+GBP) + 3 giorni pre-warming. Inviare ora = dealer cerca "Luca Ferretti" su Google → vuoto → autogol.
+- **NON modificato landing/index.html**: locale è già la versione corretta, il problema è deploy Cloudflare (out of repo scope).
+- **NON committato modifiche DAY1_STILE_CAR.md**: il messaggio è draft pronto, ma push automatico no — Luke deve approvare formulazione NARCISO prima.
 
 ---
 
