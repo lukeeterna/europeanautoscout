@@ -23,14 +23,21 @@
 - ✅ Cloudflare Pages production deployata (S144 12:17, foto Imagen visibili)
 - ✅ WA daemon iMac:9191 connesso, 0/10 inviati oggi
 
+### Correzioni S145 Step 0 (sostituiscono S144 finding #2 e #3)
+- DB live path: `/Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite` (NON `~/Documents/argos/…`)
+- Tabella: **`conversations`** (S140 era corretto, S144 finding #2 errato)
+- 5 dealer COLD totali: Stile Car FG (RELAZIONALE 8.5) / Autoline AV (RAGIONIERE 8.0) / GP Cars TA (NARCISO 8.0) / Car Plus AV (RAGIONIERE 7.5) / Sa.My. Auto CS (TECNICO 7.0)
+- Stile Car archetype: **RELAZIONALE** (S140 era corretto, S144 finding #3 errato — letto DB sbagliato)
+- DAY1_STILE_CAR.md ricalibrato per RELAZIONALE in S145
+
 ### Cosa fare in S145 (in ordine)
 1. **Verifica LinkedIn popolato**: il profilo è creato ma serve check che foto + About + post fissato + headline siano coerenti con `LINKEDIN_ABOUT.md` e `LINKEDIN_POST_FISSATO.md`. Se vuoto → chiedere a Luke screenshot o pubblicare i contenuti via materiali.
-2. **Pre-warming day 1** (oggi): da LinkedIn Luca, follow + like 1 post recente di Stile Car / Sa.My. Auto / Car Plus (3 dealer COLD attualmente in DB).
+2. **Pre-warming day 1** (oggi): da LinkedIn Luca, follow + like 1 post recente di Stile Car / Sa.My. Auto / Car Plus (3 dei 5 dealer COLD — top score, distribuiti su 3 regioni FG/CS/AV; Autoline + GP Cars restano watchlist S146).
 3. **Pre-warming day 2-3** (domani+dopodomani): 1 commento breve non-pitch su un loro post (es. "Bella X3, configurazione rara"). Massimo 1 commento per dealer in 3 giorni.
 4. **Pre-flight Day 4** (giorno invio): `curl -sI` listing X3 di Autohaus Becker-Tiemann per check 200 prima di inviare. Se 404 → rieseguire scrape.
 5. **Test su TEST_FOUNDER 393314928901** prima di Stile Car (regola CLAUDE.md non negoziabile).
-6. **Day 1 WA a Stile Car** (393334254654): testo già pronto in `.planning/launch_luca_ferretti/DAY1_STILE_CAR.md` calibrato NARCISO con risposte pronte per "quanto costa" / "chi sei" (con link LinkedIn) / "dove ha preso numero" / "già importo" / "no grazie".
-7. **Annotazione DB post-invio**: SQLite iMac `dealer_network.sqlite` → tabella `dealers` (NON `conversations`) → update `last_contact_at`, `pipeline_status`, `notes`.
+6. **Day 1 WA a Stile Car** (393334254654): testo in `.planning/launch_luca_ferretti/DAY1_STILE_CAR.md` calibrato **RELAZIONALE** (S145 correzione — S144 NARCISO era basato su DB sbagliato) con risposte pronte per "quanto costa" / "chi sei" (con link LinkedIn) / "dove ha preso numero" / "già importo" / "no grazie".
+7. **Annotazione DB post-invio**: SQLite iMac path `/Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite` → tabella **`conversations`** (S144 finding #2 era errato) → `UPDATE conversations SET current_step='DAY1_SENT', last_contact_at=datetime('now'), outbound_count=outbound_count+1, notes=… WHERE dealer_id='TIER0_FG_001'`.
 8. **48h silenzio osservativo** dopo invio → poi gestione albero risposte o Day 3 follow-up.
 
 ### Materiali pronti per S145

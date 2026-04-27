@@ -21,15 +21,15 @@ ssh gianlucadistasi@192.168.1.2 "curl -sf http://localhost:9191/status"
 # Cloudflare production deve servire image/jpeg
 curl -sI https://argos-automotive.pages.dev/assets/luca_ferretti/luca_portrait_formal.jpg | head -3
 
-# DB stato attuale
-ssh gianlucadistasi@192.168.1.2 'sqlite3 /Users/gianlucadistasi/Documents/argos/dealer_network.sqlite \
-  "SELECT dealer_id,name,city,archetype,score_fit,pipeline_status FROM dealers WHERE pipeline_status=\"COLD\" ORDER BY score_fit DESC;"'
+# DB stato attuale (path + tabella corretti S145)
+ssh gianlucadistasi@192.168.1.2 'sqlite3 /Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite \
+  "SELECT dealer_id,dealer_name,city,persona_type,score,current_step FROM conversations WHERE conversation_state=\"COLD\" ORDER BY score DESC;"'
 ```
 
 Atteso:
 - WA: `wa_status: connected`, business hours
 - Cloudflare: `content-type: image/jpeg`
-- DB: 3 dealer COLD (Stile Car NARCISO 8.5, Sa.My. Auto TECNICO 8.0, Car Plus RAGIONIERE 7.8)
+- DB: 5 dealer COLD — Stile Car FG **RELAZIONALE** 8.5, Autoline AV RAGIONIERE 8.0, GP Cars TA NARCISO 8.0, Car Plus AV RAGIONIERE 7.5, Sa.My. Auto CS TECNICO 7.0
 
 Se uno fallisce → debug PRIMA di procedere.
 
@@ -51,6 +51,8 @@ Se manca qualcosa → Luke completa. CC produce eventuali rifiniture testo se se
 ---
 
 ## STEP 2 — Pre-warming 3 giorni (passive, da Luke)
+
+**Scelta deliberata S145**: pre-warming attivo solo sui 3 top score COLD (Stile Car / Sa.My. / Car Plus), NON tutti i 5. Motivo: profilo LinkedIn nuovo che fa 5 follow+like in pochi minuti = pattern bot, rischio restriction. Autoline + GP Cars (entrambi 8.0) restano watchlist e si attivano in S146 dopo validazione flow Stile Car.
 
 ### Day 1 (oggi, 5 min)
 Da LinkedIn Luca Ferretti:
@@ -96,20 +98,21 @@ Verifica con Luke che il messaggio sia arrivato leggibile su WA TEST_FOUNDER pri
 
 ### 3c. Invio Day 1 a Stile Car (1 messaggio, irreversibile)
 - Numero: 393334254654
-- Testo: corpo del messaggio in `.planning/launch_luca_ferretti/DAY1_STILE_CAR.md` (sezione "DAY 1 — messaggio")
+- Testo: corpo del messaggio in `.planning/launch_luca_ferretti/DAY1_STILE_CAR.md` (sezione "DAY 1 — messaggio", **calibrato RELAZIONALE** S145)
 - Endpoint: `POST localhost:9191/send` con X-API-Key header (vedi `.claude/rules/security.md`)
 - **CONFERMA ESPLICITA LUKE PRIMA DI POST**: invio reale a numero reale, primo dealer ARGOS in assoluto.
 
-### 3d. Annotazione DB
+### 3d. Annotazione DB (path + tabella + colonne corretti S145)
 ```bash
-ssh gianlucadistasi@192.168.1.2 'sqlite3 /Users/gianlucadistasi/Documents/argos/dealer_network.sqlite \
-  "UPDATE dealers SET pipeline_status=\"DAY1_SENT\", \
-                      last_contact_at=datetime(\"now\"), \
-                      next_action_at=datetime(\"now\",\"+48 hours\"), \
-                      next_action_type=\"check_inbound\", \
-                      notes=\"Day1 X3 €34.904 NARCISO inviato via WA daemon S145\" \
-   WHERE dealer_id=\"stile_car_fg\";"'
+ssh gianlucadistasi@192.168.1.2 'sqlite3 /Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite \
+  "UPDATE conversations SET current_step=\"DAY1_SENT\", \
+                            last_contact_at=datetime(\"now\"), \
+                            outbound_count=outbound_count+1, \
+                            state_updated_at=datetime(\"now\"), \
+                            notes=\"Day1 X3 €34.904 RELAZIONALE inviato via WA daemon S145\" \
+   WHERE dealer_id=\"TIER0_FG_001\";"'
 ```
+NB: schema `conversations` non ha `pipeline_status / next_action_at / next_action_type`. Colonne disponibili rilevanti: `current_step`, `last_contact_at`, `conversation_state`, `outbound_count`, `state_updated_at`, `notes`.
 
 ---
 

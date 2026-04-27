@@ -1,6 +1,6 @@
 # Day 1 WhatsApp — Stile Car (Orta Nova FG)
 
-**Persona** (DA DB iMac, S144): **NARCISO**, score 8.5 — discrepanza con MEMORY S140 (diceva RELAZIONALE). DB è source of truth.
+**Persona** (DA DB iMac, verificato S145 Step 0): **RELAZIONALE**, score 8.5 — tabella `conversations` su `app-antigravity-auto/dealer_network.sqlite`, col `persona_type='RELAZIONALE'`. NB: S144 finding #3 (NARCISO) era errato — letto DB sbagliato.
 **Stock noto (da MEMORY S130)**: BMW X4, BMW 118d, BMW 216d — specializzato compatte BMW (stock_size 40 in DB)
 **Città**: Orta Nova (FG, Puglia)
 **Numero WA**: 393334254654 (DB: phone `333-4254654`, formato WA `39` + numero)
@@ -31,31 +31,33 @@
 
 ---
 
-## DAY 1 — messaggio (5 righe + firma, calibrato NARCISO, NO trigger words)
+## DAY 1 — messaggio (5 righe + firma, calibrato RELAZIONALE, NO trigger words)
 
 ```
-Buongiorno, ho visto Stile Car su AS24 — siete tra i pochi a Foggia che gestiscono BMW compatte con continuità.
+Buongiorno, le scrivo direttamente — seguo BMW compatte e Stile Car è uno dei pochi piazzali sotto Foggia con un parco fatto bene.
 
-X3 xDrive20i 2022, 66.000 km, €34.900 — automatica, AHK, HiFi, sport. Su AS24 in Italia la stessa configurazione parte da €37.000.
+X3 xDrive20i 2022, 66.000 km, €34.900 — automatica, AHK, HiFi, sport. La stessa configurazione su AS24 Italia parte da €37.000.
 
-Margine netto per voi: ~€3.400, fee €800 a consegna.
+Margine netto per lei ~€3.400, fee €800 solo a consegna.
 
-La voglio proporre prima a voi. Le interessa la scheda?
+Volevo proporla a lei prima che ad altri. Le mando la scheda?
 
 Luca
 ```
 
-**Calibrazione NARCISO** (vs il messaggio RELAZIONALE precedente):
-- "siete tra i pochi a Foggia che gestiscono [...] con continuità" → riconoscimento competenza, no lusinga grossolana
-- "voi" e "vostro" (anziché "lei") → riconoscimento dell'attività come entità di valore
-- "voglio proporre prima a voi" → esclusività, status
+**Calibrazione RELAZIONALE** (rapporto umano > status):
+- "le scrivo direttamente" → tono 1-a-1, niente brand-first
+- "lei" (mai "voi") → relazione personale, non istituzionale
+- "uno dei pochi piazzali [...] con un parco fatto bene" → apprezzamento concreto e specifico, non lusinga
+- "Volevo proporla a lei prima che ad altri" → motivazione personale, non esclusività di status
+- "Le mando la scheda?" → offerta diretta (più caldo di "Le interessa")
 
 **Verifica regole prima di inviare**:
 - ✅ NO "Germania", "import", "premium", "cerco auto", "estero"
 - ✅ Max 5 righe corpo
 - ✅ Domanda chiusa ("Le interessa la scheda?")
 - ✅ Veicolo REALE con numeri REALI (scrape live S144, listing attivo)
-- ✅ Personalizzato (NARCISO + riferimento a BMW compatte = stock noto)
+- ✅ Personalizzato (RELAZIONALE + riferimento a BMW compatte = stock noto)
 - ✅ Persona reale (Luca firma)
 - ✅ ARGOS NON è il primo elemento
 - ✅ Numeri in EUR netti, no percentuali
