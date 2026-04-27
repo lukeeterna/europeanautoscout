@@ -15,14 +15,12 @@ completato autonomamente via Playwright.
 - Facebook page
 - Il sito argos-automotive.pages.dev non è indicizzato su Google (robots.txt + sitemap deployati, serve tempo)
 
-## Credenziali (in .env)
+## Credenziali
 
-```
-Gmail:      ferretti.argosautomotive@gmail.com / Ferr23L676FFs
-LinkedIn:   ferretti.argosautomotive@gmail.com / xQ6iBPc@'(*9!xG
-Facebook:   ferretti.argosautomotive@gmail.com / ..k%3qxTJqTSH2w
-Cloudflare: token cfat_87zt... / account 22ddff3a...
-```
+Tutte le credenziali sono SOLO in `.env` (gitignored). Vedi variabili:
+`GMAIL_PWD`, `LINKEDIN_PWD`, `FACEBOOK_PWD`, `CLOUDFLARE_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
+
+> NOTA SICUREZZA (S146): le credenziali in chiaro che erano qui sono state rimosse il 2026-04-27. Sono ancora presenti nella storia git al commit `99e826c` (S94). Rotazione e/o `git filter-repo` sono compito di Luke.
 
 ## Priorità S95 (in ordine)
 

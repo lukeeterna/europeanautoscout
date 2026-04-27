@@ -4,3 +4,15 @@ __pycache__/
 data/models/*.pkl
 .claude/agent-memory/
 src/cove/data/cove_tracker.duckdb
+
+# Database files — NEVER commit (GDPR + PII)
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.duckdb
+
+# Local Claude settings (contains command history with tokens)
+.claude/settings.local.json
+
+# Playwright MCP artifacts (DOM snapshots may capture autofilled credentials — see S146)
+.playwright-mcp/
