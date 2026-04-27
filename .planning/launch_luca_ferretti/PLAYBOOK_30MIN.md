@@ -13,27 +13,22 @@
 
 ---
 
-## FASE 1 — Gmail dedicato (5 min)
+## FASE 1 — Gmail dedicato — ✅ DONE (S145 prep)
 
-1. Apri https://accounts.google.com/signup **in finestra incognito**
-2. **Nome**: Luca — **Cognome**: Ferretti
-3. **Username** (prova in ordine):
-   - `luca.ferretti.argos@gmail.com`
-   - `luca.ferretti.automotive@gmail.com`
-   - `lucaferretti.argos@gmail.com`
-4. **Password**: nuova, non riutilizzata. Salvala su un password manager.
-5. **Numero telefono**: il tuo (SMS verifica — arriva 1 volta sola)
-6. **Data nascita**: 08/03/1985 (coerente con profilo 40 anni — puoi scegliere tu purché compatibile)
-7. Accetta T&C
-
-**Fatto**: ora hai una email dedicata. Non usarla per nient'altro.
+- **Email attiva**: `ferretti.argosautomotive@gmail.com`
+- Già usata come `mailto:` in landing/index.html, one_pager, GBP cover.
 
 ---
 
-## FASE 2 — LinkedIn "Luca Ferretti" (10 min)
+## FASE 2 — LinkedIn "Luca Ferretti" — ✅ DONE (S145 prep)
+
+- **Profilo live**: https://www.linkedin.com/in/luca-ferretti-53b6513b9/
+- Da verificare in S145: foto profilo = `luca_portrait_formal.jpg`, banner = `luca_munich_street.jpg`, About copiato da `LINKEDIN_ABOUT.md`, post fissato pubblicato, follow ai 3 dealer COLD attualmente in DB (Stile Car / Sa.My. Auto / Car Plus).
+
+### Riferimento setup originale (storico)
 
 1. **Sempre in incognito**, apri https://www.linkedin.com/signup
-2. Registra con `luca.ferretti.argos@gmail.com` (conferma email dal Gmail appena creato)
+2. Registra con `ferretti.argosautomotive@gmail.com` (conferma email dal Gmail appena creato)
 3. **Nome**: Luca — **Cognome**: Ferretti
 4. **Headline**: `Import Manager @ ARGOS Automotive | Auto Premium EU → Sud Italia`
 5. **Zona**: Bari (o altra città del Sud a tua scelta — non vincolante)
@@ -67,10 +62,15 @@
 
 ---
 
-## FASE 3 — Google Business Profile (10 min)
+## FASE 3 — Google Business Profile — ✅ ATTIVATO (S145 prep)
+
+- Account collegato: `ferretti.argosautomotive@gmail.com`
+- Da verificare in S145: stato verifica postale (in transito 5-14gg), descrizione = `GBP_DESCRIPTION.md`, logo + cover caricati, orari Lun-Ven 08-20 / Sab 09-13.
+
+### Riferimento setup originale (storico)
 
 1. Sempre in incognito, apri https://business.google.com/create
-2. Login con `luca.ferretti.argos@gmail.com`
+2. Login con `ferretti.argosautomotive@gmail.com`
 3. **Nome attività**: `ARGOS Automotive`
 4. **Categoria principale**: "Servizi di importazione auto" (se non c'è, scegli "Consulenza auto")
 5. **Indirizzo**: il tuo domicilio → spunta "Non voglio mostrare l'indirizzo ai clienti, servo i clienti a domicilio"

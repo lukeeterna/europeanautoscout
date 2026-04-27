@@ -1,13 +1,53 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S144 — 2026-04-27
+**Aggiornato**: Session S144 + S145 prep — 2026-04-27
 
 ---
 
-## COME RIPARTIRE
-1. Leggi questo file (sezioni S144 + S143 + VINCOLI CRITICI + 5 DEALER)
-2. Leggi `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/MEMORY.md` (entry S140-S144)
-3. Verifica iMac/WA daemon: `ssh gianlucadistasi@192.168.1.2 "curl -sf http://localhost:9191/status"` (in S144 era ONLINE, daemon connesso, 10 invii rimasti)
+## COME RIPARTIRE in S145
+1. Leggi questo file (sezione **S145 ENTRY POINT** sotto + S144 per contesto)
+2. Leggi `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/MEMORY.md` (entry "Identità live Luca Ferretti" + S140-S144)
+3. Leggi `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/luca_ferretti_identity.md`
+4. Leggi `prompts/s145_outreach_first_dealer.md` per il piano operativo
+5. Verifica WA daemon: `ssh gianlucadistasi@192.168.1.2 "curl -sf http://localhost:9191/status"`
+6. Verifica LinkedIn live: https://www.linkedin.com/in/luca-ferretti-53b6513b9/
+
+---
+
+## S145 ENTRY POINT — outreach primo dealer reale
+
+### Sblocchi confermati da Luke (fine S144)
+- ✅ Email Gmail dedicato attivo: `ferretti.argosautomotive@gmail.com` (era già in landing)
+- ✅ LinkedIn Luca Ferretti: https://www.linkedin.com/in/luca-ferretti-53b6513b9/
+- ✅ Google Business Profile attivato sull'account email (verifica postale 5-14gg in transito)
+- ✅ Cloudflare Pages production deployata (S144 12:17, foto Imagen visibili)
+- ✅ WA daemon iMac:9191 connesso, 0/10 inviati oggi
+
+### Cosa fare in S145 (in ordine)
+1. **Verifica LinkedIn popolato**: il profilo è creato ma serve check che foto + About + post fissato + headline siano coerenti con `LINKEDIN_ABOUT.md` e `LINKEDIN_POST_FISSATO.md`. Se vuoto → chiedere a Luke screenshot o pubblicare i contenuti via materiali.
+2. **Pre-warming day 1** (oggi): da LinkedIn Luca, follow + like 1 post recente di Stile Car / Sa.My. Auto / Car Plus (3 dealer COLD attualmente in DB).
+3. **Pre-warming day 2-3** (domani+dopodomani): 1 commento breve non-pitch su un loro post (es. "Bella X3, configurazione rara"). Massimo 1 commento per dealer in 3 giorni.
+4. **Pre-flight Day 4** (giorno invio): `curl -sI` listing X3 di Autohaus Becker-Tiemann per check 200 prima di inviare. Se 404 → rieseguire scrape.
+5. **Test su TEST_FOUNDER 393314928901** prima di Stile Car (regola CLAUDE.md non negoziabile).
+6. **Day 1 WA a Stile Car** (393334254654): testo già pronto in `.planning/launch_luca_ferretti/DAY1_STILE_CAR.md` calibrato NARCISO con risposte pronte per "quanto costa" / "chi sei" (con link LinkedIn) / "dove ha preso numero" / "già importo" / "no grazie".
+7. **Annotazione DB post-invio**: SQLite iMac `dealer_network.sqlite` → tabella `dealers` (NON `conversations`) → update `last_contact_at`, `pipeline_status`, `notes`.
+8. **48h silenzio osservativo** dopo invio → poi gestione albero risposte o Day 3 follow-up.
+
+### Materiali pronti per S145
+- `.planning/launch_luca_ferretti/DAY1_STILE_CAR.md` — messaggio Day 1 NARCISO + 5 risposte pronte (S145 prep ha aggiunto link LinkedIn nella risposta "Chi sei?")
+- `.planning/launch_luca_ferretti/LINKEDIN_ABOUT.md` — testo About per LinkedIn
+- `.planning/launch_luca_ferretti/LINKEDIN_POST_FISSATO.md` — post fissato
+- `.planning/launch_luca_ferretti/GBP_DESCRIPTION.md` — descrizione Google Business
+- `dossiers/ARGOS_BMW_X3_2022_Stile_Car_20260427_112932.pdf` — dossier 6-pagine top candidate
+
+### Vincoli S145 (NON DEROGABILI)
+- Test su TEST_FOUNDER (393314928901) PRIMA di Stile Car
+- 3 giorni pre-warming LinkedIn PRIMA di Day 1 WA (regola sequenza credibilità Sud)
+- Verifica listing 200 OK pre-invio (se sparisce, candidate cambia)
+- Max 5 righe Day 1, NO trigger words ("Germania", "import", "premium", "cerco auto", "estero")
+- Domanda chiusa finale ("Le interessa la scheda?")
+
+---
 
 ---
 
