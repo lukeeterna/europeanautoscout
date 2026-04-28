@@ -11,7 +11,7 @@
 
 ## Infrastruttura
 ```
-iMac: ssh gianlucadistasi@192.168.1.2 | Python 3.13 | Node v20
+iMac: ssh gianlucadistasi@192.168.1.12 | Python 3.13 | Node v20
 MacBook: macOS 11 | Python 3.13
 PM2: wa-daemon (9191), argos-dashboard (8080), tg-bot
 DB: dealer_network.sqlite (SQLite), cove_tracker.duckdb (DuckDB)

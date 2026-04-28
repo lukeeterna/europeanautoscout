@@ -670,7 +670,7 @@ function initClient() {
         QRCode.toDataURL(qr, { width: 300, margin: 2 }, (err, dataUrl) => {
             QR_STATE = { qr: dataUrl || qr, status: 'waiting_scan', updated_at: new Date().toISOString() };
             log('WARN', 'QR generato — disponibile su GET /qr');
-            sendTelegramAlert('⚠️ *WA Daemon*: QR pronto. Apri http://192.168.1.2:9191/qr per scansionare');
+            sendTelegramAlert('⚠️ *WA Daemon*: QR pronto. Apri http://192.168.1.12:9191/qr per scansionare');
         });
     });
 
@@ -1508,7 +1508,7 @@ setInterval(async () => {
         } else {
             const downMin = Math.round((Date.now() - _lastHealthOk) / 60000);
             if (!_healthAlertSent && downMin >= 5) {
-                sendTelegramAlert(`🚨 *WA DISCONNESSO* da ${downMin} min!\nStato: ${state}\n\n_Controllare sessione su http://192.168.1.2:9191/qr_`);
+                sendTelegramAlert(`🚨 *WA DISCONNESSO* da ${downMin} min!\nStato: ${state}\n\n_Controllare sessione su http://192.168.1.12:9191/qr_`);
                 _healthAlertSent = true;
                 log('ERROR', `Health check: WA disconnesso da ${downMin} min, stato: ${state}`);
             }

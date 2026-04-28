@@ -4,7 +4,7 @@ set -euo pipefail
 # ARGOS — Atomic Deploy via rsync + symlink swap
 # Usage: bash deploy/sync.sh [--skip-restart]
 
-IMAC="gianlucadistasi@192.168.1.2"
+IMAC="gianlucadistasi@192.168.1.12"
 REMOTE_BASE="/Users/gianlucadistasi/Documents/app-antigravity-auto"
 RELEASE_DIR="$REMOTE_BASE/releases/$(date +%Y%m%d_%H%M%S)"
 CURRENT_LINK="$REMOTE_BASE/current"

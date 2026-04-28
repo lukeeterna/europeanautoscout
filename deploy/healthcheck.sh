@@ -1,7 +1,7 @@
 #!/bin/bash
 # ARGOS — Post-Deploy Healthcheck
 
-IMAC="gianlucadistasi@192.168.1.2"
+IMAC="gianlucadistasi@192.168.1.12"
 PASS=0
 FAIL=0
 
