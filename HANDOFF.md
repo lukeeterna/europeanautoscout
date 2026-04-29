@@ -1,16 +1,36 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S144 + S145 prep — 2026-04-27
+**Aggiornato**: Session S146 fine — 2026-04-29
 
 ---
 
-## COME RIPARTIRE in S145
-1. Leggi questo file (sezione **S145 ENTRY POINT** sotto + S144 per contesto)
-2. Leggi `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/MEMORY.md` (entry "Identità live Luca Ferretti" + S140-S144)
-3. Leggi `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/luca_ferretti_identity.md`
-4. Leggi `prompts/s145_outreach_first_dealer.md` per il piano operativo
-5. Verifica WA daemon: `ssh gianlucadistasi@192.168.1.2 "curl -sf http://localhost:9191/status"`
-6. Verifica LinkedIn live: https://www.linkedin.com/in/luca-ferretti-53b6513b9/
+## COME RIPARTIRE in S147 (target invio Day 1: 30/04/2026)
+
+**Prompt operativo**: `prompts/s147_day1_stile_car_invio.md` ← parti da qui
+
+Letture obbligatorie:
+1. `prompts/s147_day1_stile_car_invio.md` (piano completo + decision tree)
+2. `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/MEMORY.md` (entry "2026-04-28/29 — iMac IP fix + CLAUDE.md refactor lean" + "S146 esecuzione prompt Day 1" + "Identità live Luca Ferretti")
+3. `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/imac_network.md`
+4. `.planning/launch_luca_ferretti/DAY1_STILE_CAR.md` (testo Day 1 RELAZIONALE + 5 risposte pronte)
+
+Pre-flight rapido:
+- `bash .claude/scripts/session_start.sh` → tutto verde atteso
+- IP iMac: **192.168.1.12** (DHCP reservation attiva — invariato)
+- LinkedIn live: https://www.linkedin.com/in/luca-ferretti-53b6513b9/
+
+---
+
+## STATO INFRA POST-S146 (2026-04-29)
+
+- ✅ WA daemon `argos-wa-daemon` connected, daily 0/15
+- ✅ IP iMac fisso 192.168.1.12 (DHCP reservation router via Sicurezza→IP&MAC Binding)
+- ✅ better-sqlite3 ricompilato per Node 20 (era crash loop NODE_MODULE_VERSION 127 vs 115)
+- ✅ Repo allineato: commit `871fab7` (IP) + `91321b6` (CLAUDE.md lean refactor + fix startup check) — pushed
+- ✅ CLAUDE.md ridotto 366→51 righe (rimossa routing table duplicata in global, aggiunto stato pipeline + skill ARGOS specifiche)
+- ⚠️  Dashboard 8080 NON in pm2 dump.pm2 — non bloccante per Day 1, indagare in S147+
+
+---
 
 ---
 
