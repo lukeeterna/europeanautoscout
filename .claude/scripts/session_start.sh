@@ -18,12 +18,12 @@ for skill in skill-argos skill-cove skill-argos-debug skill-loader skill-handove
 done
 [ $MISSING -eq 0 ] && echo "Skills: OK (0 missing)" || echo "Skills: $MISSING MISSING"
 
-# 2. Verifica CLAUDE.md
-if grep -q "Sub-Agent Delegation Protocol" CLAUDE.md 2>/dev/null; then
+# 2. Verifica CLAUDE.md (lean v2026.4 — TEST_FOUNDER + @-include rules sono i marker)
+if grep -q "TEST_FOUNDER" CLAUDE.md 2>/dev/null && grep -q "^@.claude/rules/" CLAUDE.md 2>/dev/null; then
   LINES=$(wc -l < CLAUDE.md | tr -d ' ')
   echo "CLAUDE.md: OK ($LINES lines)"
 else
-  echo "WARN: CLAUDE.md missing agent protocol"
+  echo "WARN: CLAUDE.md missing TEST_FOUNDER rule or @-include rules block"
 fi
 
 # 3. Verifica rules
