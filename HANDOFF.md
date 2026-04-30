@@ -4,7 +4,36 @@
 
 ---
 
-## 🎯 S147 OUTCOME — DAY 1 INVIATO A STILE CAR
+## 🚨 S147 OUTCOME CORRETTO — INVIO FALSO POSITIVO, ROLLBACK ESEGUITO
+
+**Aggiornato 2026-04-30 17:05** — la sezione originale "DAY 1 INVIATO" è ERRATA. Il commit `33bb0c6` afferma successo ma il messaggio NON è arrivato a Stile Car (né il marker test a TEST_FOUNDER). Bug critico daemon.
+
+### Cosa è successo davvero
+- Daemon WA logga `✅ INVIATO via HTTP` PRIMA di sapere se WhatsApp ha consegnato
+- Errore costante nei log: `simulateTyping failed: chat.sendPresenceUpdate is not a function` → libreria whatsapp-web.js incompatibile sull'API presence
+- Nessun log "delivered/ack" mai emesso post-INVIATO
+- Inbound funzionano (Silvia 393490579260) → sessione WA è semi-attiva, riceve ma non invia
+- Luke conferma: nessun WA ricevuto su telefono né da marker (10:51) né da Day 1 (16:44)
+
+### Rollback eseguito 17:00
+```sql
+UPDATE conversations
+SET current_step='PENDING', conversation_state='COLD',
+    outbound_count=0, last_contact_at=NULL,
+    state_updated_at=datetime('now'),
+    notes=COALESCE(notes,'') || char(10) || 'S147 ROLLBACK ...'
+WHERE dealer_id='TIER0_FG_001';
+```
+Stile Car da considerare **ANCORA mai contattato**. Procedere come tale in S148+.
+
+### Causa sospetta
+Telefono ARGOS Business (3281536308) ha probabilmente disconnesso WA Web (sessione scaduta dopo 30gg, oppure aperto WhatsApp dal telefono che ha sostituito sessione web). Oppure libreria whatsapp-web.js outdated dopo S146 better-sqlite3 rebuild.
+
+**Ultimo invio funzionante verificato**: 15/04 → Enzo Car ha risposto "Nulla". Punto di rottura ignoto fra 15/04 e 30/04.
+
+---
+
+## 🎯 S147 OUTCOME ORIGINALE (conservato per audit, MA INVALIDO)
 
 **2026-04-30 16:44 CEST** — primo Day 1 reale post-Enzo Car partito.
 
@@ -40,9 +69,17 @@ Da rivedere in S148: regola in `DAY1_STILE_CAR.md` riga 124 (e tutti i template 
 
 ---
 
-## COME RIPARTIRE in S148 (response handling Day 1)
+## COME RIPARTIRE in S148 — DEBUG WA DAEMON (NON response handling)
 
-**Prompt operativo**: `prompts/s148_response_handling_stile_car.md`
+**Prompt operativo**: `prompts/s148_debug_wa_daemon.md` (sostituisce `s148_response_handling_stile_car.md` — quest'ultimo è invalidato dal bug)
+
+⚠️ **Vincolo S148**: NESSUN messaggio reale a Stile Car o altri dealer finché il daemon non passa test delivery con conferma manuale Luke su telefono ARGOS Business 3281536308.
+
+---
+
+## COME RIPARTIRE in S148 [SUPERATO] — response handling Day 1 (NON USARE — daemon broken)
+
+**Prompt operativo OBSOLETO**: `prompts/s148_response_handling_stile_car.md`
 
 Letture obbligatorie:
 1. `prompts/s148_response_handling_stile_car.md`
