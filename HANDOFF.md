@@ -1,23 +1,69 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S146 fine — 2026-04-29
+**Aggiornato**: Session S147 fine — 2026-04-30 16:50 (post-invio Day 1 Stile Car)
 
 ---
 
-## COME RIPARTIRE in S147 (target invio Day 1: 30/04/2026)
+## 🎯 S147 OUTCOME — DAY 1 INVIATO A STILE CAR
 
-**Prompt operativo**: `prompts/s147_day1_stile_car_invio.md` ← parti da qui
+**2026-04-30 16:44 CEST** — primo Day 1 reale post-Enzo Car partito.
+
+| Campo | Valore |
+|-------|--------|
+| Dealer | Stile Car (Orta Nova FG) |
+| Phone | 393334254654 |
+| Persona / Score | RELAZIONALE / 8.5 |
+| dealer_id | TIER0_FG_001 |
+| Veicolo proposto | BMW X3 xDrive20i 2022, 66.000 km, €34.900 |
+| Origine listing | Autohaus Becker-Tiemann Schaumburg (DE) |
+| Margine netto / Fee | €3.400 / €800 success-only |
+| msg_id | `out_1777560285710_7i2id` |
+| Daemon response | `status:sent`, `daily_sent:2/15`, `first_contact:true` |
+| DB post-update | current_step=DAY1_SENT, conversation_state=ENGAGED |
+
+**Watch 48h aperto**: monitorare tabella `messages` per inbound. Albero risposte pronto in `DAY1_STILE_CAR.md`.
+
+---
+
+## ⚠️  Lezione operativa S147 (per S148+)
+
+**Bug counter outbound_count**: andato 0→2 invece che 0→1 dopo Day 1. Il daemon WA ha già trigger interno post-send che incrementa `conversations.outbound_count`. La mia UPDATE manuale con `+1` ha duplicato.
+
+**Fix per S148+ post-invio**: NON includere `outbound_count=outbound_count+1` nell'UPDATE manuale. Aggiornare solo:
+- `current_step`
+- `conversation_state`
+- `last_contact_at`
+- `state_updated_at`
+- `notes` (append con timestamp + msg_id)
+
+Da rivedere in S148: regola in `DAY1_STILE_CAR.md` riga 124 (e tutti i template Day-N) → rimuovere `outbound_count=outbound_count+1`.
+
+---
+
+## COME RIPARTIRE in S148 (response handling Day 1)
+
+**Prompt operativo**: `prompts/s148_response_handling_stile_car.md`
 
 Letture obbligatorie:
-1. `prompts/s147_day1_stile_car_invio.md` (piano completo + decision tree)
-2. `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/MEMORY.md` (entry "2026-04-28/29 — iMac IP fix + CLAUDE.md refactor lean" + "S146 esecuzione prompt Day 1" + "Identità live Luca Ferretti")
-3. `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/imac_network.md`
-4. `.planning/launch_luca_ferretti/DAY1_STILE_CAR.md` (testo Day 1 RELAZIONALE + 5 risposte pronte)
+1. `prompts/s148_response_handling_stile_car.md`
+2. `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/MEMORY.md` (entry "2026-04-30 16:44 — S147 DAY 1 INVIATO" + "S147 pre-flight Day 1")
+3. `.planning/launch_luca_ferretti/DAY1_STILE_CAR.md` (5 risposte pronte sezione "Risposte pronte")
 
 Pre-flight rapido:
-- `bash .claude/scripts/session_start.sh` → tutto verde atteso
-- IP iMac: **192.168.1.12** (DHCP reservation attiva — invariato)
-- LinkedIn live: https://www.linkedin.com/in/luca-ferretti-53b6513b9/
+- `bash .claude/scripts/session_start.sh`
+- IP iMac CORRENTE: **192.168.1.2** (regress post-reboot 30/04 — DHCP reservation `.12` non persistente)
+- Daemon connected verificato 30/04 16:43 — uptime continua se nessun reboot
+
+---
+
+## STATO INFRA POST-S147 (2026-04-30)
+
+- ✅ WA daemon `argos-wa-daemon` connected su `192.168.1.2`, daily 2/15 (1 marker test + 1 Day1 Stile Car)
+- ⚠️  IP iMac regressed `.12 → .2` dopo reboot iMac (DHCP reservation NON persistente). Affidarsi a `arp -a | grep a8:20:66` per IP corrente
+- ✅ PM2 daemon vuoto post-reboot iMac → eseguito `pm2 resurrect` con NVM Node 20.11.0 da MacBook via SSH
+- ✅ LinkedIn Luca Ferretti completato: banner personale + post fissato con foto + hashtag + About targeted-Sud (versione live, NON LINKEDIN_ABOUT.md)
+- ✅ Listing top candidate verificato vivo a 16:43 stesso giorno invio
+- ⚠️  Dashboard 8080 ancora NON in pm2 dump — non bloccante per response handling
 
 ---
 
