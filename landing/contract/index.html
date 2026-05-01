@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firma contratto — ARGOS Automotive</title>
+  <meta name="robots" content="noindex,nofollow">
+
+  <!-- Tailwind CDN (no build step) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: 10 firme stilizzate -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Allura&family=Caveat:wght@500&family=Dancing+Script:wght@600&family=Great+Vibes&family=Kaushan+Script&family=Pacifico&family=Sacramento&family=Satisfy&family=Tangerine:wght@700&family=Yellowtail&display=swap" rel="stylesheet">
+
+  <style>
+    .sig-card { transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease; }
+    .sig-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+    .sig-card.selected { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.18); }
+    .skel { background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%); background-size: 200% 100%; animation: skel 1.4s linear infinite; }
+    @keyframes skel { from{background-position:200% 0} to{background-position:-200% 0} }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200">
+    <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-xl font-bold tracking-tight">ARGOS</span>
+        <span class="text-sm text-slate-500">Automotive</span>
+      </div>
+      <span class="text-xs text-slate-500">Firma elettronica sicura</span>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 py-8">
+
+    <!-- Loading skeleton -->
+    <section id="state-loading" class="space-y-4">
+      <div class="skel h-8 w-2/3 rounded"></div>
+      <div class="skel h-4 w-full rounded"></div>
+      <div class="skel h-4 w-5/6 rounded"></div>
+      <div class="skel h-32 w-full rounded mt-6"></div>
+    </section>
+
+    <!-- Error state -->
+    <section id="state-error" class="hidden bg-red-50 border border-red-200 rounded-lg p-6">
+      <h2 class="text-lg font-semibold text-red-900 mb-2">Contratto non disponibile</h2>
+      <p id="error-message" class="text-sm text-red-800">Si è verificato un errore.</p>
+      <p class="text-xs text-red-700 mt-3">Verifichi il link ricevuto via WhatsApp o contatti Luca al 328 153 6308.</p>
+    </section>
+
+    <!-- Already signed state -->
+    <section id="state-signed" class="hidden bg-emerald-50 border border-emerald-200 rounded-lg p-6">
+      <h2 class="text-lg font-semibold text-emerald-900 mb-2">✓ Contratto già firmato</h2>
+      <p class="text-sm text-emerald-800">Questo contratto risulta già firmato. Riceverà l'IBAN per il bonifico via WhatsApp dopo la consegna dei documenti del veicolo.</p>
+      <p class="mt-3"><a id="signed-pdf-link" href="#" target="_blank" class="text-emerald-700 underline">Scarica copia PDF firmato</a> <span class="text-xs text-emerald-600">(link valido 7 giorni)</span></p>
+    </section>
+
+    <!-- Main sign UI (hidden until contract loaded successfully) -->
+    <section id="state-sign" class="hidden">
+      <div class="bg-white border border-slate-200 rounded-lg p-6 mb-6">
+        <h1 class="text-2xl font-bold mb-1">Contratto di mandato professionale</h1>
+        <p class="text-sm text-slate-600">Servizio scouting veicoli — ARGOS Automotive</p>
+        <hr class="my-4">
+
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm">
+          <div>
+            <dt class="text-slate-500">Mandante (lei)</dt>
+            <dd id="r-dealer" class="font-medium">—</dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Mandatario</dt>
+            <dd class="font-medium">Luca Ferretti — ARGOS</dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Veicolo target</dt>
+            <dd id="r-vehicle" class="font-medium">—</dd>
+          </div>
+          <div>
+            <dt class="text-slate-500">Fee (success)</dt>
+            <dd id="r-fee" class="font-medium">—</dd>
+          </div>
+        </dl>
+
+        <p class="mt-4 text-xs text-slate-500">
+          Pagamento <strong>solo dopo consegna documenti del veicolo</strong>. Le invieremo l'IBAN per bonifico via WhatsApp.
+        </p>
+      </div>
+
+      <!-- Form -->
+      <form id="sign-form" class="bg-white border border-slate-200 rounded-lg p-6 space-y-5">
+        <h2 class="text-lg font-semibold">1. I suoi dati</h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm font-medium text-slate-700">Nome</span>
+            <input type="text" id="firstName" required minlength="2" maxlength="50"
+              autocomplete="given-name"
+              class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border">
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium text-slate-700">Cognome</span>
+            <input type="text" id="lastName" required minlength="2" maxlength="50"
+              autocomplete="family-name"
+              class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2 border">
+          </label>
+        </div>
+
+        <h2 class="text-lg font-semibold pt-2">2. Scelga la sua firma</h2>
+        <p class="text-sm text-slate-600">Tocchi la firma che preferisce. Verrà applicata al contratto.</p>
+
+        <div id="sig-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- 10 sig cards generated by JS -->
+        </div>
+
+        <h2 class="text-lg font-semibold pt-2">3. Consenso firma elettronica</h2>
+        <label class="flex items-start gap-3 text-sm bg-amber-50 border border-amber-200 rounded-md p-3">
+          <input type="checkbox" id="consentFes" required class="mt-1">
+          <span class="text-slate-800">
+            Confermo che la firma elettronica scelta ha valore legale ai sensi dell'<strong>art. 20 CAD</strong>
+            e del Regolamento <strong>eIDAS art. 3</strong> (Firma Elettronica Semplice). Ho letto i termini contrattuali.
+          </span>
+        </label>
+
+        <div class="pt-2 border-t border-slate-200">
+          <button type="submit" id="submitBtn" disabled
+            class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors">
+            Firma contratto
+          </button>
+          <p id="submitHint" class="text-xs text-slate-500 mt-2">Compili nome, cognome, scelga firma e accetti il consenso.</p>
+        </div>
+      </form>
+
+      <p class="mt-4 text-xs text-slate-500 text-center">
+        Connessione cifrata. Token unico per questo contratto.
+      </p>
+    </section>
+  </main>
+
+  <script src="/contract/sign.js"></script>
+</body>
+</html>

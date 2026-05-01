@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contratto firmato — ARGOS Automotive</title>
+  <meta name="robots" content="noindex,nofollow">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+
+  <header class="bg-white border-b border-slate-200">
+    <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-xl font-bold tracking-tight">ARGOS</span>
+        <span class="text-sm text-slate-500">Automotive</span>
+      </div>
+      <span class="text-xs text-slate-500">Firma confermata</span>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 py-12">
+
+    <div class="bg-white border border-emerald-200 rounded-lg p-8 text-center">
+      <div class="text-5xl mb-3">✅</div>
+      <h1 class="text-2xl font-bold mb-2">Contratto firmato</h1>
+      <p class="text-slate-600">Riceverà conferma via email e WhatsApp.</p>
+    </div>
+
+    <!-- Bonifico info -->
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-6 mt-6">
+      <h2 class="text-lg font-semibold mb-2">Cosa succede adesso</h2>
+      <ol class="list-decimal list-inside space-y-2 text-sm text-slate-800">
+        <li>Le consegnamo i <strong>documenti del veicolo</strong>.</li>
+        <li>Subito dopo le inviamo <strong>IBAN e causale</strong> per il bonifico via WhatsApp.</li>
+        <li>Lei effettua il bonifico bancario di <strong>€ <span id="fee-amount">800</span></strong>.</li>
+        <li>Riceviamo conferma e le inviamo ricevuta email + WhatsApp.</li>
+      </ol>
+      <p class="text-xs text-slate-600 mt-3">
+        Nessun anticipo. Nessun pagamento online. Solo bonifico bancario classico, dopo aver ricevuto i documenti del veicolo.
+      </p>
+    </div>
+
+    <!-- Recap & PDF download -->
+    <div class="bg-white border border-slate-200 rounded-lg p-6 mt-6">
+      <h2 class="text-lg font-semibold mb-3">Riepilogo</h2>
+      <dl id="recap" class="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6 text-sm">
+        <div><dt class="text-slate-500">Numero contratto</dt><dd id="r-id" class="font-mono text-xs">—</dd></div>
+        <div><dt class="text-slate-500">Status</dt><dd id="r-status" class="font-medium">—</dd></div>
+      </dl>
+      <p class="mt-4 text-sm">
+        <a id="pdf-link" href="#" target="_blank" rel="noopener"
+          class="text-blue-600 hover:underline hidden">⬇ Scarica copia PDF firmato</a>
+        <span id="pdf-note" class="text-xs text-slate-500"></span>
+      </p>
+    </div>
+
+    <p class="text-center text-xs text-slate-500 mt-8">
+      Domande? Luca Ferretti — ARGOS Automotive — <a href="https://wa.me/393281536308" class="text-blue-600">328 153 6308</a>
+    </p>
+  </main>
+
+  <script>
+    (function () {
+      const WORKER_BASE = 'https://argos-proxy.gianlucanewtech.workers.dev';
+      const params = new URLSearchParams(location.search);
+      const id = params.get('id') || params.get('contract_id');
+      // We don't have the token here (URL has only id), so we'll only show static recap.
+      // The PDF download URL would require a fresh /contract/<token> call — but the user
+      // came from /contract/<token> so the previous page already had the URL.
+      // To enable PDF link here we'd pass it via #fragment — left for future iteration.
+      const $ = (s) => document.querySelector(s);
+      if (id) $('#r-id').textContent = id;
+      $('#r-status').textContent = 'AWAITING_DELIVERY';
+      // Read pdf URL from fragment (#pdf=<encoded>) if upstream included it
+      const frag = new URLSearchParams(location.hash.slice(1));
+      const pdf = frag.get('pdf');
+      if (pdf) {
+        const a = $('#pdf-link');
+        a.href = pdf;
+        a.classList.remove('hidden');
+        $('#pdf-note').textContent = 'Link valido 7 giorni.';
+      } else {
+        $('#pdf-note').textContent = 'Riceverà la copia PDF via email entro pochi minuti.';
+      }
+    })();
+  </script>
+</body>
+</html>
