@@ -1,6 +1,74 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S149c fine + scope extension — 2026-05-01 13:05 (Day 1 reale RINVIATO, S151 = E2E sim completo TEST_FOUNDER)
+**Aggiornato**: Session S151 CHIUSA — 2026-05-01 19:30 (plan v2 + prompt S152 v2 pronti, GO build approvato)
+
+---
+
+## 🎯 S151 OUTCOME v2 — Pivot CTO no-Stripe, GO S152 build
+
+**2026-05-01 18:00-19:30** — S151 scope rispettato: NO code, solo plan + decisioni CTO + TODO atomico. Pivot architetturale a metà sessione post-risposte Luke.
+
+### Pivot CTO finale (post-risposte Luke 8 punti)
+Luke ha contestato 4 punti (Stripe, FES "valuta tu", P.IVA, Day 1 reale). Risultato analisi onesta CTO:
+
+🔄 **NO STRIPE in S152**. Analizzate 4 alternative "discrete" (Revolut/Fintecture/GoCardless/DIY) → tutte richiedono registration o violano TOS o sono fragili. Tutti i 5 modelli hanno **stesso esito fiscale** (CRS automatic exchange Lituania-Italia attivo dal 2017). Decisione: **bonifico bancario manuale** su IBAN MyTu/evolu esistenti. Zero piattaforma, zero API, zero subscription, €0 fee.
+
+🔄 **NO P.IVA**. Luke: "sistema non ha evidenza, non caricarmi di costi". Accettato. Riapri solo a primo dealer reale pagante.
+
+🔄 **NO Day 1 hardcoded**. Parte solo post-S153 sim verde + conferma visiva Luke.
+
+✅ **FES + bundle evidenza** (IP+UA+timestamp+SHA256+consent_checkbox+WA_log). Proporzionato €800.
+
+### Cosa fatto S151
+1. **Pre-flight verde**: iMac UP, daemon OK (banner SessionStart `UNREACHABLE` è false-positive noto regress S147 — fix deferred)
+2. **Path Fluxion trovato**: `/Volumes/MontereyT7/FLUXION` (volume esterno T7) — NON `~/Projects/FLUXION` che è copia desktop incompleta
+3. **Pattern Fluxion estratto**: `fluxion-proxy/` ha Hono + Workers + Resend + idempotency. Riusabile ~70% per ARGOS v2 (skipping Stripe parts)
+4. **8 risposte Luke ottenute** + analisi CTO onesta → pivot
+5. **Reset TEST_FOUNDER eseguito**: `PENDING | COLD | outbound=0 | last_contact=NULL` ✅
+6. **Plan v2 `.planning/E2E-SIM-PLAN.md`** scritto:
+   - Architettura 5-step v2 (Day 1 → vehicle_request → dossier → contract+firma 10-scelte → bonifico manuale + mark PAID dashboard)
+   - 10 decisioni CTO v2 (rimosse Stripe, aggiunte send-iban + mark-paid endpoints)
+   - Schema D1 v2 `contracts` (status enum 7-state senza INVOICED/PAYMENT_METHOD_SAVED) + `audit_log` per FES bundle
+   - TODO atomico Phase B-1 → B-10 con tempi v2 (3-4h S152 + 1h S152b dashboard, ridotto da 5-6h)
+   - 3 WA templates: DAY_INTEREST, IBAN_SEND, PAYMENT_RECEIVED
+   - Onestà fiscale CRS notice in §11
+7. **Prompt S152 v2**: `prompts/s152_build_contract_payment.md` aggiornato (no Stripe Phase B-7/B-8, sostituito send-iban + mark-paid)
+
+### Decisioni CTO chiave S151 v2
+- **Stack**: Hono + Workers + D1 + R2 + Resend + pdf-lib + 10 Google Fonts script (invariato)
+- **Pagamento**: bonifico bancario manuale su IBAN MyTu/evolu (IBAN via wrangler secret `ARGOS_IBAN`)
+- **Riconciliazione**: 5sec/contratto via dashboard admin "Mark PAID" button (manuale fino M3+ ~50 contratti/mese)
+- **Firma elettronica**: FES eIDAS art.3 + bundle evidence completo (regge giudizio civile <€2.5k)
+- **Storage**: D1 (relazioni SQL) + R2 con signed URL TTL 7gg
+- **P.IVA**: rimossa da blocker S151. Riapri quando primo dealer reale paga.
+
+### Slittamento Day 1 reale
+- ❌ Day 1 hardcoded martedì 12/5 → **rimosso**
+- ✅ Day 1 parte SOLO post-S153 sim verde + conferma visiva Luke
+- ✅ Buffer aperto: S152 build 3-4h + S152b dashboard 1h + S153 sim 1-2h + fix bug
+
+### File creati S151
+- `.planning/E2E-SIM-PLAN.md` v2 (plan completo, 24KB)
+- `prompts/s152_build_contract_payment.md` v2 (prompt operativo S152, 280+ righe)
+- MEMORY.md entries: 18:04 (PRE-FLIGHT), 18:30 (Phase A completo), 19:00 (PIVOT CTO), 19:30 (CHIUSO)
+
+### 5 punti operativi consolidati post-pivot (sostituiscono 8 punti pre-pivot)
+1. ✅ Stack §2 OK (Luke)
+2. ✅ Bonifico manuale come modello pagamento (Luke confermato)
+3. ✅ Cloudflare token attivo verificato (account `22ddff3a4ef544511523a841b3dcadf8`)
+4. ✅ FES + bundle evidenza (CTO decision)
+5. ✅ Day 1 dynamic (post-S153 verde + OK Luke)
+
+### Pre-requisiti S152 (da Luke)
+- [ ] Condivisione `ARGOS_IBAN` (MyTu o evolu) via canale sicuro per `wrangler secret put`
+- [ ] Conferma `ARGOS_INTESTATARIO` (es. "Gianluca Di Stasi")
+- [ ] Verifica permission D1 + R2 sul token CF (a inizio S152)
+
+### Per S152 leggere (in ordine)
+1. `.planning/E2E-SIM-PLAN.md` v2 (plan operativo)
+2. `prompts/s152_build_contract_payment.md` v2 (prompt)
+3. `/Volumes/MontereyT7/FLUXION/fluxion-proxy/src/{index.ts, lib/types.ts}` (pattern reference, no stripe-webhook.ts)
+4. `~/.claude/projects/.../memory/MEMORY.md` entries 19:00 + 19:30
 
 ---
 
