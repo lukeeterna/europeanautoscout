@@ -1,6 +1,81 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S152a CHIUSA — 2026-05-01 20:35 (Chunk A B-1→B-5 done, prompt S152b pronto)
+**Aggiornato**: Session S152b CHIUSA — 2026-05-01 21:55 (Chunk B B-7→B-10 done, deploy bloccato CF token scope)
+
+---
+
+## 🎯 S152b OUTCOME — Chunk B: send-iban + mark-paid + analyzer + dashboard, DEPLOY BLOCCATO
+
+**2026-05-01 21:30-21:55** — Chunk B del build S152 completato a livello codice (B-7..B-10). Deploy CF bloccato su token scope insufficiente.
+
+### Cosa fatto S152b (4 commit atomici)
+
+1. **`636a2a4 feat(s152-b7)`**: send-iban endpoint + WA template + email
+   - `argos-proxy/src/routes/send-iban.ts` riempito (era stub 501)
+   - POST `/api/v1/contract/:id/send-iban` (admin Bearer)
+   - Pre-cond: status=AWAITING_DELIVERY (409 altrimenti)
+   - D1 UPDATE conditional → IBAN_SENT + audit_log con `iban_last4`
+   - Best-effort: WA daemon template + Resend email + Telegram alert
+   - WA template include disclosure VoP (intestatario reale ≠ Luca commerciale)
+2. **`6992663 feat(s152-b8)`**: mark-paid endpoint + reconciliation manuale
+   - `argos-proxy/src/routes/mark-paid.ts` riempito
+   - POST `/api/v1/contract/:id/mark-paid` (admin Bearer)
+   - Body: `{paid_amount_cents, payment_bank, payment_reference, paid_at_iso?}`
+   - Validation ±€1 vs fee_cents, ISO date, status IN (IBAN_SENT, AWAITING_DELIVERY)
+   - D1 UPDATE → PAID + audit_log + WA PAYMENT_RECEIVED + Resend Luca+dealer + Telegram
+3. **`86ec355 feat(s152-b9)`**: analyzer trigger + 3 templates
+   - `wa-intelligence/templates.py`: aggiunti `DAY_INTEREST`, `IBAN_SEND` (mirror TS), `PAYMENT_RECEIVED`
+   - `wa-intelligence/response-analyzer.py`: helper `create_contract_for_interest(...)` — HTTP POST a argos-proxy/contract/create con guardrail confidence>=0.85 e config check
+   - HITL strict: helper NON auto-trigger, chiamato manualmente da Telegram approval
+   - SCP a iMac deferred a deploy phase
+4. **`4fe2455 feat(s152-b10)`**: admin dashboard contracts
+   - `wa-intelligence/dashboard/app.py`: `_proxy_request()` helper + GET `/contracts` + POST `/contracts/<id>/{send-iban,mark-paid}`
+   - `wa-intelligence/dashboard/templates/contracts.html`: tabella + status badges + bottoni condizionali + modal mark-paid
+   - `wa-intelligence/dashboard/templates/base.html`: voce sidebar "Contratti"
+
+### Deploy phase — 🔴 BLOCCATO
+Tentativo `wrangler d1 create argos-contracts` → `Authentication error [code: 10000]`.
+
+Diagnosi: `CLOUDFLARE_API_TOKEN` in `.env` è attivo (`/user/tokens/verify` → status:active) MA NON ha scope D1. Token attivo ≠ token con scope sufficiente. La verifica precedente non aveva validato gli scope specifici.
+
+**UNBLOCK richiesto a Luke** (5 min dashboard CF):
+1. https://dash.cloudflare.com/profile/api-tokens
+2. Edit token corrente → aggiungi scope:
+   - **D1** → Edit
+   - **Workers R2 Storage** → Edit
+   - **Workers Scripts** → Edit
+   - **Cloudflare Pages** → Edit (se non già presente)
+3. Salva (no rotation, stesso valore in `.env`)
+4. Re-test: `wrangler d1 list` deve ritornare lista
+
+### Stato post-S152b
+- ✅ Worker code 100% production-ready, typecheck pulito
+- ✅ Dashboard admin contracts wired (proxy a Worker via Bearer)
+- ✅ Templates Python sincroni con TS Worker (consistency message)
+- ✅ Helper analyzer HITL con guardrails
+- 🔴 D1 + R2 + secrets + deploy → BLOCCATO su CF token scope
+- 🔴 Smoke E2E → BLOCCATO (deploy prerequisito)
+- 🔴 iMac/WA daemon offline (banner UNREACHABLE; SSH refused)
+
+### Pre-condizioni S153 (E2E sim TEST_FOUNDER)
+| Item | Stato |
+|------|-------|
+| ARGOS_IBAN | ✅ in `.env` |
+| ARGOS_INTESTATARIO | ✅ in `.env` |
+| CF token scope D1+R2+Workers+Pages | 🔴 mancante |
+| iMac/WA daemon online | 🔴 offline |
+| TEST_FOUNDER reset | ✅ done S151 |
+| Worker code completo | ✅ S152b |
+| Dashboard contracts | ✅ S152b |
+
+### File handoff S153
+- `prompts/s153_e2e_sim_test_founder.md` — TODO completo per E2E sim
+- `.planning/E2E-SIM-RESULTS.md` — risultati build + blocker deploy
+
+### Lezione operativa S152b
+1. **Verifica permission scope ≠ verifica token attivo**. `/user/tokens/verify` non rivela scope. Per validare serve read op concreto (`wrangler d1 list`). Aggiungere come step esplicito in pre-cond future.
+2. **Build atomico anche con deploy bloccato**: B-7..B-10 sono codice production-ready, indipendenti dall'infra. Deploy resta scope ridotto recuperabile in <30 min quando token unlock.
+3. **iMac offline = WA fail best-effort, NON blocca API**: design corretto. Send-iban/mark-paid ritornano 200 con `wa_sent:false` se daemon non risponde — recupero asincrono via dashboard quando daemon torna online.
 
 ---
 
