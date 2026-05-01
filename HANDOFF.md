@@ -1,6 +1,48 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S149b fine — 2026-05-01 12:30 (audit E2E chunk A: P0 templates.py FIXATO, chunk B in S149c)
+**Aggiornato**: Session S149c fine — 2026-05-01 12:50 (audit E2E chunk B: 🟢 GO Day 1 martedì 5/5)
+
+---
+
+## 🎯 S149c OUTCOME — Audit E2E chunk B FINAL: 🟢 GO Day 1 Stile Car martedì 5/5
+
+**2026-05-01 12:32-12:50** — chunk B scope: re-run E2E + image_sanitizer + LLM cascade + scrape live + audit doc finale + prompt S150.
+
+### Cosa fatto S149c
+1. **Re-run test_e2e_full.py --fast** ✅ → 13 PASS / 2 FAIL (FAIL = falsi positivi cooldown 24h da smoke S149b 10:23)
+2. **Image sanitizer iMac** ✅ → test su raw_autoscout24_de_*.jpg: banner crop top 173px + bottom row 788px + OCR 5 mask + inpaint 72K px + output 130KB jpeg, 35.5s/img
+3. **LLM cascade health** ✅ → tutte 3 chiavi presenti (GOOGLE_AI/GROQ/OPENROUTER). Errore S149b corretto: cercavo `GEMINI_API_KEY` ma in `.env` si chiama `GOOGLE_AI_API_KEY` → IS SET. Root cause MAX_TOKENS: `gemini-2.5-flash` thinking model + `maxOutputTokens=800` troppo basso. Cascade fallback Groq llama-3.3-70b operativo.
+4. **Scrape live BMW X3 budget 40k** ✅ → 17 listing → 10 PROCEED, MarketVerifier index OK (n=121-337). PDF generator locale ROTTO senza PaddleOCR (5KB/0 immagini) — P1 non blocker (iMac ok, dossier Stile Car pre-esistente).
+5. **Falso allarme P0 validator** → riguardando con calma: i 2 OUTBOUND alle 12:28 sono dal MIO smoke test S149b (input "Lei chi e?" → CURIOSITY → cascade Groq → reply_cafd1b91). Validator NON è bucato: "Germania"/"premium" sono **by design ammessi** Day N+ (regola Day 1 manuale, non LLM). Vero P1: qualità reply LLM lowercase + no domanda chiusa + pitch generico.
+6. **`.planning/E2E-AUDIT-S149.md` chiuso** con tabella finale + verdetto 🟢 GO Day 1 martedì 5/5.
+7. **`prompts/s150_day1_stile_car_martedi.md` creato** (rinomina da sabato + date update + gate Telegram HOLD pre-Day 1).
+
+### Verdetto FINALE 🟢
+**GO Day 1 Stile Car martedì 5/5/2026 ore 11:00**
+
+**P0 residui**: ZERO
+
+**P1 (non blocker Day 1, mitigare in S150 pre-flight)**:
+1. Reply LLM Day N+ qualità sotto-Cormorant → **gate obbligatorio S150 step -1**: Telegram HOLD su tutti gli intent diversi da NEGATIVE
+2. Gemini MAX_TOKENS strutturale (cascade Groq tiene)
+3. PDF generator MacBook locale rotto senza PaddleOCR (iMac ok, dossier già esiste)
+
+**P2**: IP `.12` hardcoded, test_9 dataset, hood reflection warning, SessionStart hook stale.
+
+### Razionale GO
+- Day 1 Stile Car = TESTO MANUALE (`.planning/launch_luca_ferretti/DAY1_STILE_CAR.md`), NO LLM, NO PDF, NO sanitizer → tutti i P1 sono off-path
+- Daemon WA + DB + state machine validati S149+S149b+S149c
+- Dossier Day 3+ pre-esistente (321KB iMac OK)
+
+### File toccati S149c
+- `.planning/E2E-AUDIT-S149.md` (chunk B aggiunto + verdetto finale)
+- `prompts/s150_day1_stile_car_martedi.md` (nuovo, da sabato)
+- `HANDOFF.md` (questa sezione)
+
+### Per S150 leggere
+1. `.planning/E2E-AUDIT-S149.md` (verdetto + lista P1 da mitigare)
+2. `prompts/s150_day1_stile_car_martedi.md`
+3. `~/.claude/projects/.../memory/MEMORY.md` entry S149c
 
 ---
 
