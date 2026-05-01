@@ -1,6 +1,38 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S149 fine — 2026-05-01 09:50 (daemon FIXATO, validato E2E ack=2 reale, fix committato)
+**Aggiornato**: Session S149 fine — 2026-05-01 11:10 (decisione CTO: Day 1 slittato da sabato a martedì 5/5, audit E2E in S149b)
+
+---
+
+## 🎯 S149 DECISIONE CTO — Day 1 Stile Car slittato sabato → martedì 5/5
+
+**2026-05-01 11:05** — dopo correzione Luke su scope troppo stretto (4 hardening test S149 erano solo strato 1 di 5), decisione CTO con responsabilità piena:
+
+- ❌ Day 1 Stile Car NON parte sabato 2/5 (rischio asimmetrico bruciare primo dealer Sud)
+- ✅ Target reinvio: **martedì 5/5 mattina ore 11:00**
+- ✅ **S149b audit E2E** prerequisito: `prompts/s149b_audit_e2e.md` (10 test E2E + image_sanitizer + LLM cascade health)
+- ✅ Stripe → BACKLOG M3 (post-PMF, NON blocker Day 1)
+
+**5 strati pipeline** (1 verificato S149, 4 da auditare S149b):
+- ✅ Strato 1: daemon WA outbound (S149 ack=1/2/3 + payload integro)
+- ❓ Strato 2: inbound → response-analyzer → classify
+- ❓ Strato 3: trigger PDF send su risposta dealer
+- ❓ Strato 4: image_sanitizer integrità
+- ⏳ Strato 5: payment Stripe (M3 separata)
+
+**Razionale slittamento +3gg**:
+- Bruciare primo dealer = perdita 3-5 dealer via referral (atto di fede invalidato)
+- LLM cascade non testata → primo "vehicle_request" può cadere in template fallback
+- image_sanitizer modificato S113b mai validato
+- Trade-off: 4-8h audit vs riduzione rischio failure ~80%
+
+**S149 commits**:
+- `89a0bde` fix(S149): WA daemon ack listener + getState + wa_msg_id reale
+- `1849035` docs(S149): hardening test 4-suite
+
+---
+
+## ✅ S149 OUTCOME — DAEMON FIX VALIDATO E2E (Branch A pieno)
 
 ---
 
