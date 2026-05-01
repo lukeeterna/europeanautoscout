@@ -1,6 +1,65 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S151 CHIUSA — 2026-05-01 19:30 (plan v2 + prompt S152 v2 pronti, GO build approvato)
+**Aggiornato**: Session S152a CHIUSA — 2026-05-01 20:35 (Chunk A B-1→B-5 done, prompt S152b pronto)
+
+---
+
+## 🎯 S152a OUTCOME — Chunk A: scaffold + D1/R2 + frontend sign + PDF gen
+
+**2026-05-01 20:10-20:35** — Chunk A del build S152 completato secondo piano user (chunking 3 sessioni: A=B-1→B-5, B=B-7→B-10+deploy, C=S153 E2E sim).
+
+### Cosa fatto S152a (4 commit)
+1. **`1f0fbc4 feat(s152-b1)`**: argos-proxy Worker scaffold (Hono+TS, no Stripe) — 19 file, 3041 LOC
+   - `argos-proxy/{package.json, tsconfig.json, wrangler.toml}` — Cloudflare Worker config + Data rule per TTF + 9 secret enumerati nei comment
+   - `src/index.ts` Hono router con CORS argos-automotive.pages.dev + 7 endpoint (4 admin + 3 public)
+   - `src/lib/{types.ts, resend.ts, telegram.ts, wa-daemon.ts, r2-signed-url.ts}` — utility libs
+   - `src/middleware/admin-auth.ts` — Bearer constant-time compare
+   - `src/routes/{contract-create.ts, contract-get.ts, contract-sign.ts, contracts-list.ts}` — full impl
+   - `src/routes/{send-iban.ts, mark-paid.ts}` — STUB 501 (Chunk B)
+2. **`d000933 feat(s152-b2)`**: D1 schema + R2 bucket bindings
+   - `migrations/0001_init.sql` — `contracts` (7-state CHECK, signature_token UNIQUE, FES columns, pdf_r2_key/sha256, payment_*) + `audit_log` append-only + 4 index
+   - SQL validato con sqlite3 standalone (wrangler local D1 non gira su macOS 11.6, deferred remote execute a Chunk B)
+3. **`24a858c feat(s152-b4)`**: contract sign frontend (10 firme stilizzate + FES consent)
+   - `landing/_redirects` per route `/contract/<token>`
+   - `landing/contract/index.html` Tailwind CDN + Google Fonts CDN preconnect (10 family)
+   - `landing/contract/sign.js` — fetch contract, render 10 sig-card preview live, POST sign endpoint, redirect thank-you con `#pdf=` fragment
+   - `landing/contract/thank-you.html` — bundled (post-sign confirmation, NO online payment, "IBAN dopo consegna documenti")
+4. **`0510e44 feat(s152-b5)`**: PDF generation finalized + 10 Google Fonts TTF embedded
+   - `assets/fonts/*.ttf` — 10 font scaricati da github.com/google/fonts (~2.0 MB totale)
+   - `src/types-assets.d.ts` — declare module '*.ttf' as ArrayBuffer
+   - `src/pdf/contract-template.ts` — pdf-lib + fontkit, 4 pagine A4 (header+parts → oggetto+veicolo+fee → 6 clausole+FES consent → signature embed + bundle FES)
+   - Caveat e Dancing Script come variable fonts (`Caveat[wght].ttf`, `DancingScript[wght].ttf`)
+
+### Stato post-Chunk A
+- ✅ `argos-proxy/` Worker compila (typecheck implicito via tsc strict)
+- ✅ Frontend `/contract/<token>` deployabile su CF Pages (no build, statico)
+- ✅ Migration SQL valida
+- ✅ PDF gen wired con TTF embedded subset
+- ⏸️ Local typecheck/dev NON eseguito (npm shim `_cc_pin_trap` rotto, usato `/usr/local/bin/npm` per install)
+- ⏸️ Wrangler local dev NON gira su macOS 11.6 (richiede 13.5+) → deferred remote deploy a Chunk B
+
+### File handoff S152b
+- `prompts/s152b_chunk_b.md` (~280 righe) — pre-condizioni, TODO B-7→B-10+deploy, smoke test, vincoli ribaditi
+
+### Pre-requisiti S152b (BLOCCANTI da Luke)
+- 🔴 **`ARGOS_IBAN`** (IBAN MyTu o evolu, formato `LT...`) per `wrangler secret put`
+- 🔴 **`ARGOS_INTESTATARIO`** (es. "Gianluca Di Stasi") per causale bonifico
+- 🟡 Verifica permission CF token (D1 Edit + R2 Edit + Workers Scripts Edit + Pages Edit)
+
+### Pending Chunk B (S152b) + Chunk C (S153)
+- **B-7 send-iban** endpoint (validate AWAITING_DELIVERY, UPDATE IBAN_SENT, WA template + email + Telegram)
+- **B-8 mark-paid** endpoint (validate amount tolerance ±€1, UPDATE PAID, WA PAYMENT_RECEIVED template)
+- **B-9 analyzer trigger** (`response-analyzer.py` create_contract_for_interest + 3 templates su `templates.py`)
+- **B-10 dashboard** (`wa-intelligence/dashboard/app.py` /contracts route + proxy send-iban/mark-paid + HTML template)
+- **Deploy**: wrangler d1 create + r2 bucket create + execute remote + 9 secrets + deploy + smoke test 8 endpoint
+- **S153**: E2E sim TEST_FOUNDER (393314928901) con reset PENDING/COLD/0 prima
+
+### Vincoli ribaditi (invariati S151)
+- ❌ NO Stripe / NO Fintecture / NO Revolut → solo bonifico bancario manuale
+- ❌ NO P.IVA → riapri solo a primo dealer reale pagante
+- ❌ NO Day 1 reale → parte solo post-S153 verde + OK Luke
+- ✅ FES + bundle evidenza completo (IP+UA+timestamp+SHA256+consent_checkbox+WA_conv_id)
+- ✅ €0/mo cost target (Cloudflare free tier basta)
 
 ---
 
