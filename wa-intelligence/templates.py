@@ -110,6 +110,36 @@ TEMPLATES = {
         "Se non fa al caso suo, nessun problema — magari una prossima volta.\n"
         "Buon lavoro."
     ),
+
+    # ── S152 Contract+Payment templates ───────────────────────
+    # Inviato dopo INTEREST conf>=0.85 + Telegram HOLD approval.
+    # Crea contratto via argos-proxy/contract/create e include sign_url.
+    "DAY_INTEREST": (
+        "{dealer_name}, perfetto.\n"
+        "Le mando il contratto per {vehicle_brand} {vehicle_model}: solo dato + firma stilizzata.\n"
+        "{sign_url}\n"
+        "Fee €{fee_eur}, paga solo dopo consegna documenti auto.\n"
+        "Mi conferma quando ha firmato?"
+    ),
+
+    # Inviato post-firma quando documenti consegnati (status AWAITING_DELIVERY → IBAN_SENT).
+    # Mirror del template TS in argos-proxy/src/routes/send-iban.ts (consistency).
+    "IBAN_SEND": (
+        "Pronto per il bonifico {dealer_name}.\n\n"
+        "IBAN: {iban}\n"
+        "Intestatario: {intestatario}\n"
+        "Importo: €{fee_eur}\n"
+        "Causale: ARGOS-{contract_id}\n\n"
+        "Per il bonifico la banca verifica il nome del titolare del conto: {intestatario}. "
+        "ARGOS è il brand, Luca Ferretti il referente.\n\n"
+        "Mi invii ricevuta quando fatto. Grazie."
+    ),
+
+    # Inviato post-mark-paid (status IBAN_SENT → PAID).
+    "PAYMENT_RECEIVED": (
+        "Bonifico ricevuto {dealer_name}, grazie. Operazione conclusa.\n\n"
+        "A presto per il prossimo veicolo."
+    ),
 }
 
 # ── Defaults per slot mancanti ─────────────────────────────
@@ -126,6 +156,12 @@ SLOT_DEFAULTS = {
     "vehicle_brand": "",
     "vehicle_model": "",
     "vehicle_year": "",
+    # S152 contract+payment slots
+    "sign_url": "",
+    "fee_eur": "800",
+    "iban": "",
+    "intestatario": "",
+    "contract_id": "",
 }
 
 

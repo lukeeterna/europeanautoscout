@@ -108,6 +108,120 @@ def _validate_llm_response(text: str) -> list:
     return violations
 
 
+# ── S152 Contract trigger (B-9) ───────────────────────────
+# Helper invocato manualmente da Telegram bot / dashboard DOPO Telegram HOLD
+# approval su INTEREST conf>=0.85. NON automatico (HITL strict).
+# Crea contratto via argos-proxy → ritorna sign_url usabile in DAY_INTEREST.
+
+ARGOS_PROXY_URL    = os.environ.get('ARGOS_PROXY_URL', '')
+ARGOS_ADMIN_SECRET = os.environ.get('ARGOS_ADMIN_SECRET', '')
+CONTRACT_CONF_THRESHOLD = 0.85
+
+
+def create_contract_for_interest(
+    intent: dict,
+    dealer_id: str,
+    dealer_name: str,
+    dealer_phone: str,
+    vehicle_data: dict,
+    conv_id: str = '',
+    dealer_email: str = '',
+    fee_cents: int = 80000,
+) -> dict:
+    """Crea contratto su argos-proxy e ritorna {ok, contract_id, sign_url}.
+
+    Pre-condizioni (responsabilità del CALLER, non auto-enforced qui):
+      1. intent.type == 'INTEREST' (or VEHICLE_REQUEST/POSITIVE post-disclosure)
+      2. intent.confidence >= 0.85
+      3. Telegram HOLD approval ricevuta (admin click "approva contratto")
+
+    Args:
+      intent: classification dict {type, confidence, ...}
+      dealer_id/name/phone: from CRM
+      vehicle_data: {vin?, make?, model?, year?, price_eu_cents?}
+      conv_id: optional WA conversation correlation id (audit FES)
+      dealer_email: optional, for Resend cc
+      fee_cents: default €800
+
+    Returns:
+      {ok: bool, contract_id?: str, sign_url?: str, error?: str}
+
+    NOTE: questa funzione fa SOLO la HTTP call. Non invia il template
+    DAY_INTEREST — quello è responsabilità del caller (Telegram bot
+    invia send WA con sign_url ricevuto).
+    """
+    import urllib.request
+    import urllib.error
+
+    # ── Guardrails (best-effort, caller is HITL) ─────────────
+    conf = float(intent.get('confidence', 0.0))
+    if conf < CONTRACT_CONF_THRESHOLD:
+        return {
+            'ok': False,
+            'error': f'confidence {conf:.2f} < threshold {CONTRACT_CONF_THRESHOLD}',
+        }
+
+    if not ARGOS_PROXY_URL or not ARGOS_ADMIN_SECRET:
+        return {
+            'ok': False,
+            'error': 'ARGOS_PROXY_URL or ARGOS_ADMIN_SECRET not configured in .env',
+        }
+
+    if not dealer_id or not dealer_name or not dealer_phone:
+        return {'ok': False, 'error': 'dealer_id/name/phone required'}
+
+    # ── HTTP POST to argos-proxy ─────────────────────────────
+    payload = {
+        'dealer_id': str(dealer_id),
+        'dealer_name': dealer_name,
+        'dealer_phone': dealer_phone,
+        'fee_cents': int(fee_cents),
+        'vehicle': {
+            'vin': vehicle_data.get('vin'),
+            'make': vehicle_data.get('make') or vehicle_data.get('marca'),
+            'model': vehicle_data.get('model') or vehicle_data.get('modello'),
+            'year': vehicle_data.get('year') or vehicle_data.get('anno'),
+            'price_eu_cents': vehicle_data.get('price_eu_cents'),
+        },
+    }
+    if dealer_email:
+        payload['dealer_email'] = dealer_email
+    if conv_id:
+        payload['wa_conv_id'] = conv_id
+
+    body = json.dumps(payload).encode('utf-8')
+    url = f'{ARGOS_PROXY_URL.rstrip("/")}/api/v1/contract/create'
+    req = urllib.request.Request(
+        url,
+        data=body,
+        method='POST',
+        headers={
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {ARGOS_ADMIN_SECRET}',
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            if not data.get('ok'):
+                return {'ok': False, 'error': data.get('error', 'unknown error')}
+            return {
+                'ok': True,
+                'contract_id': data.get('contract_id'),
+                'sign_url': data.get('sign_url'),
+                'fee_eur': data.get('fee_eur'),
+            }
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = json.loads(e.read().decode('utf-8'))
+            return {'ok': False, 'error': f'HTTP {e.code}: {err_body.get("error", "unknown")}'}
+        except Exception:
+            return {'ok': False, 'error': f'HTTP {e.code}'}
+    except Exception as e:
+        return {'ok': False, 'error': f'request failed: {e}'}
+
+
 # ── Knowledge Base ARGOS ──────────────────────────────────
 KB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'argos_knowledge_base.md')
 KNOWLEDGE_BASE = ''
