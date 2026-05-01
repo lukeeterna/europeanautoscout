@@ -1,6 +1,55 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S147 fine — 2026-04-30 16:50 (post-invio Day 1 Stile Car)
+**Aggiornato**: Session S148 fine — 2026-05-01 09:30 (patch daemon applicate, restart pending S149)
+
+---
+
+## 🩺 S148 OUTCOME — DIAGNOSI + 3 PATCH APPLICATE SU DISCO (NO restart, NO test ancora)
+
+**2026-05-01 ore 08:31-09:30** — sessione 1° maggio (festa, no outreach). Diagnosi WA daemon completa, 3 patch chirurgiche applicate al file su iMac, **chiuso prima di restart per gestire branch decisionali con context fresco in S149**.
+
+### Cosa è stato fatto (ATOMIC)
+1. **Diagnosi root cause confermata** (vedi MEMORY entry "2026-05-01 08:50"):
+   - Sessione `argos-business` *silently invalidated* probabile (WA non emette `disconnected`)
+   - `simulateTyping failed` esiste dal 27/03 quando invio funzionava → NON è la rottura
+   - Bug strutturali: ack listener filtra solo ack=3, `wa_msg_id` salvato custom non matcha ack reali, no `getState()` sanity check
+2. **Backup remoto**: `~/Documents/app-antigravity-auto/wa-intelligence/wa-daemon.js.bak_s148_20260501_092358`
+3. **3 patch applicate al file su iMac** (`wa-daemon.js`, ora 1568 LOC vs 1549 originali):
+   - **Patch 1** (~r724-744): log TUTTI gli ack (1🛰️ SENT_SERVER / 2📬 DELIVERED / 3✓✓ LETTO / 4▶️ PLAYED) con `_serialized` wa_msg_id
+   - **Patch 2** (~r922-925, 940-941, 949): capture `sentMsg.id._serialized` come `wa_msg_id` reale in DB, matcha ack futuri
+   - **Patch 3** (~r894-904): `client.getState()` live check pre-send, se ≠ `'CONNECTED'` → 503 + alert Telegram + log `STALE_SESSION`
+4. **Sintassi verificata** (`node --check` OK)
+5. **Diff verificato** (solo 3 patch, nessun side-effect)
+
+### Cosa NON è stato fatto (volutamente, lasciato a S149)
+- ❌ `pm2 restart argos-wa-daemon` (daemon in memoria runtime ANCORA old code)
+- ❌ Test marker TEST_FOUNDER post-fix
+- ❌ Decisione branch DELIVERED / STALE_SESSION / wa_msg_id=null
+- ❌ Commit del fix nel repo (file vive solo sull'iMac, va backuppato anche nel repo)
+
+### Decisione CTO chiusura context 63%
+3 esiti possibili post-restart hanno costo context molto diverso:
+- Branch A (DELIVERED): low-context (~10K)
+- Branch B (STALE_SESSION → re-auth QR + Luke col telefono + ri-test): high-context (~40%)
+- Branch C (wa_msg_id=null → debug lib): worst-case (~50%)
+
+Procedere ora rischia di finire context a metà branch B/C. Chiudere ora = S149 parte pulita per gestire qualsiasi branch.
+
+### Stato pipeline
+- WA daemon: online da ~21h, **ma il fix non è ancora attivo** finché non si restarta (S149 step 2)
+- Stile Car: **ANCORA COLD post-rollback S147** (non toccare in S149, è S150)
+- TEST_FOUNDER (393314928901): pronto per marker test in S149
+
+### Per S149 leggere
+1. `prompts/s149_restart_daemon_test_marker.md` — istruzioni complete con 4 branch decisionali
+2. `~/.claude/projects/.../memory/MEMORY.md` entry "2026-05-01 08:50 — S148 DIAGNOSI"
+
+### Target S149
+- Restart daemon con patch attive
+- Test marker TEST_FOUNDER + analisi log (cercare `🛰️ SENT_SERVER` / `📬 DELIVERED` / `STALE_SESSION`)
+- Branch A → commit fix nel repo + prompt S150 invio Day 1 Stile Car sabato 2/5
+- Branch B → re-auth QR con Luke al telefono Business
+- Branch C/D → debug lib
 
 ---
 
