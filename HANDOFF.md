@@ -1,6 +1,70 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S149c fine — 2026-05-01 12:50 (audit E2E chunk B: 🟢 GO Day 1 martedì 5/5)
+**Aggiornato**: Session S149c fine + scope extension — 2026-05-01 13:05 (Day 1 reale RINVIATO, S151 = E2E sim completo TEST_FOUNDER)
+
+---
+
+## 🛑 SCOPE EXTENSION post-S149c — Day 1 reale RINVIATO, E2E sim TEST_FOUNDER prima
+
+**2026-05-01 13:00** — Luke ha esteso lo scope pre-Day 1. Non basta validare la pipeline tecnica: vuole **TUTTO** il flow business simulato su TEST_FOUNDER (393314928901) prima di rischiare il primo dealer reale.
+
+### 5 step E2E sim obbligatori
+1. **Cold contact persona-prima**: Day 1 + Luke risponde come Stile Car RELAZIONALE → verifica credibilità Luca persona
+2. **Richiesta modello dealer**: vehicle_request → analyzer extract → trigger scrape on-demand
+3. **Dossier**: scrape → CoVe → sanitizer → PDF (200KB+) → send WA → conferma visiva
+4. **Contratto firma 10-scelte** (NUOVO — da progettare):
+   - Landing `argos-automotive.pages.dev/contract/<token>`
+   - Dealer digita nome → 10 firme stilizzate (Google Fonts script) → sceglie più simile → PDF firmato
+   - Cloudflare Pages + Workers + R2/D1
+5. **Pagamento Stripe** (NUOVO — copiare da progetto Fluxion):
+   - Success-fee (no upfront): Setup Intent vs Manual Invoice vs Hold/Capture (S151 decide)
+   - Webhook → DB paid → notification
+   - Blocker fiscale: P.IVA/struttura legale (S151 chiarire con Luke)
+
+### Decisione CTO
+- ❌ Day 1 reale Stile Car martedì 5/5 → **CANCELLATO**
+- ✅ Target Day 1 reale: **dopo S151 (plan) + S152 (build) + S153 (sim verde)** — slittamento ~7-14gg
+- ✅ S151 è solo PLANNING (no code) → architettura + decisioni + TODO atomico
+- ✅ Riferimento Fluxion: Luke fornirà path inizio S151
+
+### Razionale slittamento
+S149c verdetto era 🟢 sul presupposto "Day 1 = solo testo, P1 off-path". Vero. Ma se Stile Car risponde **"ok procediamo, dove firmo?"** dopo Day 1, e ARGOS non ha contract+payment → autogol totale.
+Bruciare primo dealer Sud = perdita 3-5 dealer via referral. Slittamento +7-14gg vs riduzione rischio failure full pipeline ~95%.
+
+### Stato componenti
+- ✅ Daemon WA outbound + ack (S149)
+- ✅ Templates iMac fixed (S149b)
+- ✅ Image sanitizer (S149c)
+- ✅ LLM cascade (S149c)
+- ✅ Scrape live (S149c)
+- 🟡 Reply LLM Day N+ qualità (P1 — Telegram HOLD pre-Day 1)
+- ❌ Dossier on-demand handler E2E (vehicle_request → trigger scrape) UNTESTED
+- ❌ Contract page + firma 10-scelte INESISTENTE
+- ❌ Stripe payment flow INESISTENTE (zero ref nel codebase)
+- ❌ P.IVA / forma legale per fattura UNCLEAR
+
+### File creati
+- `prompts/s151_e2e_full_simulation.md` (planning S151 completo, 5 step, vincoli, scope creep)
+
+### Per S151 leggere
+1. `.planning/E2E-AUDIT-S149.md` (verdetto + P1)
+2. `prompts/s151_e2e_full_simulation.md` (questo è il prompt operativo S151)
+3. `~/.claude/projects/.../memory/MEMORY.md` entry S149c + S151 NEW
+4. Progetto Fluxion (path da Luke)
+
+### Domande aperte per Luke (a inizio S151)
+1. Path progetto Fluxion
+2. Stato P.IVA Luca Ferretti / Gianluca Di Stasi
+3. Stripe account (key test/prod) già esiste?
+4. Cloudflare Workers/R2/D1 attivi su account `argos-automotive`?
+5. Contract template reference (settore auto) o da zero?
+6. Reset state machine TEST_FOUNDER conferma?
+7. Library firma: Google Fonts script + canvas custom OK?
+
+### Target S151 (planning only)
+- `.planning/E2E-SIM-PLAN.md` (architettura + decisioni + TODO + test + tempi)
+- Approvazione Luke su plan
+- Prompt S152 build pronto
 
 ---
 
