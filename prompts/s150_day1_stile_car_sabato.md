@@ -43,9 +43,35 @@ curl -sI "https://www.autoscout24.de/angebote/bmw-x3-xdrive20i-ahk-hifi-sportsit
 ssh gianlucadistasi@192.168.1.2 "sqlite3 ~/Documents/app-antigravity-auto/dealer_network.sqlite \"SELECT dealer_id, dealer_name, current_step, conversation_state, outbound_count FROM conversations WHERE dealer_id='TIER0_FG_001';\""
 # Atteso: TIER0_FG_001 | Stile Car | PENDING | COLD | 0
 
-# 5. Test marker TEST_FOUNDER (ricontrollo daemon vivo, NO Day 1 ancora)
-ssh gianlucadistasi@192.168.1.2 'API_KEY=$(grep ARGOS_API_KEY ~/Documents/app-antigravity-auto/wa-intelligence/.env | cut -d= -f2 | tr -d "\""); curl -s -X POST http://localhost:9191/send -H "Content-Type: application/json" -H "X-API-Key: $API_KEY" -d "{\"phone\":\"393314928901\",\"message\":\"S150 pre-flight check\",\"dealer_id\":\"TEST_FOUNDER\"}"'
-# Atteso: status=sent + Luke conferma ricezione + log mostra ack=2 entro 30s
+# 5. Test marker TEST_FOUNDER con payload Day 1 verbatim (replay hardening test S149)
+# CRITICO: usa python3 per JSON safe (jq mancante su iMac)
+ssh gianlucadistasi@192.168.1.2 'API_KEY=$(grep ARGOS_API_KEY ~/Documents/app-antigravity-auto/wa-intelligence/.env | cut -d= -f2 | tr -d "\"")
+PAYLOAD=$(python3 -c "
+import json
+msg = (
+    \"Buongiorno, le scrivo direttamente — seguo BMW compatte e TEST è uno dei pochi piazzali sotto Foggia con un parco fatto bene.\n\n\"
+    \"X3 xDrive20i 2022, 66.000 km, €34.900 — automatica, AHK, HiFi, sport. La stessa configurazione su AS24 Italia parte da €37.000.\n\n\"
+    \"Margine netto per lei ~€3.400, fee €800 solo a consegna.\n\n\"
+    \"Volevo proporla a lei prima che ad altri. Le mando la scheda?\n\n\"
+    \"Luca\"
+)
+print(json.dumps({\"phone\":\"393314928901\",\"message\":msg,\"dealer_id\":\"TEST_FOUNDER\"}, ensure_ascii=False))
+")
+curl -s -X POST http://localhost:9191/send -H "Content-Type: application/json; charset=utf-8" -H "X-API-Key: $API_KEY" --data-binary "$PAYLOAD"'
+
+# Atteso: status=sent + log mostra:
+# - 📤 sendMessage returned wa_msg_id=true_*@lid_*
+# - 🛰️ SENT_SERVER ack=1
+# - 📬 DELIVERED ack=2
+# entro 30s
+
+# 5-bis. CONFERMA VISIVA Luke (CRITICA — gap noto S149)
+# Luke deve verificare sul telefono 393314928901:
+# - 5 paragrafi SEPARATI (non un blocco unico)
+# - €34.900, ~€3.400, €37.000, €800 con simbolo € correttamente
+# - "è" leggibile (non `?` né `\u00e8`)
+# - "—" em dash leggibile (non quadratino)
+# Se UNO solo rotto → STOP, problema encoding o whatsapp client
 ```
 
 Se uno di questi step fallisce → STOP, debug, NO Day 1 invio.

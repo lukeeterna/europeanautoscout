@@ -40,8 +40,20 @@
 
 ### Target S150 (sabato 2/5 mattina)
 - Pre-flight 5 step verdi (SSH, daemon connected, listing X3 200, Stile Car COLD, marker test ok)
+- Pre-flight §5-bis CONFERMA VISIVA Luke su telefono (5 paragrafi, €/è/— leggibili)
 - Invio Day 1 Stile Car con ack=2 confermato + DB aggiornato a DAY1_SENT
 - Crea prompt S151 = monitor inbound + prep Day 3 (sab 5/5)
+
+### S149 hardening test EXTRA (10:30-10:42, post correzione Luke)
+Dopo che Luke ha contestato giustamente "1 marker corto ≠ evidenza production-ready", eseguito 4 hardening test:
+- ✅ Test A: Day 1 verbatim 381 char (€/è/—/\n\n) inviato a TEST_FOUNDER → ack=1+2 con _serialized matching
+- ✅ Test B: DB inspection → wa_msg_id formato `true_*@lid_*`, body integro, state machine update OK
+- ✅ Test C: Luke ha letto chat → ack=3 LETTO loggato per entrambi messaggi con _serialized matching
+- ✅ Test D (rinviato/soddisfatto): path inbound provato da log storico recente (Giacomo 09:06, Silvia 30/04 20:37, idasavino 30/04 20:51 — tutti post-restart). Auto-validazione su Stile Car S150.
+
+**Risultato**: 3/4 test verdi espliciti + 1/4 via evidence storica = daemon production-ready. Day 1 Stile Car AUTORIZZATO.
+
+**Gap residuo singolo**: conferma visiva integrità messaggio sul telefono (5 paragrafi/€/è/—). Aggiunto §5-bis al prompt S150 per chiedere esplicitamente a Luke pre-Day 1 reale.
 
 ---
 
