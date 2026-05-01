@@ -1,6 +1,60 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S149 fine — 2026-05-01 11:10 (decisione CTO: Day 1 slittato da sabato a martedì 5/5, audit E2E in S149b)
+**Aggiornato**: Session S149b fine — 2026-05-01 12:30 (audit E2E chunk A: P0 templates.py FIXATO, chunk B in S149c)
+
+---
+
+## 🎯 S149b OUTCOME — Audit E2E chunk A: P0 templates.py FIXATO + verde test 1-4 + analyzer standalone OK
+
+**2026-05-01 12:18-12:30** — chunk A scope: preflight + lettura test_e2e + run --fast + fix P0 + audit doc parziale + prompt S149c.
+
+### Cosa fatto
+1. **Pre-flight** ✅: iMac `.2` UP (1d 1:59), daemon connected, daily 2/15, LLM keys OPENROUTER + GROQ presenti (no Gemini).
+2. **Lettura test_e2e_full.py** ✅: identificati blocker `IP .12` hardcoded L18+L85, side effects test 9 (contiene "Germania"/"premium" — solo TEST_FOUNDER).
+3. **Fix IP** ✅: `tools/test_e2e_full.py` `.12 → .2` (2 punti, committato).
+4. **Run test_e2e_full.py --fast** → 8 PASS / 7 FAIL:
+   - ✅ test 1-4: daemon, dealer pipeline, send WA, send PDF 5MB
+   - ❌ test 5-9: tutti rotti per `templates.py:58 SyntaxError EOL` su iMac
+5. **P0 templates.py FIXATO** ✅:
+   - Bug: `DAY3_SOFT` + `DAY3_VEHICLE` con newline reali invece di `\n` escape (276 righe rotte iMac vs 248 OK locale)
+   - Backup remoto: `templates.py.bak_s149b_20260501_122250`
+   - Fix mirato (non sovrascrittura — local repo era obsoleto, mancavano 28 righe)
+   - AST OK locale + iMac
+   - **Smoke test standalone** post-fix: analyzer riceve `"Lei chi e..."` → classify CURIOSITY conf=0.85 → cascade Gemini fail (MAX_TOKENS) → Groq llama-3.3-70b OK → validator+retry → reply schedulata + Telegram 200 ✅
+6. **Audit doc**: `.planning/E2E-AUDIT-S149.md` con risultati nudi + P0/P1/P2 + decisione provvisoria 🟡 GO Day 1 martedì.
+7. **Prompt S149c**: `prompts/s149c_audit_e2e_part2.md` con scope chunk B (re-run completo + image_sanitizer + LLM cascade + scrape live + verdetto finale).
+
+### P trovate
+- **P0 ✅ FIXATO**: templates.py iMac SyntaxError → analyzer crashava su tutti gli inbound → ZERO auto-reply. Risolto.
+- **P1 (non blocker)**: Gemini `finishReason=MAX_TOKENS` strutturale + `GEMINI_API_KEY` ASSENTE da `.env` (chiarire S149c)
+- **P1 (non blocker)**: test_9 Day 1 contiene "Germania"/"premium" (solo TEST_FOUNDER, non dealer reali — ma da sostituire)
+- **P2**: IP `.12` hardcoded ovunque (DHCP regress S147)
+- **P2**: image_sanitizer non testato (cv2 mancante locale → eseguire su iMac in S149c)
+- **P2**: test 10 scrape live skippato (--fast)
+
+### Decisione provvisoria Day 1 martedì 5/5
+🟡 **PROBABILE GO** — il P0 più grave è risolto, residui sono mitigabili. **Conferma definitiva fine S149c**.
+
+⚠️ **Nota**: Day 1 Stile Car invia SOLO TESTO (no PDF, no foto) → image_sanitizer NON è blocker Day 1, è blocker Day 3 (dossier).
+
+### File toccati S149b
+- `tools/test_e2e_full.py` (IP fix)
+- `wa-intelligence/templates.py` SU iMac (fix P0, backup S149b presente, NON sincronizzato in repo locale — divergenza voluta documentata in audit doc)
+- `.planning/E2E-AUDIT-S149.md` (nuovo)
+- `prompts/s149c_audit_e2e_part2.md` (nuovo)
+- `HANDOFF.md` (questa sezione)
+
+### Per S149c leggere
+1. `.planning/E2E-AUDIT-S149.md`
+2. `prompts/s149c_audit_e2e_part2.md`
+3. `~/.claude/projects/.../memory/MEMORY.md` entry S149b
+
+### Target S149c
+- Re-run test_e2e_full.py --fast completo (atteso 14+ PASS / 0-1 FAIL)
+- image_sanitizer standalone su iMac
+- LLM cascade isolato per provider (Gemini MAX_TOKENS root cause)
+- Test 10 scrape live BMW X3
+- Decisione DEFINITIVA Day 1 martedì 5/5 → 🟢 / 🟡 / 🔴
 
 ---
 
