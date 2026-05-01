@@ -460,6 +460,114 @@ async def finance(request: Request):
     })
 
 
+# ── Contracts (S152) ─────────────────────────────────────
+# Proxy admin a argos-proxy Worker. Bonifico bancario manuale:
+#   AWAITING_DELIVERY → "Invia IBAN" → IBAN_SENT
+#   IBAN_SENT         → "Mark PAID"  → PAID
+
+ARGOS_PROXY_URL    = os.environ.get('ARGOS_PROXY_URL', '')
+ARGOS_ADMIN_SECRET = os.environ.get('ARGOS_ADMIN_SECRET', '')
+
+
+def _proxy_request(path: str, method: str = 'GET', body: dict | None = None,
+                   timeout: int = 10) -> tuple[int, dict | None, str | None]:
+    """Call argos-proxy with admin Bearer. Returns (status, json|None, error|None)."""
+    import urllib.request
+    import urllib.error
+    if not ARGOS_PROXY_URL or not ARGOS_ADMIN_SECRET:
+        return 0, None, 'ARGOS_PROXY_URL or ARGOS_ADMIN_SECRET not configured'
+    url = f'{ARGOS_PROXY_URL.rstrip("/")}{path}'
+    data = json.dumps(body).encode('utf-8') if body is not None else None
+    req = urllib.request.Request(
+        url, data=data, method=method,
+        headers={
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {ARGOS_ADMIN_SECRET}',
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.status, json.loads(resp.read().decode('utf-8')), None
+    except urllib.error.HTTPError as e:
+        try:
+            payload = json.loads(e.read().decode('utf-8'))
+            return e.code, payload, payload.get('error', f'HTTP {e.code}')
+        except Exception:
+            return e.code, None, f'HTTP {e.code}'
+    except Exception as e:
+        return 0, None, f'request failed: {e}'
+
+
+@app.get('/contracts', response_class=HTMLResponse)
+async def contracts_list(request: Request):
+    redirect = _auth_or_redirect(request)
+    if redirect:
+        return redirect
+
+    status, payload, err = _proxy_request('/api/v1/admin/contracts?limit=50')
+    contracts = []
+    proxy_error = None
+    if err:
+        proxy_error = err
+    elif payload:
+        contracts = payload.get('contracts', [])
+
+    return templates.TemplateResponse('contracts.html', {
+        'request': request,
+        'page': 'contracts',
+        'contracts': contracts,
+        'proxy_error': proxy_error,
+        'action_result': None,
+    })
+
+
+@app.post('/contracts/{contract_id}/send-iban')
+async def contracts_send_iban(request: Request, contract_id: str):
+    redirect = _auth_or_redirect(request)
+    if redirect:
+        return redirect
+
+    status, payload, err = _proxy_request(
+        f'/api/v1/contract/{contract_id}/send-iban',
+        method='POST',
+        body={},
+    )
+    if err:
+        log.warning(f'send-iban {contract_id} failed: {err} payload={payload}')
+    else:
+        log.info(f'send-iban {contract_id} ok: {payload}')
+    return RedirectResponse(url='/contracts', status_code=303)
+
+
+@app.post('/contracts/{contract_id}/mark-paid')
+async def contracts_mark_paid(
+    request: Request,
+    contract_id: str,
+    paid_amount_eur: float = Form(...),
+    payment_bank: str = Form(...),
+    payment_reference: str = Form(...),
+):
+    redirect = _auth_or_redirect(request)
+    if redirect:
+        return redirect
+
+    paid_cents = int(round(paid_amount_eur * 100))
+    status, payload, err = _proxy_request(
+        f'/api/v1/contract/{contract_id}/mark-paid',
+        method='POST',
+        body={
+            'paid_amount_cents': paid_cents,
+            'payment_bank': payment_bank,
+            'payment_reference': payment_reference,
+        },
+    )
+    if err:
+        log.warning(f'mark-paid {contract_id} failed: {err} payload={payload}')
+    else:
+        log.info(f'mark-paid {contract_id} ok: {payload}')
+    return RedirectResponse(url='/contracts', status_code=303)
+
+
 # ── System Health ────────────────────────────────────────
 
 @app.get('/system', response_class=HTMLResponse)

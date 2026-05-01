@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block page_title %}Contratti{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h3 class="card-title mb-0" style="color: var(--argos-gold);">
+          Contratti — bonifico bancario manuale
+        </h3>
+        <span class="badge bg-secondary">{{ contracts|length }} contratti</span>
+      </div>
+
+      {% if proxy_error %}
+      <div class="alert alert-warning m-3 mb-0">
+        <strong>Worker non raggiungibile:</strong> {{ proxy_error }}<br>
+        <small>Verifica <code>ARGOS_PROXY_URL</code> e <code>ARGOS_ADMIN_SECRET</code> in <code>.env</code>.</small>
+      </div>
+      {% endif %}
+
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+          <thead>
+            <tr>
+              <th>Dealer</th>
+              <th>Veicolo</th>
+              <th>Fee</th>
+              <th>Status</th>
+              <th>Creato</th>
+              <th class="text-end">Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for c in contracts %}
+            <tr>
+              <td>
+                <div class="fw-bold">{{ c.dealer_name }}</div>
+                <div class="small text-muted">{{ c.dealer_phone }}</div>
+              </td>
+              <td>
+                {% if c.vehicle_make or c.vehicle_model %}
+                  {{ c.vehicle_year or '' }} {{ c.vehicle_make or '' }} {{ c.vehicle_model or '' }}
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>€{{ '%.0f'|format((c.fee_cents or 0) / 100) }}</td>
+              <td>
+                {% set s = c.status %}
+                {% if s == 'DRAFT' %}<span class="badge bg-secondary">DRAFT</span>
+                {% elif s == 'SIGNED' %}<span class="badge bg-warning">SIGNED</span>
+                {% elif s == 'AWAITING_DELIVERY' %}<span class="badge bg-info">AWAITING</span>
+                {% elif s == 'IBAN_SENT' %}<span class="badge bg-orange">IBAN_SENT</span>
+                {% elif s == 'PAID' %}<span class="badge bg-success">✅ PAID</span>
+                {% elif s == 'CANCELLED' %}<span class="badge bg-dark">CANCELLED</span>
+                {% elif s == 'REFUNDED' %}<span class="badge bg-dark">REFUNDED</span>
+                {% else %}<span class="badge bg-secondary">{{ s }}</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ c.created_at[:16].replace('T', ' ') }}</td>
+              <td class="text-end">
+                {% if s == 'AWAITING_DELIVERY' %}
+                <form method="POST" action="/contracts/{{ c.id }}/send-iban" style="display:inline;"
+                      onsubmit="return confirm('Inviare IBAN a {{ c.dealer_name }}?');">
+                  <button type="submit" class="btn btn-sm btn-primary">📨 Invia IBAN</button>
+                </form>
+                {% elif s == 'IBAN_SENT' %}
+                <button type="button" class="btn btn-sm btn-success"
+                        data-bs-toggle="modal" data-bs-target="#paid-{{ c.id }}">
+                  ✅ Mark PAID
+                </button>
+                <!-- Modal -->
+                <div class="modal fade" id="paid-{{ c.id }}" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <form method="POST" action="/contracts/{{ c.id }}/mark-paid" class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title">Conferma bonifico — {{ c.dealer_name }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      </div>
+                      <div class="modal-body text-start">
+                        <div class="mb-3">
+                          <label class="form-label">Importo ricevuto (EUR)</label>
+                          <input type="number" name="paid_amount_eur" min="1" step="0.01"
+                                 value="{{ '%.2f'|format((c.fee_cents or 0) / 100) }}"
+                                 class="form-control" required>
+                          <small class="text-muted">Tolleranza ±€1 vs fee.</small>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label">Banca</label>
+                          <select name="payment_bank" class="form-select" required>
+                            <option value="MyTu">MyTu</option>
+                            <option value="evolu">evolu</option>
+                            <option value="other">altro</option>
+                          </select>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label">Causale / Reference</label>
+                          <input type="text" name="payment_reference"
+                                 value="ARGOS-{{ c.id }}"
+                                 class="form-control" required>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-link" data-bs-dismiss="modal">Annulla</button>
+                        <button type="submit" class="btn btn-success">Conferma PAID</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+                {% elif s == 'PAID' %}
+                <span class="text-muted small">€{{ '%.0f'|format((c.payment_amount_cents or 0) / 100) }} via {{ c.payment_bank or '—' }}</span>
+                {% elif s == 'DRAFT' %}
+                <a href="https://argos-automotive.pages.dev/contract/{{ c.signature_token }}"
+                   target="_blank" class="btn btn-sm btn-outline-primary">🔗 Sign URL</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="text-center text-muted p-4">Nessun contratto creato</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if action_result %}
+<div class="alert alert-{{ 'success' if action_result.ok else 'danger' }} mt-3">
+  {{ action_result.message }}
+</div>
+{% endif %}
+{% endblock %}
