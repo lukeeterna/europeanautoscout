@@ -1,6 +1,47 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S148 fine — 2026-05-01 09:30 (patch daemon applicate, restart pending S149)
+**Aggiornato**: Session S149 fine — 2026-05-01 09:50 (daemon FIXATO, validato E2E ack=2 reale, fix committato)
+
+---
+
+## ✅ S149 OUTCOME — DAEMON FIX VALIDATO E2E (Branch A pieno)
+
+**2026-05-01 ore 09:43-09:50** — restart daemon + test marker TEST_FOUNDER + validazione 3 patch S148 in memoria. **Day 1 Stile Car NON inviato in S149** (è S150 sabato 2/5). Outcome: daemon fixato e committato nel repo.
+
+### Cosa è stato fatto
+1. **Step 1 pre-flight**: SSH iMac `.2` OK, daemon connected uptime 23h, file `wa-daemon.js` 1568 righe (patched), backup S148 presente.
+2. **Step 2 restart**: `pm2 restart argos-wa-daemon` con NVM Node 20.11 → pid 4951, sessione viva immediata (`✅ Sessione autenticata` + `✅ Client PRONTO`), no QR, no auth_failure.
+3. **Step 3 test marker** TEST_FOUNDER (393314928901): inviato "DEBUG marker S149 — fix daemon test" → response `{"status":"sent","daily_sent":1}` HTTP 200.
+4. **Step 4 analisi log** — 3 patch confermate funzionanti:
+   - **Patch 2** ✅ `📤 sendMessage returned wa_msg_id=true_141115562971357@lid_3EB0D37DE30F7C89AFC104` (capture _serialized OK)
+   - **Patch 1 ack=1** ✅ `🛰️ SENT_SERVER: 141115562971357@lid` (server WA ricevuto)
+   - **Patch 1 ack=2** ✅ `📬 DELIVERED: 141115562971357@lid` (telefono Luke ricevuto)
+   - **Patch 3** ✅ zero log `STALE_SESSION rilevata` (state CONNECTED, send autorizzato)
+5. **Conferma occhi-di-Luke**: messaggio arrivato sul telefono personale 393314928901 (Luke ha confermato "si arrivato" 09:48).
+6. **SCP fix nel repo**: `wa-intelligence/wa-daemon.js` aggiornato (1568 LOC, diff +29/-10) → ora committato.
+7. **Bonus fix collaterale**: hardcoded IP `192.168.1.12` → `192.168.1.2` nel Telegram alert per QR (regressione DHCP nota S147).
+
+### Scoperte utili
+- **LID format**: WhatsApp ora risolve i numeri come `*@lid` interno (es. 393314928901 → `141115562971357@lid`). I `wa_msg_id` reali ora hanno formato `true_*@lid_*`. Da tenere a mente per query DB future.
+- **Anomalia minore startup hook**: `WA Daemon: UNREACHABLE` riportato dal SessionStart hook ma daemon raggiungibile su `.2`. Il check probabilmente cerca `.12` (DHCP regress S147 noto). Da fixare in S150+ aggiornando l'IP nel hook.
+- **/send response semantica**: il `msg_id` ritornato all'HTTP caller è ancora il custom `out_<ts>_<rand>` — il `wa_msg_id` REALE `_serialized` vive solo in `messages.wa_msg_id` DB. NICE-TO-HAVE per futuro: ritornare anche `_serialized` in response.
+
+### Stato pipeline post-S149
+- WA daemon: **FIXATO ✅** (3 patch attive in memoria + committate nel repo)
+- Daemon ack tracking: ora funzionante per tutti i livelli (1/2/3/4)
+- Stile Car: ANCORA COLD post-rollback S147 (Day 1 reale = S150 sabato 2/5)
+- TEST_FOUNDER: `out=11`, ENGAGED (atteso, pre-Day 1 reale)
+- Backup `wa-daemon.js.bak_s148_20260501_092358` su iMac: NON cancellato (safety)
+
+### Per S150 leggere
+1. `prompts/s150_day1_stile_car_sabato.md` — invio Day 1 sabato 2/5 ore 11:00 (mattina Sud)
+2. `~/.claude/projects/.../memory/MEMORY.md` entry "2026-05-01 09:46 — S149"
+3. `.planning/launch_luca_ferretti/DAY1_STILE_CAR.md` — messaggio già pronto
+
+### Target S150 (sabato 2/5 mattina)
+- Pre-flight 5 step verdi (SSH, daemon connected, listing X3 200, Stile Car COLD, marker test ok)
+- Invio Day 1 Stile Car con ack=2 confermato + DB aggiornato a DAY1_SENT
+- Crea prompt S151 = monitor inbound + prep Day 3 (sab 5/5)
 
 ---
 

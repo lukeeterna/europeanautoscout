@@ -670,7 +670,7 @@ function initClient() {
         QRCode.toDataURL(qr, { width: 300, margin: 2 }, (err, dataUrl) => {
             QR_STATE = { qr: dataUrl || qr, status: 'waiting_scan', updated_at: new Date().toISOString() };
             log('WARN', 'QR generato — disponibile su GET /qr');
-            sendTelegramAlert('⚠️ *WA Daemon*: QR pronto. Apri http://192.168.1.12:9191/qr per scansionare');
+            sendTelegramAlert('⚠️ *WA Daemon*: QR pronto. Apri http://192.168.1.2:9191/qr per scansionare');
         });
     });
 
@@ -723,18 +723,21 @@ function initClient() {
 
     // ── Message ACK (conferma lettura) ───────────────────────
     client.on('message_ack', (msg, ack) => {
-        // ack: 1=sent, 2=delivered, 3=read, 4=played
+        // ack: 1=sent server, 2=delivered device, 3=read, 4=played
+        const now = TC.formatIT(TC.nowIT());
+        const waMsgId = msg.id?._serialized || msg.id?.id || 'unknown';
+        const ackLabels = { 1: '🛰️ SENT_SERVER', 2: '📬 DELIVERED', 3: '✓✓ LETTO', 4: '▶️ PLAYED' };
+        const label = ackLabels[ack] || `ACK_${ack}`;
+        log('INFO', `${label}: ${msg.to} — ${now} — wa_msg_id=${waMsgId}`);
         if (ack === 3) {
-            const now = TC.formatIT(TC.nowIT());
-            log('INFO', `✓✓ LETTO: ${msg.to} — ${now}`);
             const db = getDb();
             try {
                 db.prepare('UPDATE messages SET processed = 1 WHERE wa_msg_id = ?')
-                  .run(msg.id?.id || '');
+                  .run(waMsgId);
                 db.prepare(`
                     INSERT OR IGNORE INTO audit_log (id, event_type, dealer_id, payload, timestamp_it)
                     VALUES (?, 'MSG_READ_ACK', 'UNKNOWN', ?, datetime('now'))
-                `).run(`ack_${Date.now()}`, JSON.stringify({to: msg.to, ack: 3}));
+                `).run(`ack_${Date.now()}`, JSON.stringify({to: msg.to, ack: 3, wa_msg_id: waMsgId}));
             } catch (e) {
                 log('ERROR', 'message_ack db failed:', e.message);
             }
@@ -882,10 +885,21 @@ function initClient() {
                         return;
                     }
 
-                    // CT-16 fix: check WA connected before send
+                    // CT-16 fix: check WA connected before send (cached state)
                     if (!QR_STATE || QR_STATE.status !== 'connected') {
                         res.writeHead(503, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'wa_not_connected', wa_status: QR_STATE?.status || 'unknown' }));
+                        return;
+                    }
+
+                    // S148 Patch 3: live getState() check — rivela sessioni stale che QR_STATE cached non vede
+                    const liveState = await client.getState().catch(e => { log('WARN', `getState failed: ${e.message}`); return null; });
+                    if (liveState !== 'CONNECTED') {
+                        log('ERROR', `STALE_SESSION rilevata pre-send: getState()=${liveState} (QR_STATE cached=${QR_STATE.status})`);
+                        sendTelegramAlert(`🔴 *WA STALE_SESSION* — getState=${liveState}, QR_STATE=${QR_STATE.status}\nServe re-auth QR`);
+                        QR_STATE.status = 'stale';
+                        res.writeHead(503, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'stale_session', live_state: liveState, cached_state: QR_STATE.status }));
                         return;
                     }
 
@@ -905,7 +919,10 @@ function initClient() {
 
                     // Simula typing prima dell'invio
                     await HumanLike.simulateTyping(client, chatId, message.length);
-                    await client.sendMessage(chatId, message);
+                    // S148 Patch 2: capture wa_msg_id reale dal return di sendMessage
+                    const sentMsg = await client.sendMessage(chatId, message);
+                    const waMsgIdReal = sentMsg?.id?._serialized || sentMsg?.id?.id || null;
+                    log('INFO', `📤 sendMessage returned wa_msg_id=${waMsgIdReal} for ${chatId}`);
                     await HumanLike.clearPresence(client, chatId);
                     CONFIG.DAILY_SENT++;
                     incrementDailyStats('sent');
@@ -920,6 +937,8 @@ function initClient() {
                     }
 
                     const msgId = `out_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                    // S148 Patch 2: wa_msg_id ora è il _serialized reale (matcha ack futuri)
+                    const waMsgIdForDb = waMsgIdReal || msgId;
                     const now = TC.nowIT();
 
                     const db = getDb();
@@ -927,7 +946,7 @@ function initClient() {
                         (id, dealer_id, dealer_name, phone_number, direction, body,
                          timestamp_it, timestamp_iso, wa_msg_id, processed)
                         VALUES (?, ?, '', ?, 'OUTBOUND', ?, datetime('now'), ?, ?, 1)`)
-                      .run(msgId, dealer_id || 'MANUAL', chatId, message, now.toISOString(), msgId);
+                      .run(msgId, dealer_id || 'MANUAL', chatId, message, now.toISOString(), waMsgIdForDb);
 
                     if (dealer_id) {
                         // S106: State machine update via Python
@@ -1508,7 +1527,7 @@ setInterval(async () => {
         } else {
             const downMin = Math.round((Date.now() - _lastHealthOk) / 60000);
             if (!_healthAlertSent && downMin >= 5) {
-                sendTelegramAlert(`🚨 *WA DISCONNESSO* da ${downMin} min!\nStato: ${state}\n\n_Controllare sessione su http://192.168.1.12:9191/qr_`);
+                sendTelegramAlert(`🚨 *WA DISCONNESSO* da ${downMin} min!\nStato: ${state}\n\n_Controllare sessione su http://192.168.1.2:9191/qr_`);
                 _healthAlertSent = true;
                 log('ERROR', `Health check: WA disconnesso da ${downMin} min, stato: ${state}`);
             }
