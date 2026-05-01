@@ -37,10 +37,10 @@
 
 ✅ **B-6 bundled in B-4** — thank-you page già scritta
 
-⚠️ **Pre-condizioni Chunk A → Chunk B (LUKE check)**
-- `ARGOS_IBAN` MyTu/evolu — Luke condivide via canale sicuro **PRIMA del deploy**
-- `ARGOS_INTESTATARIO` — conferma nome conto (es "Gianluca Di Stasi")
-- Permission CF token: D1 admin + R2 admin + Workers admin (verifica dashboard CF se mancano)
+✅ **Pre-condizioni Chunk A → Chunk B (TUTTE SBLOCCATE 2026-05-01 20:50)**
+- `ARGOS_IBAN` ricevuto (LT EMI bank code 32500, mod97 valido) → in `.env` locale (chmod 600), da `wrangler secret put` in deploy. **Valore non in repo.**
+- `ARGOS_INTESTATARIO` confermato (Opzione A post-flag VoP CTO: "Luca Ferretti" resta solo persona commerciale su contratto/WA, intestatario reale del conto solo nel template IBAN_SEND con copertura narrativa "il bonifico va al titolare del conto"). **Valore non in repo.**
+- Permission CF token: ✅ verificato attivo (`/user/tokens/verify` → status active)
 
 ---
 
@@ -141,7 +141,7 @@ File: `wa-intelligence/dashboard/app.py` + template HTML
 
 ### Phase Deploy + Smoke Tests (~30 min)
 
-**Pre-requisito BLOCKING**: ARGOS_IBAN + ARGOS_INTESTATARIO da Luke (canale sicuro).
+**Pre-requisiti**: ✅ tutti sbloccati. ARGOS_IBAN + ARGOS_INTESTATARIO in `.env` locale (chmod 600), CF token verificato attivo.
 
 - [ ] `cd argos-proxy && wrangler d1 create argos-contracts` → annota UUID
 - [ ] Aggiorna `wrangler.toml` con UUID reale (replace `00000000-0000-0000-0000-000000000000`)
@@ -153,8 +153,8 @@ File: `wa-intelligence/dashboard/app.py` + template HTML
   - `R2_SIGNING_SECRET` (`openssl rand -hex 32`)
   - `TELEGRAM_BOT_TOKEN` (riusa esistente da `.env`)
   - `TELEGRAM_CHAT_ID` (riusa esistente)
-  - `ARGOS_IBAN` ⚠️ blocking, da Luke
-  - `ARGOS_INTESTATARIO` ⚠️ blocking, da Luke
+  - `ARGOS_IBAN` ✅ sbloccato — in `.env` locale (`grep ARGOS_IBAN .env | cut -d= -f2- | wrangler secret put ARGOS_IBAN`)
+  - `ARGOS_INTESTATARIO` ✅ sbloccato — in `.env` locale (`grep ARGOS_INTESTATARIO .env | cut -d= -f2- | wrangler secret put ARGOS_INTESTATARIO`)
   - `WA_DAEMON_URL` (`http://192.168.1.2:9191` — testing LAN; production via Tailscale)
   - `WA_DAEMON_API_KEY` (verificare/generare per `.claude/rules/security.md` compliance)
 - [ ] `wrangler deploy` → URL `argos-proxy.<account>.workers.dev`

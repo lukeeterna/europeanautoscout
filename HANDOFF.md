@@ -41,10 +41,10 @@
 ### File handoff S152b
 - `prompts/s152b_chunk_b.md` (~280 righe) — pre-condizioni, TODO B-7→B-10+deploy, smoke test, vincoli ribaditi
 
-### Pre-requisiti S152b (BLOCCANTI da Luke)
-- 🔴 **`ARGOS_IBAN`** (IBAN MyTu o evolu, formato `LT...`) per `wrangler secret put`
-- 🔴 **`ARGOS_INTESTATARIO`** (es. "Gianluca Di Stasi") per causale bonifico
-- 🟡 Verifica permission CF token (D1 Edit + R2 Edit + Workers Scripts Edit + Pages Edit)
+### Pre-requisiti S152b — TUTTI SBLOCCATI (2026-05-01 20:50)
+- ✅ **`ARGOS_IBAN`** ricevuto da Luke (LT EMI bank code 32500, mod97 valido) — salvato in `.env` locale chmod 600, da caricare via `wrangler secret put` in deploy phase. **Valore non in repo.**
+- ✅ **`ARGOS_INTESTATARIO`** confermato (Opzione A post-flag CTO su SEPA Verification of Payee obbligatorio EU dal 9/10/2025: "Luca Ferretti" persona commerciale su contratto/WA, intestatario reale del conto solo su template IBAN_SEND con copertura narrativa). **Valore non in repo.**
+- ✅ **CF token** verificato attivo via `/user/tokens/verify` API
 
 ### Pending Chunk B (S152b) + Chunk C (S153)
 - **B-7 send-iban** endpoint (validate AWAITING_DELIVERY, UPDATE IBAN_SENT, WA template + email + Telegram)
