@@ -8,16 +8,21 @@ rules = [
   { type = "Data", globs = ["assets/fonts/*.ttf"], fallthrough = true }
 ]
 
-# D1 — argos-contracts (filled by `wrangler d1 create argos-contracts`, see B-2)
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "argos-contracts"
-# database_id = "<UUID-FROM-CREATE>"
+# D1 — argos-contracts
+# Note: database_id is a PLACEHOLDER for local development. Replace with the
+# real UUID after running `wrangler d1 create argos-contracts` in Phase B-2
+# remote-step (S152b chunk B / deploy time). Local commands (--local flag)
+# don't require the real UUID.
+[[d1_databases]]
+binding = "DB"
+database_name = "argos-contracts"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
 
-# R2 — argos-contracts (filled after `wrangler r2 bucket create argos-contracts`)
-# [[r2_buckets]]
-# binding = "CONTRACTS"
-# bucket_name = "argos-contracts"
+# R2 — argos-contracts (PDFs of signed contracts, signed URL distribution)
+[[r2_buckets]]
+binding = "CONTRACTS"
+bucket_name = "argos-contracts"
 
 [vars]
 ENVIRONMENT = "test"
