@@ -1,17 +1,39 @@
 // ─── Contract PDF Template — pdf-lib + fontkit ─────────────────────
 // 4 pages: header/parts → object/vehicle/fee → clausole+FES consent →
-// signature embed + bundle evidence (SHA256 placeholder, IP, UA, timestamp).
+// signature embed + bundle evidence (timestamp, IP, UA truncated).
 //
-// FONT EMBEDDING: 10 Google Fonts TTF stored in argos-proxy/assets/fonts/.
-// Loaded at build via wrangler "Data" rule (see wrangler.toml).
-// In B-5 we wire the actual TTF imports + fontkit registration.
-//
-// This file is the structural scaffold. B-5 commits the visual layout
-// + signature font embed.
+// FONT EMBEDDING: 10 Google Fonts TTF stored in argos-proxy/assets/fonts/,
+// imported as ArrayBuffer modules via wrangler "Data" rule (wrangler.toml).
+// fontkit handles the static + variable TTF formats Google ships.
 
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { ContractRow, SignatureFont } from '../lib/types';
+
+// ── Static binary imports — bundled into Worker at build time ──────
+import alluraTtf         from '../../assets/fonts/allura.ttf';
+import greatVibesTtf     from '../../assets/fonts/great-vibes.ttf';
+import pacificoTtf       from '../../assets/fonts/pacifico.ttf';
+import dancingScriptTtf  from '../../assets/fonts/dancing-script.ttf';
+import sacramentoTtf     from '../../assets/fonts/sacramento.ttf';
+import tangerineTtf      from '../../assets/fonts/tangerine.ttf';
+import yellowtailTtf     from '../../assets/fonts/yellowtail.ttf';
+import kaushanScriptTtf  from '../../assets/fonts/kaushan-script.ttf';
+import satisfyTtf        from '../../assets/fonts/satisfy.ttf';
+import caveatTtf         from '../../assets/fonts/caveat.ttf';
+
+const FONT_BUFFERS: Record<SignatureFont, ArrayBuffer> = {
+  'allura':          alluraTtf,
+  'great-vibes':     greatVibesTtf,
+  'pacifico':        pacificoTtf,
+  'dancing-script':  dancingScriptTtf,
+  'sacramento':      sacramentoTtf,
+  'tangerine':       tangerineTtf,
+  'yellowtail':      yellowtailTtf,
+  'kaushan-script':  kaushanScriptTtf,
+  'satisfy':         satisfyTtf,
+  'caveat':          caveatTtf,
+};
 
 export interface RenderParams {
   contract: ContractRow;
@@ -22,35 +44,6 @@ export interface RenderParams {
   signerUa: string | null;
 }
 
-// Map font slug -> module import path (filled in B-5 with actual TTF binaries)
-// Using dynamic import via assets binding when available; placeholder for now.
-const FONT_FILES: Record<SignatureFont, string> = {
-  allura: 'allura.ttf',
-  'great-vibes': 'great-vibes.ttf',
-  pacifico: 'pacifico.ttf',
-  'dancing-script': 'dancing-script.ttf',
-  sacramento: 'sacramento.ttf',
-  tangerine: 'tangerine.ttf',
-  yellowtail: 'yellowtail.ttf',
-  'kaushan-script': 'kaushan-script.ttf',
-  satisfy: 'satisfy.ttf',
-  caveat: 'caveat.ttf',
-};
-
-/**
- * Loads TTF binary from worker assets (wrangler "Data" rule).
- * In B-1 this throws; B-5 wires the actual import map.
- */
-async function loadFontTtf(font: SignatureFont): Promise<Uint8Array> {
-  // B-5 will replace with: import allura from '../../assets/fonts/allura.ttf';
-  // For B-1 scaffold we throw to surface "PDF render not finalized" early.
-  const _filename = FONT_FILES[font]; // referenced to avoid unused-var warning
-  void _filename;
-  throw new Error(
-    'Font loading not wired yet — finalized in Phase B-5. Run B-5 commit before /sign tests.',
-  );
-}
-
 export async function renderContractPdf(
   params: RenderParams,
 ): Promise<Uint8Array> {
@@ -59,44 +52,31 @@ export async function renderContractPdf(
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
 
-  // ── Standard fonts (body text) ─────────────────────────────────────
-  const helvetica = await pdf.embedFont(StandardFonts.Helvetica);
+  // ── Body fonts (Helvetica standard, no embed) ──────────────────────
+  const helvetica     = await pdf.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
-  // ── Signature font (custom TTF) ────────────────────────────────────
-  let signatureFont;
-  try {
-    const ttf = await loadFontTtf(font);
-    signatureFont = await pdf.embedFont(ttf, { subset: true });
-  } catch (err) {
-    // Fallback: use Helvetica italic-ish substitute so PDF still produces
-    // (test-mode only; B-5 must remove this path).
-    console.warn(`Font ${font} not loaded: ${(err as Error).message}. Falling back to Helvetica.`);
-    signatureFont = await pdf.embedFont(StandardFonts.HelveticaOblique);
+  // ── Signature font: embedded TTF + subset to keep PDF small ────────
+  const ttfBuf = FONT_BUFFERS[font];
+  if (!ttfBuf) {
+    throw new Error(`Font asset missing for slug: ${font}`);
   }
+  const signatureFont = await pdf.embedFont(ttfBuf, { subset: true });
 
   const feeEur = (contract.fee_cents / 100).toFixed(2);
   const vehicleLine = [contract.vehicle_year, contract.vehicle_make, contract.vehicle_model]
     .filter((x) => x)
     .join(' ') || 'Veicolo da definire';
 
-  // ── Page 1: Header + Parts ─────────────────────────────────────────
+  // ─── Page 1: Header + Parts ────────────────────────────────────────
   const p1 = pdf.addPage([595.28, 841.89]); // A4
   let y = 800;
   p1.drawText('CONTRATTO DI MANDATO PROFESSIONALE', {
-    x: 50,
-    y,
-    size: 16,
-    font: helveticaBold,
-    color: rgb(0, 0, 0),
+    x: 50, y, size: 16, font: helveticaBold, color: rgb(0, 0, 0),
   });
   y -= 24;
   p1.drawText('Servizio scouting veicoli — ARGOS Automotive', {
-    x: 50,
-    y,
-    size: 11,
-    font: helvetica,
-    color: rgb(0.3, 0.3, 0.3),
+    x: 50, y, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3),
   });
   y -= 40;
   p1.drawText(`Contract ID: ${contract.id}`, { x: 50, y, size: 9, font: helvetica });
@@ -122,8 +102,11 @@ export async function renderContractPdf(
   p1.drawText('Mandatario (Operatore):', { x: 50, y, size: 10, font: helveticaBold });
   y -= 14;
   p1.drawText('Luca Ferretti — ARGOS Automotive', { x: 60, y, size: 11, font: helvetica });
+  y -= 14;
+  p1.drawText('Email: ferretti.argosautomotive@gmail.com  ·  Tel: +39 328 153 6308',
+    { x: 60, y, size: 9, font: helvetica });
 
-  // ── Page 2: Object + Vehicle + Fee ─────────────────────────────────
+  // ─── Page 2: Object + Vehicle + Fee ───────────────────────────────
   const p2 = pdf.addPage([595.28, 841.89]);
   y = 800;
   p2.drawText('OGGETTO DEL MANDATO', { x: 50, y, size: 14, font: helveticaBold });
@@ -153,12 +136,16 @@ export async function renderContractPdf(
   y -= 36;
   p2.drawText('FEE', { x: 50, y, size: 12, font: helveticaBold });
   y -= 18;
-  p2.drawText(`Fee fissa: € ${feeEur} (success fee)`, { x: 60, y, size: 11, font: helvetica });
+  p2.drawText(`Fee fissa: € ${feeEur} (success fee)`,
+    { x: 60, y, size: 11, font: helvetica });
   y -= 14;
   p2.drawText('Pagamento: bonifico bancario dopo consegna documenti del veicolo.',
     { x: 60, y, size: 10, font: helvetica });
+  y -= 14;
+  p2.drawText('Nessun anticipo. Nessun pagamento online.',
+    { x: 60, y, size: 10, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
 
-  // ── Page 3: Clausole + FES Consent ────────────────────────────────
+  // ─── Page 3: Clausole + FES Consent ───────────────────────────────
   const p3 = pdf.addPage([595.28, 841.89]);
   y = 800;
   p3.drawText('CLAUSOLE PRINCIPALI', { x: 50, y, size: 14, font: helveticaBold });
@@ -184,10 +171,11 @@ export async function renderContractPdf(
   const fesConsent =
     'Il mandante dichiara di accettare la firma elettronica come equivalente legale ' +
     'della firma autografa per il presente contratto, ai sensi dell\'art. 20 CAD e ' +
-    'del Regolamento eIDAS art. 3 (FES). Consenso esplicito reso al momento della firma.';
+    'del Regolamento eIDAS art. 3 (FES). Consenso esplicito reso al momento della firma ' +
+    'tramite checkbox dedicata sulla pagina di firma.';
   drawWrappedText(p3, fesConsent, 50, y, 495, 10, helvetica);
 
-  // ── Page 4: Signature + Evidence Bundle ───────────────────────────
+  // ─── Page 4: Signature + Evidence Bundle ──────────────────────────
   const p4 = pdf.addPage([595.28, 841.89]);
   y = 800;
   p4.drawText('SOTTOSCRIZIONE', { x: 50, y, size: 14, font: helveticaBold });
@@ -196,7 +184,7 @@ export async function renderContractPdf(
     x: 50, y, size: 11, font: helveticaBold,
   });
   y -= 60;
-  // Signature rendering — large size with custom font
+  // Signature rendering: large size in chosen font
   p4.drawText(signerName, { x: 60, y, size: 36, font: signatureFont });
   y -= 20;
   p4.drawLine({
