@@ -3,7 +3,7 @@
 # CoVe 2026 | Eseguire dal MacBook via SSH
 #
 # PREREQUISITI:
-#   1. SSH verso iMac funzionante: ssh gianlucadistasi@192.168.1.12
+#   1. SSH verso iMac funzionante: ssh gianlucadistasi@192.168.1.2
 #   2. Node.js v22+ su iMac: node --version
 #   3. PM2 installato globalmente: npm install -g pm2
 #   4. Python3 + duckdb + requests: pip3 install duckdb requests
@@ -23,7 +23,7 @@
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────
-IMAC="gianlucadistasi@192.168.1.12"
+IMAC="gianlucadistasi@192.168.1.2"
 REMOTE_BASE="/Users/gianlucadistasi/Documents/app-antigravity-auto"
 IMAC_PATH="export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:\$PATH"
 REMOTE_INTEL="$REMOTE_BASE/wa-intelligence"
@@ -84,7 +84,7 @@ echo "▶ [5/7] Configurazione .env..."
 ssh "$IMAC" "
   ENV_FILE=$REMOTE_INTEL/.env
   if [ ! -f \"\$ENV_FILE\" ]; then
-    echo 'ARGOS_TELEGRAM_TOKEN=REDACTED' > \"\$ENV_FILE\"
+    echo 'ARGOS_TELEGRAM_TOKEN=__SET_TOKEN_HERE__' > \"\$ENV_FILE\"
     echo 'ARGOS_TELEGRAM_CHAT_ID=931063621'            >> \"\$ENV_FILE\"
     echo 'ARGOS_DB_PATH=$REMOTE_BASE/dealer_network.duckdb' >> \"\$ENV_FILE\"
     chmod 600 \"\$ENV_FILE\"
@@ -176,6 +176,6 @@ echo ""
 echo " MONITORING:"
 echo "    pm2 logs argos-wa-daemon"
 echo "    pm2 logs argos-tg-bot"
-echo "    curl http://192.168.1.12:9191   (health check)"
+echo "    curl http://192.168.1.2:9191   (health check)"
 echo "    tail -f /tmp/argos-scheduler.log"
 echo "═══════════════════════════════════════════"

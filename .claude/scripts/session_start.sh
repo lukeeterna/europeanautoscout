@@ -31,7 +31,7 @@ RULES=$(ls .claude/rules/*.md 2>/dev/null | wc -l | tr -d ' ')
 echo "Rules: $RULES files"
 
 # 4. Verifica connessione iMac (timeout 5s, non bloccante)
-WA_STATUS=$(ssh -o ConnectTimeout=5 -o ServerAliveInterval=5 gianlucadistasi@192.168.1.12 "curl -sf -m 5 http://localhost:9191/status" 2>/dev/null)
+WA_STATUS=$(ssh -o ConnectTimeout=5 -o ServerAliveInterval=5 gianlucadistasi@192.168.1.2 "curl -sf -m 5 http://localhost:9191/status" 2>/dev/null)
 if [ -n "$WA_STATUS" ]; then
   echo "$WA_STATUS" | python3 -c "
 import sys,json

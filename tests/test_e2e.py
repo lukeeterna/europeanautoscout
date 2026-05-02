@@ -27,7 +27,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-IMAC_HOST    = 'gianlucadistasi@192.168.1.12'
+IMAC_HOST    = 'gianlucadistasi@192.168.1.2'
 WA_PORT      = 9191
 WA_BASE      = f'http://{IMAC_HOST.split("@")[1]}:{WA_PORT}'
 DB_PATH      = PROJECT_ROOT / 'dealer_network.sqlite'

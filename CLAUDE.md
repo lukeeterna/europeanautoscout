@@ -36,7 +36,7 @@ Preserva sempre: file modificati | stato task CURRENT_SPRINT.md | test results (
 ## Comandi
 Test: `python3 argos.py test` | Deploy: `bash deploy/sync.sh`
 Scrape: `python3 tools/on_demand_runner.py --marca BMW --budget 40000 --dealer "Nome"`
-Status: `ssh gianlucadistasi@192.168.1.12 "curl -s localhost:9191/status"`
+Status: `ssh gianlucadistasi@192.168.1.2 "curl -s localhost:9191/status"`
 
 ## Fine sessione
 1. Aggiorna `~/.claude/projects/.../memory/MEMORY.md` (fuori dal repo — Write tool)

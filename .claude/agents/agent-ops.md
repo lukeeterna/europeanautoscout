@@ -21,10 +21,10 @@ skills:
 ## HARDWARE MAP (immutabile)
 
 ```
-iMac 2012 Intel i5:  gianlucadistasi@192.168.1.12  (server sempre acceso)
+iMac 2012 Intel i5:  gianlucadistasi@192.168.1.2  (server sempre acceso)
 MacBook:             localhost (client sviluppo)
 Android Redmi:       SIM Very Mobile IT (WhatsApp fisico)
-SSH:                 Tailscale — ssh gianlucadistasi@192.168.1.12
+SSH:                 Tailscale — ssh gianlucadistasi@192.168.1.2
 ```
 
 ## PATH SSH
@@ -37,25 +37,25 @@ export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:$PATH
 
 ```bash
 # 1. Connessione iMac
-ssh gianlucadistasi@192.168.1.12 "echo 'SSH OK'"
+ssh gianlucadistasi@192.168.1.2 "echo 'SSH OK'"
 
 # 2. PM2 processi
-ssh gianlucadistasi@192.168.1.12 "
+ssh gianlucadistasi@192.168.1.2 "
   export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:\$PATH
   pm2 list
 "
 
 # 3. WA Daemon health endpoint
-curl -s http://192.168.1.12:9191/health
+curl -s http://192.168.1.2:9191/health
 
 # 4. Telegram bot status
-ssh gianlucadistasi@192.168.1.12 "
+ssh gianlucadistasi@192.168.1.2 "
   export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:\$PATH
   pm2 logs argos-tg-bot --lines 5 --nostream
 "
 
 # 5. WA sessione (QR auth status)
-ssh gianlucadistasi@192.168.1.12 "
+ssh gianlucadistasi@192.168.1.2 "
   ls -la ~/Documents/app-antigravity-auto/wa-intelligence/.wwebjs_auth/ 2>/dev/null
 "
 ```
@@ -71,7 +71,7 @@ ssh gianlucadistasi@192.168.1.12 "
 
 ### WA Daemon offline:
 ```bash
-ssh gianlucadistasi@192.168.1.12 "
+ssh gianlucadistasi@192.168.1.2 "
   export PATH=/usr/local/bin:/Users/gianlucadistasi/.npm-global/bin:\$PATH
   cd ~/Documents/app-antigravity-auto/wa-intelligence
   pm2 restart argos-wa-daemon
@@ -85,18 +85,18 @@ ssh gianlucadistasi@192.168.1.12 "
 STEP 1: Avvia server QR via HTTP
 ssh iMac → cd wa-intelligence → node serve-qr.js (porta 8765)
 
-STEP 2: Apri browser su MacBook → http://192.168.1.12:8765
+STEP 2: Apri browser su MacBook → http://192.168.1.2:8765
 
 STEP 3: Scansiona QR con Android (WhatsApp → Dispositivi collegati)
 
-STEP 4: Verifica health → curl http://192.168.1.12:9191/health
+STEP 4: Verifica health → curl http://192.168.1.2:9191/health
 ```
 
 ### Telegram token update:
 ```bash
-ssh gianlucadistasi@192.168.1.12 "
+ssh gianlucadistasi@192.168.1.2 "
   cd ~/Documents/app-antigravity-auto/wa-intelligence
-  echo 'ARGOS_TELEGRAM_TOKEN=REDACTED' >> .env
+  echo 'ARGOS_TELEGRAM_TOKEN=__SET_TOKEN_HERE__' >> .env
   pm2 restart argos-tg-bot
 "
 ```
