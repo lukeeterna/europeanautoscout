@@ -1,10 +1,56 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: Session S152b CHIUSA — 2026-05-01 21:55 (Chunk B B-7→B-10 done, deploy bloccato CF token scope)
+**Aggiornato**: 2026-05-02 12:10 — TUTTI BLOCKER S152b RISOLTI, S153 READY TO START in fresh context
 
 ---
 
-## 🎯 S152b OUTCOME — Chunk B: send-iban + mark-paid + analyzer + dashboard, DEPLOY BLOCCATO
+## 🟢 STATO CORRENTE — S153 unblock complete (2026-05-02 12:10)
+
+**Sessione di unblock**: questa sessione (post-S152b) NON ha eseguito S153, ha solo risolto i 2 blocker identificati a chiusura S152b. S153 deve partire in fresh context.
+
+### Pre-condizioni S153 — TUTTE VERDI ✅
+
+| Item | Stato | Evidenza |
+|------|-------|----------|
+| ARGOS_IBAN | ✅ | in `.env` |
+| ARGOS_INTESTATARIO | ✅ | in `.env` |
+| CF token scope D1+R2+Workers+Pages Edit | ✅ | `wrangler d1 list` ritorna lista (1 D1 esistente: `luke-automation-emails-production`) |
+| iMac online | ✅ | nuovo IP statico **`192.168.1.2`**, ping 0% loss 1.7ms |
+| WA daemon connected | ✅ | `:9191/status` → `wa_status: connected`, agent_status active, uptime 25.8h |
+| TEST_FOUNDER reset | ✅ | done S151 |
+| Worker code completo | ✅ | S152b (8 commit) |
+| Dashboard contracts | ✅ | S152b |
+
+### Cosa fatto in questa sessione di unblock
+
+1. **Diagnosi pre-cond fail** alle 11:22 — wrangler d1 list FAIL (10000), iMac UNREACHABLE
+2. **Rilevato cambio IP iMac**: da `192.168.1.12` → `192.168.1.2` (statico permanente)
+3. **Commit `d86894c`**: `chore: update iMac IP 192.168.1.12 -> 192.168.1.2` — 8 file critici operativi (deploy/sync.sh, healthcheck.sh, wa-intelligence/deploy.sh, tests/test_e2e.py, chaos_test.sh, .claude/scripts/session_start.sh, CLAUDE.md, .claude/rules/identity.md, .claude/agents/agent-ops.md). 29 file storici (prompts/sN_*, research/, .planning snapshots) lasciati invariati.
+4. **CF token tutorial step-by-step con Luke** (~30 min interactive):
+   - Identificate 2 trappole: `Workers R2 SQL` ≠ `Workers R2 Storage`; `Cloudflare One/Zero Trust → Access: Users` ≠ `User Details: Read`
+   - Approccio clean slate accettato (rimuovi tutti, aggiungi solo i 4 corretti)
+   - Token nuovo creato e salvato in `.env` (53 char, formato `cfat_*`)
+   - User Details Read NON aggiunto (CF UI edit token non offre User scope; warning cosmetico irrilevante per ops S153)
+5. **Banner SessionStart** ora mostra `WA Daemon: connected` (prima UNREACHABLE perché pingava vecchio IP)
+
+### Cosa fare nel prossimo prompt (fresh context)
+
+```
+leggi prompts/s153_e2e_sim_test_founder.md ed esegui
+```
+
+Il piano S153 è già pronto, comandi pronti, blocker tutti rimossi. Stima: ~30 min deploy + ~1h smoke E2E (8 step curl + 1 sign manuale browser) + ~15 min docs.
+
+**Vincoli ribaditi**:
+- ✋ TEST_FOUNDER 393314928901 SOLO (no dealer reali)
+- ✋ NO Day 1 reale (è S154, parte solo dopo OK Luke esplicito post-smoke verde)
+- ✋ NO modifiche a `cove_engine_v4.py` o daemon WA
+- ✋ ZERO COSTI nuovi (Cloudflare free tier basta)
+- ✋ Workaround `source .env` rotto (riga `ARGOS_INTESTATARIO=Gianluca Di Stasi` con spazi): usare `export VAR=$(grep ^VAR= .env | cut -d= -f2-)` o lasciare wrangler leggere da `.env` come fa nativamente.
+
+---
+
+## 🎯 S152b OUTCOME — Chunk B: send-iban + mark-paid + analyzer + dashboard, DEPLOY BLOCCATO (storia)
 
 **2026-05-01 21:30-21:55** — Chunk B del build S152 completato a livello codice (B-7..B-10). Deploy CF bloccato su token scope insufficiente.
 
