@@ -16,7 +16,7 @@ rules = [
 [[d1_databases]]
 binding = "DB"
 database_name = "argos-contracts"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "75d63bc9-342f-46cf-b6d2-c0adf77c975e"
 migrations_dir = "migrations"
 
 # R2 — argos-contracts (PDFs of signed contracts, signed URL distribution)

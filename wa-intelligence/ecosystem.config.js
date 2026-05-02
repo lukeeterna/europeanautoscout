@@ -12,6 +12,7 @@
  * Processi gestiti:
  *   1. argos-wa-daemon    — WA listener persistente (Node.js)
  *   2. argos-tg-bot       — Telegram human-in-loop (Python)
+ *   3. argos-cf-monitor   — Cloudflare alerts → Telegram push (Python, S153)
  */
 
 'use strict';
@@ -45,6 +46,8 @@ const SHARED_ENV = {
     WA_CLIENT_ID:           dotEnv.WA_CLIENT_ID           || 'argos-business',
     OPENROUTER_API_KEY:     dotEnv.OPENROUTER_API_KEY     || '',
     OPENROUTER_MODEL:       dotEnv.OPENROUTER_MODEL       || 'anthropic/claude-haiku-4-5',
+    GMAIL_FERRETTI_EMAIL:        dotEnv.GMAIL_FERRETTI_EMAIL        || '',
+    GMAIL_FERRETTI_APP_PASSWORD: dotEnv.GMAIL_FERRETTI_APP_PASSWORD || '',
 };
 
 module.exports = {
@@ -101,6 +104,32 @@ module.exports = {
             log_file:         '/tmp/argos-tg-bot-combined.log',
             out_file:         '/tmp/argos-tg-bot-out.log',
             error_file:       '/tmp/argos-tg-bot-err.log',
+            log_date_format:  'DD/MM/YYYY HH:mm:ss',
+            merge_logs:       true,
+
+            env: {
+                ...SHARED_ENV,
+            },
+        },
+
+        // ── 3. CF Alert Monitor (S153) ───────────────────────
+        {
+            name:             'argos-cf-monitor',
+            script:           path.join(INTEL, 'cf_alert_monitor.py'),
+            cwd:              INTEL,
+            interpreter:      'python3',
+
+            autorestart:      true,
+            watch:            false,
+            max_restarts:     20,
+            min_uptime:       '30s',
+            restart_delay:    10000,         // 10s — IMAP rate-limit friendly
+
+            max_memory_restart: '128M',
+
+            log_file:         '/tmp/argos-cf-monitor-combined.log',
+            out_file:         '/tmp/argos-cf-monitor-out.log',
+            error_file:       '/tmp/argos-cf-monitor-err.log',
             log_date_format:  'DD/MM/YYYY HH:mm:ss',
             merge_logs:       true,
 

@@ -1,5 +1,49 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
+**Aggiornato**: 2026-05-02 20:05 — S153 PARTIAL: D1 created + CF Alert Monitor live, R2/wrangler/smoke deferred to S154
+
+---
+
+## 🟡 STATO CORRENTE — S153 partial complete (2026-05-02 20:05)
+
+**Sessione corrente**: build CF Alert Monitor + deploy + tests verdi. R2 deploy bloccato su Luke side (Revolut card + R2 enable + 3 alert).
+
+### Cosa fatto in questa sessione (S153)
+
+1. **D1 `argos-contracts` creato**: UUID `75d63bc9-342f-46cf-b6d2-c0adf77c975e`, region EEUR. `argos-proxy/wrangler.toml` aggiornato con UUID reale.
+2. **CF Alert Monitor build + deploy iMac**: nuovo PM2 service `argos-cf-monitor` online (pid 76983), heartbeat verde, primo poll 0 errori. File `wa-intelligence/cf_alert_monitor.py` (200 LOC stdlib only) + ecosystem.config.js app #3.
+3. **Tests verdi**:
+   - IMAP login Gmail `ferretti.argosautomotive@gmail.com`: 96 inbox
+   - `--once` test locale: 0 errori
+   - Telegram delivery E2E: message_id 6032
+   - PM2 boot iMac: online, pm2 save persistito
+4. **Bug fix collaterali**:
+   - Token Telegram revocato in root `.env` (401) → sync da iMac
+   - File copiati in legacy `wa-intelligence/` perché PM2 punta a path legacy non aggiornato da deploy/sync.sh
+5. **Backup codes Google**: pushback security su richiesta Luke "memorizza in MEMORY.md" → distinguo backup codes vs app password, opzioni Keychain/cassaforte/PM proposte. App password generata da `myaccount.google.com/apppasswords` salvata in `.env` come `GMAIL_FERRETTI_APP_PASSWORD`.
+
+### Cosa Luke deve fare PRIMA di S154
+
+| Item | Stato | Azione |
+|------|-------|--------|
+| Carta virtuale Revolut €5/mese | ⏳ | App Revolut → Carte → Crea virtuale → limite €5/mese |
+| Carta aggiunta a CF Billing | ⏳ | dash.cloudflare.com/.../billing/payment-methods → Add (autorization hold $1 normale) |
+| R2 attivato | ⏳ | dash.cloudflare.com/.../r2/overview → Purchase R2 Plan ($0 + usage) |
+| 3 alert R2 created | ⏳ | dash.cloudflare.com/.../notifications con email `ferretti.argosautomotive@gmail.com`: R2 Storage 8GB / Class A 800k / Class B 8M |
+| Backup codes spostati | ⏳ | da `~/Downloads/Backup-codes-ferretti.argosautomotive.txt` → Apple Note bloccata (Keychain) o cassaforte |
+
+### Cosa fare nel prossimo prompt (fresh context)
+
+```
+leggi prompts/s154_cf_monitor_done_r2_pending.md ed esegui
+```
+
+S154 completerà: rate-limit middleware Worker → R2 bucket create → D1 migration → 7 secrets → wrangler deploy → smoke E2E TEST_FOUNDER.
+
+---
+
+## 📜 STATO PRECEDENTE — S152b chiuso, S153 unblock (2026-05-02 12:10)
+
 **Aggiornato**: 2026-05-02 12:10 — TUTTI BLOCKER S152b RISOLTI, S153 READY TO START in fresh context
 
 ---
