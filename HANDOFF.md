@@ -1,6 +1,43 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-02 20:05 — S153 PARTIAL: D1 created + CF Alert Monitor live, R2/wrangler/smoke deferred to S154
+**Aggiornato**: 2026-05-04 12:15 — S154a CHIUSO VERDE: Worker LIVE su CF, smoke E2E pending S154-bis fresh context
+
+---
+
+## 🟢 STATO CORRENTE — S154a deploy verde (2026-05-04 12:15)
+
+**Sessione corrente**: rate-limit middleware + R2 bucket + D1 migration + 8 secrets + wrangler deploy + health check OK. Smoke E2E TEST_FOUNDER deferred a S154-bis per cut clean a context budget.
+
+### Cosa fatto in questa sessione (S154a)
+
+1. **Backup codes Google → macOS Keychain** (alternativa a Apple Note bloccata fallita su macOS 11): account `argos-backup-codes-google`, service `ARGOS Google Backup Codes`. File originale `~/Downloads/Backup-codes-ferretti.argosautomotive.txt` cancellato con `rm -P` (3-pass overwrite). Recovery via `security find-generic-password ... | xxd -r -p` o GUI Keychain Access.
+2. **R2 enable verificato**: API `GET /accounts/{id}/r2/buckets` → success, no più error 10042.
+3. **3 alert R2 verificati**: dashboard CF mostra "R2 Storage 80%", "R2 Write Ops 80%", "R2 Read Ops 80%" abilitati con email `ferretti.argosautomotive@gmail.com`. 1 duplicato disabled innocuo (toggle off, no trigger).
+4. **Rate-limit middleware**: nuovo file `argos-proxy/src/middleware/rate-limit.ts` (147 LOC). Per-IP 10/min sign + 30/min get, global 100/200, body cap 100KB su sign, 429 con Retry-After header, in-memory Map con lazy sweep 60s, admin bypass via `c.get('adminAuthed')`. Applied in `src/index.ts` su rotte pubbliche. TS typecheck OK.
+5. **R2 bucket create**: `argos-contracts` standard storage, region default.
+6. **D1 migration**: `0001_init.sql` eseguita remote, 2 tables (contracts + audit_log), 15 rows written.
+7. **8 secrets uploaded**: ARGOS_ADMIN_SECRET (gen openssl rand -hex 32), R2_SIGNING_SECRET (gen), ARGOS_IBAN, ARGOS_INTESTATARIO, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, WA_DAEMON_API_KEY (= ARGOS_API_KEY), WA_DAEMON_URL (=`http://192.168.1.2:9191`). RESEND_API_KEY skip (Worker degrada graceful).
+8. **wrangler.toml fix**: glob TTF rules da `assets/fonts/*.ttf` → `**/*.ttf` (esbuild bundler richiedeva pattern più ampio per loader Data type).
+9. **Wrangler deploy**: Worker LIVE su `https://argos-proxy.gianlucanewtech.workers.dev` (4.37 MB upload, 132 ms startup). Bindings DB+CONTRACTS verificati.
+10. **Health check OK**: `GET /health` → `{status:ok, version:1.0.0, environment:test}`.
+11. **ARGOS_PROXY_URL salvato in `.env`**.
+
+### Cosa NON fatto (S154-bis)
+
+- ❌ Smoke E2E TEST_FOUNDER 393314928901 (8 step: create→sign→awaiting→iban_sent→paid + dashboard list + WA template delivery + Telegram alerts + R2 PDF check + D1 audit_log validation + rate-limit hammer test)
+- ❌ Cleanup duplicato CF Storage 80% disabled (cosmetico, Luke side da GUI)
+
+### Cosa fare nel prossimo prompt (fresh context S154-bis)
+
+```
+leggi prompts/s154b_smoke_e2e.md ed esegui
+```
+
+S154-bis completerà: rate-limit hammer test (12 req → 2x 429) → smoke E2E TEST_FOUNDER 8 step → docs E2E-SIM-RESULTS aggiornato → commit feat(s154b) verde.
+
+---
+
+## 📜 STATO PRECEDENTE — S153 partial complete (2026-05-02 20:05)
 
 ---
 

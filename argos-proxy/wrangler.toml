@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 # Embed font TTF files in worker bundle (assets/fonts/*.ttf for pdf-lib signature embedding)
 rules = [
-  { type = "Data", globs = ["assets/fonts/*.ttf"], fallthrough = true }
+  { type = "Data", globs = ["**/*.ttf"], fallthrough = true }
 ]
 
 # D1 — argos-contracts
