@@ -29,11 +29,27 @@
 - ❌ `pm2 startup launchd` (action item ops separato — defer S156+)
 
 ### Cosa fare nel prossimo prompt (sessione successiva, fresh context)
-Luke deciderà:
-- Test interattivo CON Luke su 1° dealer reale (lui vede live messaggi/screen) → richiede prompt esplicito + autorizzazione
-- Smoke aggiuntivi (full SIGN flow con front-end Cloudflare Pages, payment confirmation real flow)
-- Altro sprint (CoVe scoring, scraper fix, Day 1 sequence revision)
-- Action item ops `pm2 startup launchd` per persistenza cross-reboot
+
+```
+leggi prompts/s156_ops_hardening.md ed esegui
+```
+
+**Prompt S156 creato**: ops hardening (`prompts/s156_ops_hardening.md`, 6 phase, ~45-60min autonomo + ~5min azioni Luke):
+- Phase 1: REMINDER cambio pwd sudo iMac (priority sicurezza)
+- Phase 2: `pm2 startup launchd` per persistenza cross-reboot
+- Phase 3: Test reboot iMac (richiede autorizzazione Luke)
+- Phase 4: Health monitoring 5min Telegram alert (opzionale)
+- Phase 5: Docs + commit
+- Phase 6: STOP, decisione Luke per next sprint
+
+🛑 NIENTE Day 1 reale in S156. Day 1 reale richiede sessione separata con autorizzazione esplicita Luke + presenza interattiva.
+
+Alternative se Luke vuole altro sprint S156:
+- Test interattivo CON Luke su 1° dealer reale (Day 1 esplicito)
+- Smoke front-end SIGN flow Cloudflare Pages
+- Scraper fix (BMW Serie 3/5, Mercedes GLC/C/E/GLE rotti)
+- CoVe pipeline E2E (sblocco "NON FUNZIONANTE" da CLAUDE.md)
+- Day 1 sequence revision (template V3 → V4)
 
 ---
 
