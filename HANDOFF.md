@@ -1,10 +1,43 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-04 16:55 — S155-bis BLOCKED: bug Tailscale 1.96.5 GUI App irrecuperabile su Monterey, decisione A presa (tailscaled standalone) → S155-tris next
+**Aggiornato**: 2026-05-04 17:40 — S155-tris CHIUSO VERDE: tailscaled standalone deployed iMac via Homebrew + launchd, smoke E2E TEST_FOUNDER 8/8 verde con `wa_sent: true` confermato visivamente da Luke (2 WA ricevuti)
 
 ---
 
-## 🔴 STATO CORRENTE — S155-bis BLOCKED (2026-05-04 16:55)
+## 🟢 STATO CORRENTE — S155-tris CHIUSO VERDE (2026-05-04 17:40)
+
+**Sessione (S155-tris)**: bypass GUI Tailscale.app buggata via install `tailscaled` open-source standalone. Build da source con Homebrew (`brew install tailscale` → tailscale 1.96.4 + go 1.26.2 dependency, ~10min compile). Setup launchd persistente. Re-enroll device. Funnel persistito (al contrario della GUI). Smoke E2E TEST_FOUNDER 8/8 con WA delivery confermata.
+
+### Cosa fatto (in ordine)
+1. **Pre-flight verde**: iMac up, WA daemon connected (15/15 daily), Worker LIVE, ACL `nodeAttrs funnel` OK, `httpsEnabled:true` OK, token API + admin secret presenti
+2. **Phase 2 un-enroll GUI**: `Tailscale logout` via SSH + DELETE device offline via API (free name)
+3. **Phase 3 install tailscaled**: scoperto plan deviation (`pkgs.tailscale.com` per macOS distribuisce SOLO GUI .app/.pkg, non standalone binary). **Pivot Homebrew**: install Homebrew NONINTERACTIVE + `brew install tailscale` (compile da source con go 1.26.2, ~10min) → `/usr/local/bin/tailscaled` + `/usr/local/bin/tailscale`
+4. **Phase 4 launchd plist**: `/Library/LaunchDaemons/com.tailscale.tailscaled.plist` con state `/var/lib/tailscale/tailscaled.state` + socket `/var/run/tailscale/tailscaled.sock` + port 41641 + KeepAlive + RunAtLoad. `launchctl bootstrap` → daemon running PID 21946
+5. **Phase 5 re-enroll**: tskey-auth via API + `tailscale --socket=... up --authkey=... --hostname=imac-di-gianluca --reset` → device ONLINE IP `100.85.132.49` (no suffix `-1` perché vecchio device DELETE-d)
+6. **Phase 6 funnel set GREEN GATE**: `tailscale cert` + `tailscale funnel --bg 9191`. **`funnel status` NON empty** (vs GUI App buggy `{}`): URL + proxy mapping presente. **`serve status --json`**: TCP/443/HTTPS, Web handler, AllowFunnel:true. **DNS pubblico risolve** (3 ipv4 ingress 185.40.234.x). **`curl -s -m 20 https://imac-di-gianluca.tail62c468.ts.net/status` → HTTP 200 in 1.04s con JSON daemon**
+7. **Phase 7 Worker secret**: `wrangler secret put WA_DAEMON_URL` = `https://imac-di-gianluca.tail62c468.ts.net` (richiesto export `CLOUDFLARE_API_TOKEN` per non-interactive mode)
+8. **Phase 8 smoke E2E TEST_FOUNDER (contract `87f60ca234cd8d97`)**: CREATE → DRAFT, SIGN → AWAITING_DELIVERY, **SEND IBAN → IBAN_SENT `wa_sent:true`** ✅, **MARK PAID → PAID `wa_sent:true`** ✅. Daemon log alle 17:37: 2× `📤 sendMessage` + 2× `✅ INVIATO via HTTP: 393314928901@c.us` + 2× `📬 DELIVERED`. **Luke conferma visiva: 2 WhatsApp ricevuti su WA Business app**
+
+### Decisione architetturale finale
+- **Tailscale.app GUI** rimane installata (logged out) come fallback emergenza, ma operativamente NON usata
+- **`tailscaled` standalone Homebrew** è il path canonical per ARGOS scale, persistente cross-reboot via launchd
+- **Coexistenza**: NO interferenze osservate (GUI logged out + standalone bootstrap separato)
+
+### Cosa NON fatto (regola Luke "no live senza test esplicito")
+- ❌ Day 1 reale Stile Car o altri dealer
+- ❌ `prompts/s156_day1_real_dealer.md` (NO auto-creation, regola `feedback_no_live_without_test.md`)
+- ❌ `pm2 startup launchd` (action item ops separato — defer S156+)
+
+### Cosa fare nel prossimo prompt (sessione successiva, fresh context)
+Luke deciderà:
+- Test interattivo CON Luke su 1° dealer reale (lui vede live messaggi/screen) → richiede prompt esplicito + autorizzazione
+- Smoke aggiuntivi (full SIGN flow con front-end Cloudflare Pages, payment confirmation real flow)
+- Altro sprint (CoVe scoring, scraper fix, Day 1 sequence revision)
+- Action item ops `pm2 startup launchd` per persistenza cross-reboot
+
+---
+
+## 📜 STATO PRECEDENTE — S155-bis BLOCKED (2026-05-04 16:55)
 
 **Sessione (S155-bis)**: tentata ripresa funnel post Quit/Relaunch GUI Tailscale.app. Tutti i fix configurabili applicati (cert, ACL, HTTPS, Allow Incoming Connections, naming, login). **Bug strutturale Tailscale 1.96.5 GUI App network extension confermato irrecuperabile** dopo 5 retry consecutive. Tailscale 1.96.5 = ultima versione disponibile su Monterey 12.7.4 (1.98+ richiede Ventura 13+). Update GUI App NON è opzione.
 

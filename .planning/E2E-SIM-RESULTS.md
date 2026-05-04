@@ -6,6 +6,44 @@
 
 ---
 
+## 🟢 S155-tris UPDATE (2026-05-04 17:40) — Smoke E2E TEST_FOUNDER 8/8 VERDE via tailscaled standalone
+
+**Sessione**: S155-tris (post S155-bis BLOCKED)
+**Setup**: Cloudflare Workers (`argos-proxy`) → Tailscale Funnel (`https://imac-di-gianluca.tail62c468.ts.net`) → tailscaled standalone iMac (Homebrew build + launchd) → wa-daemon localhost:9191 → WhatsApp Business
+
+### Smoke E2E TEST_FOUNDER (contract `87f60ca234cd8d97`)
+
+| Step | Endpoint | Response | wa_sent | Latenza E2E |
+|------|----------|----------|---------|-------------|
+| 1. CREATE | `POST /api/v1/contract/create` | DRAFT, fee_eur 800 | n/a | ~600ms |
+| 2. SIGN | `POST /api/v1/contract/sign` | AWAITING_DELIVERY, pdf_sha256 5d4b9c... | n/a | ~1.0s |
+| 3. SEND IBAN | `POST /api/v1/contract/{id}/send-iban` | IBAN_SENT | **`true`** ✅ | ~700ms |
+| 4. MARK PAID | `POST /api/v1/contract/{id}/mark-paid` | PAID, payment_amount 80000 | **`true`** ✅ | ~2.5s |
+
+### Verifiche cross-system
+
+| Check | Atteso | Riscontrato | Status |
+|-------|--------|-------------|--------|
+| Funnel status | non-empty con URL+proxy | `Funnel on` + `/ proxy http://127.0.0.1:9191` | ✅ |
+| DNS pubblico | risolve a IP ingress Tailscale | 185.40.234.55, 185.40.234.75, 185.40.234.198 | ✅ |
+| External HTTPS curl | HTTP 200 + JSON daemon | HTTP 200 in 1.04s, `wa_status:connected` | ✅ |
+| WA daemon log | 2× SEND a 393314928901 | 17:37: 2× `📤 sendMessage` + 2× `✅ INVIATO via HTTP` + 2× `📬 DELIVERED` | ✅ |
+| Visual delivery Luke | 2 WA Business app messaggi | Luke conferma "Sì, 2 messaggi ricevuti" | ✅ |
+
+### Decisione architetturale validata
+
+- **Plan deviation**: `pkgs.tailscale.com` per macOS distribuisce solo GUI .app/.pkg (NO standalone binary). Soluzione: **Homebrew** `brew install tailscale` (compile from source con go 1.26.2, ~10min). Path canonical OSS macOS.
+- **Bug GUI Tailscale.app 1.96.x bypassato**: GUI logged out + standalone via launchd separato risolve il `funnel status: {}` empty di S155 PARTIAL/S155-bis.
+- **Setup persistente cross-reboot**: launchd `com.tailscale.tailscaled.plist` con KeepAlive + RunAtLoad. Runbook in `docs/ops/tailscaled-runbook.md`.
+
+### Problemi noti residui
+
+- ⚠️ `simulateTyping failed: chat.sendPresenceUpdate is not a function` (warn nel daemon log, non blocca delivery — pre-existing)
+- ⚠️ `pm2 startup launchd` ancora NON installato → reboot iMac richiede `pm2 resurrect` manuale (action item ops S156+)
+- ✅ NO Day 1 reale eseguito (regola Luke `feedback_no_live_without_test.md` rispettata)
+
+---
+
 ## Build (B-7..B-10) — ✅ TUTTO PASS
 
 | Phase | Commit | File modificati | Status |

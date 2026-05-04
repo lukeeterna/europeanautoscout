@@ -18,7 +18,9 @@
 - GATE-ICP-001 con soglie calibrate empiricamente
 - Confidence-gated blending archetipi (0.65-0.85 → top-2 blend)
 
-## CF Workers → LAN daemon unreachable (rilevato S154-ter, PIVOT S155 → Tailscale Funnel)
+## CF Workers → LAN daemon unreachable (rilevato S154-ter, PIVOT S155 → Tailscale Funnel, ✅ FIXED S155-tris)
+**Status**: ✅ FIXED in S155-tris via `tailscaled` open-source standalone + Tailscale Funnel su iMac. Worker secret `WA_DAEMON_URL` aggiornato a `https://imac-di-gianluca.tail62c468.ts.net`. Smoke E2E TEST_FOUNDER 8/8 verde con `wa_sent:true` confermato (2 WhatsApp delivered, log + visual Luke).
+
 - **Sintomo**: `send-iban` + `mark-paid` ritornano `wa_sent: false`. Worker tail mostra:
   ```
   (error) WA daemon HTTP 403: error code: 1003
@@ -37,8 +39,17 @@
   - 🟡 Smoke E2E + Worker secret update **deferred S155-bis** (post-reboot Tailscale.app o forced GUI restart)
 - **Resume path S155-bis**: `prompts/s155b_funnel_smoke.md`. Token API Tailscale 90 giorni in `.env` come `TAILSCALE_API_TOKEN`.
 
-## Tailscale Funnel `--bg` set ma `status` empty su macOS App (rilevato S155 PARTIAL, CONFERMATO IRRECUPERABILE S155-bis, WORKAROUND S155-tris)
-**Status**: 🟡 WORKAROUND in S155-tris via switch a `tailscaled` open-source standalone. Bug GUI App non risolto upstream ma bypassato.
+## Tailscale Funnel `--bg` set ma `status` empty su macOS App (rilevato S155 PARTIAL, CONFERMATO IRRECUPERABILE S155-bis, ✅ WORKAROUND DEPLOYED S155-tris)
+**Status**: ✅ WORKAROUND DEPLOYED in S155-tris via switch a `tailscaled` open-source standalone (Homebrew build + launchd). Bug GUI App **non risolto upstream** (struttura macOS Tailscale.app 1.96.x network extension), ma **completamente bypassato** in produzione. Funnel persiste, DNS pubblico risolve, curl HTTP 200 confermato.
+
+**Setup canonical S155-tris**:
+- `brew install tailscale` → `/usr/local/bin/{tailscale,tailscaled}` (compile from source con go 1.26.2 dependency, ~10min totali)
+- launchd plist `/Library/LaunchDaemons/com.tailscale.tailscaled.plist` (KeepAlive + RunAtLoad, sopravvive reboot)
+- Socket dedicato `/var/run/tailscale/tailscaled.sock` (separato da GUI App, no interferenze)
+- State `/var/lib/tailscale/tailscaled.state`
+- CLI invocation: `sudo /usr/local/bin/tailscale --socket=/var/run/tailscale/tailscaled.sock <cmd>`
+- Runbook completo: `docs/ops/tailscaled-runbook.md`
+
 
 - **Sintomo**: `tailscale funnel --bg 9191` ritorna "Funnel started and running in the background" + URL. Ma `tailscale funnel status` → `No serve config`. JSON: `{}`. DNS pubblico NXDOMAIN. Cert provisioned ma DNS record AAAA non pubblicato presso control plane.
 - **Root cause confermato S155-bis**: bug strutturale Tailscale.app GUI macOS network extension 1.96.x. Network extension daemon non persiste serve/funnel config dal CLI socket bridge. Tailscale 1.96.5 = ultima versione disponibile su macOS Monterey 12.7.4 ([1.98+ richiede Ventura 13+](https://tailscale.com/docs/install/mac)). Update GUI App NON è opzione.
