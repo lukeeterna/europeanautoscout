@@ -102,3 +102,80 @@ S153 (E2E sim TEST_FOUNDER) non può partire fino a:
 - iMac/WA daemon torna online
 
 Quando entrambi unblock, la fase Deploy + smoke completi prende ~30 min e si può fare a inizio S153.
+
+---
+
+## S154-ter — Smoke E2E TEST_FOUNDER (2026-05-04)
+
+**Data**: 2026-05-04 12:43-12:51 CEST
+**Sessione**: S154-ter
+**Worker URL**: `https://argos-proxy.gianlucanewtech.workers.dev`
+**Phone test**: `+393314928901` (TEST_FOUNDER, contract-create regex) → normalizzato a `393314928901` per daemon (post-fix S154-ter wa-daemon.ts)
+
+### Phase 1 — Phone-format fix + redeploy
+- ✅ `argos-proxy/src/lib/wa-daemon.ts`: `replace(/\D/g, '')` PRIMA del regex check
+- ✅ `npx tsc --noEmit` → no errors
+- ✅ `wrangler deploy` → Version `70958730-f73d-45df-9530-65efdf8dc704` LIVE
+- ✅ Commit `ab938c4` `fix(s154c): normalize phone in wa-daemon.ts`
+
+### Phase 1 finalize — Rate-limit Retry-After verify
+- Burst 80 parallel `-P 40` → 80x 200 (insufficient concurrency, isolate spread)
+- Burst 150 parallel `-P 60` → **75x 200 + 75x 429** ✅
+- Header 429: `retry-after: 26` ✅
+- Body 429: `{"ok":false,"error":"rate_limit_exceeded","scope":"ip","retry_after":26}` ✅
+
+### Phase 2 — Smoke E2E 8 step (contract `f01c3bb683d2ca69`)
+
+| # | Step | Status | Note |
+|---|------|--------|------|
+| 1 | HEALTH | ✅ | `{status:"ok", version:"1.0.0", environment:"test"}` |
+| 2 | CREATE | ✅ | contract_id 16 hex, signature_token 32 hex, status DRAFT |
+| 3 | GET PUBLIC | ✅ | ContractPublicDto, status DRAFT |
+| 4 | SIGN | ✅ | status AWAITING_DELIVERY, pdf_sha256 64 hex (font: `great-vibes` kebab-case, NON `GreatVibes`) |
+| 5 | R2 VERIFY | ✅ | PDF in R2, SHA256 `100b79b4...da38` MATCH (file 9932 byte) |
+| 6 | SEND IBAN | 🟡 | status IBAN_SENT, **wa_sent: false** ⚠️ (root cause: CF Worker → LAN unreachable) |
+| 7 | MARK PAID | 🟡 | status PAID, payment_amount_cents=80000, **wa_sent: false** ⚠️ |
+| 8 | ADMIN LIST | ✅ | contract presente con status=PAID |
+
+**Risultato**: 6/8 step verde. Step 6+7 status DB transition OK ma WA delivery fallita.
+
+### Phase 3 — Verifiche collaterali
+
+- **D1 audit_log**: ✅ 4/4 row in ordine `CREATE` → `SIGN` → `SEND_IBAN` → `MARK_PAID`
+- **WA daemon log iMac**: ❌ 0 entry SEND a 393314928901 nei timestamp 12:48-12:51
+- **Telegram alerts**: pending Luke visual confirmation (3 alert attesi: SIGNED + IBAN_SENT + PAID)
+
+### 🐛 Architectural blocker — CF Worker cannot reach LAN daemon
+
+**Worker tail output** (verificato live durante 2nd send-iban call):
+```
+(error) WA daemon HTTP 403: error code: 1003
+(warn) send-iban WA failed: HTTP 403
+```
+
+**Root cause**: `WA_DAEMON_URL=http://192.168.1.2:9191` è IP RFC1918 privato. Cloudflare Workers fetch da edge non può raggiungere LAN. Il fetch ritorna **CF error 1003** ("Direct IP Access Not Allowed"). Già documentato in `argos-proxy/src/lib/wa-daemon.ts:8-11`:
+> production: daemon NOT publicly reachable. For prod path the Worker would need Tailscale binding or daemon would publish via Cloudflare Tunnel.
+
+**Implicazione**: il fix phone-format S154-ter è corretto e deployed (regex normalizzato), ma WA delivery end-to-end richiede:
+- **Opzione A**: Cloudflare Tunnel (`cloudflared tunnel`) che espone iMac:9191 con dominio CF interno + JWT validation
+- **Opzione B**: Tailscale binding nel Worker (richiede paid Workers plan / Workers for Platforms)
+- **Opzione C**: Move daemon a public host (richiede infra change)
+
+**Soluzione proposta per S155**: Cloudflare Tunnel (€0, 30 min setup, sicuro by default).
+
+### Conclusione S154-ter
+
+**Status**: 🟡 **PARTIAL — phone-fix deployed + 6/8 smoke verde, WA delivery deferred S155**
+
+✅ **Cosa funziona**:
+- Worker LIVE production-ready su Cloudflare
+- Rate-limit middleware enforced (75 429 su 150 parallel, retry-after header)
+- Contract lifecycle DB transitions: DRAFT → AWAITING_DELIVERY → IBAN_SENT → PAID (D1 audit log integro)
+- PDF generation + R2 storage + SHA256 match
+- Admin endpoints (create + list) auth bearer working
+- Public endpoints (get + sign) anonymous working
+
+❌ **Cosa NON funziona** (architettura, NON bug):
+- WA delivery LAN daemon (CF Workers → 192.168.1.2 unreachable, error 1003)
+
+**Day 1 reale (Stile Car) NON può partire** finché WA delivery non funziona. Step bloccante per S155: Cloudflare Tunnel daemon.

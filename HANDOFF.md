@@ -1,10 +1,59 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-04 12:55 — S154-bis PARTIAL: rate-limit confermato (sotto burst), smoke E2E deferred S154-ter per phone format bug
+**Aggiornato**: 2026-05-04 13:00 — S154-ter PARTIAL: phone-fix + 6/8 smoke verde, WA delivery bloccato CF→LAN (CF Tunnel S155)
 
 ---
 
-## 🟡 STATO CORRENTE — S154-bis PARTIAL (2026-05-04 12:55)
+## 🟡 STATO CORRENTE — S154-ter PARTIAL (2026-05-04 13:00)
+
+**Sessione corrente (S154-ter)**: phone-format fix deployed, rate-limit Retry-After verificato, 6/8 smoke E2E verde. WA delivery KO per blocker architetturale non legato a phone format: **Cloudflare Workers non possono raggiungere LAN daemon `192.168.1.2:9191`** (CF error 1003 — Direct IP Access Not Allowed). Già documentato in wa-daemon.ts:8-11 come known limitation pre-prod.
+
+### Cosa fatto in questa sessione (S154-ter)
+
+1. **Phase 1 — Phone-format fix**: `argos-proxy/src/lib/wa-daemon.ts` aggiunge `replace(/\D/g, '')` PRIMA del regex `^\d{11,13}$`. Permette a `+393314928901` (formato contract-create) di passare al daemon (formato bare digits). Typecheck OK, redeploy verde, commit `ab938c4`.
+2. **Phase 1 finalize — Rate-limit Retry-After**: burst 150 parallel `-P 60` su `/api/v1/contract/$TOKEN` → 75x 200 + 75x 429. Header `retry-after: 26`, body `{"ok":false,"error":"rate_limit_exceeded","scope":"ip","retry_after":26}`. Middleware production-ready.
+3. **Phase 2 — Smoke E2E TEST_FOUNDER (contract `f01c3bb683d2ca69`)**:
+   - ✅ 1 HEALTH 200 / 2 CREATE (status DRAFT) / 3 GET PUBLIC / 4 SIGN (font `great-vibes` kebab-case, status AWAITING_DELIVERY, pdf_sha256 64 hex)
+   - ✅ 5 R2 VERIFY (PDF 9932 byte, SHA256 `100b79b4...da38` MATCH)
+   - 🟡 6 SEND IBAN: status IBAN_SENT, **wa_sent: false** (CF→LAN blocker)
+   - 🟡 7 MARK PAID: status PAID, payment_amount=80000, **wa_sent: false**
+   - ✅ 8 ADMIN LIST (contract presente con status PAID)
+4. **Phase 3 — Verifiche collaterali**:
+   - ✅ D1 audit_log: 4/4 row `CREATE`/`SIGN`/`SEND_IBAN`/`MARK_PAID` in ordine timestamp ascendente
+   - ❌ WA daemon log iMac: 0 entry SEND a 393314928901 (Worker non raggiunge daemon)
+   - 🟡 Telegram alerts: pending Luke visual confirmation (3 alert attesi)
+5. **Worker tail capture** durante 2nd send-iban: `(error) WA daemon HTTP 403: error code: 1003` → confermato CF→LAN unreachable.
+
+### 🐛 Architectural blocker rilevato (BACKLOG dettagli completi)
+
+**CF Workers → LAN daemon unreachable**: `WA_DAEMON_URL=http://192.168.1.2:9191` è IP RFC1918 privato. CF gateway risponde error 1003 ("Direct IP Access Not Allowed"). NON è bug, è limitazione architetturale già documentata.
+
+**Soluzione S155**: Cloudflare Tunnel (`cloudflared`) su iMac che espone `localhost:9191` con dominio CF interno + JWT validation. Setup ~30 min, €0, sicuro by default.
+
+### Cosa NON fatto (S155)
+
+- ❌ Cloudflare Tunnel daemon iMac (blocker per Day 1 reale)
+- ❌ Smoke E2E re-run con `wa_sent: true` (post-tunnel)
+- ❌ Day 1 reale Stile Car (richiede WA delivery funzionante)
+- ❌ `prompts/s155_day1_real_dealer.md` (prematuro, dipende da tunnel)
+
+### Cosa fare nel prossimo prompt (fresh context S155)
+
+S155 deve risolvere il blocker CF→LAN PRIMA di Day 1 reale:
+1. Setup `cloudflared tunnel` su iMac → expose `:9191` come `wa-daemon.<luke-domain>` o subdomain CF gratuito
+2. Aggiornare secret Worker `WA_DAEMON_URL` al nuovo public URL HTTPS
+3. Re-run smoke E2E step 6+7 → verificare `wa_sent: true` e WhatsApp app riceve 2 messaggi (IBAN_SEND + PAYMENT_RECEIVED)
+4. Solo se VERDE: comporre `prompts/s156_day1_real_dealer.md` per autorizzazione Luke
+
+```
+leggi prompts/s155_cf_tunnel_daemon.md ed esegui
+```
+
+(prompt da creare prima del kickoff S155)
+
+---
+
+## 📜 STATO PRECEDENTE — S154-bis PARTIAL (2026-05-04 12:55)
 
 **Sessione corrente (S154-bis)**: pre-conditions 7/7 verdi, Phase 1 rate-limit eseguita parzialmente (hammer + Retry-After verify in S154-ter), Phase 2 smoke E2E NON eseguita per phone format bug rilevato in code review pre-test.
 

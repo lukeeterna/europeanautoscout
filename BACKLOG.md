@@ -18,7 +18,26 @@
 - GATE-ICP-001 con soglie calibrate empiricamente
 - Confidence-gated blending archetipi (0.65-0.85 → top-2 blend)
 
-## Phone format mismatch contract-create ↔ wa-daemon.ts (rilevato S154-bis)
+## CF Workers → LAN daemon unreachable (rilevato S154-ter, blocker S155)
+- **Sintomo**: `send-iban` + `mark-paid` ritornano `wa_sent: false`. Worker tail mostra:
+  ```
+  (error) WA daemon HTTP 403: error code: 1003
+  (warn) send-iban WA failed: HTTP 403
+  ```
+- **Root cause**: `WA_DAEMON_URL=http://192.168.1.2:9191` è IP RFC1918 privato. Cloudflare Workers fetch da edge non può raggiungere LAN. CF gateway risponde con error code 1003 ("Direct IP Access Not Allowed").
+- **Già documentato** in `argos-proxy/src/lib/wa-daemon.ts:8-11` come known limitation pre-prod.
+- **Implicazione**: phone-format fix S154-ter è corretto (verificato via TS regex su `+393314928901` post `replace(/\D/g, '')`), ma WA delivery end-to-end NON funziona finché daemon non è raggiungibile pubblicamente.
+- **Soluzione proposta S155**:
+  - **Opzione A** (consigliata, €0): `cloudflared tunnel` su iMac che espone localhost:9191 con dominio `wa-daemon.gianlucanewtech.workers.dev` (o subdomain CF gratuito) + JWT validation per auth. Setup ~30 min.
+  - **Opzione B**: Tailscale binding nel Worker (richiede Workers Paid o Workers for Platforms — costo).
+  - **Opzione C**: Move daemon a public host con TLS — overkill per stage attuale.
+- Priorità: **alta** — blocca Day 1 reale (S155). Senza WA delivery i dealer non ricevono IBAN/conferma pagamento.
+- **Test manuale post-fix**: rieseguire smoke E2E (vedi `prompts/s154c_smoke_e2e.md` Phase 2 step 6-7) e verificare `wa_sent: true` + log daemon iMac entry SEND a 393314928901.
+
+## Phone format mismatch contract-create ↔ wa-daemon.ts (rilevato S154-bis, FIXED S154-ter)
+**Status**: ✅ FIXED in commit `ab938c4` `fix(s154c): normalize phone in wa-daemon.ts`. Sezione mantenuta come reference storica.
+
+
 - `argos-proxy/src/routes/contract-create.ts:46` regex `^(\+39)?3\d{8,10}$` accetta:
   - `+393314928901` ✅ (`+39` + `3` + 9 digits)
   - `3314928901` ✅ (10 digit national)
