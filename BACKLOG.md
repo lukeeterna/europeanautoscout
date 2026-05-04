@@ -18,6 +18,32 @@
 - GATE-ICP-001 con soglie calibrate empiricamente
 - Confidence-gated blending archetipi (0.65-0.85 → top-2 blend)
 
+## Phone format mismatch contract-create ↔ wa-daemon.ts (rilevato S154-bis)
+- `argos-proxy/src/routes/contract-create.ts:46` regex `^(\+39)?3\d{8,10}$` accetta:
+  - `+393314928901` ✅ (`+39` + `3` + 9 digits)
+  - `3314928901` ✅ (10 digit national)
+  - `393314928901` ❌ (11 digits dopo prima `3` → fuori range {8,10})
+- `argos-proxy/src/lib/wa-daemon.ts:27` regex `^\d{11,13}$` accetta:
+  - `393314928901` ✅ (12 digits puri)
+  - `+393314928901` ❌ (presenza `+` invalida)
+  - `3314928901` ❌ (10 digits)
+- **Intersezione vuota per TEST_FOUNDER 393314928901 (formato WA standard country+national)**
+- Side effect: in send-iban / mark-paid Worker valida prima di chiamare daemon → `wa_sent: false`. Status DB transition OK (best-effort), ma dealer non riceve IBAN_SEND/PAYMENT_RECEIVED su WA.
+- **Fix proposto** (3 LOC, send-iban + mark-paid + wa-daemon.ts):
+  - In `wa-daemon.ts`: normalizzare con `phone.replace(/\D/g, '')` PRIMA del regex check, passare valore pulito a fetch.
+  - Daemon iMac già fa stripping interno (`phone.replace(/[^0-9]/g, '')`), quindi consistente.
+- Alternativa (più invasiva): contract-create normalizza phone in formato canonical (393...) prima di INSERT.
+- Priorità: **alta** — blocca smoke E2E S154-bis (WA delivery KO), blocca Day 1 reale fino a fix.
+
+## Rate-limit middleware soft-limit per CF isolate spread (rilevato S154-bis)
+- `argos-proxy/src/middleware/rate-limit.ts` usa `Map` module-level → buckets per-isolate, non globali.
+- Smoke test S154-bis evidenza:
+  - 35 GET sequenziali (non sleep) tra le richieste → 35x 200, **0x 429** (CF distribuisce su isolate diversi, ognuno bucket fresh).
+  - 100 GET parallel via `xargs -P 50` → **42x 429**, 58x 200 (sotto burst, isolate riusati).
+- **Diagnosi**: il middleware funziona come "circuit breaker per single isolate" ma NON come "rate-limit globale per IP". Per ARGOS scale (~100 req/giorno) accettabile come anti-flood layer, NON come hard cap.
+- **Fix opzionale** (per quando supera 1k req/min): migrare a Durable Objects o KV con atomic INCR (commento già presente in middleware:8).
+- Priorità: **bassa** — soft limit sufficiente, but documentare in PR description e ops runbook.
+
 ## Drift architetturale deploy iMac (rilevato S153)
 - **Directory `~/Documents/app-antigravity-auto/wa-intelligence/` (legacy) NON è symlink** ma directory standalone con codice obsoleto (mtime drift di ore/giorni vs `current/wa-intelligence/`)
 - `deploy/sync.sh` aggiorna SOLO `current/` (symlink to fresh release), NON aggiorna legacy

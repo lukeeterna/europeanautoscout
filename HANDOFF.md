@@ -1,10 +1,50 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-04 12:15 — S154a CHIUSO VERDE: Worker LIVE su CF, smoke E2E pending S154-bis fresh context
+**Aggiornato**: 2026-05-04 12:55 — S154-bis PARTIAL: rate-limit confermato (sotto burst), smoke E2E deferred S154-ter per phone format bug
 
 ---
 
-## 🟢 STATO CORRENTE — S154a deploy verde (2026-05-04 12:15)
+## 🟡 STATO CORRENTE — S154-bis PARTIAL (2026-05-04 12:55)
+
+**Sessione corrente (S154-bis)**: pre-conditions 7/7 verdi, Phase 1 rate-limit eseguita parzialmente (hammer + Retry-After verify in S154-ter), Phase 2 smoke E2E NON eseguita per phone format bug rilevato in code review pre-test.
+
+### Cosa fatto in questa sessione (S154-bis partial)
+
+1. **Pre-conditions check 7/7 OK**: Worker LIVE (`/health` 200), `ARGOS_PROXY_URL` in `.env`, WA daemon connected (15/15 remaining), iMac up (192.168.1.2 ping 2ms), CF Monitor heartbeat (1.5min ago), Telegram bot reachable (`@Argosautomotivebot` getMe.ok=true), TEST_FOUNDER 393314928901 = phone test documentato (DB SQLite iMac non è autoritativo per Worker — Worker usa D1 separato).
+2. **Phase 1 rate-limit HAMMER (parziale)**:
+   - Contract `RL_TEST` creato: `contract_id=1f04e6b7af512553`, token=`c9bf2729ed9edd5cb49f093062acf927`, fee=€800.
+   - 35 GET sequenziali su `/api/v1/contract/$TOKEN`: **35/35 = 200, 0x 429**. Causa: CF Workers spreade su isolate multipli, ogni isolate ha bucket Map fresh → effective limit ≈ N_isolates × perIp.
+   - 100 GET parallel via `xargs -P 50` (concorrenza forzata): **42/100 = 429, 58 = 200**. Rate-limit triggerato sotto burst sufficiente.
+   - **Verifica `Retry-After` header** su 429: NON eseguita (interrotta da errore tool).
+3. **Code review API**: identificati schema endpoints (health/get/sign/create/send-iban/mark-paid/admin contracts) + flow status (DRAFT → AWAITING_DELIVERY → IBAN_SENT → PAID).
+
+### 🐛 Bug bloccante rilevato (BACKLOG dettagli completi)
+
+**Phone format mismatch**: contract-create regex `^(\+39)?3\d{8,10}$` vs wa-daemon.ts regex `^\d{11,13}$`. Intersezione VUOTA per TEST_FOUNDER 393314928901 (formato WA standard country+national).
+
+- Workaround test: `+393314928901` passa create ma Worker rifiuta in wa-daemon.ts pre-fetch → `wa_sent: false`. Status DB OK (best-effort), ma WA delivery KO.
+- Fix proposto (3 LOC): normalizzare phone in `wa-daemon.ts` con `phone.replace(/\D/g, '')` PRIMA del regex check. Daemon iMac già strippa internamente, consistente.
+- **Priorità alta**: blocca Day 1 reale finché non fixato.
+
+### Cosa NON fatto (S154-ter)
+
+- ❌ Phase 1 finalize: verifica header `Retry-After` su 429, log esempio body
+- ❌ Phase 2 smoke E2E TEST_FOUNDER 8 step (create→sign→awaiting→iban_sent→paid)
+- ❌ Phase 3 verifiche collaterali: 4 Telegram alert + 2 WA template + 4 row D1 audit_log
+- ❌ Phase 4 docs E2E-SIM-RESULTS + commit
+- ❌ Cleanup duplicato CF Storage 80% disabled (cosmetico, Luke GUI)
+
+### Cosa fare nel prossimo prompt (fresh context S154-ter)
+
+```
+leggi prompts/s154c_smoke_e2e.md ed esegui
+```
+
+S154-ter dovrà: (1) fix phone format `wa-daemon.ts` 3 LOC + redeploy → (2) Phase 1 finalize Retry-After verify → (3) Phase 2 smoke E2E completo con phone fix → (4) verifiche collaterali → (5) docs+commit.
+
+---
+
+## 📜 STATO PRECEDENTE — S154a CHIUSO VERDE (2026-05-04 12:15)
 
 **Sessione corrente**: rate-limit middleware + R2 bucket + D1 migration + 8 secrets + wrangler deploy + health check OK. Smoke E2E TEST_FOUNDER deferred a S154-bis per cut clean a context budget.
 
