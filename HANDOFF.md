@@ -27,8 +27,13 @@ Switch da Tailscale.app GUI a `tailscaled` open-source binary su iMac. Bypass ne
 - ❌ Smoke external `curl https://imac-di-gianluca.tail62c468.ts.net/status`
 - ❌ Update Worker secret `WA_DAEMON_URL`
 - ❌ Smoke E2E step 6+7 con `wa_sent: true`
-- ❌ Day 1 reale Stile Car
-- ❌ `prompts/s156_day1_real_dealer.md`
+
+### ❌ NON in S155-tris (regola Luke "no live senza test esplicito")
+
+- ❌ Day 1 reale Stile Car o altri dealer
+- ❌ `prompts/s156_day1_real_dealer.md` (NO auto-creation)
+- ❌ Qualsiasi messaggio WA a numeri ≠ `393314928901`
+- 🔒 Day 1 reale richiede sessione separata + autorizzazione esplicita Luke + test interattivo CON Luke (lui vede live messaggi/screen)
 
 ### Cosa fare nel prossimo prompt (fresh context S155-tris)
 

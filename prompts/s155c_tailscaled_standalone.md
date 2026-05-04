@@ -2,8 +2,8 @@
 
 **Sessione**: S155-tris (clean context start)
 **Data**: 2026-05-04 (post S155-bis BLOCKED)
-**Scope**: bypass Tailscale.app GUI buggy → install `tailscaled` open-source standalone su iMac → re-set funnel → smoke E2E → autorizzare Day 1 reale (S156)
-**Tempo stimato**: ~60-90min (un-enroll GUI 5min + install standalone 15min + launchd plist 10min + re-enroll 5min + funnel set 5min + smoke E2E 20min + docs 15min + prompts/s156 5min)
+**Scope**: bypass Tailscale.app GUI buggy → install `tailscaled` open-source standalone su iMac → re-set funnel → smoke E2E TEST_FOUNDER → docs+commit. **NIENTE Day 1 reale** (richiede sessione separata con autorizzazione esplicita Luke + test interattivo).
+**Tempo stimato**: ~55-85min (un-enroll GUI 5min + install standalone 15min + launchd plist 10min + re-enroll 5min + funnel set 5min + smoke E2E 20min + docs 15min)
 **Esecuzione**: AUTONOMA — Claude ha accesso SSH iMac + API token Tailscale + admin secret Worker. Luke approverà solo lo switch architetturale all'inizio.
 
 ---
@@ -339,32 +339,34 @@ ssh gianlucadistasi@192.168.1.2 'tail -30 /tmp/argos-wa-daemon.log 2>/dev/null |
 
 ---
 
-## 11. Phase 10 — Crea prompt S156 Day 1 reale (~5min)
+## 11. Phase 10 — STOP, attendi autorizzazione esplicita Luke per Day 1 reale (NO auto-creation prompt S156)
 
-SOLO se Phase 8 verde (wa_sent:true confermato + Luke visual app delivery):
+🛑 **REGOLA FERMA** (memory `feedback_no_live_without_test.md`): smoke E2E TEST_FOUNDER verde NON è trigger automatico per Day 1 reale. NON creare `prompts/s156_*.md` Day 1 dealer reale come step auto-eseguibile.
 
-- [ ] Crea `prompts/s156_day1_real_dealer.md`:
-  - Target: Stile Car (dealer reale Day 1)
-  - Phone: TBD da `dealer_network.sqlite` su iMac
-  - Veicolo concreto Day 1: BMW X3 2022 da scegliere via CoVe DuckDB (`recommendation=PROCEED`, `confidence>=0.75`)
-  - Sequenza Day 1 (max 5 righe WA, MAI menzionare Germania/import/premium, persona archetype detection)
-  - Vincoli daily limit, anti-ban, monitoring (vedi `.claude/rules/communication.md`)
+Day 1 reale (Stile Car o altri) richiede:
+1. Sessione separata avviata da Luke con approvazione esplicita ("ora andiamo live con X dealer")
+2. Test interattivo CON Luke (Luke vede live messaggi + screen) — smoke E2E TEST_FOUNDER simulato NON sostituisce questo passo
+3. Daily WA budget verificato disponibile (>=10 messaggi liberi)
+
+**Action S155-tris fine**: chiusura prompt qui. Niente prompt S156 Day 1 reale auto-generato. Luke deciderà sessione successiva quale prossimo step (test interattivo dealer, smoke aggiuntivi, o altro sprint).
 
 ---
 
 ## 12. Vincoli S155-tris
 
-- ✋ Smoke usa SOLO `+393314928901` (TEST_FOUNDER). NO dealer reale finché S156.
+- ✋ Smoke usa SOLO `+393314928901` (TEST_FOUNDER). NO dealer reale **MAI** in questa sessione.
 - ✋ Tailscaled funnel persistence è gate critico: se Phase 6 fallisce, STOP, fallback Opzione B.
-- ✋ Daily WA limit: 15. Smoke consuma 2. Lasciare margine 10+ per Day 1 reale S156.
+- ✋ Daily WA limit: 15. Smoke consuma 2.
 - ✋ Sudo richiesto: se SSH non ha sudoers, AskUserQuestion a Luke per password OR escalation manuale.
 - ✋ Coexistenza Tailscale.app GUI: Quit prima di tailscaled startup (evita doppio routing).
+- ✋ **NO Day 1 reale**: niente messaggi a numeri ≠ `393314928901`, niente prompt auto-generato `s156_day1_*`.
 
 ---
 
 ## 13. Out of scope S155-tris
 
-- Day 1 reale (S156)
+- Day 1 reale (richiede sessione successiva con autorizzazione esplicita Luke)
+- Generazione prompt S156 Day 1 dealer reale (NO auto-creation)
 - Apertura P.IVA (defer)
 - Stripe / Fintecture / Revolut Business (rimossi)
 - Custom domain Worker proxy (M3+)
@@ -379,11 +381,11 @@ SOLO se Phase 8 verde (wa_sent:true confermato + Luke visual app delivery):
 ✅ Worker secret `WA_DAEMON_URL` aggiornato
 ✅ Smoke E2E 8/8 verde con `wa_sent: true` su step 6 + 7
 ✅ Luke conferma 2 WhatsApp ricevuti (IBAN_SEND + PAYMENT_RECEIVED)
-✅ `prompts/s156_day1_real_dealer.md` pronto
 ✅ Docs aggiornati: HANDOFF, MEMORY, BACKLOG, E2E-SIM-RESULTS, runbook tailscaled
 ✅ Commit `feat(s155-tris)` pushato
+✅ HANDOFF segnala "S155-tris CHIUSO VERDE — in attesa decisione Luke per next sprint (test interattivo dealer / altro)"
 
-❌ NON in S155-tris: Day 1 reale, P.IVA, Stripe, custom domain Worker, OS upgrade
+❌ NON in S155-tris: Day 1 reale, prompt S156 auto-generato, P.IVA, Stripe, custom domain Worker, OS upgrade
 
 ---
 
