@@ -16,6 +16,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { AppEnv } from './lib/types';
 import { adminAuth } from './middleware/admin-auth';
+import { rateLimit } from './middleware/rate-limit';
 import { contractCreate } from './routes/contract-create';
 import { contractGet } from './routes/contract-get';
 import { contractSign } from './routes/contract-sign';
@@ -54,8 +55,17 @@ app.get('/health', (c) => {
 // ── Public dealer routes ───────────────────────────────────────────
 // GET /api/v1/contract/:token — view (recap + status)
 // POST /api/v1/contract/sign  — submit signature
-app.get('/api/v1/contract/:token', contractGet);
-app.post('/api/v1/contract/sign', contractSign);
+// Rate-limit: anti-abuse on public surface (R2/D1 cost protection).
+app.get(
+  '/api/v1/contract/:token',
+  rateLimit({ perIp: 30, global: 200 }),
+  contractGet,
+);
+app.post(
+  '/api/v1/contract/sign',
+  rateLimit({ perIp: 10, global: 100, maxBody: 102400 }),
+  contractSign,
+);
 
 // ── Admin routes — Bearer ARGOS_ADMIN_SECRET ───────────────────────
 app.use('/api/v1/contract/create', adminAuth);
