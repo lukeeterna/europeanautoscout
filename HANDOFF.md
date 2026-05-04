@@ -1,10 +1,46 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-04 13:30 — S155 PARTIAL: pivot Tailscale Funnel — ACL+HTTPS+cert OK, funnel status empty bug, smoke deferred S155-bis
+**Aggiornato**: 2026-05-04 16:55 — S155-bis BLOCKED: bug Tailscale 1.96.5 GUI App irrecuperabile su Monterey, decisione A presa (tailscaled standalone) → S155-tris next
 
 ---
 
-## 🟡 STATO CORRENTE — S155 PARTIAL (2026-05-04 13:30)
+## 🔴 STATO CORRENTE — S155-bis BLOCKED (2026-05-04 16:55)
+
+**Sessione (S155-bis)**: tentata ripresa funnel post Quit/Relaunch GUI Tailscale.app. Tutti i fix configurabili applicati (cert, ACL, HTTPS, Allow Incoming Connections, naming, login). **Bug strutturale Tailscale 1.96.5 GUI App network extension confermato irrecuperabile** dopo 5 retry consecutive. Tailscale 1.96.5 = ultima versione disponibile su Monterey 12.7.4 (1.98+ richiede Ventura 13+). Update GUI App NON è opzione.
+
+### Cosa fatto in questa sessione (S155-bis)
+
+1. **Recovery PM2 daemon iMac**: PM2 era morto post-reboot, `pm2 resurrect` con PATH fix `/usr/local/bin:/opt/homebrew/bin` → wa-daemon online (wa_status: connected, daily 15/15)
+2. **Tailscale re-auth via API auth-key** (`tskey-auth-*` 1h preauth, generata via `POST /tailnet/-/keys`) → `tailscale up --authkey=... --reset` via SSH, no GUI required
+3. **Cleanup device naming via API** (eseguito 2x): `DELETE /api/v2/device/{id}` su offline + `POST /api/v2/device/{id}/name` per rinominare a `imac-di-gianluca` (no suffix `-1`)
+4. **Quit + Relaunch Tailscale.app GUI** eseguito da Luke
+5. **Verifica "Allow Incoming Connections"**: già abilitato (no fix da [tailscale#11049](https://github.com/tailscale/tailscale/issues/11049))
+6. **5 retry funnel reset+set** in vari stati: cert OK, ACL nodeAttrs funnel OK, httpsEnabled:true OK, naming OK, login OK, Allow Incoming OK → SEMPRE `funnel status: No serve config`, `serve get-config: {}`, DNS pubblico NXDOMAIN, curl HTTP 000
+
+### Decisione strategica CTO presa: **OPZIONE A** — `tailscaled` standalone open-source
+
+Switch da Tailscale.app GUI a `tailscaled` open-source binary su iMac. Bypass network extension buggy. Riusa cert+ACL+API token già configurati. Reversibile.
+
+### Cosa NON fatto (S155-bis, deferred S155-tris)
+
+- ❌ Funnel persistence (bug GUI App network extension irrecuperabile)
+- ❌ Smoke external `curl https://imac-di-gianluca.tail62c468.ts.net/status`
+- ❌ Update Worker secret `WA_DAEMON_URL`
+- ❌ Smoke E2E step 6+7 con `wa_sent: true`
+- ❌ Day 1 reale Stile Car
+- ❌ `prompts/s156_day1_real_dealer.md`
+
+### Cosa fare nel prossimo prompt (fresh context S155-tris)
+
+```
+leggi prompts/s155c_tailscaled_standalone.md ed esegui
+```
+
+(prompt creato in questa sessione, ~60-90min, esecuzione autonoma con accesso pieno SSH+API)
+
+---
+
+## 📜 STATO PRECEDENTE — S155 PARTIAL (2026-05-04 13:30)
 
 **Sessione corrente (S155)**: pivot da CF Tunnel a **Tailscale Funnel** (zero-cost + zero domain). Configurazione tailnet completata via API (ACL nodeAttrs funnel + HTTPS certs + Let's Encrypt cert provisioned). MA `tailscale funnel --bg 9191` set risponde success ma `funnel status` legge `{}` empty in session SSH successive → DNS pubblico NXDOMAIN → smoke E2E impossibile. Bug stato sandbox/socket macOS Tailscale.app system extension daemon. Mitigation deferred S155-bis post-reboot Tailscale.app.
 

@@ -37,17 +37,33 @@
   - 🟡 Smoke E2E + Worker secret update **deferred S155-bis** (post-reboot Tailscale.app o forced GUI restart)
 - **Resume path S155-bis**: `prompts/s155b_funnel_smoke.md`. Token API Tailscale 90 giorni in `.env` come `TAILSCALE_API_TOKEN`.
 
-## Tailscale Funnel `--bg` set ma `status` empty su macOS App (rilevato S155 PARTIAL, bug)
-- **Sintomo**: `tailscale funnel --bg 9191` ritorna "Funnel started and running in the background" + URL. Ma `tailscale funnel status` in sessione SSH successiva → `No serve config`. JSON: `{}`. DNS pubblico non risolve (`dig +short @1.1.1.1 imac-di-gianluca.tail62c468.ts.net` → empty / NXDOMAIN). Cert provisioned ma DNS record AAAA non pubblicato.
-- **Ipotesi root cause**: macOS Tailscale app è "macsys" system extension variant (non App Store sandbox). Il binary CLI `/Applications/Tailscale.app/Contents/MacOS/Tailscale` parla con il system extension daemon. State funnel sembra non essere persistito nel daemon — possibile missing socket bridge tra utility CLI e network extension, OR stato salvato in user-bound location ma session SSH apre nuovo context.
-- **Mitigation tentativi falliti**: re-set funnel multiple session, `serve` separato, `cert` esplicito. Tutti report success ma status vuoto + DNS NXDOMAIN.
-- **Mitigation da provare S155-bis**:
-  - Riavvio Tailscale app via GUI (menu bar → Quit → relaunch) PRIMA di setup funnel
-  - Set funnel via GUI app (se disponibile) invece di CLI
-  - Verifica `~/Library/Application Support/Tailscale/serve.json` exists e popolato
-  - Se persiste, considerare `tailscale serve --service` con flag esplicito
-  - Eventuale upgrade Tailscale 1.97+ (currently 1.96.5)
+## Tailscale Funnel `--bg` set ma `status` empty su macOS App (rilevato S155 PARTIAL, CONFERMATO IRRECUPERABILE S155-bis, WORKAROUND S155-tris)
+**Status**: 🟡 WORKAROUND in S155-tris via switch a `tailscaled` open-source standalone. Bug GUI App non risolto upstream ma bypassato.
+
+- **Sintomo**: `tailscale funnel --bg 9191` ritorna "Funnel started and running in the background" + URL. Ma `tailscale funnel status` → `No serve config`. JSON: `{}`. DNS pubblico NXDOMAIN. Cert provisioned ma DNS record AAAA non pubblicato presso control plane.
+- **Root cause confermato S155-bis**: bug strutturale Tailscale.app GUI macOS network extension 1.96.x. Network extension daemon non persiste serve/funnel config dal CLI socket bridge. Tailscale 1.96.5 = ultima versione disponibile su macOS Monterey 12.7.4 ([1.98+ richiede Ventura 13+](https://tailscale.com/docs/install/mac)). Update GUI App NON è opzione.
+- **Mitigation tentativi falliti S155-bis** (5 retry consecutive identici):
+  - ✅ Quit + Relaunch Tailscale.app GUI (eseguito Luke)
+  - ✅ Verifica "Allow Incoming Connections" abilitato (no fix da [tailscale#11049](https://github.com/tailscale/tailscale/issues/11049))
+  - ✅ Re-auth via API auth-key fresh
+  - ✅ Cleanup naming via API DELETE/POST `/name` (rimosso suffix `-1`)
+  - ✅ Re-emit cert idempotent
+  - ✅ Reset + retry funnel + serve separato
+  - ✅ Verifica ACL `nodeAttrs autogroup:member → funnel` propagato
+  - ✅ Verifica `httpsEnabled: true` settings
+  - Tutti success message ma status sempre `{}` empty + DNS NXDOMAIN + curl HTTP 000
+- **Mitigation S155-tris (decisione CTO Opzione A)**: switch a `tailscaled` open-source standalone via launchd plist `/Library/LaunchDaemons/com.tailscale.tailscaled.plist`. Bypass GUI App network extension. Riusa cert+ACL+API token già configurati. Reversibile. Plan completo: `prompts/s155c_tailscaled_standalone.md` (10 phase, ~60-90min autonomo).
+- **Plan B se anche standalone fallisce**: switch architettura cloudflared tunnel.
 - Priorità: **alta** — blocca smoke E2E end-to-end + Day 1 reale.
+
+## PM2 daemon non resurrect post-reboot iMac (rilevato S155-bis, action item ops)
+- **Sintomo**: SessionStart hook segnala `WA Daemon: UNREACHABLE`. PM2 daemon era morto, dump.pm2 esistente. `pm2 resurrect` con PATH fix (`PATH=/usr/local/bin:/opt/homebrew/bin:$PATH`) ripristina entrambi processi (`argos-wa-daemon`, `argos-cf-monitor`).
+- **Root cause**: PM2 startup script non installato. Reboot iMac (causa ignota — manutenzione, kernel panic, power) ferma daemon e non si ricarica.
+- **Mitigation S155-tris** (parte di setup tailscaled Phase 4 launchd):
+  - Eseguire `pm2 startup launchd -u gianlucadistasi --hp /Users/gianlucadistasi` (comando suggerito da PM2 da copiare)
+  - Verificare `/Library/LaunchDaemons/pm2.gianlucadistasi.plist` esistente
+  - Test reboot: `sudo reboot` + dopo restart verificare `wa_status: connected`
+- Priorità: **media** — sblocco S155-tris non dipende, ma ogni reboot iMac == sessione persa fino a recovery manuale.
 
 ## Phone format mismatch contract-create ↔ wa-daemon.ts (rilevato S154-bis, FIXED S154-ter)
 **Status**: ✅ FIXED in commit `ab938c4` `fix(s154c): normalize phone in wa-daemon.ts`. Sezione mantenuta come reference storica.
