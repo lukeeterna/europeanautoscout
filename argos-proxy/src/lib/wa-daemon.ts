@@ -24,7 +24,11 @@ export async function sendWa(
   if (!env.WA_DAEMON_URL) {
     return { ok: false, error: 'WA_DAEMON_URL missing' };
   }
-  if (!params.phone || !/^\d{11,13}$/.test(params.phone)) {
+  // FIX S154-ter: normalize phone (strip + and non-digits) before validation.
+  // Necessary because contract-create accepts +39... format but daemon
+  // requires bare digits. Daemon already strips internally, kept consistent.
+  const cleanedPhone = (params.phone ?? '').replace(/\D/g, '');
+  if (!/^\d{11,13}$/.test(cleanedPhone)) {
     return { ok: false, error: 'invalid phone format' };
   }
   if (!params.body || params.body.length === 0 || params.body.length > 4096) {
@@ -39,7 +43,7 @@ export async function sendWa(
         ...(env.WA_DAEMON_API_KEY ? { 'X-API-Key': env.WA_DAEMON_API_KEY } : {}),
       },
       body: JSON.stringify({
-        phone: params.phone,
+        phone: cleanedPhone,
         message: params.body,
       }),
       // Cloudflare Workers fetch has no built-in timeout — rely on platform
