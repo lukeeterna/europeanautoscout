@@ -1,10 +1,58 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-04 17:40 — S155-tris CHIUSO VERDE: tailscaled standalone deployed iMac via Homebrew + launchd, smoke E2E TEST_FOUNDER 8/8 verde con `wa_sent: true` confermato visivamente da Luke (2 WA ricevuti)
+**Aggiornato**: 2026-05-04 18:50 — S156 CHIUSO VERDE: pm2 startup launchd + workaround spostamento a `/Library/LaunchDaemons/` + reboot test verde (cascade auto-restart in 110s senza intervento utente)
 
 ---
 
-## 🟢 STATO CORRENTE — S155-tris CHIUSO VERDE (2026-05-04 17:40)
+## 🟢 STATO CORRENTE — S156 CHIUSO VERDE (2026-05-04 18:50)
+
+**Sessione (S156)**: ops hardening post tailscaled standalone S155-tris. Target: persistenza PM2 cross-reboot iMac. Achieved: LaunchDaemon system-level via workaround pm2 bug + reboot test verde 110s totali.
+
+### Cosa fatto (in ordine)
+1. **Pre-conditions verdi** (5/5): iMac up, WA daemon connected, Funnel external HTTP 200, Worker LIVE, tailscaled standalone PID 21946
+2. **Phase 1 done**: Luke conferma pwd sudo cambiata post S155-tris (security cleanup OK)
+3. **Phase 2 pm2 startup launchd con workaround**:
+   - `pm2 startup launchd -u gianlucadistasi --hp /Users/gianlucadistasi` → genera plist Label `com.PM2`
+   - **Bug pm2 macOS**: scrive in `~/Library/LaunchAgents/` invece di `/Library/LaunchDaemons/` → su iMac headless NO auto-login GUI = LaunchAgent NON parte al boot
+   - **Workaround**: `sudo mv` plist a `/Library/LaunchDaemons/` + `chown root:wheel` + `chmod 644` + `sudo launchctl bootstrap system /Library/LaunchDaemons/pm2.gianlucadistasi.plist`
+   - `pm2 save` → snapshot `~/.pm2/dump.pm2`
+   - Cleanup vecchio rotto `~/Library/LaunchAgents/com.argos.pm2.plist` (path `/usr/local/bin/pm2` inesistente, exit 78 storico) → rinominato `.S156-DISABLED`
+4. **Phase 3 reboot test VERDE** (18:46:55 → 18:48:39, totale 110s):
+   - `sudo reboot` via SSH (`echo PWD | sudo -S`)
+   - Ping back in 16s
+   - SSH back + uptime 1min
+   - **Cascade auto-restart 4/4 verde**:
+     - tailscaled standalone PID 133 ✅ (launchd S155-tris)
+     - PM2 daemon + argos-wa-daemon (PID 428) + argos-cf-monitor (PID 432) uptime 53s ✅ (LaunchDaemon S156)
+     - WA daemon localhost:9191/status `wa_status:connected` ✅
+     - Funnel external `https://imac-di-gianluca.tail62c468.ts.net/status` HTTP 200 ✅
+5. **Phase 4 SKIP** (CTO call): health monitoring 5min cron MacBook merita sprint dedicato S157 (design soglie + test alert Telegram end-to-end + runbook). `argos-cf-monitor` PM2 process fornisce monitoring base.
+6. **Phase 5 docs aggiornati**: BACKLOG (PM2 daemon FIXED), runbook tailscaled (Appendice PM2 startup persistenza), HANDOFF (questa entry), MEMORY.md S156
+
+### Decisioni operative S156
+- **Workaround pm2 startup macOS bug** è path canonical: install in user-level + `sudo mv` a system-level. Plist generato ha già `<key>UserName</key><string>gianlucadistasi</string>` quindi compatibile come Daemon.
+- **Skip auto-login GUI iMac**: scelto Daemon system-level invece per non degradare security fisica iMac
+- **Phase 4 health monitoring deferred S157**: scope discipline. Il valore ops di health alert merita design dedicato, non add-on.
+
+### Cosa NON fatto (regola Luke "no live senza test esplicito")
+- ❌ Day 1 reale Stile Car o altri dealer
+- ❌ `prompts/s157_*.md` (NO auto-creation, regola `feedback_no_live_without_test.md`)
+- ❌ Health monitoring Phase 4 (deferred S157 dedicato)
+
+### Cosa fare nel prossimo prompt (sessione successiva, fresh context)
+
+🛑 NIENTE prompt S157 auto-creato. Luke deciderà tra:
+
+- **Test interattivo CON Luke su 1° dealer reale** (Day 1 esplicito, sessione separata + autorizzazione + presenza interattiva)
+- **Health monitoring 5min** (S157 dedicato: script bash + cron/launchd MacBook + smoke alert Telegram end-to-end)
+- **Smoke front-end SIGN flow Cloudflare Pages** (test browser su signature page)
+- **Scraper fix** (BMW Serie 3/5, Mercedes GLC/C/E/GLE — vedi CLAUDE.md "Scraper ROTTI")
+- **CoVe pipeline E2E** (sblocco "NON FUNZIONANTE" da CLAUDE.md)
+- **Day 1 sequence revision** (template V3 → V4)
+
+---
+
+## 📜 STATO PRECEDENTE — S155-tris CHIUSO VERDE (2026-05-04 17:40)
 
 **Sessione (S155-tris)**: bypass GUI Tailscale.app buggata via install `tailscaled` open-source standalone. Build da source con Homebrew (`brew install tailscale` → tailscale 1.96.4 + go 1.26.2 dependency, ~10min compile). Setup launchd persistente. Re-enroll device. Funnel persistito (al contrario della GUI). Smoke E2E TEST_FOUNDER 8/8 con WA delivery confermata.
 

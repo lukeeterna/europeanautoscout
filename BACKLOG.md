@@ -67,14 +67,18 @@
 - **Plan B se anche standalone fallisce**: switch architettura cloudflared tunnel.
 - Priorità: **alta** — blocca smoke E2E end-to-end + Day 1 reale.
 
-## PM2 daemon non resurrect post-reboot iMac (rilevato S155-bis, action item ops)
-- **Sintomo**: SessionStart hook segnala `WA Daemon: UNREACHABLE`. PM2 daemon era morto, dump.pm2 esistente. `pm2 resurrect` con PATH fix (`PATH=/usr/local/bin:/opt/homebrew/bin:$PATH`) ripristina entrambi processi (`argos-wa-daemon`, `argos-cf-monitor`).
-- **Root cause**: PM2 startup script non installato. Reboot iMac (causa ignota — manutenzione, kernel panic, power) ferma daemon e non si ricarica.
-- **Mitigation S155-tris** (parte di setup tailscaled Phase 4 launchd):
-  - Eseguire `pm2 startup launchd -u gianlucadistasi --hp /Users/gianlucadistasi` (comando suggerito da PM2 da copiare)
-  - Verificare `/Library/LaunchDaemons/pm2.gianlucadistasi.plist` esistente
-  - Test reboot: `sudo reboot` + dopo restart verificare `wa_status: connected`
-- Priorità: **media** — sblocco S155-tris non dipende, ma ogni reboot iMac == sessione persa fino a recovery manuale.
+## PM2 daemon non resurrect post-reboot iMac (rilevato S155-bis, ✅ FIXED S156)
+**Status**: ✅ FIXED in S156 via `pm2 startup launchd` + workaround manuale spostamento plist da `~/Library/LaunchAgents/` a `/Library/LaunchDaemons/`. Reboot test verde alle 18:48: PM2 + argos-wa-daemon + argos-cf-monitor + funnel external auto-restart in <1min senza intervento utente.
+
+- **Sintomo (storico)**: SessionStart hook segnala `WA Daemon: UNREACHABLE`. PM2 daemon era morto, dump.pm2 esistente. `pm2 resurrect` con PATH fix ripristina entrambi processi.
+- **Root cause**: PM2 startup script non installato. Reboot iMac ferma daemon e non si ricarica.
+- **Fix S156**:
+  1. `sudo env PATH=$PATH:/usr/local/bin /Users/gianlucadistasi/.npm-global/lib/node_modules/pm2/bin/pm2 startup launchd -u gianlucadistasi --hp /Users/gianlucadistasi` → genera plist (Label `com.PM2`)
+  2. **Workaround pm2 bug**: pm2 mette plist in `~/Library/LaunchAgents/` (user-level) invece di `/Library/LaunchDaemons/` (system-level). Su iMac headless senza auto-login GUI, LaunchAgent NON parte al boot. Soluzione: `sudo mv` a `/Library/LaunchDaemons/` + `sudo chown root:wheel + chmod 644` + `sudo launchctl bootstrap system /Library/LaunchDaemons/pm2.gianlucadistasi.plist`
+  3. Cleanup vecchio `~/Library/LaunchAgents/com.argos.pm2.plist` (path `/usr/local/bin/pm2` inesistente, exit 78 storico) → rinominato `.S156-DISABLED`
+  4. `pm2 save` → snapshot `~/.pm2/dump.pm2` per resurrect
+- **Reboot test S156 (18:46:55 → 18:48:39)**: ping back 16s, SSH back 60s, cascade auto-restart verde in 110s totali — nessun intervento manuale richiesto. argos-wa-daemon + argos-cf-monitor uptime 53s post-reboot, WA daemon connected, funnel external HTTP 200.
+- Runbook: `docs/ops/tailscaled-runbook.md` sezione "PM2 startup persistenza".
 
 ## Phone format mismatch contract-create ↔ wa-daemon.ts (rilevato S154-bis, FIXED S154-ter)
 **Status**: ✅ FIXED in commit `ab938c4` `fix(s154c): normalize phone in wa-daemon.ts`. Sezione mantenuta come reference storica.

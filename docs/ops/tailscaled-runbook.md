@@ -155,3 +155,98 @@ Ripristino: copy state, bootout/bootstrap, verifica `tailscale status`.
 - [Tailscale Funnel docs](https://tailscale.com/kb/1223/funnel)
 - [Homebrew tailscale formula](https://formulae.brew.sh/formula/tailscale)
 - BACKLOG entries: "CF Workers → LAN daemon unreachable" + "Tailscale Funnel `--bg` set ma `status` empty su macOS App"
+
+---
+
+# Appendice — PM2 startup persistenza (S156)
+
+Setup parallelo per ARGOS PM2 processes (`argos-wa-daemon`, `argos-cf-monitor`) che devono ripartire automaticamente al boot iMac, indipendente da login GUI utente.
+
+## Componenti installati S156
+
+| File | Path | Note |
+|------|------|------|
+| pm2 binary | `/Users/gianlucadistasi/.npm-global/bin/pm2` (v6.0.14) | npm global install |
+| pm2 source | `/Users/gianlucadistasi/.npm-global/lib/node_modules/pm2/bin/pm2` | path completo richiesto da launchd plist |
+| LaunchDaemon plist | `/Library/LaunchDaemons/pm2.gianlucadistasi.plist` | **System-level** (NOT LaunchAgents!), Owner `root:wheel` 644, Label `com.PM2`, `RunAtLoad` + `LaunchOnlyOnce` |
+| Process snapshot | `/Users/gianlucadistasi/.pm2/dump.pm2` | Auto-loaded da `pm2 resurrect` al bootstrap launchd |
+| Stdout log | `/tmp/com.PM2.out` | Output di `pm2 resurrect` al boot |
+| Stderr log | `/tmp/com.PM2.err` | |
+
+## Setup (one-shot, già eseguito S156)
+
+```bash
+# 1. Genera plist (PM2 bug: scrive sempre in ~/Library/LaunchAgents/ invece di /Library/LaunchDaemons/)
+sudo env PATH=$PATH:/usr/local/bin \
+  /Users/gianlucadistasi/.npm-global/lib/node_modules/pm2/bin/pm2 \
+  startup launchd -u gianlucadistasi --hp /Users/gianlucadistasi
+
+# 2. Workaround: sposta a system-level LaunchDaemon (parte al boot senza GUI login)
+sudo mv /Users/gianlucadistasi/Library/LaunchAgents/pm2.gianlucadistasi.plist \
+        /Library/LaunchDaemons/pm2.gianlucadistasi.plist
+sudo chown root:wheel /Library/LaunchDaemons/pm2.gianlucadistasi.plist
+sudo chmod 644 /Library/LaunchDaemons/pm2.gianlucadistasi.plist
+sudo launchctl bootstrap system /Library/LaunchDaemons/pm2.gianlucadistasi.plist
+
+# 3. Salva snapshot processi attivi (richiesto per resurrect)
+PATH=/usr/local/bin:/opt/homebrew/bin:/Users/gianlucadistasi/.npm-global/bin:$PATH \
+  /Users/gianlucadistasi/.npm-global/bin/pm2 save
+```
+
+## Operazioni base
+
+```bash
+# Lista processi PM2 (richiede PATH fix per node)
+ssh gianlucadistasi@192.168.1.2 \
+  'PATH=/usr/local/bin:/opt/homebrew/bin:$PATH /Users/gianlucadistasi/.npm-global/bin/pm2 list'
+
+# Re-snapshot dopo aggiunta/rimozione processo
+PATH=/usr/local/bin:/opt/homebrew/bin:/Users/gianlucadistasi/.npm-global/bin:$PATH \
+  /Users/gianlucadistasi/.npm-global/bin/pm2 save
+
+# Stato launchd (job auto-removed da registry attivo dopo execution con LaunchOnlyOnce, normale)
+sudo launchctl list | grep -iE 'PM2|argos'
+
+# Restart manuale Daemon (forza ri-execution resurrect)
+sudo launchctl bootout system /Library/LaunchDaemons/pm2.gianlucadistasi.plist
+sudo launchctl bootstrap system /Library/LaunchDaemons/pm2.gianlucadistasi.plist
+```
+
+## Test cross-reboot (verifica S156)
+
+```bash
+# Pre-reboot timestamp + SSH back loop
+date && ssh gianlucadistasi@192.168.1.2 "echo '<PWD>' | sudo -S reboot"
+until ping -c 1 -W 2 192.168.1.2 >/dev/null 2>&1; do sleep 3; done
+sleep 45  # services startup
+
+# Verifica cascade
+ssh gianlucadistasi@192.168.1.2 'ps aux | grep tailscaled | grep -v grep'  # tailscaled standalone
+ssh gianlucadistasi@192.168.1.2 'PATH=/usr/local/bin:/opt/homebrew/bin:$PATH /Users/gianlucadistasi/.npm-global/bin/pm2 list | head -10'
+ssh gianlucadistasi@192.168.1.2 'curl -s -m 5 localhost:9191/status'
+curl -s -m 15 https://imac-di-gianluca.tail62c468.ts.net/status  # funnel external
+```
+
+Atteso: tutto verde in <2min post-reboot. Test S156 (18:46-18:48) completato in 110s totali.
+
+## Troubleshooting PM2
+
+### `pm2 list` "env: node: No such file or directory" via SSH
+PATH SSH session non include `/usr/local/bin` o `/opt/homebrew/bin`. Pattern: prefissa con `PATH=/usr/local/bin:/opt/homebrew/bin:$PATH` oppure usa path assoluto del binary.
+
+### Daemon resurrect non parte al boot
+1. Verifica plist in posizione system-level: `ls -l /Library/LaunchDaemons/pm2.gianlucadistasi.plist` (deve essere root:wheel)
+2. Log resurrect: `cat /tmp/com.PM2.out` + `cat /tmp/com.PM2.err`
+3. Forza re-bootstrap: `sudo launchctl bootout system .../pm2.gianlucadistasi.plist && sudo launchctl bootstrap system .../pm2.gianlucadistasi.plist`
+
+### Plist in `~/Library/LaunchAgents/` invece di `/Library/LaunchDaemons/`
+Bug noto pm2 startup macOS. NON funziona su iMac headless (LaunchAgents richiedono GUI login utente). Sposta manualmente come da setup S156 sopra.
+
+### Processi pm2 desincronizzati con dump.pm2
+Se aggiungi/rimuovi processo PM2, ricorda `pm2 save` per aggiornare snapshot. Senza save, prossimo reboot resurrect con stato vecchio.
+
+## Sicurezza
+
+- LaunchDaemon parte come `root` ma esegue pm2 come user `gianlucadistasi` (via `UserName` in plist)
+- Processi child argos-* girano user-level (no privilegi escalation)
+- `dump.pm2` chmod 600 user-only (può contenere env vars sensibili)
