@@ -18,7 +18,7 @@
 - GATE-ICP-001 con soglie calibrate empiricamente
 - Confidence-gated blending archetipi (0.65-0.85 → top-2 blend)
 
-## CF Workers → LAN daemon unreachable (rilevato S154-ter, blocker S155)
+## CF Workers → LAN daemon unreachable (rilevato S154-ter, PIVOT S155 → Tailscale Funnel)
 - **Sintomo**: `send-iban` + `mark-paid` ritornano `wa_sent: false`. Worker tail mostra:
   ```
   (error) WA daemon HTTP 403: error code: 1003
@@ -26,13 +26,28 @@
   ```
 - **Root cause**: `WA_DAEMON_URL=http://192.168.1.2:9191` è IP RFC1918 privato. Cloudflare Workers fetch da edge non può raggiungere LAN. CF gateway risponde con error code 1003 ("Direct IP Access Not Allowed").
 - **Già documentato** in `argos-proxy/src/lib/wa-daemon.ts:8-11` come known limitation pre-prod.
-- **Implicazione**: phone-format fix S154-ter è corretto (verificato via TS regex su `+393314928901` post `replace(/\D/g, '')`), ma WA delivery end-to-end NON funziona finché daemon non è raggiungibile pubblicamente.
-- **Soluzione proposta S155**:
-  - **Opzione A** (consigliata, €0): `cloudflared tunnel` su iMac che espone localhost:9191 con dominio `wa-daemon.gianlucanewtech.workers.dev` (o subdomain CF gratuito) + JWT validation per auth. Setup ~30 min.
-  - **Opzione B**: Tailscale binding nel Worker (richiede Workers Paid o Workers for Platforms — costo).
-  - **Opzione C**: Move daemon a public host con TLS — overkill per stage attuale.
-- Priorità: **alta** — blocca Day 1 reale (S155). Senza WA delivery i dealer non ricevono IBAN/conferma pagamento.
-- **Test manuale post-fix**: rieseguire smoke E2E (vedi `prompts/s154c_smoke_e2e.md` Phase 2 step 6-7) e verificare `wa_sent: true` + log daemon iMac entry SEND a 393314928901.
+- **Decisione S155 PIVOT (€0 + zero domain)**: scartata Opzione A (CF Tunnel) perché Luke non possiede dominio e CF account ha 0 zone DNS (verificato `GET /zones` → `result:[]`). Scartato anche acquisto domain CF Registrar (~€9/anno → viola ZERO COSTI). **Pivot a Tailscale Funnel**: URL stabile `<machine>.<tailnet>.ts.net`, TLS auto, free tier 3 nodes, no domain ownership.
+- **Status S155 PARTIAL (2026-05-04 13:30)**:
+  - ✅ Tailscale 1.96.5 già installato iMac
+  - ✅ Login completato (account `ferretti.argosautomotive@gmail.com`, tailnet `tail62c468.ts.net`)
+  - ✅ ACL nodeAttrs `funnel` aggiunto via API (commit token in `.env`)
+  - ✅ HTTPS Certs abilitati via API `PATCH /tailnet/-/settings httpsEnabled:true`
+  - ✅ Cert Let's Encrypt provisioned (`tailscale cert imac-di-gianluca.tail62c468.ts.net`)
+  - 🐛 `tailscale funnel --bg 9191` set OK ma `funnel status` legge `{}` empty in session SSH successive — bug stato sandbox/socket macOS App (vedi sezione sotto)
+  - 🟡 Smoke E2E + Worker secret update **deferred S155-bis** (post-reboot Tailscale.app o forced GUI restart)
+- **Resume path S155-bis**: `prompts/s155b_funnel_smoke.md`. Token API Tailscale 90 giorni in `.env` come `TAILSCALE_API_TOKEN`.
+
+## Tailscale Funnel `--bg` set ma `status` empty su macOS App (rilevato S155 PARTIAL, bug)
+- **Sintomo**: `tailscale funnel --bg 9191` ritorna "Funnel started and running in the background" + URL. Ma `tailscale funnel status` in sessione SSH successiva → `No serve config`. JSON: `{}`. DNS pubblico non risolve (`dig +short @1.1.1.1 imac-di-gianluca.tail62c468.ts.net` → empty / NXDOMAIN). Cert provisioned ma DNS record AAAA non pubblicato.
+- **Ipotesi root cause**: macOS Tailscale app è "macsys" system extension variant (non App Store sandbox). Il binary CLI `/Applications/Tailscale.app/Contents/MacOS/Tailscale` parla con il system extension daemon. State funnel sembra non essere persistito nel daemon — possibile missing socket bridge tra utility CLI e network extension, OR stato salvato in user-bound location ma session SSH apre nuovo context.
+- **Mitigation tentativi falliti**: re-set funnel multiple session, `serve` separato, `cert` esplicito. Tutti report success ma status vuoto + DNS NXDOMAIN.
+- **Mitigation da provare S155-bis**:
+  - Riavvio Tailscale app via GUI (menu bar → Quit → relaunch) PRIMA di setup funnel
+  - Set funnel via GUI app (se disponibile) invece di CLI
+  - Verifica `~/Library/Application Support/Tailscale/serve.json` exists e popolato
+  - Se persiste, considerare `tailscale serve --service` con flag esplicito
+  - Eventuale upgrade Tailscale 1.97+ (currently 1.96.5)
+- Priorità: **alta** — blocca smoke E2E end-to-end + Day 1 reale.
 
 ## Phone format mismatch contract-create ↔ wa-daemon.ts (rilevato S154-bis, FIXED S154-ter)
 **Status**: ✅ FIXED in commit `ab938c4` `fix(s154c): normalize phone in wa-daemon.ts`. Sezione mantenuta come reference storica.

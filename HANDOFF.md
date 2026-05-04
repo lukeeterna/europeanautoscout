@@ -1,10 +1,48 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-04 13:00 — S154-ter PARTIAL: phone-fix + 6/8 smoke verde, WA delivery bloccato CF→LAN (CF Tunnel S155)
+**Aggiornato**: 2026-05-04 13:30 — S155 PARTIAL: pivot Tailscale Funnel — ACL+HTTPS+cert OK, funnel status empty bug, smoke deferred S155-bis
 
 ---
 
-## 🟡 STATO CORRENTE — S154-ter PARTIAL (2026-05-04 13:00)
+## 🟡 STATO CORRENTE — S155 PARTIAL (2026-05-04 13:30)
+
+**Sessione corrente (S155)**: pivot da CF Tunnel a **Tailscale Funnel** (zero-cost + zero domain). Configurazione tailnet completata via API (ACL nodeAttrs funnel + HTTPS certs + Let's Encrypt cert provisioned). MA `tailscale funnel --bg 9191` set risponde success ma `funnel status` legge `{}` empty in session SSH successive → DNS pubblico NXDOMAIN → smoke E2E impossibile. Bug stato sandbox/socket macOS Tailscale.app system extension daemon. Mitigation deferred S155-bis post-reboot Tailscale.app.
+
+### Cosa fatto in questa sessione (S155)
+
+1. **Pre-flight CF Tunnel scartato**: verificato `GET /zones` su CF account → `result:[]` (0 zone DNS). Luke non possiede dominio. Acquisto domain CF Registrar (~€9/anno) viola ZERO COSTI.
+2. **Decisione PIVOT a Tailscale Funnel**: free tier (3 nodes), URL stabile `<machine>.<tailnet>.ts.net`, TLS auto, no domain ownership.
+3. **Tailscale 1.96.5 già su iMac** (Monterey 12.7.4). Luke completato login GUI con `ferretti.argosautomotive@gmail.com` → tailnet `tail62c468.ts.net`, hostname `imac-di-gianluca`, IP `100.75.238.38`.
+4. **Token API generato Luke + salvato `.env` come `TAILSCALE_API_TOKEN`** (90gg validity).
+5. **ACL update via API** `POST /tailnet/-/acl` aggiunto `nodeAttrs: [{target:["autogroup:member"], attr:["funnel"]}]` → CapMap funnel propagato al device.
+6. **HTTPS certs enabled via API** `PATCH /tailnet/-/settings httpsEnabled:true`.
+7. **Cert Let's Encrypt provisioned** via `tailscale cert imac-di-gianluca.tail62c468.ts.net` (`Wrote public cert + private key`).
+8. **`tailscale funnel --bg 9191`** invocato → output success ("Funnel started and running in the background", URL exposed). Status check successivo: `No serve config` / JSON `{}`. DNS pubblico `dig +short @1.1.1.1 imac-di-gianluca.tail62c468.ts.net` → NXDOMAIN.
+
+### 🐛 Bug macOS Tailscale.app funnel state desync (BACKLOG dettagli completi)
+
+`tailscale funnel --bg` set risponde success ma stato non persistito in system extension daemon. Probabile bug socket bridge CLI ↔ network extension. Mitigation S155-bis: reboot Tailscale.app via GUI prima di re-set funnel, oppure usa GUI mode.
+
+### Cosa NON fatto (S155, deferred S155-bis)
+
+- ❌ Verifica funnel status non-empty + DNS pubblico
+- ❌ Smoke external `curl https://imac-di-gianluca.tail62c468.ts.net/status`
+- ❌ Update Worker secret `WA_DAEMON_URL`
+- ❌ Smoke E2E step 6+7 con `wa_sent: true`
+- ❌ Day 1 reale Stile Car
+- ❌ `prompts/s156_day1_real_dealer.md`
+
+### Cosa fare nel prossimo prompt (fresh context S155-bis)
+
+```
+leggi prompts/s155b_funnel_smoke.md ed esegui
+```
+
+(prompt creato in questa sessione, ~45min)
+
+---
+
+## 📜 STATO PRECEDENTE — S154-ter PARTIAL (2026-05-04 13:00)
 
 **Sessione corrente (S154-ter)**: phone-format fix deployed, rate-limit Retry-After verificato, 6/8 smoke E2E verde. WA delivery KO per blocker architetturale non legato a phone format: **Cloudflare Workers non possono raggiungere LAN daemon `192.168.1.2:9191`** (CF error 1003 — Direct IP Access Not Allowed). Già documentato in wa-daemon.ts:8-11 come known limitation pre-prod.
 
