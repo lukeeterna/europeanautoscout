@@ -143,5 +143,26 @@
 ## Scraper "ROTTI" BMW Serie 3/5 + Mercedes GLC/C/E/GLE (CLAUDE.md, ✅ VERIFICATO FALSE-POSITIVE S157)
 **Status**: ✅ NON ROTTI — claim CLAUDE.md obsoleto. Verificato S157 (2026-05-05): tutti 6 modelli producono 19-20 listing/run su autoscout24.de con `price_eur`, `km`, `seller_name` tutti popolati. Slug `-(alle)` ritorna HTTP 200. Pipeline E2E BMW Serie 3 → CoVe → PDF in 41s, 2 PROCEED su 16. CLAUDE.md aggiornato a "E2E FUNZIONANTE".
 
-## PDF dossier size 5KB sospetto (rilevato S157)
-- Pipeline genera PDF 5,296 bytes con 6 immagini OK scaricate (≥18KB cad). Sembra template HTML/PDF non incorpora le immagini — verificare `tools/scripts/pdf_generator_enterprise.py`. Non blocker (pipeline E2E completa), ma da fixare prima di S159 Day 1 reale.
+## PDF dossier size 5KB sospetto (rilevato S157, ✅ FIXED S158)
+**Status**: ✅ FIXED S158 (2026-05-05). Root cause: `_download_image_to_temp` in `pdf_generator_enterprise.py` non upgradava URL thumbnail AutoScout24 (`/250x188.webp`) a full-res (`/2560x1920.webp`); il filtro `> 30000` byte poi escludeva tutte le immagini 9-22KB. Fix: aggiunto `_upgrade_thumbnail_url()` (replica `image_downloader.PORTAL_IMAGE_UPGRADES`) prima del download. Verifica: BMW Serie 3 PDF 5,289 → **4,161,219 bytes** (4.1MB), Mercedes GLC PDF **4,761,092 bytes** (4.7MB), 6 image XObjects + 6 DCTDecode JPG embedded confermati via raw PDF inspection. Diagnosi completa in `.planning/S158-PDF-DIAGNOSIS.md`.
+
+## Image Sanitizer (PaddleOCR) NON OPERATIVO — leak foto dealer originario (rilevato S158, defer)
+**Status**: 🟡 PRE-EXISTING + RILEVATO S158 (2026-05-05). NOT FIXED.
+
+**Sintomo**: Il PDF generato S158 contiene foto full-res direttamente dal CDN AutoScout24 con watermark/branding del dealer tedesco originario visibili (targhe, numeri telefono, loghi concessionario). Violazione zero-source policy ARGOS — un dealer Sud Italia capisce subito da quale portale arriva l'opportunità.
+
+**Root cause** (nel codice già prima S158):
+- `_find_sanitizer_python()` cerca Python con PaddleOCR su `/usr/local/bin/python3.12`, `/usr/bin/python3`, `/usr/local/bin/python3.11` — nessuno lo ha installato sul MacBook
+- Quando non trovato, `_sanitize_photo()` (line 1531-1538) ritorna `image_path` (l'immagine RAW originale) senza modifiche
+- Il log stampa `[SANITIZER] 6/6 photos sanitized` ma il count include anche le immagini RAW non realmente sanitized → **messaggio fuorviante**
+
+**Pre-esistente**: il bug era già presente in S157 e prima — non visibile perché le immagini non venivano embeddate (Bug S158 sopra). Ora che le full-res vengono embedded correttamente, il problema sanitizer è esposto.
+
+**Cosa fare (defer S158-bis o S159+)**:
+1. Setup PaddleOCR: `python3.12 -m pip install paddleocr` o creare venv `~/.argos-sanitizer-venv/`
+2. Verificare path candidates in `_find_sanitizer_python()` includano il venv dedicato
+3. Smoke re-run: log deve mostrare `[SANITIZER] Using /path (has PaddleOCR)` invece di "No Python with PaddleOCR found"
+4. Visual inspection PDF post-fix: targhe blur + watermark dealer originale rimossi
+5. **Bonus fix log**: `_sanitize_photo()` deve distinguere "RAW (passthrough)" da "sanitized"; messaggio finale deve riportare numeri reali (es. `0/6 sanitized (PaddleOCR missing) — photos RAW`)
+
+**Implicazione operativa Day 1**: NON inviare PDF S158 a dealer reali finché sanitizer non operativo. PDF dealer-grade in size, ma leak operativo non risolto.

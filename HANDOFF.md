@@ -1,10 +1,59 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-05 19:45 — S157 CHIUSO VERDE: scraper "rotti" CLAUDE.md erano false-positive — tutti 6 modelli funzionanti, pipeline E2E BMW Serie 3 verde in 41s
+**Aggiornato**: 2026-05-05 20:20 — S158 CHIUSO VERDE: PDF dossier da 5KB → 4.1MB BMW / 4.7MB Mercedes con 6 immagini full-res embedded (root cause: thumbnail URL non upgradato + filtro 30KB)
 
 ---
 
-## 🟢 STATO CORRENTE — S157 CHIUSO VERDE (2026-05-05 19:45)
+## 🟢 STATO CORRENTE — S158 CHIUSO VERDE (2026-05-05 20:20)
+
+**Sessione (S158)**: fix PDF generator (5,289 bytes era inutilizzabile per dealer Day 1). Outcome: PDF dealer-grade > 4MB cross-brand verde, 6 immagini full-res embedded confermate via PDF inspection.
+
+### Cosa fatto
+1. **Pre-conditions 5/5 verdi**: iMac up, WA daemon connected (2/15 daily), tailscaled standalone PID 133, PM2 argos-wa-daemon + argos-cf-monitor online uptime 25h
+2. **Phase 1 diagnosi (~10min)**: baseline run BMW Serie 3 → PDF 5,289 bytes con 6 immagini "OK" (9-22KB cad). Inspect `tools/scripts/pdf_generator_enterprise.py` → trovato 2 bug compounded:
+   - **Bug A**: `_download_image_to_temp` (line 1457) NON upgrada URL thumbnail. Scraper produce `/250x188.webp` AutoScout24 → download 9-22KB
+   - **Bug B**: filtro `> 30000` byte (lines 236, 275, 301) esclude TUTTE le immagini → PDF senza img → 5KB
+   - Verifica empirica: `curl /250x188.webp` = 22KB vs `curl /2560x1920.webp` = 140KB ✅
+3. **Phase 2 fix mirato (~10min)**: aggiunto `_upgrade_thumbnail_url()` che replica `tools/scrapers/image_downloader.PORTAL_IMAGE_UPGRADES` (autoscout24/olx/otomoto/standvirtual/autovit/finn/blocket/marktplaats/2dehands/willhaben). `_download_image_to_temp` ora prova URL upgradato + fallback originale. Filtro 30KB invariato (safety net contro placeholder).
+4. **Phase 3 validation cross-brand (~12min)**:
+   - BMW Serie 3 → **4,161,219 bytes (4.1MB)**, immagini 215-646 KB
+   - Mercedes GLC → **4,761,092 bytes (4.7MB)**, immagini 393-954 KB
+   - PDF inspection: 6 image XObjects + 6 DCTDecode JPG embedded in entrambi
+   - Visual: PDF aperto su macOS Preview ✅
+5. **Phase 4 docs**: `.planning/S158-PDF-DIAGNOSIS.md` (root cause + fix), BACKLOG.md (FIXED marker), HANDOFF.md (questa entry), MEMORY.md S158
+
+### Risultati misurabili S158
+- PDF size: 5,289 → **4,161,219** bytes (788x growth) BMW
+- PDF size: → **4,761,092** bytes Mercedes (cross-brand)
+- 6 immagini full-res embedded verificate (raw PDF stream count)
+- Tempo totale: ~35min execution (vs timebox 60min)
+
+### ⚠️ CAVEAT S158 — Sanitizer NON operativo (issue collaterale rilevato Luke a fine sessione)
+PDF S158 contengono foto full-res RAW direttamente dal CDN AutoScout24 — watermark/branding dealer tedesco originario, targhe, numeri telefono visibili. Log stampa `[SANITIZER] 6/6 photos sanitized` ma è messaggio fuorviante: `_find_sanitizer_python()` non trova PaddleOCR su MacBook → `_sanitize_photo()` ritorna RAW passthrough.
+
+**Pre-existing bug** (era già rotto in S157 e prima — non visibile perché immagini non embeddate). Ora esposto.
+
+**Implicazione**: PDF dealer-grade IN SIZE ma con **leak operativo zero-source policy** (dealer Sud Italia capisce immediatamente il portale di origine). NON inviare a dealer reali finché sanitizer non operativo.
+
+**Defer**: setup PaddleOCR su Python 3.12 / venv dedicato → S158-bis o sprint dedicato. Documentato BACKLOG.md "Image Sanitizer (PaddleOCR) NON OPERATIVO".
+
+**Decisione closure VERDE con caveat** (Context Budget Gate >50% = closure forzata): scope S158 era "PDF size 5KB → dealer-grade", achieved. Sanitizer è scope separato pre-esistente.
+
+### Cosa NON fatto (regola Luke "no live senza test esplicito")
+- ❌ Day 1 reale Stile Car o altri dealer
+- ❌ `prompts/s159_*.md` (NO auto-creation, regola `feedback_no_live_without_test.md`)
+- ❌ S159 test founder interattivo (richiede sessione separata + autorizzazione esplicita Luke)
+- ❌ Fix sanitizer PaddleOCR (defer, scope separato — leak operativo da risolvere PRIMA di Day 1 reale)
+
+### Cosa fare nel prossimo prompt
+Luke decide:
+- **S159 TEST FOUNDER INTERATTIVO** (CON Luke davanti, smoke E2E veicolo reale con dossier S158 dealer-grade + WA delivery TEST_FOUNDER, autorizzazione esplicita)
+- **S160 DAY 1 REALE STILE CAR** (post-S159 verde, separata)
+- Alternative: context budget gate / health monitoring / Day 1 sequence revision V3→V4 / scouting Sud Italia
+
+---
+
+## 📜 STATO PRECEDENTE — S157 CHIUSO VERDE (2026-05-05 19:45)
 
 **Sessione (S157)**: scraper fix BMW Serie 3/5 + Mercedes GLC/C/E/GLE. **Outcome inatteso**: claim CLAUDE.md "scraper rotti" è OBSOLETO/FALSE-POSITIVE. Tutti 6 modelli funzionanti su autoscout24.de.
 
