@@ -1,10 +1,10 @@
 # ARGOS — combaretrovamiauto-enterprise
 
 ## Stato pipeline
-- E2E: NON FUNZIONANTE — scraper 404 su Mercedes + BMW sedan, seller_name NULL su AS24.it
+- E2E: FUNZIONANTE (verificato S157) — scrape→CoVe→PDF su BMW Serie 3 in 41s, 2 PROCEED su 16 listing
 - WA daemon: ONLINE su iMac (porta 9191)
 - Dealer contattati reali: 0 (TEST_FOUNDER in attesa risposta fino al 23 Aprile)
-- Scraper OK: BMW X3/X1/X5, Audi Q5/A4 | Scraper ROTTI: BMW Serie 3/5, Mercedes GLC/C/E/GLE
+- Scraper OK (verificato S157 — tutti producono ~20 listing/modello con price/km/seller_name): BMW X3/X1/X5/Serie 3/Serie 5, Audi Q5/A4, Mercedes Classe C/E/GLC/GLE
 
 ## Sprint corrente
 Leggi `CURRENT_SPRINT.md` prima di fare qualsiasi cosa.

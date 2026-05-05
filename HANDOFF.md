@@ -1,10 +1,49 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-04 18:50 — S156 CHIUSO VERDE: pm2 startup launchd + workaround spostamento a `/Library/LaunchDaemons/` + reboot test verde (cascade auto-restart in 110s senza intervento utente)
+**Aggiornato**: 2026-05-05 19:45 — S157 CHIUSO VERDE: scraper "rotti" CLAUDE.md erano false-positive — tutti 6 modelli funzionanti, pipeline E2E BMW Serie 3 verde in 41s
 
 ---
 
-## 🟢 STATO CORRENTE — S156 CHIUSO VERDE (2026-05-04 18:50)
+## 🟢 STATO CORRENTE — S157 CHIUSO VERDE (2026-05-05 19:45)
+
+**Sessione (S157)**: scraper fix BMW Serie 3/5 + Mercedes GLC/C/E/GLE. **Outcome inatteso**: claim CLAUDE.md "scraper rotti" è OBSOLETO/FALSE-POSITIVE. Tutti 6 modelli funzionanti su autoscout24.de.
+
+### Cosa fatto
+1. **Pre-conditions verdi 5/5**: iMac up, WA daemon connected (2/15 daily), tailscaled standalone PID 133, PM2 daemon online, argos-wa-daemon + argos-cf-monitor uptime 24h
+2. **Phase 1 diagnosi (~10min)**: test URL diretti curl + run scraper Python diretto su BMW Serie 3 → 19 listing CON price/km/seller_name TUTTI popolati. Slug `-(alle)` ritorna HTTP 200, NON è broken. Esteso test agli altri 5 modelli rotti → tutti 19-20 listing per modello, fields completi
+3. **Phase 2 fix SKIP**: nessun fix necessario. Scraper già funzionante (probabilmente fixato in sprint precedente, CLAUDE.md non aggiornato)
+4. **Phase 3 validation E2E**: `python3 tools/on_demand_runner.py --marca BMW --modello "Serie 3" --budget 35000 --dealer "S157_VALIDATION"` → 16 listing → 16 CoVe scored → 2 PROCEED → A4 quality gate verde 2 qualificati → 6 immagini scaricate → PDF generato in 41.6s totali
+5. **Phase 4 docs**: CLAUDE.md aggiornato (status E2E FUNZIONANTE + scraper OK list espansa), BACKLOG.md (claim verificato FALSE-POSITIVE + nuovo entry "PDF size 5KB sospetto"), HANDOFF (questa entry), MEMORY.md S157
+
+### Risultati misurabili S157
+- Scraper OK confermato: BMW Serie 3 (19), BMW Serie 5 (20), Mercedes Classe C (20), Classe E (20), GLC (20), GLE (20)
+- Pipeline E2E: 16 raw → 16 CoVe → 2 PROCEED → 6 immagini → 1 PDF in 41.6s
+- Tempo totale sessione: ~10min execution + ~5min docs = ~15min (vs timebox 90min)
+
+### Issue collaterale rilevato (defer)
+- **PDF dossier 5,296 bytes sospettosamente piccolo** nonostante 6 immagini scaricate OK (≥18KB cad). Probabile bug template `tools/scripts/pdf_generator_enterprise.py` non incorpora binarie. Documentato BACKLOG.md "PDF dossier size 5KB sospetto". NON blocker S157 (scope = scraper). Fixare prima S159 Day 1 reale Stile Car.
+
+### Cosa NON fatto (regola Luke "no live senza test esplicito")
+- ❌ Day 1 reale Stile Car o altri dealer
+- ❌ `prompts/s158_*.md` (NO auto-creation, regola `feedback_no_live_without_test.md`)
+- ❌ Fix PDF size (defer, fuori scope S157)
+
+### Cosa fare nel prossimo prompt (sessione successiva, fresh context)
+
+Decisione Luke richiesta. Path produzione:
+- **S158 PDF FIX** (~30min autonomo) → fix PDF generator perché 5KB non è dossier dealer-grade
+- **S158 TEST FOUNDER INTERATTIVO** (~45min CON Luke) → smoke E2E con WA delivery validation visiva, usa veicolo reale prodotto S157
+- **S159 DAY 1 REALE STILE CAR** (separata, post S158 verde + autorizzazione Luke esplicita)
+
+Alternative:
+- Health monitoring 5min cron + Telegram alert (S158 dedicato ops)
+- Smoke front-end SIGN flow Cloudflare Pages browser
+- Day 1 sequence revision V3 → V4
+- Dealer scouting Sud Italia espansione pipeline
+
+---
+
+## 📜 STATO PRECEDENTE — S156 CHIUSO VERDE (2026-05-04 18:50)
 
 **Sessione (S156)**: ops hardening post tailscaled standalone S155-tris. Target: persistenza PM2 cross-reboot iMac. Achieved: LaunchDaemon system-level via workaround pm2 bug + reboot test verde 110s totali.
 

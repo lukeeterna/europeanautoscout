@@ -139,3 +139,9 @@
 - `mobile_de`: MobileDeScraper non implementa `parse_search_results` (abstract method) — on_demand_runner skips silenziosamente
 - `seller_name` ancora NULL per listing DE/NL già esistenti — solo nuovi insert la salvano (fix S131)
 - `vehicle_listings.seller_city` non estratta (disponibile in `item.location` su AS24.it)
+
+## Scraper "ROTTI" BMW Serie 3/5 + Mercedes GLC/C/E/GLE (CLAUDE.md, ✅ VERIFICATO FALSE-POSITIVE S157)
+**Status**: ✅ NON ROTTI — claim CLAUDE.md obsoleto. Verificato S157 (2026-05-05): tutti 6 modelli producono 19-20 listing/run su autoscout24.de con `price_eur`, `km`, `seller_name` tutti popolati. Slug `-(alle)` ritorna HTTP 200. Pipeline E2E BMW Serie 3 → CoVe → PDF in 41s, 2 PROCEED su 16. CLAUDE.md aggiornato a "E2E FUNZIONANTE".
+
+## PDF dossier size 5KB sospetto (rilevato S157)
+- Pipeline genera PDF 5,296 bytes con 6 immagini OK scaricate (≥18KB cad). Sembra template HTML/PDF non incorpora le immagini — verificare `tools/scripts/pdf_generator_enterprise.py`. Non blocker (pipeline E2E completa), ma da fixare prima di S159 Day 1 reale.
