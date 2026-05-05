@@ -30,13 +30,20 @@
 
 ### Cosa fare nel prossimo prompt (sessione successiva, fresh context)
 
-Decisione Luke richiesta. Path produzione:
-- **S158 PDF FIX** (~30min autonomo) → fix PDF generator perché 5KB non è dossier dealer-grade
-- **S158 TEST FOUNDER INTERATTIVO** (~45min CON Luke) → smoke E2E con WA delivery validation visiva, usa veicolo reale prodotto S157
-- **S159 DAY 1 REALE STILE CAR** (separata, post S158 verde + autorizzazione Luke esplicita)
+```
+leggi prompts/s158_pdf_fix.md ed esegui
+```
 
-Alternative:
-- Health monitoring 5min cron + Telegram alert (S158 dedicato ops)
+**S158 deciso CTO call (2026-05-05 fine S157)**: fix PDF generator (5,296 bytes con 6 immagini è inutilizzabile) sblocca path produzione S159 test founder interattivo → S160 Day 1 reale Stile Car. Lavoro autonomo zero-rischio dealer, timebox 60min.
+
+**Path produzione**:
+- S158 PDF FIX (60min autonomo) → dossier dealer-grade > 200KB con immagini embedded
+- S159 TEST FOUNDER INTERATTIVO (45min CON Luke) → smoke E2E veicolo reale + WA delivery validation visiva
+- S160 DAY 1 REALE STILE CAR (separata, Luke autorizza esplicito post-S159 verde)
+
+Alternative se Luke vuole altro:
+- Context budget gate (3 componenti hook/regola/statusline) — sprint dedicato S160+
+- Health monitoring 5min cron + Telegram alert
 - Smoke front-end SIGN flow Cloudflare Pages browser
 - Day 1 sequence revision V3 → V4
 - Dealer scouting Sud Italia espansione pipeline
