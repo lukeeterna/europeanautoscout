@@ -41,7 +41,19 @@
 
 ### Cosa fare nel prossimo prompt (sessione successiva, fresh context)
 
-🛑 NIENTE prompt S157 auto-creato. Luke deciderà tra:
+```
+leggi prompts/s157_scraper_fix.md ed esegui
+```
+
+**S157 deciso CTO call (2026-05-04 fine sessione)**: scraper fix BMW Serie 3/5 + Mercedes GLC/C/E/GLE è path critico verso "produrre" (primo dealer reale). Sblocca in cascata S158 (test founder interattivo CON Luke) → S159 (Day 1 reale Stile Car). Lavoro autonomo zero-rischio dealer, timebox 90min.
+
+**Path produzione**:
+- S157 SCRAPER FIX (90min autonomo) → produce veicoli reali con numeri reali
+- S158 TEST FOUNDER INTERATTIVO (45min CON Luke) → smoke E2E veicolo reale + WA delivery validation visiva
+- S159 DAY 1 REALE STILE CAR (separata, Luke autorizza esplicito post-S158 verde)
+- S160 ITERATION (post-feedback Stile Car) → V3→V4
+
+Alternative se Luke vuole altro:
 
 - **Test interattivo CON Luke su 1° dealer reale** (Day 1 esplicito, sessione separata + autorizzazione + presenza interattiva)
 - **Health monitoring 5min** (S157 dedicato: script bash + cron/launchd MacBook + smoke alert Telegram end-to-end)
