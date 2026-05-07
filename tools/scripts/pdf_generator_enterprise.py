@@ -1559,8 +1559,9 @@ def _find_sanitizer_python():
         return _SANITIZER_PYTHON
 
     import subprocess
-    # Priority order: python3.12 (has paddleocr), /usr/bin/python3 (system, has it too)
-    for py in ['/usr/local/bin/python3.12', '/usr/bin/python3', '/usr/local/bin/python3.11']:
+    # Priority order: dedicated venv (S159) > python3.12 > /usr/bin/python3 > python3.11 system
+    home = os.path.expanduser('~')
+    for py in [f'{home}/.argos-sanitizer-venv/bin/python', '/usr/local/bin/python3.12', '/usr/bin/python3', '/usr/local/bin/python3.11']:
         try:
             r = subprocess.run(
                 [py, '-c', 'import paddleocr; print("ok")'],

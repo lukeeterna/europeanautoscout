@@ -1,10 +1,45 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-05 20:20 — S158 CHIUSO VERDE: PDF dossier da 5KB → 4.1MB BMW / 4.7MB Mercedes con 6 immagini full-res embedded (root cause: thumbnail URL non upgradato + filtro 30KB)
+**Aggiornato**: 2026-05-06 17:50 — S159 CHIUSO ARANCIONE/PARTIAL: setup PaddleOCR venv 3.11 OK in install ma cv2 dylib incompatibile macOS 11 → import fallisce → fallback RAW invariato. 4 path S160 documentati.
 
 ---
 
-## 🟢 STATO CORRENTE — S158 CHIUSO VERDE (2026-05-05 20:20)
+## 🟠 STATO CORRENTE — S159 CHIUSO ARANCIONE/PARTIAL (2026-05-06 17:50)
+
+**Decisione CTO Luke**: "decidi tu vincoli 0 cost enterprise". Scelta opzione A (setup PaddleOCR locale).
+**Closure forzata**: Luke ha richiesto chiusura ARANCIONE per evitare sforo context >50% (pattern S158).
+
+### Cosa fatto
+1. Creato venv `~/.argos-sanitizer-venv/` Python 3.11.11
+2. Installati: paddlepaddle 3.0.0, paddleocr 3.5.0, paddlex 3.5.1, opencv-python 4.9, opencv-contrib-python 4.9, numpy 2.3.5, PyYAML 6.0.2 + ~30 deps
+3. Editato `tools/scripts/pdf_generator_enterprise.py` line 1563: `_find_sanitizer_python()` priorità venv path > python3.12 > python3 system > python3.11 system
+
+### Blocker trovato
+```
+ImportError: dlopen(.../cv2/cv2.abi3.so):
+  Symbol not found in libtesseract.5.dylib (built for Mac OS X 12.0)
+```
+Root cause: opencv-contrib-python 4.9 wheel embed `libtesseract.5.dylib` compilato contro macOS 12.0 SDK. MacBook Luke è macOS 11 Big Sur (Darwin 20.6.0).
+
+### Edit codice safe
+`_find_sanitizer_python()` testa `import paddleocr` PRIMA di accettare il candidato → venv broken non viene mai usato → falls through a Python successivo → fallback RAW invariato. **Zero regressione vs pre-S159**.
+
+### Path alternativi S160 (in `s159_partial_blocker.md`)
+- **B (raccomandato primo tentativo)**: skip opencv-contrib-python, usa solo opencv-python — costo basso, 10min test
+- **A (raccomandato fallback)**: sanitizer via SSH iMac (macOS 12.7.4 compat) — sfrutta infra esistente
+- **C**: pin opencv-contrib<4.8 — minimal change ma rischio version constraint
+- **D**: Docker — high overhead
+
+### File modificati S159 (commit pending)
+- `tools/scripts/pdf_generator_enterprise.py` line 1563 (edit safe)
+- `~/.argos-sanitizer-venv/` esterno repo (~600MB, OK)
+
+### Resume next session
+`leggi prompts/s160_sanitizer_resolve.md ed esegui` (timebox 45min). Day 1 reale Stile Car ancora bloccato fino S160 verde.
+
+---
+
+## 🟢 STATO PRECEDENTE — S158 CHIUSO VERDE (2026-05-05 20:20)
 
 **Sessione (S158)**: fix PDF generator (5,289 bytes era inutilizzabile per dealer Day 1). Outcome: PDF dealer-grade > 4MB cross-brand verde, 6 immagini full-res embedded confermate via PDF inspection.
 
