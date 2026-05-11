@@ -1,10 +1,37 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-06 17:50 — S159 CHIUSO ARANCIONE/PARTIAL: setup PaddleOCR venv 3.11 OK in install ma cv2 dylib incompatibile macOS 11 → import fallisce → fallback RAW invariato. 4 path S160 documentati.
+**Aggiornato**: 2026-05-11 20:35 — S160 CHIUSO VERDE su stack-fix: combo `cv2 4.7 + numpy 1.26 + paddleocr 3.5` operativa nel venv. Smoke E2E visual deferred → S161 (warmup modelli + pipeline completa).
 
 ---
 
-## 🟠 STATO CORRENTE — S159 CHIUSO ARANCIONE/PARTIAL (2026-05-06 17:50)
+## 🟢 STATO CORRENTE — S160 CHIUSO VERDE su stack-fix (2026-05-11 20:35)
+
+**Goal raggiunto**: sblocco dylib macOS 11 in `~/.argos-sanitizer-venv/`. `import paddleocr` + `import cv2` + `PaddleOCR class` tutti OK. `_find_sanitizer_python()` ora seleziona correttamente il venv.
+
+### Cosa fatto S160
+1. **Path B testato (fail)**: rimosso `opencv-contrib-python` → `import paddleocr` OK ma `import cv2` fallisce (`libvmaf.1.dylib` macOS 12 embed in opencv-python 4.9 main wheel)
+2. **Path B2 testato (fail)**: `opencv-python 4.8.1.78` → wheel macOS 10.16 ma ABI numpy 2.x rotta
+3. **Path C GREEN**: `opencv-python==4.7.0.72 + numpy<2 + paddleocr 3.5.0` — tutto importa + classe inizializzabile
+4. **Fix `_find_sanitizer_python()` timeout 10→30s**: misurato `import paddleocr` = 14.85s wall clock; old timeout faceva fallback RAW
+5. Combo verificata via `from paddleocr import PaddleOCR; print('PaddleOCR class OK')` foreground
+
+### File modificati S160 (commit pending)
+- `tools/scripts/pdf_generator_enterprise.py` line 1568: `timeout=10` → `timeout=30`
+- `~/.argos-sanitizer-venv/` (fuori repo): opencv-python 4.9→4.7.0.72, numpy 2.3.5→1.26.4, opencv-contrib-python uninstalled
+- `.planning/s160_path_c_working_combo.md` (nuovo): combo + motivazione + lezioni
+- `prompts/s161_sanitizer_smoke.md` (nuovo): warmup + smoke E2E + visual inspection
+
+### Cosa NON fatto S160 (deferred S161)
+- ❌ Smoke E2E completo: pipeline lanciata 20:15:27, killata 20:28 (~13min wall, 4min CPU) — assumption errata "hung su PaddleOCR model download" mentre era in CoVe scoring 30+ listing × ADAC. Lezione: kill prematuro = spreco lavoro
+- ❌ Visual inspection PDF (targhe blur, watermark mask)
+- ❌ Warmup modelli PaddleOCR esplicito (defer S161 Step 1)
+
+### Resume next session
+`leggi prompts/s161_sanitizer_smoke.md ed esegui` (timebox 30min). Day 1 reale Stile Car ancora bloccato fino S161 verde con visual inspection.
+
+---
+
+## 🟠 STATO PRECEDENTE — S159 CHIUSO ARANCIONE/PARTIAL (2026-05-06 17:50)
 
 **Decisione CTO Luke**: "decidi tu vincoli 0 cost enterprise". Scelta opzione A (setup PaddleOCR locale).
 **Closure forzata**: Luke ha richiesto chiusura ARANCIONE per evitare sforo context >50% (pattern S158).

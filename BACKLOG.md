@@ -147,7 +147,7 @@
 **Status**: ✅ FIXED S158 (2026-05-05). Root cause: `_download_image_to_temp` in `pdf_generator_enterprise.py` non upgradava URL thumbnail AutoScout24 (`/250x188.webp`) a full-res (`/2560x1920.webp`); il filtro `> 30000` byte poi escludeva tutte le immagini 9-22KB. Fix: aggiunto `_upgrade_thumbnail_url()` (replica `image_downloader.PORTAL_IMAGE_UPGRADES`) prima del download. Verifica: BMW Serie 3 PDF 5,289 → **4,161,219 bytes** (4.1MB), Mercedes GLC PDF **4,761,092 bytes** (4.7MB), 6 image XObjects + 6 DCTDecode JPG embedded confermati via raw PDF inspection. Diagnosi completa in `.planning/S158-PDF-DIAGNOSIS.md`.
 
 ## Image Sanitizer (PaddleOCR) NON OPERATIVO — leak foto dealer originario (rilevato S158, defer)
-**Status**: 🟡 PRE-EXISTING + RILEVATO S158 (2026-05-05). NOT FIXED.
+**Status**: 🟢 STACK-FIXED S160 (2026-05-11) — combo `opencv-python==4.7.0.72 + numpy<2 + paddleocr 3.5` operativa in `~/.argos-sanitizer-venv/`. `_find_sanitizer_python()` timeout 30s. **Smoke E2E + visual inspection deferred S161** (`prompts/s161_sanitizer_smoke.md`). Day 1 reale Stile Car bloccato fino S161 verde. Dettagli: `.planning/s160_path_c_working_combo.md`.
 
 **Sintomo**: Il PDF generato S158 contiene foto full-res direttamente dal CDN AutoScout24 con watermark/branding del dealer tedesco originario visibili (targhe, numeri telefono, loghi concessionario). Violazione zero-source policy ARGOS — un dealer Sud Italia capisce subito da quale portale arriva l'opportunità.
 

@@ -1565,7 +1565,7 @@ def _find_sanitizer_python():
         try:
             r = subprocess.run(
                 [py, '-c', 'import paddleocr; print("ok")'],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True, text=True, timeout=30,
                 env={**os.environ, 'PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK': 'True'},
             )
             if r.returncode == 0 and 'ok' in r.stdout:
