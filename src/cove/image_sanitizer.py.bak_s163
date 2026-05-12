@@ -1,28 +1,21 @@
 """
-image_sanitizer.py — ARGOS Image Sanitizer v4 (S163)
+image_sanitizer.py — ARGOS Image Sanitizer v3
 CoVe 2026 | Enterprise Grade
 
 5-stage pipeline validated on 10+ real dealer photos (S110):
   Stage 0: Interior/exterior classifier (photo index heuristic)
   Stage 1: Crop portal banner (top zone, configurable per portal)
-  Stage 2: Apple Vision text detection (was PaddleOCR pre-S163)
+  Stage 2: PaddleOCR PP-OCRv4 text detection
   Stage 3: Inpainting — TELEA for small areas, LaMa crop for large
   Stage 4: Post-OCR verification + Telegram alert if residuals
 
 BUSINESS RULE: The dealer must NOT be able to identify the EU seller
 from the dossier. Source identity is revealed ONLY after fee payment.
 
-S163 (2026-05-12): PaddleOCR replaced with Apple Vision Framework via pyobjc.
-Reason: paddle wheel macOS minos=12.3 (S159) + iMac AVX1-only (S162) = dead-end
-strutturale su hardware Luke. Vision.framework è built-in macOS 10.13+,
-zero ML deps install, zero AVX2 req. Quality verified on 4 real dealer photos:
-4/4 seller match "Autohaus Isernhagen", warm latency 1.6-2.0s/img.
-
-Stack (all Apache 2.0 / MIT / Apple system):
-  - Apple Vision Framework (system, free, built-in 10.13+)
-  - pyobjc-framework-Vision (Apache 2.0): Python bindings
+Stack (all Apache 2.0 / MIT):
+  - PaddleOCR PP-OCRv4: text detection + recognition
   - cv2.inpaint TELEA: fast inpainting for small text (<30K px²)
-  - simple-lama-inpainting: quality inpainting for large areas (optional)
+  - simple-lama-inpainting: quality inpainting for large areas
   - Pillow: EXIF strip, save, branding
 
 Usage:
@@ -119,32 +112,42 @@ ARGOS_LOGO_PATH = PROJECT_ROOT / "assets" / "ARGOS_logo_sobrio_horizontal.png"
 DEFAULT_SAFE_DIR = PROJECT_ROOT / "dossiers" / "safe_images"
 
 
-# ── Vision OCR backend (S163: replaces PaddleOCR) ────────────────────────────
+# ── Lazy-loaded models (ONE init per process) ────────────────────────────────
 
-_VISION_OCR_FN = None
+_PADDLE_OCR = None
 _SIMPLE_LAMA = None
 
 
-def _get_vision_ocr():
-    """Lazy-load Apple Vision OCR detector (S163).
-
-    Returns callable(image_path, seller_name, keep_words, conf_min) -> List[Dict]
-    Same return shape as previous paddle-based detector.
-    """
-    global _VISION_OCR_FN
-    if _VISION_OCR_FN is None:
+def _get_paddle_ocr():
+    """Initialize PaddleOCR (lazy, ~5s first call on iMac)."""
+    global _PADDLE_OCR
+    if _PADDLE_OCR is None:
         try:
-            try:
-                from .vision_ocr import detect_text_regions
-            except ImportError:
-                from vision_ocr import detect_text_regions  # type: ignore
-            _VISION_OCR_FN = detect_text_regions
-            log.info("Vision OCR (Apple Framework) initialized")
-        except ImportError as e:
-            log.warning(f"vision_ocr not available: {e}")
+            # Skip slow connectivity check on startup
+            os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
+
+            from paddleocr import PaddleOCR
+            # Suppress noisy paddle/paddlex logs
+            for logger_name in ("ppocr", "paddle", "paddlex"):
+                logging.getLogger(logger_name).setLevel(logging.ERROR)
+
+            # PaddleOCR 3.x API — mobile models + no doc preprocessing
+            _PADDLE_OCR = PaddleOCR(
+                text_detection_model_name='PP-OCRv5_mobile_det',
+                text_recognition_model_name='en_PP-OCRv5_mobile_rec',
+                text_det_thresh=PADDLE_DET_THRESH,
+                text_det_box_thresh=PADDLE_BOX_THRESH,
+                text_rec_score_thresh=PADDLE_CONF_MIN,
+                use_doc_orientation_classify=False,
+                use_doc_unwarping=False,
+                use_textline_orientation=False,
+            )
+            log.info("PaddleOCR initialized")
+        except ImportError:
+            log.warning("PaddleOCR not installed — text detection disabled")
         except Exception as e:
-            log.error(f"Vision OCR init failed: {e}")
-    return _VISION_OCR_FN
+            log.error(f"PaddleOCR init failed: {e}")
+    return _PADDLE_OCR
 
 
 def _get_simple_lama():
@@ -306,29 +309,87 @@ def _detect_text_regions(
     image_path: str, seller_name: str = None
 ) -> List[Dict]:
     """
-    Detect all text regions using Apple Vision Framework (S163).
+    Detect all text regions using PaddleOCR PP-OCRv4.
 
     Returns list of dicts:
       {box: (x1,y1,x2,y2), text: str, conf: float, is_seller: bool, should_mask: bool}
-
-    Note: vision_ocr.detect_text_regions encapsulates the seller-match + KEEP_WORDS
-    filter logic. We pass module-level KEEP_WORDS so it stays the single source.
     """
-    vision_fn = _get_vision_ocr()
-    if vision_fn is None:
+    ocr = _get_paddle_ocr()
+    if ocr is None:
         return []
 
+    results = []
     try:
-        return vision_fn(
-            image_path,
-            seller_name=seller_name,
-            keep_words=KEEP_WORDS,
-            conf_min=PADDLE_CONF_MIN,
-            min_text_len=PADDLE_TEXT_MIN_LEN,
-        )
+        # PaddleOCR 3.x: ocr() returns list of OCRResult (dict-like)
+        ocr_result = list(ocr.predict(image_path))
+        if not ocr_result:
+            return []
+
+        # Build seller word blocklist
+        seller_words = set()
+        if seller_name:
+            for sw in seller_name.lower().split():
+                if len(sw) >= 3:
+                    seller_words.add(sw)
+
+        # PaddleOCR 3.x: result is list of OCRResult objects
+        # Each OCRResult has ["rec_texts"], ["rec_scores"], ["dt_polys"], ["rec_polys"]
+        for page_result in ocr_result:
+            rec_texts = page_result["rec_texts"]
+            rec_scores = page_result["rec_scores"]
+            rec_polys = page_result["rec_polys"]
+
+            for text, conf, poly in zip(rec_texts, rec_scores, rec_polys):
+                if conf < PADDLE_CONF_MIN:
+                    continue
+                if len(text.strip()) < PADDLE_TEXT_MIN_LEN:
+                    continue
+
+                # Convert polygon to bounding rect
+                poly_arr = np.array(poly)
+                xs = poly_arr[:, 0].astype(int)
+                ys = poly_arr[:, 1].astype(int)
+                x1, y1, x2, y2 = int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())
+
+                words_lower = text.lower().strip().split()
+
+                # Check if seller name match
+                is_seller = False
+                if seller_words:
+                    for wl in words_lower:
+                        for sw in seller_words:
+                            if sw in wl or wl in sw:
+                                is_seller = True
+                                break
+                        if is_seller:
+                            break
+
+                # Decide if should mask
+                should_mask = True
+                if not is_seller:
+                    # Keep car spec words
+                    if all(w in KEEP_WORDS for w in words_lower):
+                        should_mask = False
+                    # Keep very short text with low confidence (noise)
+                    elif len(text.strip()) <= 2:
+                        should_mask = False
+                    # Keep pure numbers (dimensions, dates on dashboard)
+                    elif all(w.replace('.', '').replace(',', '').replace('-', '').isdigit()
+                             for w in words_lower):
+                        should_mask = False
+
+                results.append({
+                    'box': (x1, y1, x2, y2),
+                    'text': text,
+                    'conf': conf,
+                    'is_seller': is_seller,
+                    'should_mask': should_mask,
+                })
+
     except Exception as e:
-        log.error(f"Vision OCR detection failed: {e}")
-        return []
+        log.error(f"PaddleOCR detection failed: {e}")
+
+    return results
 
 
 # ── Stage 3: Inpainting ──────────────────────────────────────────────────────
@@ -482,36 +543,34 @@ def _post_verify_and_alert(
     Unlike v2 which REJECTED images with surviving text, v3 keeps the image
     but alerts for human review. This prevents empty dossiers.
     """
-    vision_fn = _get_vision_ocr()
-    if vision_fn is None:
+    ocr = _get_paddle_ocr()
+    if ocr is None:
         return True  # Can't verify, assume OK
 
     try:
-        # Re-detect on sanitized image with same seller-aware filter
-        regions = vision_fn(
-            safe_path,
-            seller_name=seller_name,
-            keep_words=KEEP_WORDS,
-            conf_min=0.30,
-            min_text_len=PADDLE_TEXT_MIN_LEN,
-        )
-        if not regions:
+        verify_result = list(ocr.predict(safe_path))
+        if not verify_result:
             return True  # Clean
 
         surviving_text = []
-        for region in regions:
-            text = region['text']
-            conf = region['conf']
-            words = text.lower().strip().split()
-            # Apply post-verify-only extra filters (mirror v3 logic):
-            if not region['should_mask'] and not region['is_seller']:
-                continue
-            garble = len(re.findall(r'[^a-zA-Z0-9\s]', text)) / max(len(text), 1)
-            if garble > 0.3:
-                continue
-            if len(text.strip()) <= 4 and conf < 0.50:
-                continue
-            surviving_text.append((text, conf))
+        for page_result in verify_result:
+            for text, conf in zip(page_result["rec_texts"], page_result["rec_scores"]):
+                if conf < 0.30:
+                    continue
+                words = text.lower().strip().split()
+                if all(w in KEEP_WORDS for w in words):
+                    continue
+                if len(text.strip()) <= 2:
+                    continue
+                if all(w.replace('.', '').replace(',', '').replace('-', '').isdigit()
+                       for w in words):
+                    continue
+                garble = len(re.findall(r'[^a-zA-Z0-9\s]', text)) / max(len(text), 1)
+                if garble > 0.3:
+                    continue
+                if len(text.strip()) <= 4 and conf < 0.50:
+                    continue
+                surviving_text.append((text, conf))
 
         if surviving_text:
             high_conf = [t for t, c in surviving_text if c >= ALERT_CONFIDENCE_THRESHOLD]
