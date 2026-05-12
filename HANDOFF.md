@@ -57,7 +57,9 @@ Symbol è `std::__1::basic_filebuf<char>::open` libc++ Monterey-only. **Wheel ta
 
 ### Resume next session
 
-`leggi prompts/s162_sanitizer_imac_offload.md ed esegui` (timebox 60min).
+`leggi prompts/s162_v2_sanitizer_alternatives.md ed esegui` (timebox 30min, investigation only no execution).
+
+⚠️ **S162 original INVALIDATO** (`prompts/s162_sanitizer_imac_offload.md` segnalato OBSOLETO): iMac CPU AVX1, paddlepaddle wheel macOS richiede AVX2 → path A morto. S162-v2 = investigation 30min decision matrix tra EasyOCR (PyTorch CPU) / Tesseract / Apple Vision Framework. Output S162-v2 = raccomandazione singola → execution sprint S163.
 
 ---
 
