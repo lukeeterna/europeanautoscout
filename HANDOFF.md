@@ -1,10 +1,56 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-12 13:05 — S161 BLOCKED strutturale + S160 closure VERDE retracted come false-positive. `PaddleOCR()` init fail su MacBook macOS 11 (paddle dylib minos 12.3). STOP path locale (vincolo 11 pattern strutturale). Resume: `prompts/s162_sanitizer_imac_offload.md`.
+**Aggiornato**: 2026-05-12 18:45 — S163 CHIUSO VERDE: sanitizer Apple Vision Framework operativo, blocker S159→S162 risolto strutturalmente. 2 commit pushati master. Vincolo Luke registrato: Day 1 Stile Car gated finché E2E pipeline (contatto→dossier→pagamento) non verde su TEST_FOUNDER. Resume: `prompts/s164_e2e_full_test_founder.md`.
 
 ---
 
-## 🔴 STATO CORRENTE — S161 BLOCKED strutturale (2026-05-12 13:05)
+## 🟢 STATO CORRENTE — S163 CHIUSO VERDE (2026-05-12 18:30)
+
+**Sanitizer Apple Vision Framework operativo** su MacBook Big Sur. Catena fallimenti S159→S160→S161→S162 chiusa strutturalmente sostituendo PaddleOCR (dylib minos 12.3, AVX2, dep hell) con `Vision.framework` system (macOS 10.13+, zero install, zero AVX2).
+
+### Cosa eseguito S163
+1. ✅ `src/cove/vision_ocr.py` — nuovo detector drop-in, lazy import `pyobjc-framework-Vision` + `pyobjc-framework-Quartz`. Same return shape del paddle-based detector (`[{box, text, conf, is_seller, should_mask}]`)
+2. ✅ `src/cove/image_sanitizer.py` v4 — `_get_vision_ocr()` lazy-load, dotenv + cv2 inpaint TELEA + LaMa crop opzionale invariati. Backup `image_sanitizer.py.bak_s163`
+3. ✅ Smoke E2E su 24 immagini reali AS24 (3 listing, seller "Autohaus Isernhagen"): 23 sanitized + 1 skip atteso S163.1 promo-slide guard (JPEG <20% size originale)
+4. ✅ Output `/tmp/argos_s163_e2e/` 23 JPG, range 75K-261K. Warm latency Vision OCR 1.6-2.0s/img su Intel MacBook
+5. ✅ `BACKLOG.md` entry: filtrare slide marketing AS24 (Premium Selection/Garantie/Wartungsfreiheit/Inzahlungnahme/Finanzierung) upstream a scraping time prima del DB insert (S163.1 guard è safety net reattivo)
+6. ✅ `git push origin master` → `70de02c..23d120a` (2 commit: 13e24d0 Vision Framework + 23d120a promo-slide guard)
+
+### CI safety verificata pre-push
+- `vision_ocr.py` top-level = solo stdlib + typing; `Vision/Quartz/Foundation` lazy-load dentro funzioni
+- `image_sanitizer.py` chiama vision_ocr via `_get_vision_ocr()` lazy → no top-level pyobjc import
+- `pyobjc` NON in `requirements.txt` → CI Linux ubuntu-22.04 non lo installa, niente crash
+- `tests/test_e2e.py` non importa né sanitizer né vision_ocr → pytest discovery safe
+- Nessun guard `sys.platform == "darwin"` necessario (lazy import basta)
+
+### Vincolo Luke (post-S163, 18:35) — Day 1 reale BLOCKED
+
+**NESSUN Day 1 dealer reale (Stile Car o altri) finché pipeline COMPLETA non gira verde end-to-end su TEST_FOUNDER `393314928901`** coprendo 4 step:
+1. Contatto: WA Day 1 delivered + risposta dealer simulata + classificazione analyzer + Day 3 schedulato
+2. Dossier: PDF enterprise generato con S163 sanitizer attivo + delivery WA
+3. Fattura: TD17/TD18/TD19 dry-run pulito (regime fiscale import EU)
+4. IBAN flow: `send-iban` + `mark-paid` Cloudflare Worker → `wa_sent: true` 2x
+
+UAT visivo sanitizer **da solo NON sblocca**. Memory `feedback_e2e_full_test_founder_before_day1.md` registrata come regola durable, override solo via istruzione esplicita Luke.
+
+### Critica strutturale (vincolo 4)
+
+1. **Assunzione nascosta risolta**: catena S159-S162 assumeva implicitamente "stack ML pesante è path obbligato per OCR"; S163 prova falso — system framework basta. Generalizzazione: per ogni task ML su Big Sur+AVX1 valutare system frameworks (Vision/Speech/CoreML built-in) **prima** di pip wheel
+2. **A 30/60/90gg**: Vision Framework è system, no breaking updates da PyPI. Risk = solo macOS major upgrade — non in roadmap Luke (no aggiornamento OS)
+3. **Pattern noto evitato**: zero ML deps installate = zero dep hell future
+4. **Sovradimensionamento**: cv2 inpaint TELEA + LaMa opzionale ancora presenti. Se UAT mostra TELEA basta su 100% casi → defer LaMa rimozione (sprint dedicato, no scope creep ora)
+
+### Day 1 Stile Car
+
+⛔ **Gated dietro S164 VERDE su 4 step E2E TEST_FOUNDER**. UAT visivo Luke su `/tmp/argos_s163_e2e/` resta gate parallelo indipendente.
+
+### Resume next session
+
+`leggi prompts/s164_e2e_full_test_founder.md ed esegui`. Vincolo session: NO send dealer reale, NO scope discovery, chiusura VERDE o HANDOFF strutturato (vincolo 6, no PARTIAL/ARANCIONE).
+
+---
+
+## 📜 STATO PRECEDENTE — S161 BLOCKED strutturale (2026-05-12 13:05) — RISOLTO da S163
 
 **Smoke E2E sanitizer fallisce a Step 1 (warmup PaddleOCR)**. S160 closure VERDE retracted come false-positive: misurato solo `import paddleocr` top-level (lazy) ma NON `PaddleOCR()` init reale.
 

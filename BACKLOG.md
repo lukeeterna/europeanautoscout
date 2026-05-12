@@ -2,6 +2,19 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
+## scraper(autoscout24): filtrare slide marketing PRIMA del DB insert (S163.1 follow-up)
+
+Filtra slide marketing AS24 (Premium Selection, Garantie, Wartungsfreiheit, Inzahlungnahme, Finanzierung) PRIMA del DB insert in `vehicle_images`. Fix economico upstream; sanitizer S163.1 è safety net non solution.
+
+**Pattern detect**:
+- `image_url` contiene marketing-asset path (es. `/promo/`, `/banner/`, hash AS24 noti per slide stock)
+- OR primo OCR Vision restituisce >5 region testo tedesco senza targa/badge BMW
+- OR aspect ratio + dominant color → slide bianca con solo overlay testuale
+
+**Razionale**: oggi S163.1 guard salta JPEG <20% size originale post-sanitize, ma è reattivo (richiede full pipeline run + inpaint + ricompress per scartare). Filtro upstream a scraping time = zero cost downstream + DB pulito (no rows da skippare).
+
+**File coinvolti**: `tools/scrapers/autoscout_scraper.py`, `vehicle_images` table.
+
 ## Gap strutturali (da S130)
 - `days_on_market` non recuperabile dai search results — richiede click su detail page
 - `vehicle_listings.matched_dealer` = NULL — le due tabelle non sono collegate
