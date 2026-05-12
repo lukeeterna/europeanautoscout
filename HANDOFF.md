@@ -1,37 +1,73 @@
 # HANDOFF — ARGOS Automotive / CoVe 2026
 **Working dir**: `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-**Aggiornato**: 2026-05-11 20:35 — S160 CHIUSO VERDE su stack-fix: combo `cv2 4.7 + numpy 1.26 + paddleocr 3.5` operativa nel venv. Smoke E2E visual deferred → S161 (warmup modelli + pipeline completa).
+**Aggiornato**: 2026-05-12 13:05 — S161 BLOCKED strutturale + S160 closure VERDE retracted come false-positive. `PaddleOCR()` init fail su MacBook macOS 11 (paddle dylib minos 12.3). STOP path locale (vincolo 11 pattern strutturale). Resume: `prompts/s162_sanitizer_imac_offload.md`.
 
 ---
 
-## 🟢 STATO CORRENTE — S160 CHIUSO VERDE su stack-fix (2026-05-11 20:35)
+## 🔴 STATO CORRENTE — S161 BLOCKED strutturale (2026-05-12 13:05)
 
-**Goal raggiunto**: sblocco dylib macOS 11 in `~/.argos-sanitizer-venv/`. `import paddleocr` + `import cv2` + `PaddleOCR class` tutti OK. `_find_sanitizer_python()` ora seleziona correttamente il venv.
+**Smoke E2E sanitizer fallisce a Step 1 (warmup PaddleOCR)**. S160 closure VERDE retracted come false-positive: misurato solo `import paddleocr` top-level (lazy) ma NON `PaddleOCR()` init reale.
 
-### Cosa fatto S160
-1. **Path B testato (fail)**: rimosso `opencv-contrib-python` → `import paddleocr` OK ma `import cv2` fallisce (`libvmaf.1.dylib` macOS 12 embed in opencv-python 4.9 main wheel)
-2. **Path B2 testato (fail)**: `opencv-python 4.8.1.78` → wheel macOS 10.16 ma ABI numpy 2.x rotta
-3. **Path C GREEN**: `opencv-python==4.7.0.72 + numpy<2 + paddleocr 3.5.0` — tutto importa + classe inizializzabile
-4. **Fix `_find_sanitizer_python()` timeout 10→30s**: misurato `import paddleocr` = 14.85s wall clock; old timeout faceva fallback RAW
-5. Combo verificata via `from paddleocr import PaddleOCR; print('PaddleOCR class OK')` foreground
+### Root cause definitiva (S159 → S160 → S161 stesso blocker strutturale)
 
-### File modificati S160 (commit pending)
-- `tools/scripts/pdf_generator_enterprise.py` line 1568: `timeout=10` → `timeout=30`
-- `~/.argos-sanitizer-venv/` (fuori repo): opencv-python 4.9→4.7.0.72, numpy 2.3.5→1.26.4, opencv-contrib-python uninstalled
-- `.planning/s160_path_c_working_combo.md` (nuovo): combo + motivazione + lezioni
-- `prompts/s161_sanitizer_smoke.md` (nuovo): warmup + smoke E2E + visual inspection
+`paddlepaddle 3.0.0` wheel `cp311-cp311-macosx_10_9_x86_64.whl` contiene `paddle/libs/libcommon.dylib` con `LC_BUILD_VERSION minos=12.3 sdk=12.3` (Monterey). MacBook macOS 11.7.10 Big Sur → `dlopen()` fail con:
 
-### Cosa NON fatto S160 (deferred S161)
-- ❌ Smoke E2E completo: pipeline lanciata 20:15:27, killata 20:28 (~13min wall, 4min CPU) — assumption errata "hung su PaddleOCR model download" mentre era in CoVe scoring 30+ listing × ADAC. Lezione: kill prematuro = spreco lavoro
-- ❌ Visual inspection PDF (targhe blur, watermark mask)
-- ❌ Warmup modelli PaddleOCR esplicito (defer S161 Step 1)
+```
+Symbol not found: __ZNSt3__113basic_filebufIcNS_11char_traitsIcEEE4openEPKcj
+Referenced from: paddle/libs/libcommon.dylib (built for macOS 12.3)
+Expected in: /usr/lib/libc++.1.dylib
+```
+
+Symbol è `std::__1::basic_filebuf<char>::open` libc++ Monterey-only. **Wheel tag `macosx_10_9` mente** rispetto al minos reale delle dylibs interne.
+
+### Cosa eseguito S161
+
+1. ✅ Verifica venv `~/.argos-sanitizer-venv/` (Python 3.11.11, opencv 4.7.0.72, numpy 1.26.4, paddleocr 3.5.0, paddlepaddle 3.0.0)
+2. ❌ Step 1 warmup `PaddleOCR(use_textline_orientation=True, lang='en')` → ImportError libpaddle.so dlopen
+3. ✅ Verifica `import paddleocr` top-level OK (3.19s) — conferma claim S160 ma irrilevante al sanitizer reale
+4. ✅ `otool -l libcommon.dylib | grep LC_BUILD_VERSION` → `minos 12.3 sdk 12.3` (root cause)
+5. ✅ Pre-flight paddlepaddle 2.6.2 (vincolo 8): wheel `macosx_10_9` MA forza numpy → 2.4.4 (rompe ABI cv2 + paddleocr 3.5). Scartato.
+
+### Vincoli S160 violati (lezione)
+
+- Vincolo 1 (Verifica fattuale): closure su misurazione import lazy, non init reale
+- Vincolo 10 (Output verificato > verosimile): "stack-green" verosimile ma non end-to-end
+- Vincolo 11 (Pattern strutturale): pattern S159→S160 doveva triggerare cambio strategia, non terzo tentativo locale
+
+### Critica strutturale (vincolo 4)
+
+1. Assunzione nascosta S160: "import paddleocr OK == sanitizer funzionante" — falso
+2. A 30/60/90gg: ogni nuovo paddle wheel sarà SDK più recente → MacBook macOS 11 sempre più escluso
+3. Pattern S159/S160/S161 = sunk cost fallacy. STOP locale.
+4. image_sanitizer sovradimensionato: 2 dep ML pesanti (PaddleOCR + LaMa) per task ben definito (mask targhe + watermark). Alternative leggere (EasyOCR, tesseract) NON valutate.
+
+### Decisione S162 (raccomandazione singola, vincolo 3)
+
+**Offload sanitizer su iMac via SSH** (path A originale S159, mai testato).
+
+- iMac = macOS Monterey 12.7.4 → paddle 3.x dylib minos 12.3 **compatibile**
+- Infrastruttura SSH già operativa (`ssh imac` alias, PM2, Funnel)
+- Pattern stateless on-demand: MacBook PDF gen → `ssh imac python sanitize_batch.py < imgs` → return sanitized → embed in PDF
+- Costo stimato: ~1 sprint (45min) — setup venv iMac + script CLI + client MacBook
+- venv `~/.argos-sanitizer-venv/` MacBook lasciato in place (270MB) per future ispezioni
+
+### Day 1 reale Stile Car
+
+⛔ **Ancora bloccato** fino S162 verde (sanitizer operativo + PDF dossier con targhe/watermark mascherati visibili).
 
 ### Resume next session
-`leggi prompts/s161_sanitizer_smoke.md ed esegui` (timebox 30min). Day 1 reale Stile Car ancora bloccato fino S161 verde con visual inspection.
+
+`leggi prompts/s162_sanitizer_imac_offload.md ed esegui` (timebox 60min).
 
 ---
 
-## 🟠 STATO PRECEDENTE — S159 CHIUSO ARANCIONE/PARTIAL (2026-05-06 17:50)
+## 🟢 STATO PRECEDENTE — S160 CHIUSO VERDE (RETRACTED come false-positive, 2026-05-11 20:35)
+
+Closure basata su `import paddleocr` lazy → false-positive. Vedi STATO CORRENTE S161 sopra. Combo `cv2 4.7 + numpy 1.26 + paddleocr 3.5` installa OK ma `PaddleOCR()` init crasha. `_find_sanitizer_python()` timeout 30s rimane utile (fix valido).
+
+---
+
+## 🟠 STATO ANCORA PRECEDENTE — S159 CHIUSO ARANCIONE/PARTIAL (2026-05-06 17:50)
 
 **Decisione CTO Luke**: "decidi tu vincoli 0 cost enterprise". Scelta opzione A (setup PaddleOCR locale).
 **Closure forzata**: Luke ha richiesto chiusura ARANCIONE per evitare sforo context >50% (pattern S158).
