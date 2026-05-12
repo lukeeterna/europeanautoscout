@@ -98,6 +98,14 @@ PORTAL_BANNER_CROP = {
 # Minimum file size — images below this are thumbnails
 MIN_IMAGE_BYTES = 30 * 1024  # 30 KB
 
+# S163.1: skip output if sanitized JPEG file size collapses vs original.
+# Use case: AS24 a volte include "slide marketing" (BMW Premium Selection ecc.)
+# che sono 100% testo dealer-promozionale; il sanitizer wipa il testo e l'output
+# JPEG compresso diventa quasi vuoto (bianco/grigio uniforme). Soglia 0.20 =
+# output JPEG < 20% size originale → probabile slide promo wipe, skip.
+# Area-based check non funziona (inpaint preserva dimensioni anche se contenuto = bianco).
+MIN_OUTPUT_SIZE_RATIO = 0.20
+
 # Words to keep (car specs, our own branding)
 KEEP_WORDS = frozenset({
     'xdrive', 'sdrive', 'quattro', 'tfsi', 'tdi', 'cdi',
@@ -763,6 +771,19 @@ def sanitize_image(
         if pil_img.mode == 'RGBA':
             pil_img = pil_img.convert('RGB')
         pil_img.save(safe_path, 'JPEG', quality=90)
+
+        # ── S163.1 promo-slide guard (size-based, post-save) ─────
+        # If sanitized JPEG file size collapsed below threshold ratio of original,
+        # the source was probably a marketing slide (100% dealer text), not a car
+        # photo. Remove the empty output and skip from dossier.
+        orig_size = os.path.getsize(image_path)
+        out_size = os.path.getsize(safe_path)
+        if orig_size > 0 and (out_size / orig_size) < MIN_OUTPUT_SIZE_RATIO:
+            ratio_pct = (out_size / orig_size) * 100
+            os.remove(safe_path)
+            print(f"  SKIP promo-slide: {safe_name} output {out_size//1024}KB "
+                  f"({ratio_pct:.0f}% of orig) — probable dealer marketing slide")
+            return None
 
         # ── STAGE 4: Post-verify + Alert (only if text was masked) ──
         if has_mask:
