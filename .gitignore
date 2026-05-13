@@ -16,3 +16,9 @@ src/cove/data/cove_tracker.duckdb
 
 # Playwright MCP artifacts (DOM snapshots may capture autofilled credentials — see S146)
 .playwright-mcp/
+
+# PDF dossier output (generated per dealer, non-source; root cause DIRTY 100% sessioni —
+# git diff --check legge xref del PDF come trailing whitespace, hook auto-commit aborta.
+# Vedi ~/venture-os/state/blueprint-deviations.jsonl entry argos-dirty-rate-root-cause-2026-05-13).
+dossiers/*.pdf
+dossiers/*.PDF
