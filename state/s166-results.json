@@ -1,0 +1,95 @@
+{
+  "session": "S166",
+  "ts": "2026-05-13T17:27:47.374510+00:00",
+  "tests": [
+    {
+      "step": "Step1",
+      "scenario": "Day1 stile_car_fg validator",
+      "expected": "PASS",
+      "actual": "PASS",
+      "status": "PASS"
+    },
+    {
+      "step": "Step5",
+      "scenario": "5.1 short positive",
+      "expected": "POSITIVE",
+      "actual": "POSITIVE",
+      "status": "PASS"
+    },
+    {
+      "step": "Step5",
+      "scenario": "5.2 opt-out STOP",
+      "expected": "NEGATIVE",
+      "actual": "NEGATIVE",
+      "status": "PASS"
+    },
+    {
+      "step": "Step5",
+      "scenario": "5.3 negated positive",
+      "expected": "NEGATIVE",
+      "actual": "NEGATIVE",
+      "status": "PASS"
+    },
+    {
+      "step": "Step5",
+      "scenario": "5.4 profanity → NEGATIVE",
+      "expected": "NEGATIVE",
+      "actual": "NEGATIVE",
+      "status": "PASS"
+    },
+    {
+      "step": "Step5",
+      "scenario": "5.5 empty input",
+      "expected": "UNKNOWN",
+      "actual": "UNKNOWN",
+      "status": "PASS"
+    },
+    {
+      "step": "Step5",
+      "scenario": "5.6 profanity + question → NEGATIVE override",
+      "expected": "NEGATIVE",
+      "actual": "NEGATIVE",
+      "status": "PASS"
+    },
+    {
+      "step": "Step5",
+      "scenario": "5.7 question mark fallback (no OBJ keyword)",
+      "expected": "CURIOSITY",
+      "actual": "CURIOSITY",
+      "status": "PASS"
+    },
+    {
+      "step": "Step5",
+      "scenario": "5.8 fee leak DAY1 should BLOCK",
+      "expected": "BLOCK",
+      "actual": "BLOCK",
+      "status": "PASS"
+    },
+    {
+      "step": "Step2",
+      "scenario": "Response INTEREST positiva",
+      "expected": "WALLCLOCK",
+      "actual": "DEFERRED",
+      "status": "WARN"
+    },
+    {
+      "step": "Step3",
+      "scenario": "Response STOP opt-out",
+      "expected": "WALLCLOCK",
+      "actual": "DEFERRED",
+      "status": "WARN"
+    },
+    {
+      "step": "Step4",
+      "scenario": "No-reply Day 7 trigger",
+      "expected": "WALLCLOCK",
+      "actual": "DEFERRED",
+      "status": "WARN"
+    }
+  ],
+  "summary": {
+    "step1_smoke": "PASS",
+    "step5_edge_case": "PASS",
+    "step234_handoff": "WARN"
+  }
+}
