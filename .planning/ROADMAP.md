@@ -2,23 +2,64 @@
 
 ## Overview
 
-Four phases take ARGOS from hypothesis to first dealer contact. Phase 1 validates every free tool against real VINs before any code is written around them. Phase 2 builds the data infrastructure that persists enriched listings and images. Phase 3 assembles ARGOS GRADE and the enterprise PDF that makes the dossier credible. Phase 4 generates the BMW X3 dossier for Stile Car and sends the first Day 1 message to Domenico.
+Phases 1-3 built ARGOS technical foundation (validazione tool, schema DB, GRADE+PDF Enterprise). Phase 4 generates the first dossier for Stile Car. **FASE 0 (Credibility infrastructure)** and **FASE 5 (Outreach protocol 4-layer)** added 2026-05-13 post-S11c-strategic founder closure (Q1-Q11): persona frontman fittizio AI "Luca Ferretti", cash-only no documento, scope nazionale wave-based, anti-Bolidem positioning. Phase 6 AMBRA agent autonomy.
+
+**Wiki cross-link** (single source of truth strategia + decisioni):
+- `~/venture-os/wiki/projects/ARGOS/STRATEGY.md` — 6 sezioni (persona, 4-layer outreach, contenuti, compliance, pipeline test, refs)
+- `~/venture-os/wiki/projects/ARGOS/DECISIONS.md` — 25 entry ADR lean (23 DECIDED + 1 OPEN-ipotesi + 1 SUPERSEDED)
+- `~/venture-os/wiki/projects/ARGOS/README.md` — indice navigazione wiki
 
 ## Phases
 
 **Phase Numbering:**
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+- Phase 0: Pre-requisite infrastructure added retroactively (S11d 2026-05-13)
+- Phase 5: Outreach protocol added retroactively (S11d 2026-05-13)
 
 Decimal phases appear between their surrounding integers in numeric order.
 
+- [ ] **Phase 0: Credibility Infrastructure** - Landing cleanup, foto AI gen, WA Business profile, Google Business Profile, recensioni soft (S165 ARGOS)
 - [x] **Phase 1: Validazione Tool Gratuiti** - Test every free data source against real VINs from DuckDB (completed 2026-03-24)
 - [x] **Phase 2: Schema DB + Detail Enricher** - Build DuckDB vehicle_listings/images schema and V2 enricher (completed 2026-03-24)
 - [x] **Phase 3: ARGOS GRADE + PDF Enterprise V2** - Grading system A-E and dossier generation with real data (completed 2026-03-25)
 - [ ] **Phase 4: Primo Outreach Stile Car** - Generate BMW X3 dossier and send Day 1 message to Domenico
+- [ ] **Phase 5: Outreach Protocol 4-Layer** - Pipeline test 5-step (S166) + dealer-intel scraping (S167) + skill /outreach-day1 + HITL gating (S168)
 - [ ] **Phase 6: AMBRA Agent — WA Autonomo** - Transform wa-daemon into human-like autonomous agent (multi-msg, imperfezioni, debounce, knowledge base, anti-ban)
 
 ## Phase Details
+
+### Phase 0: Credibility Infrastructure
+**Goal**: Layer 0 outreach infrastructure ready PRIMA qualsiasi dealer reale (Wave 1) — landing cleanup, foto AI persona, WA Business profile, Google Business Profile, recensioni soft
+**Depends on**: Founder closure 2026-05-13 (Q1-Q5 chiusi via `FOUNDER-DECISIONS-2026-05-13.md`)
+**Requirements**: CRED-01 landing cleanup, CRED-02 foto AI gen, CRED-03 WA Business setup, CRED-04 GBP, CRED-05 recensioni soft
+**Success Criteria** (what must be TRUE):
+  1. Landing `argos-automotive.pages.dev` rimossi tutti claim falsi ("10 anni esperienza", "P.IVA in corso") → riformulazione 3 pilastri verificabili (D-05 patch in wiki/DECISIONS.md)
+  2. Foto profilo "Luca Ferretti" AI-generated custom (Midjourney/Flux €30 una-tantum) coerente cross-canale, NON stock library pubblica
+  3. WA Business profile display name "Luca Ferretti — ARGOS Automotive", foto AI coerente, NO disclosure pseudonimo (D-OPEN-Q1 closure)
+  4. Google Business Profile setup con service area Italia (no physical location), brand ARGOS™ only, NO P.IVA esposta (D-OPEN-Q2 cash-only)
+  5. Recensioni soft seed: 3-5 review da contatti pre-ARGOS validati genuine (D-12 opzione c), no review fake
+**Wiki ref**: `STRATEGY.md` sez 2 Layer 0 (table asset + action S165)
+**Plans**: TBD S165 ARGOS
+
+### Phase 5: Outreach Protocol 4-Layer
+**Goal**: Layer 1+2+3 outreach protocol operativo end-to-end — dealer-intel scraping Wave 1 (TIER 0/1) + skill `/outreach-day1` HITL + 1-deal eccellenza primi 1-3 dealer
+**Depends on**: Phase 0 (credibility) + Phase 4 (primo outreach Stile Car validato come TEST_FOUNDER caso 0)
+**Requirements**: OUT-05 dealer-intel scraping, OUT-06 outreach-day1 skill upgrade, OUT-07 HITL gating, OUT-08 pipeline test 5-step
+**Success Criteria** (what must be TRUE):
+  1. **Pipeline test 5-step su TEST_FOUNDER pass** (D-11): smoke send Day 1, response interest, response STOP, response no-reply Day 7, edge case bug — TUTTE 5 fasi green + 0 messaggi sbagliati 14gg = trigger primo dealer reale
+  2. **dealer-intel componente MVP** (S167 ARGOS): Google Maps scrape Wave 1 province TIER 1 (Salerno, Bari, Foggia, Catania, Cosenza), filter D-14 commissione informale (stock 3-10), output `dealer-targets.jsonl` ≥50 leads qualificati
+  3. **skill /outreach-day1 upgrade** (S168 ARGOS): variant per macro-area (D-14) + anchor frase anti-Bolidem (D-20), compliance check pre-send (opt-out STOP, no claim verificabili, firma "Luca Ferretti", no menzione prezzo)
+  4. **HITL primi 20 dealer reali enforced** (D-07): founder approve/edit/reject ogni outbound Day 1/3/7, throughput 3-5 dealer/giorno
+  5. **1-deal eccellenza primi 1-3 dealer** (D-15): dossier full-spec (D-16 + D-18) + money-back guarantee DEKRA (D-OPEN-Q5) + follow-up 30gg → trigger raccomandazione/passaparola Sud Italia
+**Wiki ref**: `STRATEGY.md` sez 2 (4-layer outreach) + sez 5 (pipeline test) + sez 1 (persona deflection table)
+**Plans**: TBD S166-S168 ARGOS
+
+**Mapping sessione ARGOS post-S11d**:
+- S165 → Phase 0 (credibility infrastructure)
+- S166 → Phase 5 sub-task 1 (pipeline test 5-step TEST_FOUNDER)
+- S167 → Phase 5 sub-task 2 (dealer-intel MVP)
+- S168 → Phase 5 sub-task 3+4+5 (skill /outreach-day1 + HITL + primo dealer reale)
 
 ### Phase 1: Validazione Tool Gratuiti
 **Goal**: Every free data tool is tested with real VINs and we know exactly what each returns
@@ -104,12 +145,14 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases 1→2→3→4 already done (tech foundation). Post-S11d: 0 (credibility) → 5 (outreach protocol) → 6 (AMBRA autonomy). Phase 0 added retroactively as pre-req for any Wave 1 outreach reale.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
+| 0. Credibility Infrastructure | 0/TBD | Not started (S165 ARGOS) | - |
 | 1. Validazione Tool Gratuiti | 4/4 | Complete | 2026-03-24 |
 | 2. Schema DB + Detail Enricher | 2/2 | Complete | 2026-03-24 |
 | 3. ARGOS GRADE + PDF Enterprise V2 | 2/2 | Complete | 2026-03-25 |
 | 4. Primo Outreach Stile Car | 0/1 | Not started | - |
+| 5. Outreach Protocol 4-Layer | 0/TBD | Not started (S166-S168) | - |
 | 6. AMBRA Agent — WA Autonomo | 0/5 | Not started | - |
