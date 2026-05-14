@@ -1,5 +1,12 @@
 # wa-daemon wire-up plan (S168 ship — designed S167 CTO)
 
+> **STATUS S168 2026-05-14**: hook 1 + hook 2 + schema migration APPLIED in commit S168.
+> Tests regression: 17/17 PASS post-patch. `node --check` OK. Schema migration smoke verificato
+> su DB legacy (ALTER idempotente, `mark_sent(wa_msg_id)` roundtrip).
+> **NOT YET TESTED E2E reale** — richiede founder action (WA QR auth + ecosystem.config.js BASE fix + .env setup).
+> Sequenza pre-test in `HANDOFF-S169.md` (cwd ARGOS).
+
+
 > Patch additive feature-flagged a `wa-intelligence/wa-daemon.js` (1568 righe, production PM2 stack). Modifications scope-bounded e reversibili. Pattern S159 anti-pattern (auto_approve_and_send riscritto 3 volte) mitigation: HITL strict D-07.
 
 ## Vincoli operativi non-negoziabili
@@ -193,13 +200,17 @@ pm2 restart argos-wa-daemon
 
 ## DoD (Definition of Done) S168
 
-- [ ] Patch wa-daemon.js applied (hook 1 + hook 2 + schema alter)
-- [ ] BRIDGE_DB_PATH .env configured
-- [ ] pm2 restart OK + log "[bridge] polling enabled"
+- [x] Patch wa-daemon.js applied (hook 1 + hook 2 + schema alter) — commit S168
+- [x] Schema migration idempotent verificato su legacy DB
+- [x] Tests regression 17/17 PASS post-patch
+- [x] `node --check wa-daemon.js` OK
+- [ ] **FOUNDER**: fix `ecosystem.config.js` BASE (`app-antigravity-auto` → `combaretrovamiauto-enterprise`) — vedi HANDOFF-S169
+- [ ] **FOUNDER**: crea `wa-intelligence/.env` con `BRIDGE_DB_PATH=...` — vedi HANDOFF-S169
+- [ ] **FOUNDER**: pm2 install + start + QR auth (one-time) — vedi HANDOFF-S169
 - [ ] Test E2E manual sequence passa: outbound send TEST_FOUNDER + inbound reply captured
 - [ ] No regression Day3/7 scheduler (verify pm2 logs scheduler)
 - [ ] No regression anti-ban delay esistente
-- [ ] Commit + rollback plan documented
+- [x] Commit + rollback plan documented
 
 ## Stima tempo S168
 

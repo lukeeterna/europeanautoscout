@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS bridge_inbound (
 );
 
 -- Bridge outbound queue: messaggi candidati da bridge, pending HITL approval + wa-daemon send
+-- S168 wire-up: wa_msg_id audit trail link a WA message ID reale post-sendMessage
 CREATE TABLE IF NOT EXISTS bridge_outbound (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     deal_id        TEXT NOT NULL,
@@ -72,7 +73,8 @@ CREATE TABLE IF NOT EXISTS bridge_outbound (
     created_ts     INTEGER NOT NULL,
     approved_ts    INTEGER,
     sent_ts        INTEGER,
-    sent_status    TEXT
+    sent_status    TEXT,
+    wa_msg_id      TEXT
 );
 
 -- Party registry: mapping phone ↔ alias ↔ deal context
@@ -124,6 +126,10 @@ class WABridge:
         conn = sqlite3.connect(self.db_path)
         try:
             conn.executescript(BRIDGE_SCHEMA)
+            # S168 wire-up: idempotent ALTER per DB pre-esistenti (CREATE TABLE già aggiornato per nuovi DB)
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(bridge_outbound)").fetchall()}
+            if "wa_msg_id" not in cols:
+                conn.execute("ALTER TABLE bridge_outbound ADD COLUMN wa_msg_id TEXT")
             conn.commit()
         finally:
             conn.close()
@@ -255,12 +261,12 @@ class WABridge:
         finally:
             conn.close()
 
-    def mark_sent(self, outbound_id: int, status: str = "ok") -> None:
+    def mark_sent(self, outbound_id: int, status: str = "ok", wa_msg_id: Optional[str] = None) -> None:
         conn = sqlite3.connect(self.db_path)
         try:
             conn.execute(
-                "UPDATE bridge_outbound SET sent_ts = ?, sent_status = ? WHERE id = ?",
-                (int(time.time()), status, outbound_id),
+                "UPDATE bridge_outbound SET sent_ts = ?, sent_status = ?, wa_msg_id = ? WHERE id = ?",
+                (int(time.time()), status, wa_msg_id, outbound_id),
             )
             conn.commit()
         finally:

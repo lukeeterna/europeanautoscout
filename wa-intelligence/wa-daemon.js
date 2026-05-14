@@ -192,6 +192,109 @@ function dbQuery(sql, params = []) {
     }
 }
 
+// ── BRIDGE WIRE-UP S168 (additive, feature-flagged via BRIDGE_DB_PATH) ──
+// D-22 F1 (bridge SQLite) + D-07 HITL strict (no auto-send senza approved_ts)
+// Reversibile single commit. No-op completo se BRIDGE_DB_PATH unset.
+const BRIDGE_DB_PATH                = process.env.BRIDGE_DB_PATH || '';
+const BRIDGE_POLL_INTERVAL_MS       = parseInt(process.env.BRIDGE_POLL_INTERVAL_MS || '30000', 10);
+const BRIDGE_ANTI_BAN_DELAY_MS_MIN  = 30000;  // riusa D-04 anti-ban
+const BRIDGE_ANTI_BAN_DELAY_MS_MAX  = 90000;
+const BRIDGE_POLL_BATCH             = 5;      // max 5 send per ciclo (throughput cap)
+let _bridgeDb = null;
+
+function getBridgeDb() {
+    if (!BRIDGE_DB_PATH) return null;
+    if (_bridgeDb) return _bridgeDb;
+    try {
+        _bridgeDb = new Database(BRIDGE_DB_PATH, { timeout: 5000 });
+        _bridgeDb.pragma('journal_mode = WAL');
+        _bridgeDb.pragma('busy_timeout = 5000');
+        return _bridgeDb;
+    } catch (e) {
+        log('WARN', `[bridge] open failed ${BRIDGE_DB_PATH}: ${e.message}`);
+        return null;
+    }
+}
+
+function bridgeResolveRole(bdb, phone) {
+    // Lookup bridge_parties WHERE phone — fallback 'dealer' se non registrato
+    try {
+        const row = bdb.prepare('SELECT role FROM bridge_parties WHERE phone = ?').get(phone);
+        return row ? row.role : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function bridgeIngestInbound(msg) {
+    const bdb = getBridgeDb();
+    if (!bdb) return;
+    try {
+        const phone = (msg.from || '').replace('@c.us', '').replace('@lid', '');
+        const role = bridgeResolveRole(bdb, phone);
+        if (!role) {
+            log('INFO', `[bridge] inbound skip (unknown party ${phone})`);
+            return;
+        }
+        bdb.prepare(`
+            INSERT INTO bridge_inbound (msg_id, party_role, party_phone, party_alias, body, received_ts)
+            VALUES (?, ?, ?, NULL, ?, ?)
+            ON CONFLICT(msg_id) DO NOTHING
+        `).run(
+            msg.id?._serialized || String(msg.id),
+            role,
+            phone,
+            msg.body || '',
+            Math.floor(Date.now() / 1000)
+        );
+        log('INFO', `[bridge] inbound ingested phone=${phone} role=${role}`);
+    } catch (e) {
+        log('WARN', `[bridge] ingest_inbound failed: ${e.message}`);
+    }
+}
+
+async function pollBridgeOutbound(clientRef) {
+    const bdb = getBridgeDb();
+    if (!bdb || !clientRef) return;
+    let pending = [];
+    try {
+        pending = bdb.prepare(`
+            SELECT id, deal_id, target_role, target_phone, body, template_phase
+            FROM bridge_outbound
+            WHERE approved_ts IS NOT NULL AND sent_ts IS NULL
+            ORDER BY approved_ts ASC
+            LIMIT ?
+        `).all(BRIDGE_POLL_BATCH);
+    } catch (e) {
+        log('ERROR', `[bridge] poll query failed: ${e.message}`);
+        return;
+    }
+    for (const row of pending) {
+        const chatId = `${row.target_phone}@c.us`;
+        try {
+            log('INFO', `[bridge] sending id=${row.id} deal=${row.deal_id} phase=${row.template_phase} → ${row.target_phone}`);
+            const sentMsg = await clientRef.sendMessage(chatId, row.body);
+            const waMsgId = sentMsg?.id?._serialized || null;
+            bdb.prepare(`
+                UPDATE bridge_outbound
+                SET sent_ts = ?, sent_status = 'ok', wa_msg_id = ?
+                WHERE id = ?
+            `).run(Math.floor(Date.now() / 1000), waMsgId, row.id);
+            log('INFO', `[bridge] sent ok id=${row.id} wa_msg_id=${waMsgId}`);
+            // Anti-ban delay 30-90s tra send (riusa pattern D-04)
+            const delay = BRIDGE_ANTI_BAN_DELAY_MS_MIN +
+                          Math.random() * (BRIDGE_ANTI_BAN_DELAY_MS_MAX - BRIDGE_ANTI_BAN_DELAY_MS_MIN);
+            await new Promise(r => setTimeout(r, delay));
+        } catch (e) {
+            const errStr = (e.message || String(e)).substring(0, 200);
+            log('ERROR', `[bridge] send failed id=${row.id}: ${errStr}`);
+            try {
+                bdb.prepare('UPDATE bridge_outbound SET sent_status = ? WHERE id = ?').run(`error: ${errStr}`, row.id);
+            } catch (_) {}
+        }
+    }
+}
+
 // ── Inizializza schema DB se non esiste ──────────────────────
 function ensureSchema() {
     const db = getDb();
@@ -695,6 +798,11 @@ function initClient() {
             `🕐 Business hours: ${TC.isBusinessHours() ? 'SÌ' : 'NO'}\n` +
             `📊 Daily limit: ${CONFIG.DAILY_SENT}/${CONFIG.DAILY_LIMIT}`
         );
+        // BRIDGE WIRE-UP S168: avvia poll outbound (no-op se BRIDGE_DB_PATH unset)
+        if (BRIDGE_DB_PATH) {
+            log('INFO', `[bridge] polling enabled every ${BRIDGE_POLL_INTERVAL_MS}ms (batch=${BRIDGE_POLL_BATCH}, anti-ban 30-90s)`);
+            setInterval(() => { pollBridgeOutbound(client).catch(e => log('ERROR', `[bridge] poll err: ${e.message}`)); }, BRIDGE_POLL_INTERVAL_MS);
+        }
     });
 
     client.on('disconnected', (reason) => {
@@ -718,6 +826,8 @@ function initClient() {
 
         checkDailyReset();
         log('INFO', `📨 Raw msg.from: ${msg.from} | type: ${msg.type} | hasBody: ${!!msg.body}`);
+        // BRIDGE WIRE-UP S168: dual-write a bridge_inbound (no-op se BRIDGE_DB_PATH unset)
+        bridgeIngestInbound(msg);
         await handleInboundMessage(msg);
     });
 
