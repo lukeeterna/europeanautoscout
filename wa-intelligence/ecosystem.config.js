@@ -19,9 +19,10 @@
 
 const fs      = require('fs');
 const path    = require('path');
-const HOME    = process.env.HOME || '/Users/gianlucadistasi';
-const BASE    = path.join(HOME, 'Documents/app-antigravity-auto');
-const INTEL   = path.join(BASE, 'wa-intelligence');
+// S169 fix: path portable via __dirname (funziona iMac 'app-antigravity-auto'
+// + MacBook 'combaretrovamiauto-enterprise' — stesso git remote, dir name diverso)
+const INTEL   = __dirname;
+const BASE    = path.dirname(INTEL);
 
 // Carica .env da wa-intelligence/ (mai hardcoded nel codice)
 const dotEnvPath = path.join(INTEL, '.env');

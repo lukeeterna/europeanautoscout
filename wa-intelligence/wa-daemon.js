@@ -34,7 +34,8 @@ const QRCode = require('qrcode');
 const CONFIG = {
     SESSION_ID:    process.env.WA_CLIENT_ID || 'argos-business',
     DB_PATH:       process.env.DB_PATH
-                   || `${process.env.HOME}/Documents/app-antigravity-auto/dealer_network.sqlite`,
+                   || process.env.ARGOS_DB_PATH
+                   || path.join(__dirname, '..', 'dealer_network.sqlite'),  // S169 fix: portable (iMac+MacBook diff dir names)
     TELEGRAM_SCRIPT: path.join(__dirname, 'telegram-handler.py'),
     ANALYZER_SCRIPT: path.join(__dirname, 'response-analyzer.py'),
     OUTBOUND_GUARD:  path.join(__dirname, 'outbound_guard.py'),
