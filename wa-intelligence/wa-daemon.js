@@ -227,14 +227,26 @@ function bridgeResolveRole(bdb, phone) {
     }
 }
 
-function bridgeIngestInbound(msg) {
+async function bridgeIngestInbound(msg) {
     const bdb = getBridgeDb();
     if (!bdb) return;
     try {
-        const phone = (msg.from || '').replace('@c.us', '').replace('@lid', '');
+        // S170 fix: WA 2025+ usa @lid (internal ID) per molti msg → risolvere PRIMA del lookup
+        // bridge_parties (registered con phone normalizzato). Stessa logica di handleInboundMessage.
+        let rawFrom = msg.from || '';
+        let phone = rawFrom;
+        if (rawFrom.endsWith('@lid')) {
+            try {
+                const contact = await msg.getContact();
+                if (contact && contact.number) phone = `${contact.number}@c.us`;
+            } catch (e) {
+                log('WARN', `[bridge] LID resolve failed for ${rawFrom}: ${e.message}`);
+            }
+        }
+        phone = phone.replace('@c.us', '').replace('@lid', '');
         const role = bridgeResolveRole(bdb, phone);
         if (!role) {
-            log('INFO', `[bridge] inbound skip (unknown party ${phone})`);
+            log('INFO', `[bridge] inbound skip (unknown party ${phone}, raw ${rawFrom})`);
             return;
         }
         bdb.prepare(`
@@ -828,7 +840,8 @@ function initClient() {
         checkDailyReset();
         log('INFO', `📨 Raw msg.from: ${msg.from} | type: ${msg.type} | hasBody: ${!!msg.body}`);
         // BRIDGE WIRE-UP S168: dual-write a bridge_inbound (no-op se BRIDGE_DB_PATH unset)
-        bridgeIngestInbound(msg);
+        // S170 fix: async per LID resolution PRIMA di bridge_parties lookup
+        await bridgeIngestInbound(msg);
         await handleInboundMessage(msg);
     });
 
