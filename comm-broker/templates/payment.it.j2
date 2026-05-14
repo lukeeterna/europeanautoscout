@@ -1,0 +1,14 @@
+Aggiornamento {{ dossier_id }} — fase pagamento:
+
+Documenti verificati. Stiamo per finalizzare il deal.
+
+Riepilogo:
+- Auto: {{ auto_make }} {{ auto_model }} ({{ auto_year }})
+- Prezzo venditore: €{{ "{:,}".format(price_eu_eur).replace(",", ".") }}
+- Trasporto stimato (Macingo): €{{ "{:,}".format(transport_quote_eur).replace(",", ".") }}
+- Fee ARGOS: €{{ "{:,}".format(fee_eur).replace(",", ".") }} (a consegna documento finale)
+- Tempo consegna stimato: {{ delivery_days_est }} giorni
+
+Per procedere serve la sua conferma. La fee ARGOS è corrisposta alla consegna del documento finale (atto/fattura cross-border) — non in anticipo.
+
+Luca

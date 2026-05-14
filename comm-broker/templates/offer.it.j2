@@ -1,0 +1,17 @@
+Buongiorno,
+
+ho trovato l'auto richiesta: {{ auto_make }} {{ auto_model }}, immatricolata {{ auto_year }}, {{ "{:,}".format(auto_km).replace(",", ".") }} km, in {{ country }}.
+
+Prezzo a destinazione (paese sorgente): €{{ "{:,}".format(price_eu_eur).replace(",", ".") }}
+Prezzo medio mercato IT comparable: €{{ "{:,}".format(price_it_market_eur).replace(",", ".") }}
+Margine teorico per lei (al netto trasporto e oneri): €{{ "{:,}".format(margin_estimate_eur).replace(",", ".") }}
+
+Il dossier preview con foto e analisi prezzo/km/anno è allegato.
+Dossier #{{ dossier_id }}.
+
+Se l'auto la convince, può procedere con la conferma. Restano da definire solo gli accordi di trasparenza pre-deal (D-24 clausola standard) e la fee di servizio €{{ fee_eur }} a consegna documento.
+
+Resto a disposizione.
+
+Luca Ferretti
+ARGOS
