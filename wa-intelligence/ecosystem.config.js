@@ -49,6 +49,10 @@ const SHARED_ENV = {
     OPENROUTER_MODEL:       dotEnv.OPENROUTER_MODEL       || 'anthropic/claude-haiku-4-5',
     GMAIL_FERRETTI_EMAIL:        dotEnv.GMAIL_FERRETTI_EMAIL        || '',
     GMAIL_FERRETTI_APP_PASSWORD: dotEnv.GMAIL_FERRETTI_APP_PASSWORD || '',
+    // S169 BRIDGE WIRE-UP — feature flag (vuoto → no-op completo bridge)
+    BRIDGE_DB_PATH:              dotEnv.BRIDGE_DB_PATH              || '',
+    BRIDGE_POLL_INTERVAL_MS:     dotEnv.BRIDGE_POLL_INTERVAL_MS     || '30000',
+    GROQ_API_KEY:                dotEnv.GROQ_API_KEY                || '',
 };
 
 module.exports = {

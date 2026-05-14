@@ -3,8 +3,24 @@
 > **STATUS S168 2026-05-14**: hook 1 + hook 2 + schema migration APPLIED in commit S168.
 > Tests regression: 17/17 PASS post-patch. `node --check` OK. Schema migration smoke verificato
 > su DB legacy (ALTER idempotente, `mark_sent(wa_msg_id)` roundtrip).
-> **NOT YET TESTED E2E reale** — richiede founder action (WA QR auth + ecosystem.config.js BASE fix + .env setup).
-> Sequenza pre-test in `HANDOFF-S169.md` (cwd ARGOS).
+>
+> **STATUS S169 2026-05-14**: E2E reale ATTIVATO su iMac production (PID 33804, uptime stable).
+> Sequenza autonoma:
+> 1. rsync wa-daemon.js + ecosystem.config.js + comm-broker/ → iMac `~/Documents/app-antigravity-auto/`
+> 2. `npm rebuild --build-from-source better-sqlite3` (Node 20.11.0 NODE_MODULE_VERSION 115)
+> 3. `pip install python-statemachine jinja2 groq Pillow imagehash` in `comm-broker/.venv` Python 3.9
+> 4. Backup `.wwebjs_auth/` (18MB tar.gz)
+> 5. Append `BRIDGE_DB_PATH` + `BRIDGE_POLL_INTERVAL_MS` to `wa-intelligence/.env`
+> 6. Patch `ecosystem.config.js` SHARED_ENV: expose BRIDGE_DB_PATH + BRIDGE_POLL_INTERVAL_MS + GROQ_API_KEY a process.env del daemon (mancavano da SHARED_ENV originale)
+> 7. `pm2 delete + pm2 start ecosystem.config.js` (reload config completo)
+>
+> **Verifica E2E**:
+> - `Client PRONTO` + `[bridge] polling enabled every 30000ms (batch=5, anti-ban 30-90s)` in `/tmp/argos-wa-daemon-out.log`
+> - V3-rev2 queue→approve→poll(30s)→`client.sendMessage('393314928901@c.us')`
+> - bridge_outbound id=1: `sent_status='ok'`, `wa_msg_id='true_141115562971357@lid_3EB0B9613EDB1E3D36675B'`
+> - Founder phone (393314928901) confermato ricezione messaggio
+>
+> Path portable via `__dirname` (no hardcoded dir name) — funziona iMac `app-antigravity-auto` + MacBook `combaretrovamiauto-enterprise` (stesso git remote `europeanautoscout`).
 
 
 > Patch additive feature-flagged a `wa-intelligence/wa-daemon.js` (1568 righe, production PM2 stack). Modifications scope-bounded e reversibili. Pattern S159 anti-pattern (auto_approve_and_send riscritto 3 volte) mitigation: HITL strict D-07.
@@ -204,10 +220,12 @@ pm2 restart argos-wa-daemon
 - [x] Schema migration idempotent verificato su legacy DB
 - [x] Tests regression 17/17 PASS post-patch
 - [x] `node --check wa-daemon.js` OK
-- [ ] **FOUNDER**: fix `ecosystem.config.js` BASE (`app-antigravity-auto` → `combaretrovamiauto-enterprise`) — vedi HANDOFF-S169
-- [ ] **FOUNDER**: crea `wa-intelligence/.env` con `BRIDGE_DB_PATH=...` — vedi HANDOFF-S169
-- [ ] **FOUNDER**: pm2 install + start + QR auth (one-time) — vedi HANDOFF-S169
-- [ ] Test E2E manual sequence passa: outbound send TEST_FOUNDER + inbound reply captured
+- [x] **S169**: ecosystem.config.js BASE portable via `__dirname` (funziona entrambe le macchine)
+- [x] **S169**: `BRIDGE_DB_PATH` + `BRIDGE_POLL_INTERVAL_MS` aggiunti a iMac `.env`
+- [x] **S169**: SHARED_ENV in ecosystem.config.js expose BRIDGE_DB_PATH + GROQ_API_KEY a daemon process.env
+- [x] **S169**: pm2 reload (delete+start) → `Client PRONTO` + `[bridge] polling enabled`
+- [x] **S169 Test E2E outbound**: V3-rev2 queue→approve→sendMessage→`sent_status='ok'`+`wa_msg_id` valido + founder phone receipt confermato
+- [ ] **S170**: Test E2E inbound: dealer/founder reply → bridge_inbound INSERT → classifier Groq → state transition
 - [ ] No regression Day3/7 scheduler (verify pm2 logs scheduler)
 - [ ] No regression anti-ban delay esistente
 - [x] Commit + rollback plan documented
