@@ -89,12 +89,61 @@ def ensure_state_columns(db_path: str):
         "ALTER TABLE conversations ADD COLUMN last_inbound_at TEXT",
         "ALTER TABLE conversations ADD COLUMN state_updated_at TEXT",
         "ALTER TABLE conversations ADD COLUMN escalation_flag INTEGER DEFAULT 0",
+        # S173 D-27: handoff_source per Layer 3 AMBRA (mystery_shopper handoff)
+        # NB: flag aggiuntivo, NON nuovo stato FSM — vedi AMBRA-AUDIT sez 8.4 critica strutturale
+        # (modifica FSM = blast radius alto, flag bool keeps backward compat)
+        "ALTER TABLE conversations ADD COLUMN handoff_source TEXT DEFAULT 'cold'",
+        "ALTER TABLE conversations ADD COLUMN is_micro_dealer INTEGER DEFAULT 0",
     ]
     for sql in migrations:
         try:
             con.execute(sql)
         except sqlite3.OperationalError:
             pass  # column already exists
+    con.commit()
+    con.close()
+
+
+# ── S173 D-27: helper handoff_source ──────────────────────
+VALID_HANDOFF_SOURCES = ('cold', 'mystery_shopper', 'referral')
+
+
+def is_post_handoff(dealer: dict) -> bool:
+    """True se il dealer e' stato pre-warmed via Layer 2 mystery shopper (D-27).
+
+    Args:
+        dealer: dict da get_dealer_state() o equivalente (legge handoff_source).
+    """
+    src = (dealer.get('handoff_source') or 'cold').lower()
+    return src == 'mystery_shopper'
+
+
+def set_handoff_source(db_path: str, dealer_id: str, source: str) -> bool:
+    """Imposta handoff_source (cold/mystery_shopper/referral) per il dealer.
+
+    Returns True se OK, False se source invalido.
+    """
+    if source not in VALID_HANDOFF_SOURCES:
+        return False
+    con = sqlite3.connect(db_path, timeout=10)
+    con.execute('PRAGMA busy_timeout=10000')
+    con.execute(
+        "UPDATE conversations SET handoff_source = ? WHERE dealer_id = ?",
+        [source, dealer_id]
+    )
+    con.commit()
+    con.close()
+    return True
+
+
+def set_is_micro_dealer(db_path: str, dealer_id: str, value: bool) -> None:
+    """Marca dealer come micro-dealer commissione (D-28 target)."""
+    con = sqlite3.connect(db_path, timeout=10)
+    con.execute('PRAGMA busy_timeout=10000')
+    con.execute(
+        "UPDATE conversations SET is_micro_dealer = ? WHERE dealer_id = ?",
+        [1 if value else 0, dealer_id]
+    )
     con.commit()
     con.close()
 

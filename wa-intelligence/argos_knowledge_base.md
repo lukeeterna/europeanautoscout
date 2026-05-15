@@ -18,6 +18,13 @@
 - Su una macchina con €5.000 di margine: la fee e' il 20% del guadagno. L'80% resta al dealer.
 - Confronto fai-da-te: volo A/R (€200), hotel (€100), pedaggi e gasolio (€150), 2 giorni persi (€500 minimo), rischio auto diversa = il fai-da-te costa di piu'. E se l'auto non va bene, con me non perdi niente. Da solo perdi il viaggio.
 
+### Modello commissione (per micro-dealer su richiesta cliente — D-28)
+- Per micro-dealer che lavorano su richiesta cliente (no stock proprio): la fee €800-1.200 si trasferisce sul cliente finale, NON la paga il dealer
+- Il dealer trattiene la commissione (5-15% sul prezzo vendita oppure flat €500-2.000 per macchina brokered)
+- Esempio: cliente cerca BMW X3 a €34.000. Io trovo X3 EU a €27.000. Tu addebiti €34.000 al cliente (incluso fee + commissione tua). La commissione tua e' tutto cio' che resta dopo prezzo EU + trasporto + fee — tipicamente €1.500-3.000 senza che metti capitale.
+- "Non tengo stock, non ho auto in piazzale — lavoro su ordine" = scenario perfetto per ARGOS. Non serve anticipo, non serve capitale, non serve magazzino.
+- Tempi: 7-14 giorni dal "procedi" del cliente alla consegna.
+
 ## TEMPI
 - Scouting e selezione: continuativo, ogni settimana nuove occasioni
 - Verifica e dossier: 24-48 ore dal match
@@ -64,6 +71,14 @@
 - Nessuna "mazzata" fiscale a sorpresa: il dealer sa PRIMA quanto paga di IVA e quando
 - MAI societa' di comodo, MAI fatture irregolari. Solo venditori verificati con partita IVA attiva.
 
+### Regime forfettario (per micro-dealer commissione — D-28)
+- Se il dealer e' in regime forfettario (P.IVA 5-15% flat tax, fatturato < €85.000/anno): NON applica reverse charge TD17
+- In questo scenario l'auto importata viene fatturata DIRETTAMENTE dal venditore EU al cliente finale (B2C cross-border) oppure tramite ARGOS che intesta a cliente
+- Il micro-dealer percepisce la commissione (fuori-IVA dal proprio regime forfettario) come ricavo di intermediazione — fattura semplice al cliente per "servizio di intermediazione vendita auto"
+- Nessuna autofattura TD17 da emettere, nessun F24 IVA: il regime forfettario lo esonera
+- Vantaggio: zero burocrazia IVA. Svantaggio: non puo' detrarre IVA su trasporto/fee (incluse nel costo finale cliente).
+- Verifica sempre con il commercialista del dealer — il regime forfettario ha limiti annui (€85.000 ricavi 2024-2025) e regole specifiche.
+
 ## GARANZIA
 - Garanzia COSTRUTTORE residua: BMW 2 anni, Mercedes 2 anni, Audi 2 anni, Porsche 2 anni
 - Valida in TUTTA la UE inclusa Italia — basta il VIN, si va dal concessionario ufficiale italiano
@@ -72,6 +87,13 @@
 - ARGOS NON fornisce garanzia propria — ma ogni macchina proposta e' verificata prima: km, storico, condizioni
 - Km certificati: controllo incrociato annuncio, storico tagliandi con timbri ufficiali, ultimo tagliando verificato
 - Se il dealer vuole estendere la garanzia dopo la scadenza: puo' farlo con qualsiasi programma esteso del costruttore
+
+### Money-back guarantee (primi 1-3 deal — D-15)
+- Money-back guarantee sui PRIMI 1-3 deal e' a carico di ARGOS, NON del dealer
+- Il dealer (anche micro-dealer commissione) NON anticipa capitale per coprire eventuali contestazioni cliente
+- Scope limitato: solo primi 3 deal di un dealer ("1-deal eccellenza" approach D-15)
+- Se cliente finale contesta entro 14 giorni dalla consegna per non-conformita' documentata vs scheda inviata: ARGOS rimborsa fee + organizza ritorno auto a sue spese
+- Dopo i primi 3 deal: garanzia standard costruttore UE (vedi sezione GARANZIA sopra) — niente money-back extra ARGOS-funded
 
 ## TRASPORTO
 - Carrello singolo (NON bisarca con 8 auto ammassate) per auto premium — meno rischio danni, consegna dedicata
@@ -194,6 +216,9 @@ Le paure dei dealer sono fondate — 4 milioni di auto in Italia hanno km manome
 
 ### "Ho gia' il mio fornitore"
 Perfetto, non ti chiedo di cambiare. Ti mando UN veicolo concreto con i numeri — se il margine e' interessante, ne parliamo. Se no, non ti disturbo piu'. Zero rischio per te. Anzi, cosi' puoi confrontare i prezzi e vedere se il tuo fornitore ti fa davvero il prezzo migliore. "I grandi gruppi si riforniscono in EU da anni — a conti fatti, il margine parla da solo."
+
+### "Lavoro su richiesta cliente, non tengo stock" (micro-dealer commissione — D-28)
+Esatto, ARGOS e' perfetto per chi lavora cosi'. Il cliente entra in salone, ti dice "cerco una X3 grigia 2022 sotto i 35k", tu mi giri la richiesta e io trovo la macchina in EU in 7-14 giorni. Tu non metti capitale, non tieni magazzino, e ti trattieni la commissione sul venduto. Il cliente paga te, tu paghi il prezzo EU + trasporto + fee, la differenza e' tua. Quanti clienti al mese ti chiedono auto premium e tu non hai in piazzale?
 
 ### "Quanto costa il servizio?"
 €1.000 a macchina, paghi SOLO quando decidi di procedere. Zero anticipi. Il prezzo della macchina lo vedi tu sull'annuncio originale — nessun ricarico nascosto, "niente mazzate dopo". Su una macchina con €5.000 di margine, la fee e' il 20%. L'80% resta a te. Prova con una macchina e vedi come va.

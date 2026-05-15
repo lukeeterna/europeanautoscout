@@ -310,6 +310,16 @@ Se chiedono "chi sei/come mi ha trovato" → spiega che cerchi concessionari per
 MAI rigirare la domanda. MAI scusarti eccessivamente.
 </IDENTITY>""",
 
+    # S173 D-27: variante per Layer 3 post mystery shopper handoff
+    # AMBRA NON è il first-contact: il dealer ha già sentito di Argos via cliente fittizio Layer 2
+    'identity_post_handoff': """<IDENTITY>
+Sei Luca Ferretti di Argos. Il dealer ha gia' sentito parlare di te da un cliente che e' passato dal suo negozio chiedendo un'auto specifica.
+TU NON SEI il first-contact — riprendi il filo del discorso che il cliente ha gia' iniziato.
+Tono reactive, mai promozionale: "ah si', il cliente le aveva accennato di me, riprendo io".
+Se chiedono "chi sei" → "Luca di Argos, il cliente che e' passato da lei le aveva parlato di noi".
+MAI self-introduction proattiva. MAI elenco capacita'. Rispondi alla curiosita' gia' seeded.
+</IDENTITY>""",
+
     'hard_rules': """<RULES priority="critical">
 1. MAI menzionare fee, costi, commissioni, prezzi del servizio. Se il dealer chiede quanto costa → rispondi SOLO "ne parliamo quando trova l'auto giusta, zero anticipo"
 2. MAI inventare veicoli/prezzi/importi non presenti in VEICOLI_DISPONIBILI — se non hai dati, parla SOLO del servizio (trovo, verifico, consegno)
@@ -319,6 +329,19 @@ MAI rigirare la domanda. MAI scusarti eccessivamente.
 6. Sei "Luca", punto. Nessun brand, nessuna azienda
 7. Se chiedono "sei un bot/automatico" → proponi una telefonata o un vocale
 8. MAI rigirare domande al dealer. Se chiede "chi le ha dato il mio numero?" → rispondi "ho trovato il suo contatto su un portale di concessionari"
+9. MAI scusarti piu' di una volta. MAI ripetere la stessa frase in messaggi diversi
+</RULES>""",
+
+    # S173 D-27: rules per Layer 3 post-handoff — ban "ARGOS" rilassato (dealer lo ha gia' sentito)
+    'hard_rules_post_handoff': """<RULES priority="critical">
+1. MAI menzionare fee, costi, commissioni, prezzi del servizio in modo proattivo. Se chiede → "ne parliamo quando trova l'auto giusta, zero anticipo"
+2. MAI inventare veicoli/prezzi non presenti in VEICOLI_DISPONIBILI
+3. MAI menzionare queste parole: CoVe, Claude, AI, bot, piattaforma, algoritmo, sistema, intelligenza artificiale, automatico
+4. "Argos" e' OK come reaction ("si' sono io di Argos") — MAI come self-promotion proattiva nel primo messaggio
+5. Se dice NO → chiudi con eleganza, porta aperta
+6. Dossier GRATIS. MAI menzionare "posizione" o "sblocco"
+7. Se chiedono "sei un bot" → proponi telefonata o vocale
+8. MAI rigirare domande. Se chiede "come mi ha trovato" → "il cliente che e' passato da lei le aveva accennato di noi"
 9. MAI scusarti piu' di una volta. MAI ripetere la stessa frase in messaggi diversi
 </RULES>""",
 
@@ -339,6 +362,18 @@ Imperfezioni: spazio prima di ? (30%), doppio ?? (20%), accenti mancanti (30%).
 Primo contatto: "lei". Se dealer usa "tu": passa al "tu". MAI mischiare tu/lei.
 </REGISTER>""",
 
+    # S173 D-28: lessico target micro-dealer commissione P.IVA forfettaria
+    # Placeholder iniziale — sara' calibrato S175 da mystery shopper Layer 2 fisico
+    'target_lexicon': """<TARGET_LEXICON>
+Target = micro-dealer commissione (NO stock, NO inventory ownership, broker su richiesta cliente).
+USA: "commissione" (NON "margine"), "su ordine", "il cliente cerca", "piazzo l'auto",
+     "non tengo stock", "non ho auto in piazzale", "lavoro su richiesta".
+EVITA: "margine premium", "rotazione stock", "best seller piazzale", "il tuo team",
+       "fornitore" (il micro-dealer non ha fornitori — ha clienti che chiedono).
+Numeri commissione tipici: 5-15% sulla vendita o flat €500-2.000 per macchina brokered.
+NON parlare di "€4-7k margine" — il micro-dealer commissione NON calcola cosi'.
+</TARGET_LEXICON>""",
+
     # Archetipi — solo 1 incluso per chiamata
     'archetype_narciso':     '<ARCHETYPE>Esclusivita\': "guarda, questa me la sono tenuta per lei — config rara"</ARCHETYPE>',
     'archetype_ragioniere':  '<ARCHETYPE>Numeri precisi: "senti, a conti fatti il margine netto e\'..."</ARCHETYPE>',
@@ -353,15 +388,37 @@ Primo contatto: "lei". Se dealer usa "tu": passa al "tu". MAI mischiare tu/lei.
 }
 
 
-def build_system_prompt(archetype: str = 'DEFAULT', cls_type: str = 'UNKNOWN') -> str:
-    """Assembla solo i moduli necessari. Target: <1000 token."""
+def build_system_prompt(archetype: str = 'DEFAULT', cls_type: str = 'UNKNOWN',
+                        handoff_source: str = 'cold',
+                        is_micro_dealer: bool = False) -> str:
+    """Assembla solo i moduli necessari. Target: <1000 token.
+
+    S173 D-27 / D-28:
+    - handoff_source: 'cold' | 'mystery_shopper' | 'referral'
+      → 'mystery_shopper' attiva variante post-handoff (identity reactive + ban ARGOS rilassato)
+      → 'referral' attualmente fallback a 'cold' (deferred D-12 post primo deal)
+    - is_micro_dealer: True → inietta <TARGET_LEXICON> commissione (D-28)
+    """
+    # S173: branching identity + rules per handoff_source
+    if handoff_source == 'mystery_shopper':
+        identity_module = PROMPT_MODULES['identity_post_handoff']
+        rules_module = PROMPT_MODULES['hard_rules_post_handoff']
+    else:
+        # 'cold' (default retrocompat) e 'referral' (deferred) → identity attuale
+        identity_module = PROMPT_MODULES['identity']
+        rules_module = PROMPT_MODULES['hard_rules']
+
     parts = [
-        PROMPT_MODULES['identity'],
-        PROMPT_MODULES['hard_rules'],
+        identity_module,
+        rules_module,
         PROMPT_MODULES['format'],
         PROMPT_MODULES['tone'],
         PROMPT_MODULES['register'],
     ]
+    # S173 D-28: target lexicon per micro-dealer commissione
+    if is_micro_dealer:
+        parts.append(PROMPT_MODULES['target_lexicon'])
+
     # Archetipo specifico
     arch_key = f'archetype_{archetype.lower()}'
     parts.append(PROMPT_MODULES.get(arch_key, PROMPT_MODULES['archetype_default']))
@@ -377,11 +434,15 @@ class ResponseValidator:
     """Valida output LLM prima dell'invio. 5 check indipendenti."""
 
     def validate(self, text: str, cls_type: str, prev_msgs: list,
-                 vehicle_ctx: str = '') -> list:
-        """Ritorna lista di violazioni. Lista vuota = OK."""
+                 vehicle_ctx: str = '', handoff_source: str = 'cold') -> list:
+        """Ritorna lista di violazioni. Lista vuota = OK.
+
+        S173 D-27: handoff_source='mystery_shopper' rilassa ban "argos"
+        (il dealer ha gia' sentito il nome via Layer 2 cliente fittizio).
+        """
         violations = []
         violations += self._check_json_format(text)
-        violations += self._check_banned_words(text)
+        violations += self._check_banned_words(text, handoff_source)
         violations += self._check_fee_leak(text, cls_type)
         violations += self._check_invented_prices(text, vehicle_ctx)
         violations += self._check_repetitions(text, prev_msgs)
@@ -399,7 +460,10 @@ class ResponseValidator:
         except (json.JSONDecodeError, TypeError):
             return ['formato: non e\' JSON valido']
 
-    def _check_banned_words(self, text: str) -> list:
+    def _check_banned_words(self, text: str, handoff_source: str = 'cold') -> list:
+        """S173 D-27: 'argos' allowed in FORBIDDEN_WORDS_EXACT se handoff_source='mystery_shopper'.
+        Tutte le altre banned restano hard (cove/gpt/bot/llm/automatico/etc).
+        """
         lower = text.lower()
         found = []
         for word in _LLM_BANNED_WORDS:
@@ -407,6 +471,9 @@ class ResponseValidator:
                 found.append(f'banned: {word}')
         # Parole esatte (word boundary)
         for word in FORBIDDEN_WORDS_EXACT:
+            # S173: rilassa solo 'argos' in scenario post-handoff Layer 2→3
+            if word == 'argos' and handoff_source == 'mystery_shopper':
+                continue
             if re.search(r'\b' + re.escape(word) + r'\b', lower):
                 found.append(f'banned_exact: {word}')
         return found
@@ -1885,7 +1952,14 @@ def main():
 
             # v2: prompt modulare dinamico per archetipo
             archetype = dealer.get('persona_type', 'DEFAULT')
-            system_prompt = build_system_prompt(archetype, cls_type)
+            # S173 D-27/D-28: handoff_source + is_micro_dealer da deal record
+            handoff_source = (dealer.get('handoff_source') or 'cold').lower()
+            if handoff_source not in ('cold', 'mystery_shopper', 'referral'):
+                handoff_source = 'cold'
+            is_micro_dealer = bool(dealer.get('is_micro_dealer') or False)
+            system_prompt = build_system_prompt(archetype, cls_type,
+                                                handoff_source=handoff_source,
+                                                is_micro_dealer=is_micro_dealer)
 
             print(f'  Chiamata LLM (prompt v2, arch={archetype})...')
             result = call_llm(system_prompt, user_prompt)
@@ -1931,8 +2005,14 @@ def main():
     best = candidates[0]
     best_id = reply_ids[0]
 
+    # S173 D-27: leggi handoff_source dal dealer per propagare al validator
+    _handoff_source_for_validator = (dealer.get('handoff_source') or 'cold').lower()
+    if _handoff_source_for_validator not in ('cold', 'mystery_shopper', 'referral'):
+        _handoff_source_for_validator = 'cold'
+
     def _validate_candidate(text, cls_t, msg_hist, veh_ctx):
-        v2 = _validator.validate(text, cls_t, msg_hist, veh_ctx)
+        v2 = _validator.validate(text, cls_t, msg_hist, veh_ctx,
+                                 handoff_source=_handoff_source_for_validator)
         v1 = validate_response(text)
         all_v = v2.copy()
         if not v1['safe']:
