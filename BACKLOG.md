@@ -2,6 +2,50 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
+## S174 — Classifier substring bug (false-positive `passat` in `passato`)
+
+`wa-intelligence/response-analyzer.py` line 1136 — keyword list VEHICLE_REQUEST contiene `passat` come exact match ma classifier usa substring scan (line 1306 area `keyword_mixed_intent`). Messaggio "il cliente che è passato da me" → matcha `passat` → routato VEHICLE_REQUEST → template VEHICLE_PROPOSAL servito → LLM bypassed.
+
+Impatto: dealer Layer 3 post-handoff che racconta storia cliente (vocabolario naturale "passato/è venuto/è stato qui") finiscono in template invece di LLM identity_post_handoff. Risposta scriptata BMW/Mercedes/Audi.
+
+Fix candidato: word boundary regex `\bpassat\b` invece di substring, OR sostituire `passat` con `vw passat`/`volkswagen passat` per disambiguare. Stessa famiglia tutti gli "exact" keyword di VEHICLE_REQUEST con frammenti corti (`golf`, `t-roc`).
+
+Defer: non blocca S175 mystery shopper (test parlerà di auto specifiche, non storie cliente). Da affrontare post primo deal.
+
+## ✅ FIXED S171 — wa-daemon duplicate sends + retry loop su permanent error
+
+**Risolto 2026-05-15**: `wa-intelligence/wa-daemon.js` `pollBridgeOutbound()` patch atomica.
+
+**Root cause (cumulativa)**:
+- (Bug A) Error path linea 305 aggiornava `sent_status` ma NON `sent_ts` → row con errore permanente (es. Auto Carfora "No LID for user") re-pollato ogni 30s → 41+ retry confermati nei log iMac 21:05-21:25.
+- (Bug B) Poll-then-send-then-update senza lock atomico: `setInterval` può lanciare poll #2 mentre await `sendMessage` di poll #1 ancora in flight → race window duplicate.
+
+**Fix applicato**:
+1. Schema migration additive (`processing_ts INTEGER`, `attempt_count INTEGER DEFAULT 0`) idempotente a startup
+2. Atomic claim pre-send: UPDATE `processing_ts=now, attempt_count++` WHERE `sent_ts IS NULL AND (processing_ts IS NULL OR processing_ts < now-RECLAIM)` → se `changes===0` skip (concurrent poll)
+3. Poll query filtra stale processing + cap attempt_count<3
+4. Error path classifica permanent (regex `/No LID|invalid|forbidden|not.found/i`) vs transient → permanent o cap-3 → set `sent_ts=now` terminal (escape loop)
+5. Stale reclaim window = max(120s, poll_interval*4)
+
+**Cleanup eseguito**:
+- Backup DB e source su iMac (`*.bak_s171`)
+- id=5 Auto Carfora marcato `sent_ts=now, sent_status='error_permanent_S171: No LID for user (frozen)'` per fermare retry loop attivo
+- better-sqlite3 rebuilt per node 22 (era contro node 20, pm2 --update-env aveva switchato versione)
+
+**Verifica fix**:
+- Daemon ONLINE post-restart, schema migration confermata via `.schema bridge_outbound`
+- Smoke 3/3 single-send su TEST_FOUNDER → **pending Luke fisico** (vincolo `feedback_test_founder_means_real_interactive.md`)
+
+## fatturazione TD17/18/19: nessun tool emissione (S164 gap critico)
+
+**Trovato S164 2026-05-12**: grep `TD17|TD18|TD19|reverse_charge|fattura|invoice` in tutto codebase → solo menzioni marketing copy (`tools/fee_calculator.py`, `tools/import_checklist.py`, dataset training) e KB session test (`mario_kb_test_session40.py`). **Nessun tool che emette XML SDI / PDF fattura su transazione reale**. `argos-proxy/src/routes/` ha `mark-paid.ts` ma è notifica WA conferma pagamento, NON emissione fattura.
+
+**Implicazione vincolo Luke (`feedback_e2e_full_test_founder_before_day1.md` step 4 "Pagamento: fattura emessa TD17/18/19 corretto")**: step 4 E2E pipeline non chiudibile finché non esiste tool fattura O processo manuale documentato (commercialista che riceve trigger post `mark-paid` e emette fattura entro 15gg per reverse charge intracomunitario).
+
+**Decisione richiesta a Luke**: (a) tool fattura va costruito dentro ARGOS (Fatture in Cloud API / fattura PA XML SDI generator) E2E digitale, oppure (b) processo manuale via commercialista (`mark-paid` worker invia notifica TG + email a commercialista con dati transazione → fattura emessa offline) → gap step 4 risolto a livello processo, non a livello tool.
+
+**File coinvolti se opzione (a)**: nuovo `argos-proxy/src/routes/invoice-emit.ts` o `tools/invoice_generator.py`. Se (b): solo nuovo handler in `mark-paid.ts` o telegram alert dedicato.
+
 ## scraper(autoscout24): filtrare slide marketing PRIMA del DB insert (S163.1 follow-up)
 
 Filtra slide marketing AS24 (Premium Selection, Garantie, Wartungsfreiheit, Inzahlungnahme, Finanzierung) PRIMA del DB insert in `vehicle_images`. Fix economico upstream; sanitizer S163.1 è safety net non solution.
