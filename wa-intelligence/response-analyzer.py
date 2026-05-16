@@ -374,6 +374,29 @@ Numeri commissione tipici: 5-15% sulla vendita o flat €500-2.000 per macchina 
 NON parlare di "€4-7k margine" — il micro-dealer commissione NON calcola cosi'.
 </TARGET_LEXICON>""",
 
+    # S175.1 D-21: role-binding info-broker NOT seller per VEHICLE_REQUEST.
+    # Root cause S175.0 ROSSO: AMBRA ha inventato veicolo X3 2021 89.855km €27.389 su richiesta X1 2020 18000
+    # perche' get_relevant_vehicles fallback brand-affinity ha popolato vehicle_ctx con BMW fuori budget,
+    # e prompt non distingueva ruolo info-broker (D-21) da seller.
+    # Fix: forza template "conferma estratti + ETA" senza proporre veicoli concreti.
+    'vehicle_request_broker': """<VEHICLE_REQUEST_ROLE>
+RUOLO: info-broker su richiesta dealer. NON sei un venditore. NON proponi veicoli concreti in questo messaggio.
+Il dealer ti ha chiesto una macchina specifica (marca/modello/anno/budget). Il TUO compito ora e' UNO solo:
+1. Conferma di aver capito la richiesta (cita marca/modello/anno/budget estratti dal messaggio dealer)
+2. Dai ETA realistica: "le scrivo entro 24-48h" o "le mando i dettagli a breve, sto cercando ora"
+3. Chiudi con domanda di sgancio breve OPPURE silenzio (NON proporre alternative ora)
+
+VIETATO ASSOLUTAMENTE in questo messaggio:
+- Inventare o citare km, prezzi, anno di immatricolazione, colore, allestimento di veicoli specifici
+- Proporre un veicolo "alternativo" (anche se simile/disponibile in database)
+- Promettere il veicolo richiesto ("ce l'ho", "te la trovo subito")
+- Citare "scheda", "dossier", "servizio gratis", "5-7 giorni lavorativi", "costi nascosti"
+- Vendere il servizio o citare tempi di delivery del dossier
+
+Se il dealer chiede una macchina FUORI dal nostro range tipico (es. €18000 BMW X1 2020 e' tight ma fattibile),
+NON dire "difficile" o "non si trova" — di' "ci guardo per bene, le scrivo a breve".
+</VEHICLE_REQUEST_ROLE>""",
+
     # Archetipi — solo 1 incluso per chiamata
     'archetype_narciso':     '<ARCHETYPE>Esclusivita\': "guarda, questa me la sono tenuta per lei — config rara"</ARCHETYPE>',
     'archetype_ragioniere':  '<ARCHETYPE>Numeri precisi: "senti, a conti fatti il margine netto e\'..."</ARCHETYPE>',
@@ -419,6 +442,12 @@ def build_system_prompt(archetype: str = 'DEFAULT', cls_type: str = 'UNKNOWN',
     if is_micro_dealer:
         parts.append(PROMPT_MODULES['target_lexicon'])
 
+    # S175.1 D-21: role-binding info-broker per VEHICLE_REQUEST
+    # Posizione DOPO hard_rules / format / tone / register: ultimo prima archetipo
+    # per dare massima salienza sull'ultima istruzione vista dal LLM.
+    if cls_type == 'VEHICLE_REQUEST':
+        parts.append(PROMPT_MODULES['vehicle_request_broker'])
+
     # Archetipo specifico
     arch_key = f'archetype_{archetype.lower()}'
     parts.append(PROMPT_MODULES.get(arch_key, PROMPT_MODULES['archetype_default']))
@@ -439,12 +468,15 @@ class ResponseValidator:
 
         S173 D-27: handoff_source='mystery_shopper' rilassa ban "argos"
         (il dealer ha gia' sentito il nome via Layer 2 cliente fittizio).
+        S175.1 D-21: nuovo check hallucination veicolo per VEHICLE_REQUEST.
         """
         violations = []
         violations += self._check_json_format(text)
         violations += self._check_banned_words(text, handoff_source)
         violations += self._check_fee_leak(text, cls_type)
         violations += self._check_invented_prices(text, vehicle_ctx)
+        violations += self._check_vehicle_hallucination(text, cls_type, vehicle_ctx)
+        violations += self._check_broker_lexicon_ban(text, cls_type)
         violations += self._check_repetitions(text, prev_msgs)
         return violations
 
@@ -523,6 +555,77 @@ class ResponseValidator:
         for p in our_phrases:
             if p in text_lower:
                 violations.append(f'ripetizione: "{p[:50]}"')
+        return violations
+
+    # S175.1 D-21: hallucination veicolo specifico in VEHICLE_REQUEST.
+    # Pattern bersaglio S175.0 ROSSO: "BMW X3 2021 con 89.855 km a 27389".
+    # Se cls=VEHICLE_REQUEST e vehicle_ctx vuoto (D-21 fix: sempre vuoto in VEHICLE_REQUEST),
+    # qualsiasi citazione di km a 4-6 cifre o anno 2015-2026 con prezzo a 4-5 cifre = hallucination.
+    def _check_vehicle_hallucination(self, text: str, cls_type: str, vehicle_ctx: str) -> list:
+        if cls_type != 'VEHICLE_REQUEST':
+            return []
+        # Se per qualche motivo vehicle_ctx e' popolato, salta (delegato a _check_invented_prices)
+        if vehicle_ctx:
+            return []
+        # Rimuovi JSON wrapping per ridurre falsi positivi su prezzi citati nelle istruzioni
+        try:
+            parsed = json.loads(text)
+            joined = ' '.join(parsed.get('messages', [])) if isinstance(parsed, dict) else text
+        except (json.JSONDecodeError, TypeError):
+            joined = text
+        joined_lower = joined.lower()
+
+        violations = []
+        # Pattern km: 4-6 cifre seguite da "km" (es. 89.855 km, 120000 km, 89855km)
+        km_matches = re.findall(r'\b\d{1,3}[\.,]?\d{3}\s*km\b', joined_lower)
+        # Filtra "km certificati" / "km zero" / "0 km" generici
+        km_specific = [m for m in km_matches if not re.match(r'^0+\s*km', m)]
+        if km_specific:
+            violations.append(f'vehicle_hallucination_km: {km_specific[:2]}')
+
+        # Pattern prezzo veicolo: 4-5 cifre con € o "euro" (escludi fee €1000 e simili)
+        # Es: 27389, €27.389, 18000 euro
+        price_patterns = re.findall(
+            r'(?:€|euro\s|EUR\s)\s*([1-9]\d{4}|[1-9]\d{1,2}[\.,]\d{3})',
+            joined,
+        )
+        # Aggiungi pattern senza simbolo ma con km/anno vicino (es. "a 27389")
+        bare_price = re.findall(r'\b(?:a|prezzo|costo)\s+([1-9]\d{4})\b', joined_lower)
+        price_specific = [p for p in price_patterns + bare_price
+                          if p not in ('1.000', '1000', '10.000', '10000')]
+        if price_specific:
+            violations.append(f'vehicle_hallucination_price: {price_specific[:2]}')
+
+        return violations
+
+    # S175.1 D-21/D-28: ban marketing/seller lexicon in VEHICLE_REQUEST.
+    # Lista forbidden replica criteri pass S175.0 ROSSO step 3.
+    def _check_broker_lexicon_ban(self, text: str, cls_type: str) -> list:
+        if cls_type != 'VEHICLE_REQUEST':
+            return []
+        try:
+            parsed = json.loads(text)
+            joined = ' '.join(parsed.get('messages', [])) if isinstance(parsed, dict) else text
+        except (json.JSONDecodeError, TypeError):
+            joined = text
+        joined_lower = joined.lower()
+
+        # Lista derivata da prompt S175.1 + finding S175.0 step 2 GIALLO
+        ban_phrases = [
+            'scheda con foto',
+            'dossier gratis',
+            '5-7 giorni lavorativi',
+            'costi nascosti',
+            'trovo la macchina giusta',
+            'la macchina giusta',
+            'difficile da trovare',
+            'pezzo raro',
+            "e' un bel pezzo",
+        ]
+        violations = []
+        for ph in ban_phrases:
+            if ph in joined_lower:
+                violations.append(f'broker_lexicon_ban: "{ph}"')
         return violations
 
 
@@ -644,21 +747,28 @@ STORICO CONVERSAZIONE (ultimi scambi):
 """
 
     # Pipeline CoVe → LLM: veicoli reali
+    # S175.1 D-21 fix: per VEHICLE_REQUEST NON popoliamo vehicle_ctx.
+    # AMBRA ruolo info-broker conferma+ETA, lancio on_demand_runner avviene via Telegram HITL (D-15).
+    # Brand-affinity fallback resta valido SOLO per POSITIVE/CURIOSITY (proattivita' lecita).
     vehicle_ctx = dealer.get('_vehicle_context', '')
-    if not vehicle_ctx and cls_type == 'VEHICLE_REQUEST':
-        # Estrai marca dalla richiesta e cerca veicoli reali
-        extracted = dealer.get('_extracted_request', {})
-        vehicle_ctx = get_relevant_vehicles(
-            marca=extracted.get('marca'),
-            budget=extracted.get('budget_eur'),
-        )
-    if not vehicle_ctx:
-        # Fallback: brand affinity dealer
+    if cls_type == 'VEHICLE_REQUEST':
+        # Force-skip vehicle_ctx in VEHICLE_REQUEST: l'unica risposta legittima e' conferma + ETA.
+        # Se il dealer accetta in messaggio successivo (POSITIVE post-VEHICLE_REQUEST),
+        # vehicle_ctx tornera' a popolarsi dal ramo POSITIVE.
+        vehicle_ctx = ''
+    elif not vehicle_ctx:
+        # Fallback: brand affinity dealer (solo per POSITIVE/CURIOSITY/non-VEHICLE_REQUEST)
         brands = dealer.get('brands', [])
         if brands:
             vehicle_ctx = get_relevant_vehicles(dealer_brands=brands)
 
-    if vehicle_ctx:
+    if cls_type == 'VEHICLE_REQUEST':
+        prompt += """
+VEICOLI DISPONIBILI: NON pertinente — questo e' un VEHICLE_REQUEST.
+Il tuo compito ora e' conferma estratti + ETA (vedi <VEHICLE_REQUEST_ROLE>).
+La pipeline di ricerca veicoli reali viene lanciata MANUALMENTE dal team via Telegram.
+"""
+    elif vehicle_ctx:
         prompt += f"""
 VEICOLI DISPONIBILI (dati REALI verificati — usa SOLO questi):
 {vehicle_ctx}
@@ -2017,7 +2127,11 @@ def main():
         all_v = v2.copy()
         if not v1['safe']:
             all_v.append(f'v1: {v1["reason"]}')
-        blk = [v for v in all_v if any(k in v for k in ['banned', 'fee_leak', 'prezzo_inventato', 'v1:'])]
+        blk = [v for v in all_v if any(k in v for k in [
+            'banned', 'fee_leak', 'prezzo_inventato', 'v1:',
+            # S175.1 D-21 nuovi blocking
+            'vehicle_hallucination', 'broker_lexicon_ban',
+        ])]
         wrn = [v for v in all_v if v not in blk]
         return blk, wrn
 
@@ -2034,7 +2148,9 @@ def main():
             "Riscrivi seguendo RIGIDAMENTE queste regole:\n"
             "- MAI usare la parola 'bot' nemmeno per negare\n"
             "- MAI inventare prezzi/importi non nel contesto\n"
+            "- MAI inventare km, anno, modello specifico di veicoli concreti\n"
             "- MAI menzionare fee se il dealer non l'ha chiesta\n"
+            "- Se VEHICLE_REQUEST: SOLO conferma estratti (marca/modello/budget/anno) + ETA 24-48h, NESSUN veicolo concreto\n"
             "- SOLO JSON: {\"messages\": [\"msg1\", \"msg2\"]}\n\n"
             + user_prompt
         )
@@ -2057,6 +2173,49 @@ def main():
                     warnings = retry_warnings
                 else:
                     print(f'  [RETRY] FAIL — ancora bloccante: {retry_blocking}')
+
+    # S175.1 D-21: se VEHICLE_REQUEST resta bloccante dopo retry, forza template
+    # "conferma estratti + ETA" anziche' HOLD spurio (D-15 founder HITL via Telegram gia' notificato).
+    if blocking and cls_type == 'VEHICLE_REQUEST':
+        extracted = dealer.get('_extracted_request', {}) or {}
+        marca = (extracted.get('marca') or '').strip() or 'la macchina richiesta'
+        modello = (extracted.get('modello') or '').strip()
+        budget = extracted.get('budget_eur')
+        anno = extracted.get('anno_min') or extracted.get('anno')
+        # Costruisci frase di conferma in italiano naturale, no marketing lexicon
+        conferma_parts = [marca]
+        if modello:
+            conferma_parts.append(modello)
+        if anno:
+            conferma_parts.append(f"del {anno}")
+        if isinstance(budget, int):
+            budget_str = f"{budget:,}".replace(",", ".")
+            conferma_parts.append(f"sui {budget_str}")
+        conferma_str = " ".join(conferma_parts)
+        broker_messages = [
+            "ok ricevuto",
+            f"sto cercando una {conferma_str}, le scrivo entro 24-48h con i dettagli",
+            "Luca",
+        ]
+        broker_text = json.dumps({"messages": broker_messages})
+        broker_candidate = {
+            'label': 'VEHICLE_REQUEST_BROKER_FALLBACK',
+            'text': broker_text,
+            'messages': broker_messages,
+        }
+        broker_id = save_pending_reply(
+            args.db_path, args.dealer_id, args.dealer_name,
+            args.msg_id, broker_candidate)
+        best = broker_candidate
+        best_id = broker_id
+        # Ri-valida fallback (deve passare per costruzione)
+        fb_blocking, fb_warnings = _validate_candidate(
+            broker_text, cls_type, msg_history, '')
+        if fb_blocking:
+            print(f'  [BROKER_FALLBACK] BLOCKING residuo: {fb_blocking} — manteniamo comunque')
+        blocking = []
+        warnings = fb_warnings
+        llm_cost_info = (llm_cost_info or '') + ' + broker_fallback'
 
     if blocking:
         print(f'  [VALIDATOR] BLOCKING: {blocking}')
