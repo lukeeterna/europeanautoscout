@@ -1,5 +1,8 @@
 # S177c — Finalize S177b: send sign_url + sign + mark PAID + fix 3 BACKLOG HIGH
 
+> **Quando eseguire**: prima sessione utile lun-sab in fascia 9-19 IT (daemon anti-ban). Domenica = OFF Luke (lavapiatti, memory `user_luke_finanzia_canone_lavapiatti_domenica.md`).
+
+
 **Precondizioni S177b code-VERDE 3.5/5** (commit chain pushato master `0476df6 → 20de638 → c3c98a9 → 315d751`):
 - ✅ Classifier `CONTRACT_REQUEST` state-gated funzionante (test 14/14)
 - ✅ Handler riusa `create_contract_for_interest()` → Worker auth OK (Bearer + body completo)
