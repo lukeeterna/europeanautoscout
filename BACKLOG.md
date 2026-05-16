@@ -2,6 +2,17 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
+## S177c 2026-05-16 — Findings collaterali (HIGH)
+
+### 🔴 BUG-4 — Cloudflare Pages NON ha auto-deploy GitHub
+Push master su `landing/` NON triggera build Pages. Verificato S177c: 5min monitor su commit `739384e` (empty trigger _redirects) — zero redeploy. Implicazione: ogni cambio `landing/contract/`, `landing/index.html`, asset richiede retry manuale dashboard Cloudflare. Fix vero: configurare GitHub Pages integration in CF dashboard o aggiungere workflow `.github/workflows/cd-pages.yml` con `cloudflare/pages-action`. Costo: zero (entrambi free-tier).
+
+### 🟡 SSH .env sourcing pattern
+`ssh imac "source .env && cmd"` NON esporta KEY=val come env var (default bash limita a var locale). Pattern corretto: `set -a; source .env; set +a; cmd`. Documentato in S177c memory. Aggiornare reference `wiki/projects/ARGOS/runbooks/ssh-imac.md` se esiste, o aggiungere snippet in CLAUDE.md.
+
+### 🟡 .env iMac linea 12 quote
+`GMAIL_FERRETTI_APP_PASSWORD=jzge syej rqex zkrw` senza quote → spazi rompono source → tutte le var sotto linea 12 (incluso `ARGOS_ADMIN_SECRET`) non esportate. Fixed S177c con sed quote. Audit altri .env del progetto per pattern simile.
+
 ## S176-finalize 2026-05-16 — Findings collaterali (priorità ordinata)
 
 ### 🔴 PRIORITÀ 1 — S177 contract intent (BLOCKER primo deal E2E)
