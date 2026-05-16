@@ -53,6 +53,8 @@ const SHARED_ENV = {
     BRIDGE_DB_PATH:              dotEnv.BRIDGE_DB_PATH              || '',
     BRIDGE_POLL_INTERVAL_MS:     dotEnv.BRIDGE_POLL_INTERVAL_MS     || '30000',
     GROQ_API_KEY:                dotEnv.GROQ_API_KEY                || '',
+    // S177c: TEST_FOUNDER whitelist bypass anti-ban (zero rischio ban su numero test)
+    TEST_FOUNDER_PHONE:          dotEnv.TEST_FOUNDER_PHONE          || '',
 };
 
 module.exports = {
