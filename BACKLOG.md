@@ -13,8 +13,14 @@ LaMa→Pillow rectangle solid (D-25 violazione). Targa scomparsa + paraurti defo
 ### 🟡 PRIORITÀ 3 — UX direzione TEST_FOUNDER reactive
 In tutti prompt futuri esplicitare: TEST_FOUNDER reactive = SIM `3314928901` → SIM `3281536308`. Direzione invertita = daemon filtra come auto-eco. S176-finalize ha perso 15min su questo.
 
-### 🟡 PRIORITÀ 4 — `current_step` non si aggiorna dopo PDF send
-Daemon `wa-daemon.js` `/send-doc` non aggiorna `conversations.current_step='DOSSIER_SENT'`. Fix incluso in S177 STEP 3.
+### ✅ PRIORITÀ 4 — `current_step` non si aggiorna dopo PDF send (RISOLTO S177a 2026-05-16)
+Daemon `wa-daemon.js` `/send-doc` patch in-place iMac: post-send UPDATE `conversations.current_step='DOSSIER_SENT'` se era `DAY1_SENT`/`DAY3_SENT`. Backup `wa-daemon.js.s177a_bak`. Restart pulito 18:11. Smoke test fisico differito S177b primo `/send-doc` reale.
+
+### 🔴 PRIORITÀ 4-bis NUOVA — HITL LLM_MULTI bypass strutturale (D-07 violation)
+`pending_replies.reply_e9be3ac6` ha `approved=0` MA `sent=1` con 2 OUTBOUND messaggi delivered TEST_FOUNDER 17:57:44/48 (reply hallucinata mai approvata). Schema NON ha `approved_ts` né `sent_at` (solo `approved`, `sent`). `wa-daemon.js pollBridgeOutbound` legge da `bridge_outbound` (table diversa) con `approved_ts IS NOT NULL` — quindi reply LLM_MULTI NON viene da quella pipeline. Sospetti path auto-send: (a) `telegram-handler.py:171` esegue UPDATE sent=1 post Telegram approve, (b) embedded subprocess in response-analyzer.py:1684 `c.execute('UPDATE pending_replies SET sent=1 WHERE id=?', [task['reply_id']])`. Per dealer reale = un dealer riceve hallucination senza HITL gate. **FIX URGENTE pre-Day 1 reale Stile Car**. Audit completo path subprocess in S177b o S177-bis-hitl.
+
+### 🟠 PRIORITÀ 4-ter NUOVA — Worker `/api/v1/contract/create` 401 INVALID_TOKEN
+Endpoint Cloudflare `https://argos-proxy.gianlucanewtech.workers.dev/api/v1/contract/create` rifiuta `X-API-Key: $ARGOS_API_KEY` (token presente in `.env` iMac). Test S164 aveva creato contract via questo path → o token ruotato o auth method cambiato. Verifica `wrangler.toml` Worker env binding + path autenticazione (Bearer?). Necessario per S177b classifier handler che chiama questo endpoint.
 
 ### ⚪ PRIORITÀ 5 — D-31 dossier 12 sezioni
 PDF S176 = 3 pagine vs D-18 12 sezioni. Gap analysis deferred S179+.
