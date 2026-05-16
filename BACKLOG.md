@@ -2,6 +2,28 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
+## S176-finalize 2026-05-16 — Findings collaterali (priorità ordinata)
+
+### 🔴 PRIORITÀ 1 — S177 contract intent (BLOCKER primo deal E2E)
+Classifier AMBRA non gestisce intent CONTRACT_REQUEST. Pipeline reactive si ferma a info-broker loop dopo dossier accept. Resume: `prompts/s177_contract_intent_implementation.md`. **PRIMA di S178 sanitizer**.
+
+### 🟠 PRIORITÀ 2 — S178 sanitizer refactor D-32 (BLOCKER Day 1 reale)
+LaMa→Pillow rectangle solid (D-25 violazione). Targa scomparsa + paraurti deformato in regression test S176. Senza fix = primo dealer reale vede foto distorte = trust kill. **Dopo S177 verde**.
+
+### 🟡 PRIORITÀ 3 — UX direzione TEST_FOUNDER reactive
+In tutti prompt futuri esplicitare: TEST_FOUNDER reactive = SIM `3314928901` → SIM `3281536308`. Direzione invertita = daemon filtra come auto-eco. S176-finalize ha perso 15min su questo.
+
+### 🟡 PRIORITÀ 4 — `current_step` non si aggiorna dopo PDF send
+Daemon `wa-daemon.js` `/send-doc` non aggiorna `conversations.current_step='DOSSIER_SENT'`. Fix incluso in S177 STEP 3.
+
+### ⚪ PRIORITÀ 5 — D-31 dossier 12 sezioni
+PDF S176 = 3 pagine vs D-18 12 sezioni. Gap analysis deferred S179+.
+
+### ⚪ PRIORITÀ 6 — iMac branch divergence
+`main` HEAD `fd35965e` history-rewrite vs `origin/master`. Risolvere prima di prossimo deploy esteso.
+
+
+
 ## S174 — Classifier substring bug (false-positive `passat` in `passato`)
 
 `wa-intelligence/response-analyzer.py` line 1136 — keyword list VEHICLE_REQUEST contiene `passat` come exact match ma classifier usa substring scan (line 1306 area `keyword_mixed_intent`). Messaggio "il cliente che è passato da me" → matcha `passat` → routato VEHICLE_REQUEST → template VEHICLE_PROPOSAL servito → LLM bypassed.
