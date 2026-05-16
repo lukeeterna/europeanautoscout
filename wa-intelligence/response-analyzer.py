@@ -1894,6 +1894,12 @@ def main():
     if classification.get('type') == 'CONTRACT_REQUEST':
         print(f'[{now_it()}] CONTRACT_REQUEST — creo contratto via argos-proxy')
         dealer_phone = (dealer.get('phone_number') or dealer.get('phone') or '').strip()
+        # Worker validation regex: ^(\+39)?3\d{8,10}$. Normalizza 393XXXXXXXXX → +393XXXXXXXXX
+        if dealer_phone and not dealer_phone.startswith('+'):
+            if dealer_phone.startswith('39') and len(dealer_phone) >= 12:
+                dealer_phone = '+' + dealer_phone
+            elif dealer_phone.startswith('3') and len(dealer_phone) == 10:
+                dealer_phone = '+39' + dealer_phone
         dealer_name_eff = (dealer.get('dealer_name')
                            or args.dealer_name
                            or args.dealer_id)
