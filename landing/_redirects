@@ -1,5 +1,4 @@
-# Cloudflare Pages — URL rewrites
-# /contract/<token> → /contract/index.html (token read client-side)
-# Status 200 = rewrite (URL stays the same in browser)
-# S177c 2026-05-16: redeploy trigger — Pages serving landing/index.html on /contract/*
-/contract/*  /contract/index.html  200
+# Cloudflare Pages — URL redirects
+# S178 2026-05-16: routing /contract/<token> gestito da Pages Function
+# (functions/contract/[token].js) — static asset precedence preserva sign.js/thank-you.html.
+# Nessuna rule splat qui per evitare cattura accidentale di static assets.

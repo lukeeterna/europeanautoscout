@@ -30,9 +30,13 @@
 
   // ── Init ───────────────────────────────────────────────────────────
   function getTokenFromPath() {
-    // /contract/<token>  — token is 32 hex
+    // /contract/<token>  — token is 32 hex (legacy path-based)
     const m = location.pathname.match(/^\/contract\/([a-f0-9]{32})\/?$/);
-    return m ? m[1] : null;
+    if (m) return m[1];
+    // Fallback: query string ?token=<token> (post-S178 _redirects 302)
+    const q = new URLSearchParams(location.search).get('token');
+    if (q && /^[a-f0-9]{32}$/.test(q)) return q;
+    return null;
   }
 
   function showState(name) {
