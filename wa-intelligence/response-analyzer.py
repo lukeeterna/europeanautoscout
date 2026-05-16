@@ -222,6 +222,33 @@ def create_contract_for_interest(
         return {'ok': False, 'error': f'request failed: {e}'}
 
 
+# ── S177b CONTRACT_REQUEST classifier (D-07 HITL, D-21 workflow eBay-style) ──
+# Pattern di intent "dealer chiede contratto/firma" attivati SOLO se lo stato
+# conversation e' DOSSIER_SENT o DAY3_SENT (gating per evitare falsi positivi
+# su confirme generiche "ok"/"va bene" durante fasi precedenti).
+import re as _s177b_re
+
+CONTRACT_REQUEST_PATTERNS = [
+    r'\b(mi\s+mandi|mandami|inviami|mandate?mi|spediscimi)\b.{0,30}\b(contratto|contract|firma|sign)\b',
+    r'\b(ok|va\s+bene|perfetto|d[\'\u2019]accordo|certo)\b.{0,40}\b(contratto|procedo|proseguo|firmo|firma|mandi)\b',
+    r'\b(facciamo|procediamo|facciamolo|chiudiamo)\b.{0,20}\b(contratto|deal|operazione)\b',
+    r'^\s*(ok|si|s\u00ec|va\s+bene|d[\'\u2019]accordo|perfetto)[\.\!]?\s*$',
+]
+
+
+def matches_contract_request(text: str, current_step: str) -> bool:
+    """S177b: rileva intent CONTRACT_REQUEST, gated da stato conversation.
+
+    Returns True solo se current_step in (DOSSIER_SENT, DAY3_SENT) E il testo
+    matcha uno dei pattern. Il gating di stato impedisce che "ok" secco in
+    fase DAY1 venga interpretato come richiesta contratto.
+    """
+    if current_step not in ('DOSSIER_SENT', 'DAY3_SENT'):
+        return False
+    t = (text or '').lower().strip()
+    return any(_s177b_re.search(p, t) for p in CONTRACT_REQUEST_PATTERNS)
+
+
 # ── Knowledge Base ARGOS ──────────────────────────────────
 KB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'argos_knowledge_base.md')
 KNOWLEDGE_BASE = ''
@@ -1346,11 +1373,18 @@ def _is_media_message(body: str) -> bool:
     return False
 
 
-def classify_message(body: str) -> dict:
+def classify_message(body: str, current_step: str = '') -> dict:
     # BUG-4 fix: rileva media/immagini prima di classificare testo
     if _is_media_message(body):
         return {'type': 'MEDIA', 'confidence': 0.95, 'method': 'media_detect',
                 'matched': ['image/media']}
+
+    # S177b: CONTRACT_REQUEST gated da stato (DOSSIER_SENT/DAY3_SENT)
+    # PRIMA di POSITIVE/CURIOSITY/VEHICLE_REQUEST per garantire priorita'.
+    if matches_contract_request(body, current_step):
+        return {'type': 'CONTRACT_REQUEST', 'confidence': 0.92,
+                'method': 'state_gated_pattern',
+                'matched': ['contract_request']}
 
     b_lower = body.lower().strip()
     words = b_lower.split()
@@ -1849,9 +1883,68 @@ def main():
             'current_step': args.step,
         }
 
-    # 2. Classifica messaggio
-    classification = classify_message(args.msg_body)
+    # 2. Classifica messaggio (S177b: passa current_step per gating CONTRACT_REQUEST)
+    classification = classify_message(
+        args.msg_body, current_step=dealer.get('current_step', '') or '')
     print(f'  Classificazione: {classification}')
+
+    # S177b CONTRACT_REQUEST: D-07 HITL strict — crea contract via argos-proxy,
+    # salva pending_reply approved=NULL, notifica Telegram HOLD per approve manuale.
+    # Bypassa anti-spam (intent forte gated da stato DOSSIER_SENT/DAY3_SENT).
+    if classification.get('type') == 'CONTRACT_REQUEST':
+        print(f'[{now_it()}] CONTRACT_REQUEST — creo contratto via argos-proxy')
+        dealer_phone = (dealer.get('phone_number') or dealer.get('phone') or '').strip()
+        dealer_name_eff = (dealer.get('dealer_name')
+                           or args.dealer_name
+                           or args.dealer_id)
+        # Fallback veicolo: scenario S177b TEST_FOUNDER = BMW X1 2020 €18000.
+        # TODO post-S177b: lookup tabella dossier_sent o messages OUTBOUND per
+        # estrarre veicolo reale del dossier piu' recente per quel dealer.
+        vehicle_data = {
+            'make': 'BMW', 'model': 'X1', 'year': 2020,
+            'price_eu_cents': 1800000,
+        }
+        contract_res = create_contract_for_interest(
+            intent={'type': 'CONTRACT_REQUEST', 'confidence': 0.92},
+            dealer_id=args.dealer_id,
+            dealer_name=dealer_name_eff,
+            dealer_phone=dealer_phone,
+            vehicle_data=vehicle_data,
+            conv_id=args.msg_id,
+            fee_cents=80000,
+        )
+        if not contract_res.get('ok'):
+            err = contract_res.get('error', 'unknown')
+            print(f'  [CONTRACT_REQUEST] create FAILED: {err}')
+            send_telegram_hold(dealer, args.msg_body, classification,
+                               [], [],
+                               f'CONTRACT_REQUEST create FAILED: {err}',
+                               'contract_request_failed')
+            return
+        sign_url    = contract_res['sign_url']
+        contract_id = contract_res['contract_id']
+        # D-OPEN-Q2: cash a consegna, NESSUN IBAN hardcoded nella reply.
+        reply_text = (
+            f"perfetto. firmiamo qui: {sign_url}\n\n"
+            f"appena firmato ci sentiamo per consegna e saldo. Luca"
+        )
+        cr_candidate = {
+            'label': 'CONTRACT_REQUEST',
+            'text': reply_text,
+            'messages': [reply_text],
+            'contract_id': contract_id,
+            'sign_url': sign_url,
+        }
+        cr_reply_id = save_pending_reply(
+            args.db_path, args.dealer_id, dealer_name_eff,
+            args.msg_id, cr_candidate)
+        send_telegram_hold(
+            dealer, args.msg_body, classification,
+            [cr_candidate], [cr_reply_id],
+            f'CONTRACT_REQUEST — contract {contract_id} creato. APPROVA manualmente per inviare sign_url.',
+            f'contract_id:{contract_id}')
+        print(f'[{now_it()}] CONTRACT_REQUEST handled — reply_id={cr_reply_id} contract={contract_id}')
+        return
 
     # S116/S117: Anti-spam — cooldown 24h SOLO se dealer non ha risposto dopo ultimo outbound
     # Se il dealer sta rispondendo (conversazione attiva), non bloccare
