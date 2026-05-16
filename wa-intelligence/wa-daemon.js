@@ -266,31 +266,78 @@ async function bridgeIngestInbound(msg) {
     }
 }
 
+// S171: schema migration idempotente (additive cols processing_ts + attempt_count)
+function ensureBridgeOutboundSchemaS171(bdb) {
+    try {
+        const cols = bdb.prepare("PRAGMA table_info(bridge_outbound)").all().map(c => c.name);
+        if (!cols.includes('processing_ts')) {
+            bdb.exec('ALTER TABLE bridge_outbound ADD COLUMN processing_ts INTEGER');
+            log('INFO', '[bridge] S171 schema: added processing_ts');
+        }
+        if (!cols.includes('attempt_count')) {
+            bdb.exec('ALTER TABLE bridge_outbound ADD COLUMN attempt_count INTEGER DEFAULT 0');
+            log('INFO', '[bridge] S171 schema: added attempt_count');
+        }
+    } catch (e) {
+        log('WARN', `[bridge] S171 schema migration skipped: ${e.message}`);
+    }
+}
+
+// S171: classifica errori send permanent vs transient
+function isPermanentSendError(errStr) {
+    return /No LID for user|invalid wid|invalid number|not.?registered|forbidden|not.?found/i.test(errStr);
+}
+
+// S171: reclaim window stale processing (max poll_interval*4, min 120s)
+const BRIDGE_RECLAIM_WINDOW_S = Math.max(120, Math.floor(BRIDGE_POLL_INTERVAL_MS * 4 / 1000));
+const BRIDGE_MAX_ATTEMPTS = 3;
+
 async function pollBridgeOutbound(clientRef) {
     const bdb = getBridgeDb();
     if (!bdb || !clientRef) return;
+    ensureBridgeOutboundSchemaS171(bdb);
     let pending = [];
     try {
         pending = bdb.prepare(`
-            SELECT id, deal_id, target_role, target_phone, body, template_phase
+            SELECT id, deal_id, target_role, target_phone, body, template_phase, attempt_count
             FROM bridge_outbound
-            WHERE approved_ts IS NOT NULL AND sent_ts IS NULL
+            WHERE approved_ts IS NOT NULL
+              AND sent_ts IS NULL
+              AND (processing_ts IS NULL OR processing_ts < strftime('%s','now') - ?)
+              AND COALESCE(attempt_count, 0) < ?
             ORDER BY approved_ts ASC
             LIMIT ?
-        `).all(BRIDGE_POLL_BATCH);
+        `).all(BRIDGE_RECLAIM_WINDOW_S, BRIDGE_MAX_ATTEMPTS, BRIDGE_POLL_BATCH);
     } catch (e) {
         log('ERROR', `[bridge] poll query failed: ${e.message}`);
         return;
     }
     for (const row of pending) {
         const chatId = `${row.target_phone}@c.us`;
+        const now = Math.floor(Date.now() / 1000);
+
+        // S171: atomic claim PRE-send (idempotency lock)
+        const claim = bdb.prepare(`
+            UPDATE bridge_outbound
+            SET processing_ts = ?, attempt_count = COALESCE(attempt_count, 0) + 1
+            WHERE id = ?
+              AND sent_ts IS NULL
+              AND (processing_ts IS NULL OR processing_ts < ?)
+        `).run(now, row.id, now - BRIDGE_RECLAIM_WINDOW_S);
+
+        if (claim.changes === 0) {
+            log('INFO', `[bridge] skip id=${row.id} (already claimed by concurrent poll)`);
+            continue;
+        }
+        const currentAttempt = (row.attempt_count || 0) + 1;
+
         try {
-            log('INFO', `[bridge] sending id=${row.id} deal=${row.deal_id} phase=${row.template_phase} → ${row.target_phone}`);
+            log('INFO', `[bridge] sending id=${row.id} attempt=${currentAttempt} deal=${row.deal_id} phase=${row.template_phase} → ${row.target_phone}`);
             const sentMsg = await clientRef.sendMessage(chatId, row.body);
             const waMsgId = sentMsg?.id?._serialized || null;
             bdb.prepare(`
                 UPDATE bridge_outbound
-                SET sent_ts = ?, sent_status = 'ok', wa_msg_id = ?
+                SET sent_ts = ?, sent_status = 'ok', wa_msg_id = ?, processing_ts = NULL
                 WHERE id = ?
             `).run(Math.floor(Date.now() / 1000), waMsgId, row.id);
             log('INFO', `[bridge] sent ok id=${row.id} wa_msg_id=${waMsgId}`);
@@ -300,9 +347,25 @@ async function pollBridgeOutbound(clientRef) {
             await new Promise(r => setTimeout(r, delay));
         } catch (e) {
             const errStr = (e.message || String(e)).substring(0, 200);
-            log('ERROR', `[bridge] send failed id=${row.id}: ${errStr}`);
+            const permanent = isPermanentSendError(errStr);
+            const capped = currentAttempt >= BRIDGE_MAX_ATTEMPTS;
+            log('ERROR', `[bridge] send failed id=${row.id} attempt=${currentAttempt}/${BRIDGE_MAX_ATTEMPTS} permanent=${permanent}: ${errStr}`);
             try {
-                bdb.prepare('UPDATE bridge_outbound SET sent_status = ? WHERE id = ?').run(`error: ${errStr}`, row.id);
+                if (permanent || capped) {
+                    // Terminal: set sent_ts to escape poll forever
+                    bdb.prepare(`
+                        UPDATE bridge_outbound
+                        SET sent_status = ?, sent_ts = ?, processing_ts = NULL
+                        WHERE id = ?
+                    `).run(`error_${permanent ? 'permanent' : 'capped'}: ${errStr}`, Math.floor(Date.now() / 1000), row.id);
+                } else {
+                    // Transient: clear processing_ts, retry next poll cycle
+                    bdb.prepare(`
+                        UPDATE bridge_outbound
+                        SET sent_status = ?, processing_ts = NULL
+                        WHERE id = ?
+                    `).run(`error_transient: ${errStr}`, row.id);
+                }
             } catch (_) {}
         }
     }
@@ -601,7 +664,16 @@ const HumanLike = {
     async clearPresence(cli, chatId) {
         try { const chat = await (cli || _waClient).getChatById(chatId); await chat.clearState(); } catch (_) {}
     },
-    isAllowedToSend() {
+    isAllowedToSend(phone) {
+        // S177c: TEST_FOUNDER whitelist — numero test del founder bypassa anti-ban (zero rischio ban)
+        if (phone && process.env.TEST_FOUNDER_PHONE) {
+            const cleanPhone = String(phone).replace(/[^0-9]/g, '');
+            const testPhone = String(process.env.TEST_FOUNDER_PHONE).replace(/[^0-9]/g, '');
+            if (cleanPhone === testPhone) {
+                log('INFO', 'Anti-ban: TEST_FOUNDER whitelist, bypass business hours');
+                return true;
+            }
+        }
         if (!TC.isBusinessHours()) { log('INFO', 'Anti-ban: fuori business hours, invio bloccato'); return false; }
         return true;
     }
@@ -980,7 +1052,7 @@ function initClient() {
                         log('INFO', `[GUARD] OK: ${dealer_id} — ${template_id}`);
                     }
 
-                    if (!HumanLike.isAllowedToSend()) {
+                    if (!HumanLike.isAllowedToSend(phone)) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'outside business hours' }));
                         return;
@@ -1131,7 +1203,7 @@ function initClient() {
                         res.end(JSON.stringify({ error: 'max 5 messages per call' }));
                         return;
                     }
-                    if (!HumanLike.isAllowedToSend()) {
+                    if (!HumanLike.isAllowedToSend(phone)) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'outside business hours' }));
                         return;
@@ -1228,7 +1300,7 @@ function initClient() {
                         res.end(JSON.stringify({ error: 'phone and audio_path required' }));
                         return;
                     }
-                    if (!HumanLike.isAllowedToSend()) {
+                    if (!HumanLike.isAllowedToSend(phone)) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'outside business hours' }));
                         return;
@@ -1291,7 +1363,7 @@ function initClient() {
                         res.end(JSON.stringify({ error: 'file not found', file_path }));
                         return;
                     }
-                    if (!HumanLike.isAllowedToSend()) {
+                    if (!HumanLike.isAllowedToSend(phone)) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'outside business hours' }));
                         return;
