@@ -1,4 +1,5 @@
 # Cloudflare Pages — URL rewrites
 # /contract/<token> → /contract/index.html (token read client-side)
 # Status 200 = rewrite (URL stays the same in browser)
+# S177c 2026-05-16: redeploy trigger — Pages serving landing/index.html on /contract/*
 /contract/*  /contract/index.html  200
