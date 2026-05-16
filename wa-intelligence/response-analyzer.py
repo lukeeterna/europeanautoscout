@@ -198,6 +198,8 @@ def create_contract_for_interest(
         headers={
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {ARGOS_ADMIN_SECRET}',
+            # S177b: Cloudflare WAF (error 1010) blocca default Python-urllib/X.Y UA.
+            'User-Agent': 'argos-analyzer/1.0',
         },
     )
 
