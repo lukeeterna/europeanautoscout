@@ -40,6 +40,7 @@ TELEGRAM_TOKEN   = os.environ.get('ARGOS_TELEGRAM_TOKEN', '')
 TELEGRAM_CHAT_ID = os.environ.get('ARGOS_TELEGRAM_CHAT_ID', '931063621')
 DB_PATH          = os.environ.get('ARGOS_DB_PATH',
     os.path.expanduser('~/Documents/app-antigravity-auto/dealer_network.sqlite'))
+BRIDGE_DB_PATH   = os.environ.get('BRIDGE_DB_PATH', '')
 WA_SENDER        = os.path.expanduser(
     '~/Documents/app-antigravity-auto/wa-sender/send_message.js')
 WA_CLIENT_ID     = os.environ.get('WA_CLIENT_ID', 'argos-business')
@@ -48,6 +49,53 @@ POLL_OFFSET_FILE = '/tmp/argos-tg-offset.txt'
 
 # Anti-ban sleep range (secondi)
 SLEEP_MIN, SLEEP_MAX = 90, 720
+
+# S173: stato FORCE — reply_id → True (attende keyword FORCE da Luke)
+_PENDING_FORCE: dict[str, dict] = {}
+
+# S173: audit log force=true overrides
+FORCE_AUDIT_PATH = os.path.expanduser('~/venture-os/state/argos-force-overrides.jsonl')
+
+
+def _log_force_override(phone: str, reply_id: str, context: str = 'telegram_approve'):
+    """Scrive audit entry per force=true override (compliance trail)."""
+    entry = json.dumps({
+        'ts': int(time.time()),
+        'phone': phone,
+        'reply_id': reply_id,
+        'founder': 'luke',
+        'context': context,
+    })
+    try:
+        os.makedirs(os.path.dirname(FORCE_AUDIT_PATH), exist_ok=True)
+        with open(FORCE_AUDIT_PATH, 'a') as _f:
+            _f.write(entry + '\n')
+        log(f'[force-override] audit logged: phone={phone} reply_id={reply_id}')
+    except Exception as _e:
+        log(f'[force-override] audit log FAILED: {_e} — entry: {entry}')
+
+
+def _bridge_precheck_24h(phone: str) -> tuple[bool, int]:
+    """Verifica se phone ha ricevuto msg nelle ultime 24h via bridge_outbound.
+    Returns: (recent: bool, minutes_ago: int)
+    """
+    if not BRIDGE_DB_PATH:
+        return False, -1
+    try:
+        con = sqlite3.connect(BRIDGE_DB_PATH, timeout=5)
+        cutoff = int(time.time()) - 24 * 3600
+        row = con.execute(
+            'SELECT sent_ts FROM bridge_outbound WHERE target_phone = ? AND sent_ts IS NOT NULL AND sent_ts > ? ORDER BY sent_ts DESC LIMIT 1',
+            (phone, cutoff)
+        ).fetchone()
+        con.close()
+        if not row:
+            return False, -1
+        minutes_ago = round((int(time.time()) - row[0]) / 60)
+        return True, minutes_ago
+    except Exception as _e:
+        log(f'[bridge_precheck_24h] error: {_e}')
+        return False, -1
 
 
 # ── Utility ──────────────────────────────────────────────────
@@ -119,7 +167,18 @@ def db_exec(sql: str, params: list = None):
 
 
 # ── Comandi ──────────────────────────────────────────────────
-def cmd_approva(reply_id: str) -> str:
+def cmd_approva(reply_id: str, force: bool = False) -> str:
+    """Approva e schedula invio reply.
+
+    S173: precheck 24h su bridge_outbound prima di inviare.
+    Se phone ha ricevuto msg nelle ultime 24h e force=False:
+      → risponde con warning + istruzione 'FORCE <reply_id>' per override.
+    Se force=True: procede + scrive audit log.
+    """
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', reply_id):
+        return f'❌ Formato reply_id non valido: `{reply_id}`'
+
     rows = db_query('SELECT * FROM pending_replies WHERE id = ?', [reply_id])
     if not rows:
         return f'❌ Reply ID non trovato: `{reply_id}`'
@@ -141,19 +200,35 @@ def cmd_approva(reply_id: str) -> str:
     phone = dealers[0]['phone_number'].replace('@c.us', '').replace('+', '').replace(' ', '')
     wa_id = f'{phone}@c.us'
 
+    # S173: precheck 24h via bridge_outbound
+    recent, minutes_ago = _bridge_precheck_24h(phone)
+    if recent and not force:
+        # Salva stato pending FORCE per questo reply_id
+        _PENDING_FORCE[reply_id] = {'phone': phone, 'wa_id': wa_id, 'r': r}
+        return (
+            f'⚠️ *Precheck 24h BLOCKED*\n'
+            f'📱 {phone} ha ricevuto un messaggio *{minutes_ago} minuti fa* (< 24h).\n\n'
+            f'Per inviare ugualmente, rispondi con:\n'
+            f'`FORCE {reply_id}`\n\n'
+            f'_Audit log obbligatorio — registra override per compliance._'
+        )
+
+    if recent and force:
+        # Force override — audit log obbligatorio
+        _log_force_override(phone=phone, reply_id=reply_id, context='telegram_approve')
+        log(f'[force-override] APPROVED: reply={reply_id} phone={phone} minutes_ago={minutes_ago}')
+
     # Schedula invio con anti-ban sleep
     sleep_s = random.randint(SLEEP_MIN, SLEEP_MAX)
-    log(f'Approvata reply {reply_id} — sleep {sleep_s}s prima dell\'invio')
+    log(f'Approvata reply {reply_id} — sleep {sleep_s}s prima dell\'invio (force={force})')
 
     db_exec(
         'UPDATE pending_replies SET approved = 1 WHERE id = ?',
         [reply_id]
     )
 
-    # Avvia invio in background (non blocca) — SAFE: no shell interpolation
-    import re
-    if not re.match(r'^[a-zA-Z0-9_\-]+$', reply_id):
-        return f'Invalid reply_id format: {reply_id}'
+    # Cleanup stato FORCE pendente se presente
+    _PENDING_FORCE.pop(reply_id, None)
 
     env = os.environ.copy()
     env['CLIENT_ID'] = WA_CLIENT_ID
@@ -173,8 +248,9 @@ def cmd_approva(reply_id: str) -> str:
         env=env, close_fds=True
     )
 
+    force_note = ' *(force=true, audit logged)*' if force else ''
     return (
-        f'✅ *Reply approvata* — invio tra ~{sleep_s//60}min\n'
+        f'✅ *Reply approvata{force_note}* — invio tra ~{sleep_s//60}min\n'
         f'👤 A: {r["dealer_name"]}\n'
         f'💬 _{r["reply_text"][:200]}_'
     )
@@ -565,6 +641,19 @@ def dispatch(text: str, chat_id: str):
     parts = text.strip().split(None, 2)
     cmd   = parts[0].lower() if parts else ''
     args  = parts[1:]
+
+    # S173: FORCE <reply_id> — override precheck 24h dopo avviso da cmd_approva
+    if cmd == 'force' and args:
+        force_reply_id = args[0]
+        if force_reply_id in _PENDING_FORCE:
+            reply = cmd_approva(force_reply_id, force=True)
+        else:
+            reply = (
+                f'⚠️ Nessun precheck pending per `{force_reply_id}`.\n'
+                f'Usa prima `/approva {force_reply_id}` — se bloccato da precheck 24h, il sistema chiederà conferma.'
+            )
+        send(reply, chat_id)
+        return
 
     if cmd == '/approva':
         reply = cmd_approva(args[0]) if args else '❌ Usage: `/approva <reply_id>`'

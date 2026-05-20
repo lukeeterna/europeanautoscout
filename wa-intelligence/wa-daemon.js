@@ -371,6 +371,75 @@ async function pollBridgeOutbound(clientRef) {
     }
 }
 
+// ── S173: Bridge insert helper (Day3 + auto_approve mono-msg) ───────────────
+// Usa INSERT OR IGNORE — il UNIQUE INDEX uq_outbound_deal_phone_phase (migrazione S173)
+// impedisce duplicati silenziosamente senza eccezioni.
+// Returns: { inserted: bool, rowId: number }
+function insertBridgeOutbound({ dealId, role, phone, phase, lang, body, state }) {
+    const bdb = getBridgeDb();
+    if (!bdb) {
+        log('WARN', '[bridge] insertBridgeOutbound: no bridge DB, skip');
+        return { inserted: false, rowId: -1 };
+    }
+    try {
+        const now = Math.floor(Date.now() / 1000);
+        const res = bdb.prepare(`
+            INSERT OR IGNORE INTO bridge_outbound
+                (deal_id, target_role, target_phone, template_phase, template_lang,
+                 body, state_at_send, created_ts)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(dealId, role, phone, phase, lang, body, state, now);
+        const inserted = res.changes === 1;
+        if (!inserted) {
+            log('INFO', `[bridge][dedup] INSERT OR IGNORE skipped duplicate deal=${dealId} phone=${phone} phase=${phase}`);
+        }
+        return { inserted, rowId: res.lastInsertRowid || -1 };
+    } catch (e) {
+        log('ERROR', `[bridge] insertBridgeOutbound failed: ${e.message}`);
+        return { inserted: false, rowId: -1 };
+    }
+}
+
+// ── S173: Precheck 24h — verifica ultimo invio su stesso phone ───────────────
+// Restituisce { recent: bool, minutesAgo: number } — usato da Day7, /send, Telegram /approva
+function bridgePrecheck24h(phone) {
+    const bdb = getBridgeDb();
+    if (!bdb) return { recent: false, minutesAgo: -1 };
+    try {
+        const cutoff = Math.floor(Date.now() / 1000) - 24 * 3600;
+        const row = bdb.prepare(`
+            SELECT sent_ts FROM bridge_outbound
+            WHERE target_phone = ? AND sent_ts IS NOT NULL AND sent_ts > ?
+            ORDER BY sent_ts DESC LIMIT 1
+        `).get(phone, cutoff);
+        if (!row) return { recent: false, minutesAgo: -1 };
+        const minutesAgo = Math.round((Math.floor(Date.now() / 1000) - row.sent_ts) / 60);
+        return { recent: true, minutesAgo };
+    } catch (e) {
+        log('WARN', `[bridge] precheck24h error: ${e.message}`);
+        return { recent: false, minutesAgo: -1 };
+    }
+}
+
+// ── S173: Audit log force=true overrides ─────────────────────────────────────
+// Scrive in ~/venture-os/state/argos-force-overrides.jsonl (audit trail compliance)
+function logForceOverride({ phone, context, replyId = null }) {
+    const entry = JSON.stringify({
+        ts: Math.floor(Date.now() / 1000),
+        phone,
+        reply_id: replyId,
+        founder: 'luke',
+        context,
+    });
+    try {
+        const auditPath = require('os').homedir() + '/venture-os/state/argos-force-overrides.jsonl';
+        fs.appendFileSync(auditPath, entry + '\n');
+        log('INFO', `[force-override] audit logged: phone=${phone} context=${context}`);
+    } catch (e) {
+        log('WARN', `[force-override] audit log failed: ${e.message} — entry: ${entry}`);
+    }
+}
+
 // ── Inizializza schema DB se non esiste ──────────────────────
 function ensureSchema() {
     const db = getDb();
@@ -1012,7 +1081,7 @@ function initClient() {
             req.on('data', chunk => { body += chunk; });
             req.on('end', async () => {
                 try {
-                    const { phone, message, dealer_id, template_id, dry_run } = JSON.parse(body);
+                    const { phone, message, dealer_id, template_id, dry_run, force } = JSON.parse(body);
                     if (!phone || !message) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'phone and message required' }));
@@ -1100,6 +1169,26 @@ function initClient() {
                     }
 
                     const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
+
+                    // S173: precheck 24h — blocca invio se phone ha già ricevuto msg nelle ultime 24h
+                    // Bypass solo con force=true esplicito nel payload + audit log obbligatorio
+                    // `force` estratto dal JSON.parse sopra insieme a phone/message/dealer_id
+                    const precheckSend = bridgePrecheck24h(cleanPhone);
+                    if (precheckSend.recent && !force) {
+                        log('WARN', `[/send][precheck24h] BLOCKED phone=${cleanPhone} — sent ${precheckSend.minutesAgo}min ago. Send force=true to override.`);
+                        res.writeHead(429, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({
+                            error: 'precheck_24h_blocked',
+                            phone: cleanPhone,
+                            minutes_ago: precheckSend.minutesAgo,
+                            hint: 'Add force:true to payload to override (audit log will be written)',
+                        }));
+                        return;
+                    }
+                    if (precheckSend.recent && force) {
+                        logForceOverride({ phone: cleanPhone, context: 'http_send', replyId: null });
+                        log('WARN', `[/send][force=true] override precheck24h phone=${cleanPhone} (${precheckSend.minutesAgo}min ago)`);
+                    }
 
                     // Check primo contatto: verifica onWhatsApp
                     const existingMsgs = dbQuery('SELECT COUNT(*) as cnt FROM messages WHERE dealer_id = ? AND direction = ?', [dealer_id || '', 'OUTBOUND']);
@@ -1551,42 +1640,46 @@ function startScheduler(client) {
             const phone = (dealer.phone_number || '').replace(/[+\s-]/g, '');
             if (!phone) continue;
 
-            const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
-
+            // S173: Day3 → bridge (single writer principle D-22)
+            // client.sendMessage diretto rimosso — bridge pollBridgeOutbound gestisce send
             try {
-                // Anti-ban: simula typing prima dell'invio
-                await HumanLike.simulateTyping(client, chatId, template.length);
-                await client.sendMessage(chatId, template);
-                await HumanLike.clearPresence(client, chatId);
-                CONFIG.DAILY_SENT++;
-                incrementDailyStats('sent');
+                const { inserted } = insertBridgeOutbound({
+                    dealId:  dealer.dealer_id,
+                    role:    'dealer',
+                    phone,
+                    phase:   'day3',
+                    lang:    'it',
+                    body:    template,
+                    state:   'DAY1_SENT',
+                });
+                if (inserted) {
+                    // Auto-approve: Day3 è scheduling automatico, non richiede HITL
+                    const bdb = getBridgeDb();
+                    if (bdb) {
+                        bdb.prepare(`
+                            UPDATE bridge_outbound
+                            SET approved_ts = strftime('%s','now')
+                            WHERE deal_id = ? AND target_phone = ? AND template_phase = 'day3'
+                              AND sent_ts IS NULL AND approved_ts IS NULL
+                        `).run(dealer.dealer_id, phone);
+                    }
 
-                const msgId = `day3_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-                db.prepare(`INSERT OR IGNORE INTO messages
-                    (id, dealer_id, dealer_name, phone_number, direction, body,
-                     timestamp_it, timestamp_iso, wa_msg_id, processed)
-                    VALUES (?, ?, ?, ?, 'OUTBOUND', ?, datetime('now'), ?, ?, 1)`)
-                  .run(msgId, dealer.dealer_id, dealer.dealer_name, chatId,
-                       template, TC.nowIT().toISOString(), msgId);
+                    db.prepare(`UPDATE conversations
+                        SET current_step = 'DAY3_SENT', last_contact_at = datetime('now'), analyzed_at = datetime('now')
+                        WHERE dealer_id = ?`).run(dealer.dealer_id);
 
-                db.prepare(`UPDATE conversations
-                    SET current_step = 'DAY3_SENT', last_contact_at = datetime('now'), analyzed_at = datetime('now')
-                    WHERE dealer_id = ?`).run(dealer.dealer_id);
-
-                log('INFO', `📤 DAY 3 INVIATO: ${dealer.dealer_name} (${dealer.persona_type})`);
-                sendTelegramAlert(
-                    `📤 *Day 3 Follow-up INVIATO*\n` +
-                    `👤 ${dealer.dealer_name} (${dealer.persona_type})\n` +
-                    `📱 ${chatId}\n` +
-                    `📊 ${CONFIG.DAILY_SENT}/${CONFIG.DAILY_LIMIT}`
-                );
-
-                // Anti-ban: delay log-normale tra dealer (media 5 min)
-                const sleepMs = HumanLike.logNormalDelay(300000, 90000);
-                log('INFO', `Day3 anti-ban delay: ${Math.round(sleepMs/1000)}s`);
-                await new Promise(r => setTimeout(r, sleepMs));
+                    log('INFO', `📤 DAY 3 QUEUED (bridge): ${dealer.dealer_name} (${dealer.persona_type})`);
+                    sendTelegramAlert(
+                        `📤 *Day 3 Follow-up in coda bridge*\n` +
+                        `👤 ${dealer.dealer_name} (${dealer.persona_type})\n` +
+                        `📱 ${phone}\n` +
+                        `📊 prossimo poll ~30s`
+                    );
+                } else {
+                    log('INFO', `[bridge][dedup] Day3 già in coda per ${dealer.dealer_id} — skip`);
+                }
             } catch (e) {
-                log('ERROR', `Day 3 send failed for ${dealer.dealer_id}:`, e.message);
+                log('ERROR', `Day 3 bridge insert failed for ${dealer.dealer_id}:`, e.message);
             }
         }
 
@@ -1626,6 +1719,24 @@ function startScheduler(client) {
             const chatId = phone.endsWith('@c.us') ? phone : `${phone}@c.us`;
             const voicePath = `/tmp/argos_voice_DAY7_${dealer.dealer_id}.mp3`;
 
+            // S173: precheck 24h — evita duplicati Day7 se inviato di recente
+            // Day7 voice = MessageMedia (binario) — bridge schema solo body TEXT (BACKLOG #S172-1)
+            // Usa client.sendMessage diretto con force=true esplicito + precheck 24h
+            const precheck7 = bridgePrecheck24h(phone);
+            if (precheck7.recent) {
+                // force=true non è settato in scheduler automatico — rispetta D-07 HITL
+                // Se il dealer ha ricevuto un msg nelle ultime 24h, skippa e avvisa
+                log('WARN', `[Day7][precheck] skip ${dealer.dealer_id} — sent ${precheck7.minutesAgo}min ago (< 24h). Retry next cycle.`);
+                sendTelegramAlert(
+                    `⚠️ *Day 7 VOICE SKIP* — precheck 24h\n` +
+                    `👤 ${dealer.dealer_name}\n` +
+                    `📱 ${phone}\n` +
+                    `_Ultimo invio: ${precheck7.minutesAgo}min fa. Ritenterò al prossimo ciclo._\n` +
+                    `_Per forzare: usa force=true via /send HTTP con API key_`
+                );
+                continue;
+            }
+
             // Genera voice note
             const generated = generateVoiceNote(voiceText, voicePath);
             if (!generated) {
@@ -1639,6 +1750,9 @@ function startScheduler(client) {
 
                 // Anti-ban: simula recording indicator prima dell'invio
                 await HumanLike.simulateRecording(client, chatId, 20);
+                // Day7 voice — callsite diretto autorizzato (BACKLOG #S172-1: bridge extension pending)
+                // force=true implicito poiché precheck 24h già superato sopra
+                log('INFO', `[Day7] force=true implicit (precheck 24h passed) — dealer=${dealer.dealer_id}`);
                 await client.sendMessage(chatId, media, { sendAudioAsVoice: true });
                 await HumanLike.clearPresence(client, chatId);
                 CONFIG.DAILY_SENT++;

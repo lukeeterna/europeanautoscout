@@ -1662,7 +1662,7 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text, reply_obj=None)
     con.commit()
     con.close()
 
-    # Determina payload
+    # Determina payload — branch mono vs multi-msg (S173 dedup)
     messages = None
     if reply_obj and 'messages' in reply_obj:
         messages = reply_obj['messages']
@@ -1674,13 +1674,73 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text, reply_obj=None)
         except (json.JSONDecodeError, TypeError):
             pass
 
-    if messages and isinstance(messages, list) and len(messages) > 1:
+    msg_count = len(messages) if (messages and isinstance(messages, list)) else 1
+
+    # S173: branch mono-msg → bridge (single writer D-22)
+    #        multi-msg → Popen fallback + WARN + Telegram alert (BACKLOG #S172-1)
+    if msg_count <= 1:
+        # Mono-msg: INSERT bridge_outbound (INSERT OR IGNORE per UNIQUE constraint)
+        text_to_send = messages[0] if (messages and isinstance(messages, list)) else reply_text
+        bridge_db_path = os.environ.get('BRIDGE_DB_PATH', '')
+        bridge_inserted = False
+        if bridge_db_path:
+            try:
+                _b_con = sqlite3.connect(bridge_db_path, timeout=10)
+                _b_con.execute('PRAGMA journal_mode=WAL')
+                _b_con.execute('PRAGMA busy_timeout=10000')
+                _b_res = _b_con.execute(
+                    """
+                    INSERT OR IGNORE INTO bridge_outbound
+                        (deal_id, target_role, target_phone, template_phase, template_lang,
+                         body, state_at_send, created_ts, approved_ts)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%s','now'), strftime('%s','now'))
+                    """,
+                    (
+                        reply_id,        # deal_id = reply_id (correlazione audit)
+                        'dealer',
+                        phone,
+                        'response',      # template_phase = 'response' (AMBRA reply)
+                        'it',
+                        text_to_send,
+                        dealer.get('current_step', 'RESPONSE_RECEIVED'),
+                    )
+                )
+                _b_con.commit()
+                bridge_inserted = _b_res.rowcount == 1
+                _b_con.close()
+                if bridge_inserted:
+                    print(f'[S173][bridge] mono-msg reply {reply_id} → bridge_outbound queued (approved, next poll ~30s)')
+                else:
+                    print(f'[S173][bridge][dedup] INSERT OR IGNORE: reply {reply_id} già presente in bridge_outbound — skip')
+            except Exception as _bridge_err:
+                print(f'[S173][bridge] INSERT failed: {_bridge_err} — fallback Popen')
+                bridge_inserted = False
+        else:
+            print(f'[S173][bridge] BRIDGE_DB_PATH non set — fallback Popen per reply {reply_id}')
+
+        if bridge_inserted:
+            print(f'[AUTO] Approvata reply {reply_id} — 1 msg via bridge (sleep bridge poll ~30s)')
+            return True
+
+        # Fallback Popen se bridge non disponibile
+        payload_dict = {'phone': phone, 'message': text_to_send, 'dealer_id': dealer_id}
+        endpoint = '/send'
+    else:
+        # Multi-msg: Popen fallback + WARN + Telegram alert (BACKLOG #S172-1 pending)
+        print(f'[WARN][S173] multi-msg reply {reply_id} ({msg_count} messaggi) — bridge non supporta multi-msg ancora (BACKLOG #S172-1). Fallback Popen /send-multi.')
+        _tg_token = os.environ.get('ARGOS_TELEGRAM_TOKEN', '')
+        _tg_chat  = os.environ.get('ARGOS_TELEGRAM_CHAT_ID', '931063621')
+        if _tg_token:
+            try:
+                import urllib.request as _ureq2, urllib.parse as _uparse2
+                _alert_body = f'[S173] multi-msg fallback Popen per reply {reply_id} ({msg_count} bubble) — BACKLOG #S172-1 pending. Verifica log /tmp/argos-auto-send.log'
+                _tg_data = _uparse2.urlencode({'chat_id': _tg_chat, 'text': _alert_body, 'parse_mode': 'Markdown'}).encode()
+                _tg_req = _ureq2.Request(f'https://api.telegram.org/bot{_tg_token}/sendMessage', data=_tg_data, method='POST')
+                _ureq2.urlopen(_tg_req, timeout=10)
+            except Exception as _tg_err:
+                print(f'[WARN][S173] Telegram alert fallback: {_tg_err}')
         payload_dict = {'phone': phone, 'messages': messages, 'dealer_id': dealer_id}
         endpoint = '/send-multi'
-    else:
-        text = messages[0] if messages else reply_text
-        payload_dict = {'phone': phone, 'message': text, 'dealer_id': dealer_id}
-        endpoint = '/send'
 
     # Invio differito via subprocess con temp JSON file (no code injection risk)
     import subprocess as _sp
@@ -1734,8 +1794,7 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text, reply_obj=None)
     )
     log_fd.close()
 
-    msg_count = len(messages) if messages else 1
-    print(f'[AUTO] Approvata + schedulata reply {reply_id} — {msg_count} msg via {endpoint} — invio tra {sleep_s}s')
+    print(f'[AUTO] Approvata + schedulata reply {reply_id} — {msg_count} msg via {endpoint} Popen — invio tra {sleep_s}s')
     return True
 
 

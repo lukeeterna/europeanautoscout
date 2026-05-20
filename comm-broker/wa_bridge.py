@@ -210,12 +210,20 @@ class WABridge:
         finally:
             conn.close()
 
-    def queue_outbound(self, candidate: OutboundCandidate) -> int:
+    def queue_outbound(self, candidate: OutboundCandidate) -> tuple[int, bool]:
+        """Inserisce outbound candidate nella coda bridge.
+
+        Usa INSERT OR IGNORE per gestire UNIQUE constraint (uq_outbound_deal_phone_phase)
+        introdotto con migrazione S173 senza sollevare eccezioni.
+
+        Returns:
+            (row_id, inserted): row_id=lastrowid se inserito (else -1), inserted=True se nuovo record.
+        """
         conn = sqlite3.connect(self.db_path)
         try:
             cur = conn.execute(
                 """
-                INSERT INTO bridge_outbound
+                INSERT OR IGNORE INTO bridge_outbound
                     (deal_id, target_role, target_phone, template_phase, template_lang,
                      body, state_at_send, created_ts)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -225,7 +233,14 @@ class WABridge:
                  candidate.body, candidate.state_at_send, int(time.time())),
             )
             conn.commit()
-            return cur.lastrowid
+            inserted = cur.rowcount == 1
+            row_id = cur.lastrowid if inserted else -1
+            if not inserted:
+                logger.warning(
+                    f"[dedup] INSERT OR IGNORE skipped duplicate: deal={candidate.deal_id} "
+                    f"phone={candidate.target_phone} phase={candidate.template_phase}"
+                )
+            return (row_id, inserted)
         finally:
             conn.close()
 
