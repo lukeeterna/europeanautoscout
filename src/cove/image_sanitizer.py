@@ -1,12 +1,12 @@
 """
-image_sanitizer.py — ARGOS Image Sanitizer v4 (S163)
+image_sanitizer.py — ARGOS Image Sanitizer v5 (S179)
 CoVe 2026 | Enterprise Grade
 
 5-stage pipeline validated on 10+ real dealer photos (S110):
   Stage 0: Interior/exterior classifier (photo index heuristic)
   Stage 1: Crop portal banner (top zone, configurable per portal)
   Stage 2: Apple Vision text detection (was PaddleOCR pre-S163)
-  Stage 3: Inpainting — TELEA for small areas, LaMa crop for large
+  Stage 3: Cover text regions with Pillow rectangles (D-32, D-25)
   Stage 4: Post-OCR verification + Telegram alert if residuals
 
 BUSINESS RULE: The dealer must NOT be able to identify the EU seller
@@ -18,12 +18,15 @@ strutturale su hardware Luke. Vision.framework è built-in macOS 10.13+,
 zero ML deps install, zero AVX2 req. Quality verified on 4 real dealer photos:
 4/4 seller match "Autohaus Isernhagen", warm latency 1.6-2.0s/img.
 
+S179 (2026-05-20): LaMa+cv2.inpaint replaced with Pillow rectangle solid fill (D-32).
+Reason: LaMa hallucination on S176 BMW X1 (deformed bumper, swallowed "xDrive 25e").
+D-25 compliance: no generative OpenCV/LaMa in inpaint path.
+
 Stack (all Apache 2.0 / MIT / Apple system):
   - Apple Vision Framework (system, free, built-in 10.13+)
   - pyobjc-framework-Vision (Apache 2.0): Python bindings
-  - cv2.inpaint TELEA: fast inpainting for small text (<30K px²)
-  - simple-lama-inpainting: quality inpainting for large areas (optional)
-  - Pillow: EXIF strip, save, branding
+  - Pillow: solid fill rectangles (D-32), EXIF strip, save, branding
+  - cv2: banner crop, hood reflection (out of scope D-32)
 
 Usage:
   from src.cove.image_sanitizer import sanitize_image, sanitize_all_images
@@ -48,7 +51,7 @@ except ImportError:
     pass
 
 try:
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw, ImageFont, ImageStat
     PILLOW_AVAILABLE = True
 except ImportError:
     PILLOW_AVAILABLE = False
@@ -69,18 +72,6 @@ PADDLE_DET_THRESH = 0.2
 PADDLE_BOX_THRESH = 0.35
 PADDLE_CONF_MIN = 0.25
 PADDLE_TEXT_MIN_LEN = 2
-
-# Inpainting mask dilation (covers text edges)
-DILATE_KERNEL = (11, 11)
-DILATE_ITERATIONS = 3
-TELEA_RADIUS = 12
-
-# Area threshold: above this use LaMa crop, below use TELEA
-LARGE_AREA_THRESHOLD = 30000  # px²
-
-# LaMa crop settings
-LAMA_CROP_PADDING = 50
-LAMA_MAX_SIDE = 512
 
 # Alert: if post-verify finds text above this confidence, send TG alert
 ALERT_CONFIDENCE_THRESHOLD = 0.70
@@ -107,6 +98,7 @@ MIN_IMAGE_BYTES = 30 * 1024  # 30 KB
 MIN_OUTPUT_SIZE_RATIO = 0.20
 
 # Words to keep (car specs, our own branding)
+# S179: expanded with BMW/Mercedes/Audi numeric trims vulnerable in S176
 KEEP_WORDS = frozenset({
     'xdrive', 'sdrive', 'quattro', 'tfsi', 'tdi', 'cdi',
     'diesel', 'benzin', 'hybrid', 'electric', 'phev', 'mhev',
@@ -114,6 +106,16 @@ KEEP_WORDS = frozenset({
     'argos', 'automotive', 'arcos', 'arg0s',
     'bmw', 'mercedes', 'audi', 'porsche', 'volkswagen', 'vw',
     'amg', 'sport', 'luxury', 'line', 'pack', 'paket',
+    # BMW numeric trims (S176: xDrive 25e swallowed by LaMa)
+    '25e', '30e', '45e', '18d', '20d', '23d', '25d', '30d', '40d', '50d',
+    '18i', '20i', '23i', '25i', '30i', '40i', '50i',
+    'm240i', 'm340i', 'm440i',
+    # Mercedes numeric trims
+    '200d', '220d', '300d', '350d', '400d', '450d',
+    '200', '220', '300', '350', '400', '450',
+    # Audi numeric trims
+    '30tdi', '35tdi', '40tdi', '45tdi', '50tdi',
+    '30tfsi', '35tfsi', '40tfsi', '45tfsi',
 })
 
 # ARGOS brand colors
@@ -130,7 +132,6 @@ DEFAULT_SAFE_DIR = PROJECT_ROOT / "dossiers" / "safe_images"
 # ── Vision OCR backend (S163: replaces PaddleOCR) ────────────────────────────
 
 _VISION_OCR_FN = None
-_SIMPLE_LAMA = None
 
 
 def _get_vision_ocr():
@@ -153,21 +154,6 @@ def _get_vision_ocr():
         except Exception as e:
             log.error(f"Vision OCR init failed: {e}")
     return _VISION_OCR_FN
-
-
-def _get_simple_lama():
-    """Initialize SimpleLama inpainting model (lazy, ~3s first call)."""
-    global _SIMPLE_LAMA
-    if _SIMPLE_LAMA is None:
-        try:
-            from simple_lama_inpainting import SimpleLama
-            _SIMPLE_LAMA = SimpleLama()
-            log.info("SimpleLama initialized")
-        except ImportError:
-            log.warning("simple-lama-inpainting not installed — using TELEA only")
-        except Exception as e:
-            log.error(f"SimpleLama init failed: {e}")
-    return _SIMPLE_LAMA
 
 
 # ── Telegram Alert ────────────────────────────────────────────────────────────
@@ -339,20 +325,52 @@ def _detect_text_regions(
         return []
 
 
-# ── Stage 3: Inpainting ──────────────────────────────────────────────────────
+# ── Stage 3: Pillow solid fill (D-32, D-25) ──────────────────────────────────
 
-def _build_inpaint_mask(
-    cv_img,
-    text_regions: List[Dict],
-    crop_top: int = 0,
-):
+def _sample_border_color(pil_img: "Image.Image", bbox: Tuple[int, int, int, int], sample_px: int = 3) -> Tuple[int, int, int]:
     """
-    Build binary mask for inpainting. 255 = inpaint, 0 = keep.
+    Sample average color of pixels in a border ring around bbox (color match).
 
-    Dilates text boxes to cover edges and shadows.
+    Crops a slightly enlarged region and averages it. Because the inner bbox
+    is typically a small fraction of the outer crop, the mean is dominated by
+    the surrounding background — giving a natural blend color.
     """
+    x1, y1, x2, y2 = bbox
+    w, h = pil_img.size
+    ox1 = max(0, x1 - sample_px)
+    oy1 = max(0, y1 - sample_px)
+    ox2 = min(w, x2 + sample_px)
+    oy2 = min(h, y2 + sample_px)
+    outer = pil_img.crop((ox1, oy1, ox2, oy2))
+    mean_outer = ImageStat.Stat(outer).mean[:3]
+    return tuple(int(c) for c in mean_outer)
+
+
+def _apply_solid_fills(cv_img, text_regions: List[Dict], crop_top: int = 0):
+    """
+    Cover masked text regions with solid color rectangles, color matched to
+    the surrounding border pixels.
+
+    Replaces LaMa+cv2.inpaint (D-32, D-25 Pillow-only). Zero generative ML,
+    zero hallucination risk. Color is sampled from a 3px ring around each bbox
+    for natural blending against the background.
+
+    Args:
+        cv_img: BGR numpy array (cv2 format)
+        text_regions: list of region dicts from _detect_text_regions
+        crop_top: pixels already known to be cropped (regions fully above
+                  this line are skipped unless is_seller)
+
+    Returns:
+        BGR numpy array with text regions covered.
+    """
+    if not text_regions:
+        return cv_img
+
     h, w = cv_img.shape[:2]
-    mask = np.zeros((h, w), dtype=np.uint8)
+    # Convert BGR → PIL RGB for Pillow drawing
+    pil_img = Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
+    draw = ImageDraw.Draw(pil_img)
 
     for region in text_regions:
         if not region['should_mask']:
@@ -361,116 +379,26 @@ def _build_inpaint_mask(
         x1, y1, x2, y2 = region['box']
 
         # Skip regions fully above crop line (they'll be removed by crop)
-        # But if region is near the crop line, inpaint it too (OCR box may be
-        # smaller than the actual signage/logo)
         if y2 <= crop_top and not region['is_seller']:
             continue
-        # For seller matches near crop line: extend mask below OCR box
+
+        # For seller matches near crop line: extend down to catch full signage
         if region['is_seller'] and y2 <= crop_top + int(h * 0.05):
-            # Extend mask well below the OCR box to catch full signage
             y2 = min(h, crop_top + int(h * 0.08))
 
-        # Extra padding for seller matches
+        # Pad: 20px seller (larger signage), 12px others (mirror _build_inpaint_mask)
         pad = 20 if region['is_seller'] else 12
         mx1 = max(0, x1 - pad)
         my1 = max(0, y1 - pad)
         mx2 = min(w, x2 + pad)
         my2 = min(h, y2 + pad)
 
-        mask[my1:my2, mx1:mx2] = 255
+        # Color match: sample 3px border ring around padded bbox
+        fill_color = _sample_border_color(pil_img, (mx1, my1, mx2, my2), sample_px=3)
+        draw.rectangle([mx1, my1, mx2, my2], fill=fill_color)
 
-    # Dilate to cover text edges
-    if np.any(mask > 0):
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, DILATE_KERNEL)
-        mask = cv2.dilate(mask, kernel, iterations=DILATE_ITERATIONS)
-
-    return mask
-
-
-def _inpaint_image(cv_img, mask):
-    """
-    Inpaint masked regions.
-
-    Strategy:
-    - Small areas (<30K px²): cv2.inpaint TELEA (~instant)
-    - Large areas (>=30K px²): SimpleLama on cropped region (~21s/region)
-    - If LaMa unavailable: TELEA fallback for everything
-    """
-    if not np.any(mask > 0):
-        return cv_img
-
-    h, w = cv_img.shape[:2]
-    result = cv_img.copy()
-
-    # Find connected components in mask
-    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
-
-    small_mask = np.zeros_like(mask)
-    large_regions = []
-
-    for label_id in range(1, num_labels):  # skip background (0)
-        area = stats[label_id, cv2.CC_STAT_AREA]
-        if area < LARGE_AREA_THRESHOLD:
-            small_mask[labels == label_id] = 255
-        else:
-            rx = stats[label_id, cv2.CC_STAT_LEFT]
-            ry = stats[label_id, cv2.CC_STAT_TOP]
-            rw = stats[label_id, cv2.CC_STAT_WIDTH]
-            rh = stats[label_id, cv2.CC_STAT_HEIGHT]
-            large_regions.append((rx, ry, rw, rh, label_id))
-
-    # TELEA for small areas (fast, ~instant)
-    if np.any(small_mask > 0):
-        result = cv2.inpaint(result, small_mask, TELEA_RADIUS, cv2.INPAINT_TELEA)
-
-    # LaMa for large areas (quality, ~21s per region)
-    lama = _get_simple_lama()
-    for rx, ry, rw, rh, label_id in large_regions:
-        # Crop region with padding
-        pad = LAMA_CROP_PADDING
-        cx1 = max(0, rx - pad)
-        cy1 = max(0, ry - pad)
-        cx2 = min(w, rx + rw + pad)
-        cy2 = min(h, ry + rh + pad)
-
-        crop_img = result[cy1:cy2, cx1:cx2]
-        crop_mask = np.zeros(crop_img.shape[:2], dtype=np.uint8)
-        crop_mask[labels[cy1:cy2, cx1:cx2] == label_id] = 255
-
-        if lama is not None:
-            try:
-                # SimpleLama expects PIL images
-                pil_img = Image.fromarray(cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB))
-                pil_mask = Image.fromarray(crop_mask)
-
-                # Resize if too large
-                orig_size = pil_img.size
-                max_side = max(orig_size)
-                if max_side > LAMA_MAX_SIDE:
-                    scale = LAMA_MAX_SIDE / max_side
-                    new_size = (int(orig_size[0] * scale), int(orig_size[1] * scale))
-                    pil_img_resized = pil_img.resize(new_size, Image.Resampling.LANCZOS)
-                    pil_mask_resized = pil_mask.resize(new_size, Image.Resampling.NEAREST)
-                    inpainted = lama(pil_img_resized, pil_mask_resized)
-                    inpainted = inpainted.resize(orig_size, Image.Resampling.LANCZOS)
-                else:
-                    inpainted = lama(pil_img, pil_mask)
-
-                # Paste back (crop to exact target size in case LaMa changed dimensions)
-                inpainted_cv = cv2.cvtColor(np.array(inpainted), cv2.COLOR_RGB2BGR)
-                th, tw = cy2 - cy1, cx2 - cx1
-                inpainted_cv = inpainted_cv[:th, :tw]
-                result[cy1:cy2, cx1:cx2] = inpainted_cv
-                continue
-            except Exception as e:
-                log.warning(f"LaMa inpaint failed for region ({rx},{ry},{rw},{rh}): {e}")
-
-        # Fallback: TELEA for this region too
-        region_mask = np.zeros(result.shape[:2], dtype=np.uint8)
-        region_mask[labels == label_id] = 255
-        result = cv2.inpaint(result, region_mask, TELEA_RADIUS, cv2.INPAINT_TELEA)
-
-    return result
+    # Convert PIL RGB → BGR for downstream cv2 pipeline
+    return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
 
 # ── Stage 4: Post-verify + Alert ─────────────────────────────────────────────
@@ -605,12 +533,12 @@ def sanitize_image(
     seller_name: str = None,
 ) -> Optional[str]:
     """
-    Sanitize a single vehicle image (v3 pipeline):
+    Sanitize a single vehicle image (v5 pipeline):
 
     Stage 0: Classify interior/exterior
     Stage 1: Crop portal banner (top zone)
-    Stage 2: PaddleOCR text detection
-    Stage 3: Inpaint (TELEA small / LaMa large)
+    Stage 2: Apple Vision text detection
+    Stage 3: Cover text regions with Pillow rectangles (D-32, D-25)
     Stage 4: Post-verify + TG alert if residuals
 
     Returns: path to sanitized image, or None on failure.
@@ -720,14 +648,13 @@ def sanitize_image(
             if other_text:
                 print(f"  [OCR] {len(other_text)} other text region(s) to mask")
 
-        # ── STAGE 3: Inpainting ──────────────────────────────────
-        mask = _build_inpaint_mask(cv_img, text_regions, crop_top)
-        has_mask = np.any(mask > 0)
+        # ── STAGE 3: Pillow solid fill (D-32, D-25) ─────────────
+        to_mask = [r for r in text_regions if r['should_mask']]
+        has_mask = len(to_mask) > 0
 
         if has_mask:
-            cv_img = _inpaint_image(cv_img, mask)
-            masked_px = np.count_nonzero(mask)
-            print(f"  [INPAINT] {masked_px // 1000}K pixels masked")
+            cv_img = _apply_solid_fills(cv_img, text_regions, crop_top)
+            print(f"  [FILL] {len(to_mask)} text region(s) covered (Pillow rect)")
 
         # Apply top crop
         if crop_top > 0:

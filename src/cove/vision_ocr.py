@@ -28,10 +28,16 @@ Reference:
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Dict, FrozenSet, List, Optional, Tuple
 
 log = logging.getLogger("argos.sanitizer.vision")
+
+# S179 D-32: catch-all pattern for numeric trims (25e, 30d, 40i, m340i, 45tfsi…)
+# Covers BMW/Mercedes/Audi trims not yet in KEEP_WORDS without hardcoding every variant.
+# Pattern: optional leading letter(s) + 2-3 digits + 1-2 trailing letters
+TRIM_PATTERN = re.compile(r'^[a-z]?\d{2,3}[a-z]{1,5}$')
 
 # Lazy import — only if explicitly called (consente fallback graceful)
 _VISION_AVAILABLE = None
@@ -168,6 +174,9 @@ def detect_text_regions(
         should_mask = True
         if not is_seller:
             if all(w in keep_words for w in words_lower):
+                should_mask = False
+            # S179: numeric trim catch-all (25e, 30d, 40i, m340i, 45tfsi…)
+            elif all(TRIM_PATTERN.match(w) for w in words_lower):
                 should_mask = False
             elif len(text.strip()) <= 2:
                 should_mask = False
