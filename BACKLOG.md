@@ -2,6 +2,34 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
+## S173b 2026-05-20 — BACKLOG #S172-1 [HIGH, GATING Day 1 dealer Aprile]
+
+### 🔴 bridge_outbound multi-msg + media schema extension
+
+**Scope**: estendere `bridge_outbound` per supportare:
+- N>1 messaggi consecutivi (AMBRA reply multi-bubble)
+- MessageMedia (Day7 voice .mp3, future immagini PDF)
+
+**Schema delta**:
+```sql
+ALTER TABLE bridge_outbound ADD COLUMN media_path TEXT;
+ALTER TABLE bridge_outbound ADD COLUMN media_type TEXT; -- 'audio/ogg', 'image/jpeg', etc.
+ALTER TABLE bridge_outbound ADD COLUMN msg_sequence INTEGER DEFAULT 0; -- 0..N per ordering
+```
+
+**Acceptance criteria (Definition of Done)**:
+1. Schema migrato + backward compat (NULL = single msg, no media)
+2. `pollBridgeOutbound` gestisce msg_sequence ORDER BY per consecutive sends
+3. Day7 voice migra a bridge (no più callsite diretto)
+4. `auto_approve_and_send` multi-msg migra a bridge (no più Popen)
+5. Test E2E: AMBRA reply 3 bubble → 3 WA messages distinte recapitati TEST_FOUNDER 393314928901
+6. Rollback plan documentato (DROP COLUMN media_path/media_type/msg_sequence + revert wa_bridge.py)
+
+**ETA target**: 2026-04-25 (5 working days da S173b close)
+**Owner**: implementer agent S174
+**Gating**: Day 1 dealer reale Aprile bloccato fino merge
+**Prompt resume**: `prompts/s174_bridge_multimsg_extension.md`
+
 ## S178 2026-05-16 — Findings collaterali
 
 ### 🟡 BUG-5 — Sign page mostra "token non valido" post-submit successful
