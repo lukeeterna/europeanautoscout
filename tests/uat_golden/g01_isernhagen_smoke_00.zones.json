@@ -1,0 +1,50 @@
+{
+  "image": "g01_isernhagen_smoke_00.jpg",
+  "seller_name": "Autohaus Isernhagen",
+  "image_index": 0,
+  "pii_zones": [
+    {
+      "x1": 241,
+      "y1": 1033,
+      "x2": 271,
+      "y2": 1043,
+      "type": "footer_brand_row",
+      "source": "vision",
+      "conf": 1.0,
+      "text": "ROYCE"
+    },
+    {
+      "x1": 1107,
+      "y1": 1041,
+      "x2": 1418,
+      "y2": 1069,
+      "type": "footer_brand_row",
+      "source": "vision",
+      "conf": 1.0,
+      "text": "BMW Service Partner"
+    },
+    {
+      "x1": 0,
+      "y1": 950,
+      "x2": "W",
+      "y2": "H",
+      "type": "footer_brand_row",
+      "source": "heuristic"
+    }
+  ],
+  "auto_features_zone": {
+    "x1": 0.3,
+    "y1": 0.2,
+    "x2": 0.7,
+    "y2": 0.78
+  },
+  "_meta": {
+    "img_w": 1440,
+    "img_h": 1080,
+    "vision_elapsed_s": 2.61,
+    "vision_regions_total": 2,
+    "vision_should_mask": 2,
+    "heuristic_count": 1,
+    "generated_by": "s183_autogen_zones.py"
+  }
+}

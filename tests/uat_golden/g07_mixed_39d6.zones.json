@@ -1,0 +1,70 @@
+{
+  "image": "g07_mixed_39d6.jpg",
+  "seller_name": null,
+  "image_index": 0,
+  "pii_zones": [
+    {
+      "x1": 259,
+      "y1": 32,
+      "x2": 783,
+      "y2": 115,
+      "type": "dealer_signage",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "baum"
+    },
+    {
+      "x1": 197,
+      "y1": 137,
+      "x2": 619,
+      "y2": 171,
+      "type": "dealer_signage",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "www.baum-automobile.de"
+    },
+    {
+      "x1": 221,
+      "y1": 899,
+      "x2": 770,
+      "y2": 939,
+      "type": "footer_brand_row",
+      "source": "vision",
+      "conf": 1.0,
+      "text": "BMW PREMIUM SELECTION."
+    },
+    {
+      "x1": 215,
+      "y1": 941,
+      "x2": 769,
+      "y2": 986,
+      "type": "footer_brand_row",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "GEBRAUCHTE AUTOMOBILE."
+    },
+    {
+      "x1": 0,
+      "y1": 950,
+      "x2": "W",
+      "y2": "H",
+      "type": "footer_brand_row",
+      "source": "heuristic"
+    }
+  ],
+  "auto_features_zone": {
+    "x1": 0.3,
+    "y1": 0.2,
+    "x2": 0.7,
+    "y2": 0.78
+  },
+  "_meta": {
+    "img_w": 1440,
+    "img_h": 1080,
+    "vision_elapsed_s": 2.07,
+    "vision_regions_total": 4,
+    "vision_should_mask": 4,
+    "heuristic_count": 1,
+    "generated_by": "s183_autogen_zones.py"
+  }
+}

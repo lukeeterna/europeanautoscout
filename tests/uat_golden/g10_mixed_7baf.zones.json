@@ -1,0 +1,100 @@
+{
+  "image": "g10_mixed_7baf.jpg",
+  "seller_name": null,
+  "image_index": 0,
+  "pii_zones": [
+    {
+      "x1": 516,
+      "y1": 110,
+      "x2": 1217,
+      "y2": 150,
+      "type": "dealer_signage",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "Freude am Fahren von Berlin bis Dresden"
+    },
+    {
+      "x1": 211,
+      "y1": 209,
+      "x2": 424,
+      "y2": 228,
+      "type": "dealer_signage",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "Autohaus Wernecke"
+    },
+    {
+      "x1": 517,
+      "y1": 197,
+      "x2": 901,
+      "y2": 230,
+      "type": "dealer_signage",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "www.bmw-wernecke.de"
+    },
+    {
+      "x1": 221,
+      "y1": 903,
+      "x2": 766,
+      "y2": 939,
+      "type": "footer_brand_row",
+      "source": "vision",
+      "conf": 1.0,
+      "text": "BMW PREMIUM SELECTION."
+    },
+    {
+      "x1": 60,
+      "y1": 1028,
+      "x2": 184,
+      "y2": 1053,
+      "type": "footer_brand_row",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "Abbildur"
+    },
+    {
+      "x1": 1504,
+      "y1": 996,
+      "x2": 1579,
+      "y2": 1032,
+      "type": "footer_brand_row",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "F Imp"
+    },
+    {
+      "x1": 1301,
+      "y1": 1043,
+      "x2": 1498,
+      "y2": 1060,
+      "type": "footer_brand_row",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "IMA PREMIUM SELECTION CURANTE"
+    },
+    {
+      "x1": 0,
+      "y1": 950,
+      "x2": "W",
+      "y2": "H",
+      "type": "footer_brand_row",
+      "source": "heuristic"
+    }
+  ],
+  "auto_features_zone": {
+    "x1": 0.3,
+    "y1": 0.2,
+    "x2": 0.7,
+    "y2": 0.78
+  },
+  "_meta": {
+    "img_w": 1801,
+    "img_h": 1080,
+    "vision_elapsed_s": 2.17,
+    "vision_regions_total": 7,
+    "vision_should_mask": 7,
+    "heuristic_count": 1,
+    "generated_by": "s183_autogen_zones.py"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "image": "g08_mixed_4289.jpg",
+  "seller_name": null,
+  "image_index": 0,
+  "pii_zones": [
+    {
+      "x1": 280,
+      "y1": 495,
+      "x2": 327,
+      "y2": 508,
+      "type": "tagline",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "2LL 2693 P"
+    },
+    {
+      "x1": 515,
+      "y1": 643,
+      "x2": 623,
+      "y2": 669,
+      "type": "dealer_signage",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "M UJ769E"
+    },
+    {
+      "x1": 218,
+      "y1": 879,
+      "x2": 1026,
+      "y2": 966,
+      "type": "footer_brand_row",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "BILDER FOLGEN."
+    },
+    {
+      "x1": 0,
+      "y1": 950,
+      "x2": "W",
+      "y2": "H",
+      "type": "footer_brand_row",
+      "source": "heuristic"
+    }
+  ],
+  "auto_features_zone": {
+    "x1": 0.3,
+    "y1": 0.2,
+    "x2": 0.7,
+    "y2": 0.78
+  },
+  "_meta": {
+    "img_w": 1440,
+    "img_h": 1080,
+    "vision_elapsed_s": 1.8,
+    "vision_regions_total": 3,
+    "vision_should_mask": 3,
+    "heuristic_count": 1,
+    "generated_by": "s183_autogen_zones.py"
+  }
+}

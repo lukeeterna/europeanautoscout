@@ -1,0 +1,30 @@
+{
+  "image": "g02_isernhagen_smoke_01.jpg",
+  "seller_name": "Autohaus Isernhagen",
+  "image_index": 1,
+  "pii_zones": [
+    {
+      "x1": 0,
+      "y1": 950,
+      "x2": "W",
+      "y2": "H",
+      "type": "footer_brand_row",
+      "source": "heuristic"
+    }
+  ],
+  "auto_features_zone": {
+    "x1": 0.3,
+    "y1": 0.2,
+    "x2": 0.7,
+    "y2": 0.78
+  },
+  "_meta": {
+    "img_w": 1440,
+    "img_h": 1080,
+    "vision_elapsed_s": 1.78,
+    "vision_regions_total": 0,
+    "vision_should_mask": 0,
+    "heuristic_count": 1,
+    "generated_by": "s183_autogen_zones.py"
+  }
+}

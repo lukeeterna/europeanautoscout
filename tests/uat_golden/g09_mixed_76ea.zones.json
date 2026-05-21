@@ -1,0 +1,90 @@
+{
+  "image": "g09_mixed_76ea.jpg",
+  "seller_name": null,
+  "image_index": 0,
+  "pii_zones": [
+    {
+      "x1": 72,
+      "y1": 77,
+      "x2": 762,
+      "y2": 118,
+      "type": "dealer_signage",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "Autohaus Müller GmbH & Co. KG"
+    },
+    {
+      "x1": 74,
+      "y1": 146,
+      "x2": 334,
+      "y2": 180,
+      "type": "dealer_signage",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "70839 Gerlingen"
+    },
+    {
+      "x1": 164,
+      "y1": 638,
+      "x2": 288,
+      "y2": 659,
+      "type": "tagline",
+      "source": "vision",
+      "conf": 1.0,
+      "text": "BMW PREMIUM SELECTION."
+    },
+    {
+      "x1": 165,
+      "y1": 656,
+      "x2": 274,
+      "y2": 670,
+      "type": "tagline",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "GECHECKT & GARANTIERT"
+    },
+    {
+      "x1": 196,
+      "y1": 801,
+      "x2": 693,
+      "y2": 835,
+      "type": "footer_brand_row",
+      "source": "vision",
+      "conf": 1.0,
+      "text": "BMW PREMIUM SELECTION,"
+    },
+    {
+      "x1": 182,
+      "y1": 842,
+      "x2": 688,
+      "y2": 875,
+      "type": "footer_brand_row",
+      "source": "vision",
+      "conf": 0.5,
+      "text": "GEBRAUCHTE AUTOMOBILE"
+    },
+    {
+      "x1": 0,
+      "y1": 844,
+      "x2": "W",
+      "y2": "H",
+      "type": "footer_brand_row",
+      "source": "heuristic"
+    }
+  ],
+  "auto_features_zone": {
+    "x1": 0.3,
+    "y1": 0.2,
+    "x2": 0.7,
+    "y2": 0.78
+  },
+  "_meta": {
+    "img_w": 1278,
+    "img_h": 960,
+    "vision_elapsed_s": 2.05,
+    "vision_regions_total": 6,
+    "vision_should_mask": 6,
+    "heuristic_count": 1,
+    "generated_by": "s183_autogen_zones.py"
+  }
+}
