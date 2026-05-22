@@ -38,10 +38,16 @@ logger = logging.getLogger("argos.dealer_discovery.engine")
 
 # ── CRM Integration ──────────────────────────────────────────
 
+from pathlib import Path as _Path
+_PROJECT_ROOT = _Path(__file__).resolve().parents[2]
 DB_PATH = os.environ.get(
     'ARGOS_DB_PATH',
     os.path.expanduser('~/Documents/app-antigravity-auto/dealer_network.sqlite')
 )
+if not os.path.exists(DB_PATH):
+    _alt = str(_PROJECT_ROOT / "dealer_network.sqlite")
+    if os.path.exists(_alt):
+        DB_PATH = _alt
 
 
 def _normalize_name(name: str) -> str:

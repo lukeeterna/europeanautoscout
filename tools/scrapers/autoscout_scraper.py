@@ -1530,6 +1530,23 @@ def main():
         print(f"Errors: {run.errors}")
     print()
 
+    # Persist listings in market_listings (CLI scrape() non lo fa, solo run_all)
+    from .db import upsert_listing
+    persisted_new = 0
+    persisted_upd = 0
+    persist_errors = 0
+    for lst in listings:
+        try:
+            status, _ = upsert_listing(lst)
+            if status == "new":
+                persisted_new += 1
+            elif status == "updated":
+                persisted_upd += 1
+        except Exception as exc:
+            persist_errors += 1
+            logging.error("upsert failed for %s: %s", lst.listing_id, exc)
+    print(f"DB persist: {persisted_new} new, {persisted_upd} updated, {persist_errors} errors")
+
     for lst in listings[:20]:
         print(f"  {lst.make} {lst.model} {lst.variant} | {lst.year} | {lst.km:,} km | EUR {lst.price_eur:,.0f} | {lst.fuel_type.value} | {lst.listing_url}")
 

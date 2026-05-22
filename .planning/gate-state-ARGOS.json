@@ -1,0 +1,129 @@
+{
+  "updated_at": "2026-05-22T23:30:00Z",
+  "rings": {
+    "1_scrape": {
+      "state": "VERIFIED",
+      "verified_at": "2026-05-22T17:30:00Z",
+      "evidence": {
+        "db_path": "dealer_network.sqlite",
+        "table": "market_listings",
+        "count_after_scrape": 41,
+        "sample_listing_id": "autoscout24_de_2dbabd12692f",
+        "sample_make_model": "BMW Serie 3 d Advantage 2020 72345km EUR 21995",
+        "command_with_override": "ARGOS_DB_PATH=$(pwd)/dealer_network.sqlite python3 -m tools.scrapers.autoscout_scraper --make BMW --model 'Serie 3' --country DE --pages 1",
+        "command_no_override": "python3 -m tools.scrapers.autoscout_scraper --make BMW --model X1 --country DE --pages 1 (writes 20 new listings without ARGOS_DB_PATH thanks to fallback)",
+        "duckdb_check": "cove_tracker.duckdb NOT corrupt: opens read-only with duckdb 1.4.4, 15 tables, vehicle_listings has 125 records (last scrape 2026-03-30)",
+        "import_fix": "use python3 -m tools.scrapers.autoscout_scraper (module form) — direct file exec fails relative imports",
+        "code_fix": "tools/scrapers/autoscout_scraper.py main() now calls upsert_listing on returned listings (CLI scrape() did not persist; only run_all() in BaseScraper does)"
+      }
+    },
+    "2_cove": {
+      "state": "VERIFIED",
+      "verified_at": "2026-05-22T22:38:00Z",
+      "evidence": {
+        "db_path": "src/cove/data/cove_tracker.duckdb",
+        "table": "cove_results",
+        "count_before": 2848,
+        "count_after": 2851,
+        "delta": 3,
+        "sample_listing_id": "autoscout24_de_2dbabd12692f",
+        "sample_record": {
+          "make": "BMW",
+          "model": "Serie 3",
+          "year": 2020,
+          "km": 72345,
+          "price": 21995.0,
+          "status": "PROCEED",
+          "confidence": 0.8163,
+          "uncertainty": 0.1675,
+          "fraud_overall": "CLEAN",
+          "market_price": 22018.0,
+          "price_delta": 0.001,
+          "recommendation": "PROCEED",
+          "analyzed_at": "2026-05-22T22:36:52.747031Z"
+        },
+        "results_summary": "3/3 PROCEED (conf 0.779-0.816, all above DEALER_PREMIUM_THRESHOLD=0.75)",
+        "entry_point": "src.cove.cove_engine_v4.CoVeEngine().analyze(Listing)",
+        "auto_persist": "_log_to_db called inside analyze() — no extra step needed"
+      }
+    },
+    "3_opportunity_selection": {
+      "state": "VERIFIED",
+      "verified_at": "2026-05-22T22:50:00Z",
+      "evidence": {
+        "filter_sql": "SELECT * FROM cove_results WHERE recommendation='PROCEED' AND confidence >= 0.75 (scoped to current-session analyzed_at >= 2026-05-22T22:30:00)",
+        "selected_count": 3,
+        "selected_records": [
+          {"listing_id": "autoscout24_de_2dbabd12692f", "make_model": "BMW Serie 3 2020", "price_eur": 21995, "confidence": 0.8163, "discount_pct": 0.001, "est_margin_eur": 265, "opportunity_score": 81},
+          {"listing_id": "autoscout24_de_85f254a602a0", "make_model": "BMW Serie 3 2021", "price_eur": 24690, "confidence": 0.8163, "discount_pct": 0.008, "est_margin_eur": 781, "opportunity_score": 81},
+          {"listing_id": "autoscout24_de_97090eaa497a", "make_model": "BMW Serie 3 2021", "price_eur": 24880, "confidence": 0.7787, "discount_pct": 0.038, "est_margin_eur": 1688, "opportunity_score": 77}
+        ],
+        "dossier_compat": "3/3 VehicleData.from_opportunity(opp, dealer_city='Eboli') ran without exception (PDF not actually rendered — only constructor invariant checked)",
+        "input_shape": "src.cove.scraper_cove_pipeline.Opportunity dataclass (canonical pipeline contract)",
+        "enrichment_path": "JOIN cove_results.listing_id ⇒ market_listings.{country,portal,listing_url,image_urls} (DuckDB + SQLite cross-DB lookup at app level)"
+      }
+    },
+    "4_pdf_render": {
+      "state": "BLOCKED_ON_S183_SANITIZER",
+      "verified_at": null,
+      "evidence": {
+        "target_listing": "autoscout24_de_97090eaa497a (BMW Serie 3 2021, 45000km, EUR 24880)",
+        "dealer": "Stile Car / Luca Lupi / Eboli",
+        "pdf_path": "/tmp/argos_anello4_v3/ARGOS_BMW_Serie 3_2021_score58_01.pdf",
+        "pdf_size_bytes": 1003520,
+        "pdf_size_human": "~980 KB (>>100 KB threshold)",
+        "pdf_version": "1.4",
+        "pdf_openable": "yes (opened in macOS Preview)",
+        "embedded_images_subtype_image": 5,
+        "downloaded_images": "6/10 image_urls (max_per_listing cap) — sizes 152-167 KB jpg after Pillow watermark, all above 30 KB rendering threshold",
+        "image_size_fix": "tools/scrapers/image_downloader.py PORTAL_IMAGE_UPGRADES['autoscout24'] changed from /2560x1920 (404) to /1280x960 (verified 200/40KB webp). Discovery: AS24 CDN supports only 250x188, 800x600, 1280x960.",
+        "binary_fetch_fix": "tools/scrapers/image_downloader.py _fetch_image primary path replaced with curl_cffi impersonate=chrome120 (ResilientFetcher.fetch returns str — mangled binary webp before)",
+        "render_pipeline_calls": "generate_opportunity_dossier(opp) → download_for_listing (6 imgs ok) → apply_watermark (diagonal ARGOS AUTOMOTIVE text, Pillow, ok) → generate_vehicle_sheet (5 hero+gallery images embedded as /Subtype/Image)",
+        "margin_real": {
+          "formula": "production _compute_opportunity_score + (market_ref * 1.12) - price - 2400 overhead (lines 403-405 scraper_cove_pipeline.py)",
+          "IT_PREMIUM_PCT": 0.12,
+          "TOTAL_IMPORT_OVERHEAD": 2400,
+          "market_ref_price_eur": 25864.0,
+          "price_eur": 24880.0,
+          "discount_pct": 0.038,
+          "it_sell_price_eur": 28968,
+          "estimated_margin_eur": 1688,
+          "opportunity_score": 58,
+          "risk_level": "MEDIUM"
+        },
+        "preflight_loud": {
+          "transport_estimator": "OK: cost=286 EUR, method=drive, km=1250 Eboli-DE",
+          "import_checklist": "OK: total 1330-1729 EUR, days=14",
+          "market_verifier_enterprise": "OK (async): ref_price=25864 EUR, data_quality=MEDIUM, sample_size=0 (ADAC-only path)",
+          "policy": "no silent swallow — script HARD STOPs if any of the 3 fails"
+        },
+        "watermark_brand_visible": "yes — Pillow apply_watermark draws diagonal 'ARGOS AUTOMOTIVE' centered at opacity 0.35 with shadow",
+        "sanitizer_plate_seller_NOT_invoked": "generate_opportunity_dossier path (pdf_generator_enterprise.py:1158-1199) does NOT call _sanitize_photo / vision_ocr — only watermark. On-demand path (line 1813) does call sanitizer but that's a separate entry point. Sanitizer D-32 itself is BLOCKED per HANDOFF-S183-sanitizer-definitive (S179b UAT NO-GO 3/3: watermark over plate, footer brand row leakage, tagline leakage)."
+      },
+      "gate_unmet_criteria": [
+        "User's VERIFIED criterion requires '>=1 image sanitized (plate+seller covered)'. Current pipeline applies brand watermark only — does NOT mask license plate or seller_name region. Cannot mark VERIFIED without sanitizer."
+      ]
+    }
+  },
+  "anomalies_resolved": {
+    "default_db_path": {
+      "resolved_at": "2026-05-22T22:45:00Z",
+      "before": "tools/scrapers/db.py and tools/dealer_discovery/discovery_engine.py defaulted to ~/Documents/app-antigravity-auto/dealer_network.sqlite — not present on MacBook workspace",
+      "after": "Both modules now apply pattern already in src/cove/dealer_matcher.py: env override > iMac canonical > PROJECT_ROOT/dealer_network.sqlite fallback. Verified by running scraper without ARGOS_DB_PATH and observing 20 new rows in repo-local DB.",
+      "files_modified": ["tools/scrapers/db.py", "tools/dealer_discovery/discovery_engine.py"]
+    },
+    "scoutauto_in_claude_md": {
+      "status": "NOT_FOUND",
+      "note": "grep -in 'scoutauto' on CLAUDE.md + ~/.claude/CLAUDE.md + .claude/**/*.md returned zero matches. Likely typo in brief for 'scrapers' or 'scrape auto'. CLAUDE.md (global) declares ARGOS path as ~/Documents/combaretrovamiauto-enterprise/ which is the actual cwd — no inconsistency."
+    }
+  },
+  "open_items": [
+    "Ring 4 sanitizer integration: generate_opportunity_dossier path does NOT invoke _sanitize_photo (plate+seller masking). Two paths to close: (a) wait S183 VOS sanitizer definitive (3-layer hybrid) then add invocation in generate_opportunity_dossier; (b) port sanitizer call from on_demand_runner path (line 1813) accepting current D-32 fail modes. Decision deferred to Luke per S183 priority.",
+    "Ring 4 image_downloader patch UNCOMMITTED: tools/scrapers/image_downloader.py is currently untracked (file new this session). Contains 2 critical fixes (curl_cffi binary fetch + AS24 1280x960 size). Needs commit before merge to master to survive next session.",
+    "Ring 2 scaling: only 3/21 listings analyzed by CoVe (volume test not run, per Luke directive).",
+    "Ring 3 enrichment shortcut: market_data_quality='MEDIUM' and market_sample_size=0 hardcoded in selection script because cove_results table does not store those — real values come from MarketVerifierEnterprise during ring 2. Clean path is to pass CoVeResult object directly to selector instead of re-reading DB. Acceptable for selection-shape test, NOT for production dossier values.",
+    "Ring 3 est_margin: computed inline as market*1.12 - price - 2400 overhead. Production should reuse pipeline-level compute_opportunity_score.",
+    "Ring 3 dossier compat: only constructor invariant checked. Actual PDF render not exercised. transport_estimator and import_checklist failures are silently swallowed by from_opportunity try/except.",
+    "Still-broken hardcoded paths to ~/Documents/app-antigravity-auto/ for OTHER components (out of scope today, FYI): src/bot/config.py, src/marketing/cove_dealer_research.py, src/marketing/rag_engine.py, deploy/healthcheck.sh, deploy/backup_db.sh — these run on iMac via SSH or assume iMac filesystem; safe-ish but should get the same fallback pattern eventually."
+  ]
+}

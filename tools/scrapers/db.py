@@ -11,6 +11,7 @@ import os
 import sqlite3
 import statistics
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from .models import (
@@ -19,10 +20,16 @@ from .models import (
 )
 from .config import PRICE_DROP_ALERT_PCT, DEAL_ALERT_BELOW_MARKET_PCT, NEW_LISTING_HOURS
 
+# DB path resolution: env override > iMac canonical > MacBook repo root fallback
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DB_PATH = os.environ.get(
     'ARGOS_DB_PATH',
     os.path.expanduser('~/Documents/app-antigravity-auto/dealer_network.sqlite')
 )
+if not os.path.exists(DB_PATH):
+    _alt = str(_PROJECT_ROOT / "dealer_network.sqlite")
+    if os.path.exists(_alt):
+        DB_PATH = _alt
 
 
 def _connect() -> sqlite3.Connection:
