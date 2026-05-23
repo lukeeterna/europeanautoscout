@@ -1,113 +1,131 @@
-# S186 — Resume PoC plate-detector EU (STEP 0 ottimizzato + STEP 1+2)
+# S186 — Resume PoC plate-detector EU (paletti Luke applicati)
 
-**Contesto S185 chiusura**: sessione chiusa al ~59% context (vincolo #7) durante
-STEP 0 Read-multimodal. 6/35 foto ispezionate visivamente:
-- **1 sample confermato**: `raw_autoscout24_de_428982234890_02.jpg` — targa DE
-  autentica "M·XC 573E" (render BMW "Abbildung ähnlich", retro centro-sx)
-- 4 NO:
-  - `1c29ca01cdb2_02`+`_03`: BMW iX3 nera, frontale rimosso / laterale, no targa
-  - `39d64c65e9de_02`: close-up ruota Bridgestone (no targa)
-  - `39d64c65e9de_03`: BMW X3 Baum, **targa sostituita da cartello promo
-    "BMW PREMIUM SELECTION GECHECKT & GARANTIERT"** + watermark URL (pattern S184)
-  - `428982234890_03`: slide marketing pura (Premium Selection checklist)
-- 29/35 non ispezionati
+**Contesto S185**: STEP 0 chiuso a 60% context per saturazione Read multimodal manuale.
+6/35 foto ispezionate, 1 targa DE autentica confermata (`428982234890_02` "M·XC 573E"),
+4 NO, 29 non ispezionate. Esito S185 = D (STEP 0 incompleto, no GO/NO-GO).
 
-**Insight strutturale**: dominio AS24 con dealer DE (Baum, Autohaus Isernhagen,
-Wernecke) mostra 3 pattern ricorrenti:
-1. Foto stock-render BMW ufficiali ("Abbildung ähnlich") → targa generica DE renderizzata
-2. Foto reali dealer con targa SOSTITUITA da cartello promo
-3. Slide marketing (_03 spesso) → skip upstream
+**Sessione fresca + time-box 45 min + check a 30 min**. Se context si avvicina a
+saturazione prima di chiudere STEP 0 → fermati e handoff pulito (pattern S185 ok).
 
-**Pre-filter già pronto**: `/tmp/s185_vision_prefilter.py` (Vision OCR + regex
-plate DE/IT su `/tmp/s185_inspect/` 35 file). NON eseguito S185.
+## Paletti Luke (vincoli operativi S186)
 
-## STEP 0-bis OTTIMIZZATO (max 10 min) — pre-filter programmatico
+1. **Pre-filter Vision OCR PRIMA di qualsiasi Read multimodal** — inverti ordine S185.
+   Lo script gira su tutte le foto candidate, produce shortlist (box plate-like, conf >
+   soglia). Read multimodal SOLO sulla shortlist. Niente ri-saturazione.
+2. **Stop-condition hard**: se dopo pre-filter risultano <3 targhe DE/IT autentiche
+   confermate visivamente su tutto il pool → ESITO C definitivo. NO STEP 1/2.
+   Scrivi resume S187 ESITO C e ferma.
+3. **Bias-aware**: il segnale R1 + S185 (1/6 targhe vere finora) orienta verso C.
+   Se il pre-filter conferma, NON forzare STRADA 1.
+4. **Foto Baum obbligatoria**: `raw_autoscout24_de_39d64c65e9de_00.jpg` inclusa nel
+   pool come fail-case R1 di confronto diretto (cartello promo dealer in posizione
+   targa).
+5. **Addendum chiusura S186**: anche se GATE PASS, NON integrare `image_sanitizer.py`.
+   Scrivi solo prompt resume S187 differenziato sui 3 esiti. Decisione integrazione
+   = Luke, su ispezione visiva immagini in `/tmp/poc_yolo_eu_out/`.
+6. **Gate visivo finale = Luke** sui crop annotati.
 
-1. `python3 /tmp/s185_vision_prefilter.py` → output `/tmp/s185_prefilter.json`
-   con candidate plate text + bbox per ogni file. Stampa sommario.
-2. Read multimodal SOLO sui file con candidate strict (regex DE/IT match) o
-   loose ad alta conf. Max 10 file → ~5 batch.
-3. Conferma visiva targa autentica vs cartello promo/watermark. Annota
-   bbox approssimato manualmente (X/Y su 1280×806 o nativo).
-4. Sample noto già confermato S185: `raw_autoscout24_de_428982234890_02.jpg`
-   "M·XC 573E" (retro centro-sx, ~x:225-415 / y:370-415 su 1280×806).
+## STEP 0-bis (max 15 min) — pre-filter programmatico + gate visivo shortlist
 
-**Stop condition invariata**: se confermati totali <3 → triggera ESITO C addendum
-(no plate-detector, S187 = cartello-promo-detector + upstream filter slide AS24).
+### Pool foto
+- Locale MacBook: `/tmp/s185_inspect/` (35 jpg ereditati S185, 11 listings × _00/_02/_03)
+- **AGGIUNGI obbligatoriamente** `raw_autoscout24_de_39d64c65e9de_00.jpg` se non già
+  in pool (Baum fail-case R1)
+- Verifica: `ls /tmp/s185_inspect/ | grep 39d64c65e9de` → deve includere `_00`. Se no,
+  rsync da iMac.
 
-## STEP 1 — Modello EU plate-detector HF (max 8 min)
+### Pre-filter
+1. Esegui `python3 /tmp/s185_vision_prefilter.py` (già scritto S185, regex DE/IT
+   strict + loose con esclusioni dealer/marketing). Output `/tmp/s185_prefilter.json`.
+2. Stampa sommario: n_files con candidate / 35, top 10 per conf strict.
+3. Se 0 candidate strict → loose-only review. Se 0 anche loose → ESITO C immediato
+   (Vision non vede nessuna targa, plate-EU non risolverebbe perché Vision non guida
+   il sanitizer attuale).
 
-- MCP `mcp__claude_ai_Hugging_Face__hub_repo_search` query suggerite:
+### Gate visivo shortlist (Read multimodal SOLO qui)
+- Max 10 file shortlist, batch da 5. Per ognuno classifica:
+  - `TARGA_VERA` (DE/IT autentica, no promo, no watermark, anche angolata/parziale)
+  - `CARTELLO_PROMO` (es. "BMW PREMIUM SELECTION", "Spar-Deal")
+  - `WATERMARK_URL` (es. `baum-automobile.de`)
+  - `SLIDE_MARKETING` (catalog AS24)
+  - `ALTRO` (no plate-like in foto)
+- Conta `TARGA_VERA`. Stop condition <3 → ESITO C.
+
+### Sample noto ereditato S185
+- `428982234890_02` = TARGA_VERA "M·XC 573E" (render BMW, retro centro-sx,
+  bbox ~x:225-415 / y:370-415 su 1280×806). Conta nel ≥3 totali.
+
+## STEP 1 — Modello EU plate-detector HF (max 10 min, SOLO se STEP 0-bis ≥3 vere)
+
+- MCP `mcp__claude_ai_Hugging_Face__hub_repo_search` sort=downloads. Query:
   - "german license plate yolo"
   - "EU license plate detection"
-  - "ANPR European"
-  - "yolov8 plate europe"
-- Top-3 sort=downloads, ispeziona README + files (license MIT/Apache, size <100MB,
-  formato `.pt` ultralytics-compatibile o `.onnx`).
-- Scarica su iMac `/tmp/eu_plate_*.pt` via curl + sha256 sanity.
-- Se nessun candidato chiaramente EU-trained → usa miglior generic (yolov8-plate
-  generico Roboflow trained su 30k+ images) e dichiaralo esplicitamente.
+  - "ANPR European yolov8"
+- Top-3 candidate: verifica README (training set EU/DE), license (MIT/Apache),
+  size (<100MB), formato (`.pt` ultralytics o `.onnx`).
+- Se nessun candidato chiaramente EU-trained → usa miglior generic-plate trained su
+  dataset Roboflow (30k+ images) e dichiaralo esplicitamente. NON inventare modello.
+- Scarica iMac `/tmp/eu_plate_*.pt` via curl + sha256 sanity.
 
-## STEP 2 — Comparativa EU vs Apple Vision (max 15 min)
+## STEP 2 — Comparativa EU vs Apple Vision (max 15 min, SOLO se STEP 1 done)
 
-Refactor `/tmp/poc_yolo_plate.py` (esistente da S184) in `/tmp/s186_poc_eu_vs_vision.py`:
-- Input: sample STEP 0-bis confermati
+Refactor `/tmp/poc_yolo_plate.py` (S184 esistente) in `/tmp/s186_poc_eu_vs_vision.py`:
+- Input: sample STEP 0-bis confermati TARGA_VERA + foto Baum fail-case
 - Detector A: modello EU STEP 1
-- Detector B: Apple Vision OCR (`src/cove/vision_ocr.py` o inline detect_text_regions)
-- Output per ogni sample:
-  - tabella: `| file | EU n_box | EU conf | EU bbox | EU ms | Vision n_text | Vision text matching plate regex | Vision bbox | Vision ms |`
-  - annotate JPG: verde=EU box, rosso=Vision box, overlay su immagine
-  - salva `/tmp/poc_yolo_eu_out/<file>.jpg` + zip `/tmp/poc_yolo_eu_out.zip`
+- Detector B: Apple Vision OCR (`src/cove/vision_ocr.py` `detect_text_regions`)
+- Output per sample:
+  - Tabella: `| file | label_step0 | EU_n_box | EU_conf | EU_bbox | EU_ms | Vision_n_text | Vision_text_plate | Vision_bbox | Vision_ms |`
+  - Annotate JPG: verde=EU box, rosso=Vision box, label sopra
+  - Salva `/tmp/poc_yolo_eu_out/<file>.jpg` + zip `/tmp/poc_yolo_eu_out.zip`
 
 Eseguire su iMac via SSH (ultralytics+torch+cv2 installati lì, S184).
 
-## GATE addendum S185 — 3 esiti differenziati
+## Output sessione richiesti (ordine)
 
-### ESITO A — GATE PASS (EU >> Vision su targhe vere)
+1. Sommario pre-filter Vision OCR (n_files candidati / 35 totali)
+2. Tabella shortlist con label visivo (TARGA_VERA / CARTELLO_PROMO / WATERMARK_URL /
+   SLIDE_MARKETING / ALTRO)
+3. Verdict STEP 0-bis: ≥3 TARGA_VERA → procedi STEP 1+2. <3 → ESITO C stop.
+4. Se procedi: modello EU STEP 1 (nome HF + size + license + sha256)
+5. Se procedi: tabella comparativa + zip annotate STEP 2
+6. Resume S187 differenziato sui 3 esiti (vedi sotto), salvato in
+   `prompts/s187_*.md` + memory entry
+7. NO integrazione `image_sanitizer.py`
+
+## Resume S187 differenziato (preparare a fine S186 in ogni caso)
+
+### ESITO A — EU >> Vision su targhe vere
 **S187 piano**: integrazione canale OR YOLO-EU in Stage 3 `image_sanitizer.py`.
-**Prerequisito esplicito**:
+**Prerequisito hard non negoziabile**:
 - backup datato `image_sanitizer.py` + `vision_ocr.py` prima patch
-- UAT su **30+ foto** post-integration PRIMA di dichiarare ring #4 verde
-- NO production-ready su 5-8 sample (autocritica S184 R1 + memory
-  `feedback_smoke_test_not_uat_gate.md`)
+- UAT su 30+ foto post-integration PRIMA di dichiarare ring #4 verde
+- NO production-ready su 5-8 sample (memory `feedback_smoke_test_not_uat_gate.md`)
 - code-reviewer agent invocato pre-commit
-- Day 1 Stile Car (2026-06-03, 11 giorni rimanenti) NON gate-flippa su PoC pulito,
-  solo su UAT 30+ verde
+- Day 1 Stile Car (2026-06-03, ~10gg) NON gate-flippa su PoC verde, solo su UAT 30+
 
 ### ESITO B — EU ≈ Vision o peggio
-**S187 piano**: STRADA 2 alert + flag manual_review.
-- Patch metadata dossier: campo `plate_detection_status` ∈ {detected, missing, low_confidence}
-- Se missing/low_confidence → notifica Telegram + flag `manual_review=true` nel DB
-- Luke gate visual prima di invio dealer (1 dossier 1 click approve)
-- BACKLOG promosso **#1**: `upstream-filter-AS24-slides` (filtra slide marketing
-  Premium Selection/Garantie/Wartungsfreiheit upstream a `image_downloader.py`,
-  prima del DB insert in `vehicle_images`)
+**S187 piano**: STRADA 2 alert + flag manual_review nel metadata dossier
+- Campo `plate_detection_status` ∈ {detected, missing, low_confidence}
+- Missing/low → notifica Telegram + `manual_review=true` nel DB
+- Luke gate visual prima invio dealer (1 dossier 1 click approve)
+- **BACKLOG promosso #1**: `upstream-filter-AS24-slides`
 
-### ESITO C — STEP 0-bis non trova ≥3 targhe vere
-**S187 piano**: NESSUN plate-detector.
-- Dominio reale ARGOS = poche targhe personali (la maggioranza dei retro è
-  cartello-promo dealer o stock-render senza targa montata)
-- Sostituzione: `promo_card_detector` (cartello promo dealer in posizione targa)
-  + `upstream_slide_filter` (skip slide marketing AS24 a scraping time)
-- Sanitizer Stage 3 = best-effort, dossier con campo "targa: N/A (cartello dealer)"
+### ESITO C — STEP 0-bis <3 TARGA_VERA
+**S187 piano**: NESSUN plate-detector. PoC plate-EU CHIUSO.
+- Sostituzione: `promo_card_detector` (cartello dealer in posizione targa)
+- + `upstream_slide_filter` (skip slide marketing AS24 a scraping time, prima del
+  DB insert in `vehicle_images`)
+- Sanitizer Stage 3 best-effort, dossier con campo "targa: N/A (cartello dealer)"
+  + `manual_review=true` se cartello-promo non detected
 
-## Vincoli ereditati S185 (invariati)
-- NO integrazione, NO modifiche `image_sanitizer.py` ANCHE SE GATE PASS in S186
-- Decisione integrazione = Luke su S187 separato
-- Tutto su iMac via SSH per modello EU (libs lì)
-- Script `/tmp/`, mai in `src/`
-- Output Luke download via `/tmp/*.zip`
+## Budget context S186 target
+- Apertura: ~25-30%
+- Pre-filter programmatico → riduce drasticamente Read multimodal
+- Target chiusura <55%
+- A 30 min check-point: stato anche se incompleto
+- A 45 min: stop hard
 
-## Budget context S186
-- Apertura: skill + memory + prompt ~25-30%
-- Pre-filter Vision OCR programmatico → riduce drasticamente costo Read multimodal
-- Target chiusura <55% (sotto vincolo #7 con margine)
-- Se a 30 min STEP 2 non finito → check-point handoff S187 con dati parziali
-
-## Output sessione richiesti
-1. Sommario pre-filter Vision OCR (n_files con plate candidate / 35)
-2. Sample finali confermati STEP 0-bis (≥3 o stop condition trigger)
-3. Modello EU STEP 1 (nome HF + size + license + sha256)
-4. Tabella comparativa STEP 2 + zip annotate
-5. Verdetto raccomandato ESITO A/B/C motivato sui dati
-6. Memory update `poc_yolo_plate_round2_eu_*.md`
+## Artefatti S185 ereditati
+- `/tmp/s185_inspect/` (35 jpg, MacBook)
+- `/tmp/s185_vision_prefilter.py` (pronto)
+- iMac: `/tmp/koushim_yolov8_plate.pt`, `/tmp/poc_yolo_plate.py`, ultralytics+torch+cv2
