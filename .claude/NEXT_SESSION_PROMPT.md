@@ -1,81 +1,50 @@
-# S183-quater — D-32 OCR false-positive fix (cherry-pick selettivo da S183-bis snapshot)
+# NEXT SESSION — S186 Resume PoC plate-detector EU
 
-> 2026-05-22 close HARD_STOP 88%. Path C-pragmatic eseguito. UAT 3/5 PASS, **NO commit GATE D**.
+**Generato**: 2026-05-23 ~22:15 (close-out S185 a 60% context, vincolo #7 mandate)
+**Sessione precedente**: S185 STEP 0 interrotto
+**Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `master`)
 
-## Stato close 2026-05-22
+## Esito S185 (questa sessione)
+STEP 0 Read-multimodal interrotto a 6/35 foto ispezionate per gate context #7.
 
-### Eseguito
-- snapshot S183-bis dirty → `/tmp/image_sanitizer_s183bis_snapshot.py`
-- `git checkout HEAD -- src/cove/image_sanitizer.py` (= f8e82c5 pre-S183-bis)
-- `rm assets/argos_logo.png` (placeholder untracked)
-- UAT 5/5 D-32 puro → `/tmp/s183ter_uat_d32pure/`
+**Confermato 1 sample**: `raw_autoscout24_de_428982234890_02.jpg` — targa DE autentica `M·XC 573E` (render BMW "Abbildung ähnlich", retro centro-sx, ~x:225-415 / y:370-415 su 1280×806).
 
-### UAT visual verdict
-- 00 (g01): ✅ targa coperta, ARGOS testo bottom-left
-- 01 (g02): ⚠️ targa OK ma OCR sospetto su grille
-- **02 (g03): ❌ REGRESSION** — 2 BIG rect grigi invadono muso (OCR false-positive "Autohaus Isemhagen" su edge auto, no whitelist D-32 hardcoded)
-- 03 (g04): ✅
-- 04 (g05): ✅
-**Score 3/5**, NO commit.
+**4 NO**:
+- `1c29ca01cdb2_02/_03` — frontale rimosso, no targa
+- `39d64c65e9de_02` — close-up ruota
+- `39d64c65e9de_03` — cartello promo Baum sostituisce targa (pattern S184)
+- `428982234890_03` — slide marketing Premium Selection
 
-### Working tree
-- `src/cove/image_sanitizer.py`: PULITO (= HEAD f8e82c5)
-- `assets/argos_logo.png`: rimosso
-- `tests/uat_golden/g*.jpg` + zones.json + uat_criteria.md + overlay/ + baseline*.log: untracked, committabili in S183-quater
-- `tests/test_sanitizer_golden.py`: untracked
-- `BACKLOG.md`: dirty (#S183b-1)
-- Snapshot S183-bis B1+B3+B4+S183b-FILTER preservato `/tmp/image_sanitizer_s183bis_snapshot.py`
+**Non ispezionati**: 29/35 (in `/tmp/s185_inspect/`)
 
-## Finding strutturale
-D-32 spec (DECISIONS.md linea 845-874) prescrive **whitelist hardcoded** modelli/trim/brand MAI implementata in HEAD. S183-bis B1 (top/bottom/sides masks) era approssimazione incompleta — manca filter OCR detection vs whitelist semantica.
+**Pre-filter pronto NON eseguito**: `/tmp/s185_vision_prefilter.py` (Vision OCR + regex DE/IT, output `/tmp/s185_prefilter.json`)
 
-Root cause sample 02 regression: Apple Vision OCR matcha "Autohaus Isemhagen" (I→o) su zone non-testuali, `_apply_solid_fills` copre senza filtro semantic.
+## Insight strutturali
+1. Pattern S184 confermato: dealer Baum sostituisce targa con cartello "BMW PREMIUM SELECTION GECHECKT & GARANTIERT"
+2. Foto stock-render BMW ("Abbildung ähnlich") → targa generica DE renderizzata
+3. Slide marketing in _03 (skip upstream BACKLOG #upstream-filter-AS24-slides)
+4. _02/_03 NON sono garantiti "retro/laterale" — possono essere ruota/interior
 
-## Plan S183-quater (target ≤40% context close)
+## Prossima sessione S186
+**Prompt**: `prompts/s186_resume_step0_optimized.md`
 
-### Research-first (vincolo feedback_research_before_cto_autonomous_action.md)
-1. Re-read DECISIONS.md linea 845-874 D-32 spec completa
-2. Read `/tmp/image_sanitizer_s183bis_snapshot.py` → estrai selettivo:
-   - **B1 whitelist_masks** (top 8% + bottom 12% + sides 5%): KEEP
-   - **B3 _embed_argos_branding**: DROP (scope D-25/S185, non D-32)
-   - **B4 edge density check**: KEEP (validation no-block)
-   - **S183b-FILTER OCR drop** (len<4 AND central body AND not is_seller): KEEP essential per fix sample 02
-3. Add D-32 whitelist hardcoded: `BMW X1/X3/X5/Serie3/Serie5`, `Mercedes Classe C/E/GLC/GLE`, `Audi A4/Q5`, trim `xDrive/quattro/AMG/M-Sport/S line`, brand `BMW/Audi/Mercedes-Benz/Volkswagen/Porsche`
+**Strategia**: STEP 0-bis con pre-filter Vision OCR programmatico (riduce Read multimodal a candidate top-N) + STEP 1 (HF search EU plate detector) + STEP 2 (comparativa EU vs Vision + zip annotate).
 
-### Sequence
-1. Cherry-pick patch su HEAD `src/cove/image_sanitizer.py` (B1+B4+FILTER, no B3)
-2. Implementa D-32 whitelist hardcoded come filter pre-`_apply_solid_fills`
-3. UAT 5/5 venv su g01-g05, target 5/5 PASS visual Luke
-4. Se PASS: commit GATE D unico (image_sanitizer.py + tests/uat_golden/ + BACKLOG.md) + push + ssh imac git pull + dossier BMW X3 Stile Car
-5. D-25 image-shield (grid 3×3 + crop 65% + HSV + JPEG 72) → BACKLOG S185 post-Day-1
+**3+1 esiti differenziati** (addendum Luke S185):
+- A: GATE PASS → S187 integrazione image_sanitizer (UAT 30+ prerequisito hard, NO 5-8 sample claim)
+- B: EU ≈ Vision → STRADA 2 alert + flag manual_review + promozione BACKLOG #upstream-filter-AS24-slides #1
+- C: <3 targhe vere → no plate-detector, cartello-promo-detector + upstream slide filter
+- D (de facto): STEP 0 incompleto → S186 riprende pre-filter
 
-### Time budget
-- Research: 10min | Cherry-pick + whitelist: 25min | UAT: 10min | Commit+push+dossier: 15min | Handoff: 5min
-- Total ≤65min, ≤40% context
+**Vincoli ereditati**:
+- NO integrazione `image_sanitizer.py` in S186 anche se GATE PASS
+- Decisione integrazione = Luke su S187
+- Day 1 Stile Car 2026-06-03 (11gg) NON gate-flippa su PoC, solo UAT 30+ verde
 
-## Vincoli HARD
-- venv `~/.argos-sanitizer-venv/bin/python`
-- NO commit pre UAT 5/5 PASS Luke
-- NO plate detection ML (BACKLOG S185)
-- NO scope D-25 in S183-quater
-- Gate 50% chiudi
-- Delegation-first se patch >50 righe
+## Memory entry
+`s185_poc_eu_step0_interrupted_handoff_s186.md` (index aggiornato in `MEMORY.md`)
 
-## Day 1 Stile Car
-- Deadline: **2026-06-03** (12gg, ~9gg lavorativi lun-sab — Luke OFF domenica)
-- Gating: S183-quater GATE D + dossier BMW X3
-- Rischio: >1 sessione → deadline scivola 2026-06-10
-
-## Files critici
-- `/tmp/image_sanitizer_s183bis_snapshot.py` — recovery snapshot S183-bis
-- `/tmp/s183ter_uat_d32pure/` — UAT 5 sample D-32 puro (3 PASS, 2 FAIL)
-- `/tmp/s183ter_research.md` — research consolidato D-25 + D-32 + Pillow + GDPR
-- `~/venture-os/wiki/projects/ARGOS/DECISIONS.md` linea 845-874 — D-32 spec
-
-## Memorie applicate sessione 2026-05-22
-- feedback_research_before_cto_autonomous_action.md (creata + applicata)
-- feedback_context_budget_gate.md (close ordinata)
-- feedback_smoke_test_not_uat_gate.md (UAT visual 5/5 vincolo)
-- vincolo CLAUDE.md #1 verifica fattuale (D-25 finding via grep DECISIONS.md)
-- vincolo CLAUDE.md #4 critica strutturale 4 punti (verdetto C-pragmatic)
-- vincolo CLAUDE.md #6 mai PARTIAL (handoff strutturato close)
+## Artefatti S185 disponibili
+- `/tmp/s185_inspect/` (35 jpg, MacBook locale)
+- `/tmp/s185_vision_prefilter.py` (script pre-filter, MacBook)
+- iMac S184 ereditato: `/tmp/koushim_yolov8_plate.pt`, `/tmp/poc_yolo_plate.py`, ultralytics+torch+cv2 installati
