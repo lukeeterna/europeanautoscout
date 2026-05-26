@@ -2,6 +2,65 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
+## S191 2026-05-26 — BACKLOG #S191-1 [LOW, perf]
+
+### 🟢 image_sanitizer doppia lettura immagine (`_get_image_height`)
+
+**Scope**: `src/cove/image_sanitizer.py:_get_image_height()` (riga ~362) riapre il file immagine con `Image.open()` immediatamente dopo che `vision_fn` lo ha già aperto/processato. Doppia lettura disco ~20-40ms per immagine. Su 6 immagini/dossier = ~120-240ms overhead per dossier.
+
+**Fix proposto**: estendere signature `_detect_text_regions` con `img_h: Optional[int] = None`, passare valore già calcolato in `sanitize_image` (variabile `h` disponibile).
+
+**Side effect bonus**: se file temporaneo viene cancellato tra apertura vision e apertura `_get_image_height` (race), oggi `img_h=0` silently disabilita check POSIZIONE_RIFLESSO. Fix elimina anche la race.
+
+**Gating**: pre-scaling >5 dossier/giorno.
+**Owner**: backend-architect.
+**Reference**: S191 code-review issue MED-3.
+
+## S191 2026-05-26 — BACKLOG #S191-2 [LOW, edge-case]
+
+### 🟢 _is_plate_format Unicode omoglifi
+
+**Scope**: `src/cove/image_sanitizer.py:_is_plate_format()` accetta Cyrillic 'А' come `isalpha()=True` → falso positivo plate detection. Fix banale: `compact = compact.upper()` dopo `re.sub` per garantire ASCII-only via `_PLATE_COMPACT_RE` con `re.IGNORECASE`.
+
+**Probabilità**: irrilevante su immagini auto EU reali. Hardening cosmetico.
+**Owner**: chi tocca prossimamente sanitizer.
+**Reference**: S191 code-review issue LOW-1.
+
+## S191 2026-05-26 — BACKLOG #S191-3 [LOW, path-safety]
+
+### 🟢 pdf_generator output_dir abspath
+
+**Scope**: `tools/scripts/pdf_generator_enterprise.py:1179` — `sanitized_dir = os.path.join(output_dir, "_sanitized", safe_listing_id)` senza `os.path.abspath(output_dir)`. Se caller passa path relativo e cwd cambia tra `os.makedirs` e write subprocess, path inconsistente.
+
+**Fix**: `sanitized_dir = os.path.join(os.path.abspath(output_dir), "_sanitized", safe_listing_id)`.
+
+**Probabilità**: caller produzione passa abs path. Defense-in-depth.
+**Owner**: chi tocca prossimamente pdf_generator.
+**Reference**: S191 code-review issue LOW-2.
+
+## S183-bis 2026-05-21 — BACKLOG #S183b-1 [MEDIUM, scaling-gated]
+
+### 🟡 Test golden auto_features check — refactor sanitize_image API per geometry metadata
+
+**Scope**: `src/cove/image_sanitizer.py:sanitize_image()` ritorna optional tuple `(path, crop_metadata)` invece di solo `path: str`, dove `crop_metadata = {'top': int, 'bottom': int, 'original_size': (w, h)}`. Test `tests/test_sanitizer_golden.py` usa metadata per applicare auto_features zone su region POST-crop, eliminando il resize-back stretching che genera false positive 60-83% over-mask.
+
+**Root cause loggata** (S183 baseline 2026-05-21): `sanitize_image` fa banner crop top 18-23% + bottom 80-87% → `sanitized.size != original.size`. Test `test_sanitizer_golden.py` linee 95-96 fa `sanitized.resize(original.size, LANCZOS)` per normalizzare diff, ma stretching shifta pixel y → bbox auto_features in coordinate original NON corrisponde più a stesso contenuto in sanitized → 10/10 FAIL falso positivo.
+
+**Workaround attuale S183-bis Path 2**: flag `AUTO_FEATURES_CHECK_ENABLED = False` in `tests/test_sanitizer_golden.py:42`. Gate qualità over-mask delegato a UAT visual Luke (max 5 dossier/settimana realistici).
+
+**Acceptance criteria (Definition of Done)**:
+1. `sanitize_image` ritorna tuple backward-compat: caller esistenti possono fare `path = sanitize_image(...)` se non interessa metadata (default None secondo elemento via wrapper o conversion `__index__`).
+2. Test `test_sanitizer_golden.py` rimuove resize-back, usa `crop_metadata` per shiftare bbox coordinate.
+3. `AUTO_FEATURES_CHECK_ENABLED = True` ripristinato.
+4. Run `~/.argos-sanitizer-venv/bin/python -m pytest tests/test_sanitizer_golden.py -v` → 10/10 PASS.
+5. Smoke regression `tools/scripts/sanitize_all_images.py` su 1 dossier completo → zero rotture caller esistenti.
+6. Rollback plan: revert tuple → string + revert `AUTO_FEATURES_CHECK_ENABLED = False`.
+
+**ETA target**: pre-scaling oltre 5 dossier/settimana (post Day 1 Stile Car verde + 1-2 dealer aggiuntivi).
+**Owner**: backend-architect agent S184+ (dopo Day 1 close).
+**Gating**: scaling produzione dossier (NON Day 1 reale che usa UAT visual Luke).
+**Reference**: `prompts/s183b_overmask_diagnosis_then_b_c_d.md` Path 1, autocritica CTO sezione diagnosi.
+
 ## S173b 2026-05-20 — BACKLOG #S172-1 [HIGH, GATING Day 1 dealer Aprile]
 
 ### 🔴 bridge_outbound multi-msg + media schema extension

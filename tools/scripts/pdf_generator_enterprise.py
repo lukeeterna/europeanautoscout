@@ -17,6 +17,7 @@ No PDF capability = No deal capability = No revenue capability
 """
 
 import os
+import re
 import sys
 import argparse
 import tempfile
@@ -1177,14 +1178,22 @@ def generate_opportunity_dossier(
                         portal=portal,
                         image_urls=image_urls[:6],
                     )
-                    watermarked = []
-                    for img in images:
-                        if watermark:
-                            wp = apply_watermark(img.local_path)
-                            watermarked.append(wp)
+                    seller = getattr(opp, 'seller_name', None) or getattr(opp, 'seller', None)
+                    safe_listing_id = re.sub(r'[^a-zA-Z0-9_-]', '_', listing_id)[:32]
+                    sanitized_dir = os.path.join(output_dir, "_sanitized", safe_listing_id)
+                    os.makedirs(sanitized_dir, exist_ok=True)
+                    sanitized_paths = []
+                    for idx, img in enumerate(images):
+                        base_path = img.local_path  # default fallback (prevents NameError)
+                        clean = _sanitize_photo(img.local_path, idx, listing_id, sanitized_dir, seller_name=seller)
+                        if clean is not None:
+                            base_path = clean
                         else:
-                            watermarked.append(img.local_path)
-                    vehicle.local_image_paths = watermarked
+                            print(f"  [WARN] img[{idx}] sanitizer failed, using RAW (plate/dealer may be visible)")
+                        if watermark:
+                            base_path = apply_watermark(base_path)
+                        sanitized_paths.append(base_path)
+                    vehicle.local_image_paths = sanitized_paths
             except Exception as e:
                 print(f"Image download #{i}: {e}")
 
@@ -1564,30 +1573,30 @@ def _find_sanitizer_python():
     for py in [f'{home}/.argos-sanitizer-venv/bin/python', '/usr/local/bin/python3.12', '/usr/bin/python3', '/usr/local/bin/python3.11']:
         try:
             r = subprocess.run(
-                [py, '-c', 'import paddleocr; print("ok")'],
+                [py, '-c', 'from src.cove.image_sanitizer import sanitize_image; print("ok")'],
                 capture_output=True, text=True, timeout=30,
-                env={**os.environ, 'PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK': 'True'},
+                cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
             )
             if r.returncode == 0 and 'ok' in r.stdout:
                 _SANITIZER_PYTHON = py
-                print(f"[SANITIZER] Using {py} (has PaddleOCR)")
+                print(f"[SANITIZER] Using {py} (has image_sanitizer)")
                 return py
         except Exception:
             continue
 
-    print("[SANITIZER] No Python with PaddleOCR found — photos will be RAW")
+    print("[SANITIZER] No Python with image_sanitizer found — photos will be RAW")
     _SANITIZER_PYTHON = ''  # empty = not available
     return ''
 
 
-def _sanitize_photo(image_path: str, image_index: int, listing_id: str, sanitized_dir: str):
+def _sanitize_photo(image_path: str, image_index: int, listing_id: str, sanitized_dir: str, seller_name=None):
     """
-    Sanitize a photo via subprocess (Python 3.12 + PaddleOCR).
+    Sanitize a photo via subprocess (image_sanitizer + Apple Vision Framework).
     Returns sanitized path, original path (if skip), or None (if crash).
     """
     py = _find_sanitizer_python()
     if not py:
-        return image_path  # no PaddleOCR → RAW
+        return image_path  # no image_sanitizer → RAW
 
     import subprocess
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -1596,6 +1605,11 @@ def _sanitize_photo(image_path: str, image_index: int, listing_id: str, sanitize
     if not os.path.exists(sanitizer_script):
         print(f"  [SANITIZER] Script not found: {sanitizer_script}")
         return image_path
+
+    # S191 MED-1: sanitize listing_id before injection into subprocess code template
+    # Defense-in-depth: repr() is safe for normal strings but a malicious listing_id
+    # with crafted escape sequences could theoretically break out. Whitelist alphanumerics.
+    safe_listing_id_sub = re.sub(r'[^a-zA-Z0-9_-]', '_', listing_id or '')[:64]
 
     # Call sanitize_image() as subprocess — isolated Python env with PaddleOCR
     code = f"""
@@ -1606,9 +1620,9 @@ from src.cove.image_sanitizer import sanitize_image
 result = sanitize_image(
     image_path={repr(image_path)},
     output_dir={repr(sanitized_dir)},
-    listing_id={repr(listing_id)},
+    listing_id={repr(safe_listing_id_sub)},
     image_index={image_index},
-    seller_name=None,
+    seller_name={repr(seller_name)},
 )
 print(json.dumps({{"result": result, "size": os.path.getsize(result) if result and os.path.exists(result) else 0}}))
 """
@@ -1637,7 +1651,6 @@ print(json.dumps({{"result": result, "size": os.path.getsize(result) if result a
                 else:
                     print(f"  [SANITIZER] img[{image_index}] output missing/empty")
                     return image_path
-                break
 
         # No JSON output found — check stderr for errors
         if r.returncode != 0:

@@ -76,6 +76,44 @@ PADDLE_TEXT_MIN_LEN = 2
 # Alert: if post-verify finds text above this confidence, send TG alert
 ALERT_CONFIDENCE_THRESHOLD = 0.70
 
+# S183-quater: 3-verdict classifier thresholds (HITL)
+SUSPECT_CONF_THRESHOLD = 0.45    # conf < soglia → SOSPETTO (BASSA_CONF)
+SUSPECT_TOP_BAND_RATIO = 0.25    # y1 < h * ratio → SOSPETTO (POSIZIONE_RIFLESSO)
+
+# EU plate format detector (priority absolute — bypasses keep/trim filters)
+# Accept compact alphanumeric 4-9 chars containing both letter AND digit.
+# Coverage validated: DE "M UJ769E" "M-UJ 769 E", IT "AB 123 CD",
+# NL "XX-99-XX", AT "W 12345 A", "2LL 2693 P" (atypical fragment).
+_PLATE_COMPACT_RE = re.compile(r'^[A-Z0-9]+$', re.IGNORECASE)
+
+def _is_plate_format(text: str) -> bool:
+    """True if string looks like an EU license plate fragment.
+
+    Strategy: strip spaces/hyphens/dots, require 4-9 alphanumeric, both
+    letter AND digit present. Catches DE/IT/NL/AT plates and OCR-fragmented
+    pieces (e.g. '2LL 2693 P' from a longer real plate scan).
+    """
+    if not text:
+        return False
+    compact = re.sub(r'[\s\-\.\/]', '', text.strip())
+    if not (4 <= len(compact) <= 9):
+        return False
+    if not _PLATE_COMPACT_RE.match(compact):
+        return False
+    has_letter = any(c.isalpha() for c in compact)
+    has_digit = any(c.isdigit() for c in compact)
+    return has_letter and has_digit
+
+
+# Dealer/insegna/URL signals (SOSPETTO trigger)
+_SUSPICIOUS_DEALER_RE = re.compile(
+    r'(\.(de|it|com|nl|at|eu|fr|net|org)\b)|(www\.)|'
+    r'(\bautomobil(e|en)?\b)|(\bautohaus\b)|(\bgmbh\b)|(\bsrl\b)|'
+    r'(\bs\.?r\.?l\b)|(\bs\.?p\.?a\b)|(\bag\b)|(\b\.com\b)|'
+    r'(\bcars?\b)|(\bmotors?\b)|(\bgarage\b)',
+    re.IGNORECASE
+)
+
 # Interior photo detection: photos at index >= this are likely interior
 INTERIOR_INDEX_THRESHOLD = 4
 
@@ -313,7 +351,7 @@ def _detect_text_regions(
         return []
 
     try:
-        return vision_fn(
+        raw_regions = vision_fn(
             image_path,
             seller_name=seller_name,
             keep_words=KEEP_WORDS,
@@ -323,6 +361,106 @@ def _detect_text_regions(
     except Exception as e:
         log.error(f"Vision OCR detection failed: {e}")
         return []
+
+    # S183-quater: apply 3-verdict classifier (image_height needed for position check)
+    img_h = _get_image_height(image_path)
+    return [_classify_region(r, img_h) for r in raw_regions]
+
+
+def _get_image_height(image_path: str) -> int:
+    """Return image height in pixels. Used by 3-verdict classifier."""
+    try:
+        with Image.open(image_path) as im:
+            return im.size[1]
+    except Exception:
+        return 0
+
+
+def _classify_region(region: Dict, img_h: int) -> Dict:
+    """Apply 3-verdict HITL classifier to a region (S183-quater).
+
+    Returns the region with two extra keys:
+      - verdict: 'KEEP' | 'MASK' | 'SOSPETTO'
+      - reason:  short tag describing the decision
+
+    Decision order (priority):
+      1. PLATE_FORMAT  → MASK (absolute priority, bypasses keep/trim)
+      2. SELLER_MATCH  → MASK
+      3. WHITELIST_ALL → KEEP (all words in KEEP_WORDS or trim pattern)
+      4. SIMIL_DEALER  → SOSPETTO (URL/insegna/gmbh/...)
+      5. BASSA_CONF    → SOSPETTO (conf < 0.45)
+      6. POSIZIONE_RIFLESSO → SOSPETTO (y1 in top 0-25%, possible hood reflex)
+      7. EXCLUSION_DEFAULT → MASK (len>=3, not pure numeric — default mask unknown)
+      8. KEEP (short/numeric leftover)
+
+    Rule of thumb: in dubbio → MASK. SOSPETTO = MASK + alert.
+    """
+    text = region.get('text', '')
+    conf = float(region.get('conf', 0.0))
+    box = region.get('box', (0, 0, 0, 0))
+    is_seller = bool(region.get('is_seller', False))
+    y1 = box[1] if len(box) >= 2 else 0
+
+    text_stripped = text.strip()
+    words_lower = text_stripped.lower().split()
+
+    # 1) PLATE_FORMAT — absolute priority
+    if _is_plate_format(text_stripped):
+        region['verdict'] = 'MASK'
+        region['reason'] = 'PLATE_FORMAT'
+        region['should_mask'] = True
+        return region
+
+    # 2) SELLER_MATCH
+    if is_seller:
+        region['verdict'] = 'MASK'
+        region['reason'] = 'SELLER_MATCH'
+        region['should_mask'] = True
+        return region
+
+    # 3) WHITELIST_ALL (KEEP_WORDS or numeric trim pattern → keep)
+    # Re-evaluate using same logic vision_ocr already applied; if it returned
+    # should_mask=False, that's the keep verdict.
+    if not region.get('should_mask', True):
+        region['verdict'] = 'KEEP'
+        region['reason'] = 'WHITELIST_OR_TRIM'
+        return region
+
+    # 4) SIMIL_DEALER
+    if _SUSPICIOUS_DEALER_RE.search(text_stripped):
+        region['verdict'] = 'SOSPETTO'
+        region['reason'] = 'SIMIL_DEALER'
+        region['should_mask'] = True
+        return region
+
+    # 5) BASSA_CONF
+    if conf < SUSPECT_CONF_THRESHOLD:
+        region['verdict'] = 'SOSPETTO'
+        region['reason'] = 'BASSA_CONF'
+        region['should_mask'] = True
+        return region
+
+    # 6) POSIZIONE_RIFLESSO (text in top band — possible reflex on roof/glass)
+    if img_h > 0 and y1 < int(img_h * SUSPECT_TOP_BAND_RATIO):
+        region['verdict'] = 'SOSPETTO'
+        region['reason'] = 'POSIZIONE_RIFLESSO'
+        region['should_mask'] = True
+        return region
+
+    # 7) EXCLUSION_DEFAULT — text we don't know, mask by default
+    if (len(text_stripped) >= 3
+            and not all(w.replace('.', '').replace(',', '').replace('-', '').isdigit()
+                        for w in words_lower if w)):
+        region['verdict'] = 'MASK'
+        region['reason'] = 'EXCLUSION_DEFAULT'
+        region['should_mask'] = True
+        return region
+
+    # 8) KEEP (short or numeric — vision_ocr already kept; defensive)
+    region['verdict'] = 'KEEP'
+    region['reason'] = 'TOO_SHORT_OR_NUMERIC'
+    region['should_mask'] = False
+    return region
 
 
 # ── Stage 3: Pillow solid fill (D-32, D-25) ──────────────────────────────────
@@ -403,12 +541,76 @@ def _apply_solid_fills(cv_img, text_regions: List[Dict], crop_top: int = 0):
 
 # ── Stage 4: Post-verify + Alert ─────────────────────────────────────────────
 
+def _build_annotated_alert_image(
+    original_path: str,
+    sospetti: List[Dict],
+    output_path: str,
+) -> Optional[str]:
+    """Draw thin red rectangles + reason labels around SOSPETTO regions.
+
+    Source: original (pre-sanitize) image so Luke sees what was suspicious
+    BEFORE the masking covered it. Saved to /tmp for TG alert attachment.
+    Dossier image remains pristine (never receives red boxes).
+    """
+    if not PILLOW_AVAILABLE or not sospetti:
+        return None
+    try:
+        img = Image.open(original_path).convert('RGB')
+        draw = ImageDraw.Draw(img)
+        font = _get_font(max(10, int(img.size[1] * 0.018)))
+        for r in sospetti:
+            box = r.get('box', (0, 0, 0, 0))
+            if not box or len(box) < 4:
+                continue
+            x1, y1, x2, y2 = box[0], box[1], box[2], box[3]
+            reason = r.get('reason', 'SOSPETTO')
+            # Thin red rectangle
+            draw.rectangle([x1, y1, x2, y2], outline=(255, 0, 0), width=2)
+            # Label above box (or below if too close to top)
+            label = f"{reason} ({r.get('conf', 0):.2f})"
+            ly = max(0, y1 - 14) if y1 > 14 else min(img.size[1] - 14, y2 + 2)
+            # Small white-shadow background for readability
+            draw.text((x1 + 1, ly + 1), label, fill=(0, 0, 0), font=font)
+            draw.text((x1, ly), label, fill=(255, 0, 0), font=font)
+        img.save(output_path, 'JPEG', quality=85)
+        return output_path
+    except Exception as e:
+        log.error(f"Annotated alert build failed: {e}")
+        return None
+
+
+def _format_sospetti_alert_message(
+    listing_id: str,
+    image_index: int,
+    photo_basename: str,
+    seller_name: Optional[str],
+    sospetti: List[Dict],
+) -> str:
+    """Build the TG alert text body for SOSPETTO regions (HITL review)."""
+    lines = [
+        f"SANITIZER SOSPETTO — {listing_id} img#{image_index}",
+        f"File: {photo_basename}",
+        f"Seller: {seller_name or 'unknown'}",
+        f"Regioni sospette: {len(sospetti)}",
+        "",
+    ]
+    for r in sospetti:
+        lines.append(
+            f"  • \"{r['text']}\" conf={r['conf']:.2f} "
+            f"box={r['box']} motivo={r.get('reason', '?')}"
+        )
+    lines.append("")
+    lines.append("Azione: verifica manuale — mascherate per sicurezza.")
+    return "\n".join(lines)
+
+
 def _post_verify_and_alert(
     safe_path: str,
     original_path: str,
     listing_id: str,
     image_index: int,
     seller_name: str = None,
+    sospetti: Optional[List[Dict]] = None,
 ) -> bool:
     """
     Re-run OCR on sanitized image. If text survives:
@@ -417,7 +619,36 @@ def _post_verify_and_alert(
 
     Unlike v2 which REJECTED images with surviving text, v3 keeps the image
     but alerts for human review. This prevents empty dossiers.
+
+    S183-quater: also handles SOSPETTO regions accumulated in Stage 2.
+    These were masked (safety) but flagged for human review — we ship a TG
+    message with an annotated copy of the original photo (red rects + reason).
+    If TG bot not configured, the alert text is printed to console so the
+    operator can still see it.
     """
+    # ── SOSPETTO alert (Stage 2 accumulation) ───────────────────────
+    if sospetti:
+        photo_basename = os.path.basename(original_path)
+        alert_text = _format_sospetti_alert_message(
+            listing_id, image_index, photo_basename, seller_name, sospetti,
+        )
+        # Annotated copy in /tmp (not in dossier)
+        ts = int(time.time())
+        annotated_path = f"/tmp/argos_sanitizer_alert_{ts}_{photo_basename}"
+        ann = _build_annotated_alert_image(original_path, sospetti, annotated_path)
+
+        # Try TG send (or fallback to console if bot/chat not configured)
+        token = os.environ.get("ARGOS_TELEGRAM_TOKEN", os.environ.get("TELEGRAM_BOT_TOKEN", ""))
+        chat_id = os.environ.get("ARGOS_TELEGRAM_CHAT_ID", os.environ.get("TELEGRAM_ADMIN_CHAT_IDS", ""))
+        if token and chat_id:
+            _send_tg_alert(alert_text, photo_path=ann or original_path)
+        else:
+            print("\n  [SOSPETTO ALERT — TG bot non configurato, stampa console]")
+            for ln in alert_text.split("\n"):
+                print(f"    {ln}")
+            if ann:
+                print(f"    Annotated copy: {ann}")
+
     vision_fn = _get_vision_ocr()
     if vision_fn is None:
         return True  # Can't verify, assume OK
@@ -638,6 +869,21 @@ def sanitize_image(
             print(f"  [BANNER] Crop bottom at row {crop_bottom}px ({crop_bottom/h*100:.0f}%)")
 
         # ── STAGE 2: Already done above (text_regions) ───────────
+        # S183-quater: print 3-verdict classifier table (KEEP/MASK/SOSPETTO)
+        if text_regions:
+            print(f"  [CLASSIFIER] esiti per {os.path.basename(image_path)}:")
+            print(f"  {'text':<32} {'conf':>5}  {'box':<24} {'verdict':<9} reason")
+            print(f"  {'-'*32} {'-'*5}  {'-'*24} {'-'*9} {'-'*20}")
+            for r in text_regions:
+                t = (r.get('text', '') or '')[:30]
+                c = r.get('conf', 0.0)
+                b = r.get('box', (0, 0, 0, 0))
+                v = r.get('verdict', '?')
+                reason = r.get('reason', '?')
+                box_str = f"({b[0]},{b[1]},{b[2]},{b[3]})"
+                print(f"  {t:<32} {c:>5.2f}  {box_str:<24} {v:<9} {reason}")
+
+        sospetti = [r for r in text_regions if r.get('verdict') == 'SOSPETTO']
         mask_count = sum(1 for r in text_regions if r['should_mask'])
         if mask_count > 0:
             seller_matches = [r for r in text_regions if r['is_seller']]
@@ -647,6 +893,8 @@ def sanitize_image(
                       + ", ".join(f'"{r["text"]}"' for r in seller_matches))
             if other_text:
                 print(f"  [OCR] {len(other_text)} other text region(s) to mask")
+        if sospetti:
+            print(f"  [SOSPETTO] {len(sospetti)} region(s) flagged for HITL review")
 
         # ── STAGE 3: Pillow solid fill (D-32, D-25) ─────────────
         to_mask = [r for r in text_regions if r['should_mask']]
@@ -687,14 +935,10 @@ def sanitize_image(
             log.warning(caption)
             _send_tg_alert(caption, image_path)
 
-        # ── Add subtle ARGOS branding ────────────────────────────
-        pil_img = Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
-        draw = ImageDraw.Draw(pil_img)
-        fs = max(10, int(h * 0.025))
-        font = _get_font(fs)
-        draw.text((int(w * 0.03), int(h * 0.93)), "ARGOS", fill=ARGOS_GOLD, font=font)
-
         # ── Save ─────────────────────────────────────────────────
+        # NOTE: ARGOS branding watermark is applied by apply_watermark() in pdf_generator_enterprise.py
+        # Do NOT add branding here — would produce double watermark on final PDF.
+        pil_img = Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
         if pil_img.mode == 'RGBA':
             pil_img = pil_img.convert('RGB')
         pil_img.save(safe_path, 'JPEG', quality=90)
@@ -712,9 +956,12 @@ def sanitize_image(
                   f"({ratio_pct:.0f}% of orig) — probable dealer marketing slide")
             return None
 
-        # ── STAGE 4: Post-verify + Alert (only if text was masked) ──
-        if has_mask:
-            _post_verify_and_alert(safe_path, image_path, listing_id or "", image_index, seller_name)
+        # ── STAGE 4: Post-verify + Alert (only if text was masked or SOSPETTO) ──
+        if has_mask or sospetti:
+            _post_verify_and_alert(
+                safe_path, image_path, listing_id or "", image_index, seller_name,
+                sospetti=sospetti,
+            )
 
         elapsed = time.time() - t0
         size_kb = os.path.getsize(safe_path) / 1024
