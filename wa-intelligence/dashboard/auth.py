@@ -14,8 +14,14 @@ from fastapi import Request, Response
 from fastapi.responses import RedirectResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
-# Password dashboard (da .env, fallback per dev)
-DASHBOARD_PASSWORD = os.environ.get('ARGOS_DASHBOARD_PASSWORD', 'argos2026')
+# Password dashboard — NO default, fail-fast if missing
+DASHBOARD_PASSWORD = os.environ.get('ARGOS_DASHBOARD_PASSWORD')
+if not DASHBOARD_PASSWORD:
+    import sys
+    print("FATAL: ARGOS_DASHBOARD_PASSWORD not set in .env. "
+          "Dashboard refuses to start with no password.", file=sys.stderr)
+    sys.exit(1)
+
 SECRET_KEY = os.environ.get('ARGOS_SECRET_KEY', secrets.token_hex(32))
 SESSION_MAX_AGE = 86400 * 7  # 7 giorni
 

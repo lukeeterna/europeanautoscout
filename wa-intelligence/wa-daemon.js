@@ -1434,7 +1434,7 @@ function initClient() {
             req.on('data', chunk => { body += chunk; });
             req.on('end', async () => {
                 try {
-                    const { phone, file_path, caption, dealer_id } = JSON.parse(body);
+                    const { phone, file_path, caption, dealer_id, force } = JSON.parse(body);
                     if (!phone || !file_path) {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'phone and file_path required' }));
@@ -1451,6 +1451,74 @@ function initClient() {
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ error: 'file not found', file_path }));
                         return;
+                    }
+                    // HITL approval gate (S189 + S190 fix code-review HIGH-1/HIGH-2)
+                    // dealer_id RICHIESTO sempre — escape hatch esplicito force=true per admin manuale
+                    // (pattern già usato in /send, vedi feedback_single_writer_principle_bridge.md)
+                    if (!dealer_id && !force) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({
+                            error: 'dealer_id required (or force=true with explicit admin override)'
+                        }));
+                        return;
+                    }
+                    if (dealer_id) {
+                        const db = getDb();
+                        let row = db.prepare(
+                            'SELECT id, approval_status FROM dossiers WHERE dealer_id = ? AND file_path = ?'
+                        ).get(dealer_id, file_path);
+
+                        if (!row) {
+                            // Prima chiamata = auto-register PENDING (idempotent su UNIQUE constraint)
+                            const ts = Math.floor(Date.now() / 1000);
+                            let info;
+                            try {
+                                info = db.prepare(
+                                    'INSERT INTO dossiers (dealer_id, file_path, created_ts, approval_status) VALUES (?, ?, ?, ?)'
+                                ).run(dealer_id, file_path, ts, 'PENDING');
+                            } catch (e) {
+                                if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+                                    // Concurrent INSERT race — re-query existing row, return current state
+                                    row = db.prepare(
+                                        'SELECT id, approval_status FROM dossiers WHERE dealer_id = ? AND file_path = ?'
+                                    ).get(dealer_id, file_path);
+                                    log('INFO', `🔒 DOSSIER race-resolved: id=${row.id} status=${row.approval_status}`);
+                                    res.writeHead(403, { 'Content-Type': 'application/json' });
+                                    res.end(JSON.stringify({
+                                        error: 'dossier already registered (race)',
+                                        approval_status: row.approval_status,
+                                        dossier_id: row.id
+                                    }));
+                                    return;
+                                }
+                                throw e;
+                            }
+                            log('INFO', `🔒 DOSSIER REGISTERED PENDING: id=${info.lastInsertRowid} dealer=${dealer_id}`);
+                            sendTelegramAlert(`🔒 *Dossier PENDING review*\n👤 ${dealer_id}\n📎 ${file_path.split('/').pop()}\n🔗 https://imac:8080/pending-dossiers`);
+                            res.writeHead(403, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({
+                                error: 'dossier registered, awaiting Luke approval',
+                                approval_status: 'PENDING',
+                                dossier_id: info.lastInsertRowid
+                            }));
+                            return;
+                        }
+
+                        if (row.approval_status !== 'APPROVED') {
+                            res.writeHead(403, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({
+                                error: 'dossier not approved',
+                                approval_status: row.approval_status,
+                                dossier_id: row.id
+                            }));
+                            return;
+                        }
+                        // APPROVED → fall through to existing send logic
+                        log('INFO', `✅ DOSSIER APPROVED: id=${row.id} dealer=${dealer_id}`);
+                    } else {
+                        // force=true sans dealer_id — admin manual override, audit it
+                        log('WARN', `⚠️  /send-doc FORCE override (no dealer_id) — file=${file_path.split('/').pop()}`);
+                        sendTelegramAlert(`⚠️ */send-doc force override*\n📎 ${file_path.split('/').pop()}\n📞 ${phone}`);
                     }
                     if (!HumanLike.isAllowedToSend(phone)) {
                         res.writeHead(403, { 'Content-Type': 'application/json' });

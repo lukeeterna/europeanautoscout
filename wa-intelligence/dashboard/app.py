@@ -896,3 +896,140 @@ async def api_audit(request: Request):
     if err:
         return err
     return db.get_recent_audit(50)
+
+
+# ── HITL Dossier Approval (S189 + S190 fix code-review MED-3/MED-4) ──
+
+_APPROVALS_LOG = Path.home() / 'Documents/app-antigravity-auto/logs/approvals.jsonl'
+# Confinement directory per /dossier/{id}/preview — anti path-traversal
+_DOSSIERS_BASE = (Path.home() / 'Documents/app-antigravity-auto/dossiers').resolve()
+
+
+def _write_approval_audit(action: str, dossier_id: int, **extra) -> None:
+    """Scrive entry audit su file JSONL per dossier approve/reject.
+    Flush + fsync per durability su power-loss/OOM (fix code-review MED-4).
+    """
+    _APPROVALS_LOG.parent.mkdir(parents=True, exist_ok=True)
+    entry = {'ts': int(time.time()), 'action': action, 'dossier_id': dossier_id, **extra}
+    with open(_APPROVALS_LOG, 'a') as fh:
+        fh.write(json.dumps(entry) + '\n')
+        fh.flush()
+        os.fsync(fh.fileno())
+
+
+def _get_pending_dossiers() -> list[dict]:
+    """Lista dossier PENDING dalla tabella dossiers."""
+    return db.query(
+        "SELECT id, dealer_id, file_path, created_ts "
+        "FROM dossiers WHERE approval_status = 'PENDING' ORDER BY created_ts ASC LIMIT 50"
+    )
+
+
+def _get_dossier_by_id(dossier_id: int) -> dict | None:
+    """Singolo dossier per id."""
+    return db.query_one("SELECT * FROM dossiers WHERE id = ?", (dossier_id,))
+
+
+def _update_dossier_status(
+    dossier_id: int,
+    status: str,
+    reject_reason: str | None = None,
+) -> int:
+    """Aggiorna approval_status dossier. Ritorna rowcount."""
+    con = db._connect()
+    try:
+        ts = int(time.time())
+        if reject_reason is not None:
+            cur = con.execute(
+                "UPDATE dossiers SET approval_status=?, approval_ts=?, reject_reason=? "
+                "WHERE id=? AND approval_status='PENDING'",
+                (status, ts, reject_reason, dossier_id),
+            )
+        else:
+            cur = con.execute(
+                "UPDATE dossiers SET approval_status=?, approval_ts=? "
+                "WHERE id=? AND approval_status='PENDING'",
+                (status, ts, dossier_id),
+            )
+        con.commit()
+        return cur.rowcount
+    finally:
+        con.close()
+
+
+@app.get('/pending-dossiers', response_class=HTMLResponse)
+async def pending_dossiers(request: Request):
+    """Pagina HITL: lista dossier PDF in attesa di approvazione Luke."""
+    redirect = _auth_or_redirect(request)
+    if redirect:
+        return redirect
+    dossiers = _get_pending_dossiers()
+    return templates.TemplateResponse('pending_dossiers.html', {
+        'request': request,
+        'page': 'pending_dossiers',
+        'dossiers': dossiers,
+    })
+
+
+@app.get('/dossier/{dossier_id}/preview')
+async def dossier_preview(dossier_id: int, request: Request):
+    """Serve PDF dossier come inline per iframe preview.
+    Path traversal defense (fix code-review MED-3): file_path must resolve
+    inside _DOSSIERS_BASE — even though DB-stored, originating /send-doc caller
+    could register arbitrary paths.
+    """
+    redirect = _auth_or_redirect(request)
+    if redirect:
+        return redirect
+    from fastapi.responses import FileResponse
+    row = _get_dossier_by_id(dossier_id)
+    if not row:
+        return JSONResponse({'error': 'dossier not found'}, status_code=404)
+    file_path = row.get('file_path', '')
+    if not file_path:
+        return JSONResponse({'error': 'file_path missing'}, status_code=404)
+    try:
+        resolved = Path(file_path).resolve(strict=True)
+    except (OSError, RuntimeError):
+        return JSONResponse({'error': 'file not found on disk'}, status_code=404)
+    # is_relative_to is Python 3.9+ — confine inside _DOSSIERS_BASE
+    try:
+        resolved.relative_to(_DOSSIERS_BASE)
+    except ValueError:
+        log.warning(f'Path traversal blocked: dossier {dossier_id} file_path={file_path!r}')
+        return JSONResponse({'error': 'path outside allowed directory'}, status_code=403)
+    return FileResponse(str(resolved), media_type='application/pdf')
+
+
+@app.post('/api/dossier/{dossier_id}/approve')
+async def approve_dossier(dossier_id: int, request: Request):
+    """HITL approve: imposta APPROVED + scrive audit."""
+    err = _require_auth_api(request)
+    if err:
+        return err
+    rowcount = _update_dossier_status(dossier_id, 'APPROVED')
+    if rowcount == 0:
+        return JSONResponse({'error': 'already actioned or not found'}, status_code=409)
+    _write_approval_audit('approve', dossier_id)
+    db.write_audit('DOSSIER_APPROVED', None, json.dumps({'dossier_id': dossier_id}))
+    log.info(f'Dossier {dossier_id} APPROVED from HITL dashboard')
+    return JSONResponse({'status': 'approved', 'dossier_id': dossier_id})
+
+
+@app.post('/api/dossier/{dossier_id}/reject')
+async def reject_dossier(dossier_id: int, request: Request):
+    """HITL reject: richiede reason, imposta REJECTED + scrive audit."""
+    err = _require_auth_api(request)
+    if err:
+        return err
+    body = await request.json()
+    reason = body.get('reason', '').strip()[:500]
+    if not reason:
+        return JSONResponse({'error': 'reason required'}, status_code=400)
+    rowcount = _update_dossier_status(dossier_id, 'REJECTED', reject_reason=reason)
+    if rowcount == 0:
+        return JSONResponse({'error': 'already actioned or not found'}, status_code=409)
+    _write_approval_audit('reject', dossier_id, reason=reason)
+    db.write_audit('DOSSIER_REJECTED', None, json.dumps({'dossier_id': dossier_id, 'reason': reason}))
+    log.info(f'Dossier {dossier_id} REJECTED from HITL dashboard: {reason}')
+    return JSONResponse({'status': 'rejected', 'dossier_id': dossier_id})
