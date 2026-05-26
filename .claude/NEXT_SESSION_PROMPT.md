@@ -1,98 +1,54 @@
-# S194 — Resume post-S193 (chiusura ordinata ctx 77%)
+# NEXT SESSION — S195 ARGOS
 
-**Generato**: 2026-05-26 (sera, post-saturation gate skip)
+**Generato**: 2026-05-26 (S194 close ordinato post gate fail)
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `master`)
-**HEAD locale**: `7396e47 feat(S192+S193-fix): sanitizer sentinel + HITL gate + audit-driven fix`
-**Working tree**: clean
-**iMac**: NON aggiornato — `current` symlink punta a release `20260525_211041` (25 mag 21:10), codice S192+S193-fix solo locale.
+**Day 1 Stile Car deadline**: 2026-06-03 mercoledì (7 giorni utili da S195)
 
-## Pattern saturation registrato (Luke 2026-05-26)
+## Stato S194 (chiuso VERDE handoff strutturato)
 
-3ª sessione in 2 giorni a saturare ctx (FLUXION S290 81%, ARGOS S192 100%, ARGOS adesso 77%). global_context_gate HARD_BLOCK@80% deployato in `settings.json` ma applicato solo da SessionStart successivo. Pattern andrà in `session-peaks.jsonl` per calibrazione gate 2026-06-09.
+- HEAD master: `<commit S194 close>` (push GitHub)
+- iMac symlink: `releases/20260525_211041` — codice 25 mag, **NON aggiornato**
+- S192+S193-fix: NON live in produzione
+- Day 1 Stile Car: BLOCKED su S195 GO/NO-GO motivato
 
-## Cosa è stato fatto in S193 (commit 7396e47)
+**Cosa è successo S194**:
+- STEP 0 verifica stato: PASS
+- STEP 0.5 quality validation Claude AI esterno: **FAIL** (`external_score=6.3/10 < 6.5` + 3 precondizioni BLOCCANTI P1+P2+P3)
+- STEP 1 deploy iMac: NON eseguito (gate fail correttamente bloccante)
+- Chiusura VERDE con asset S195 generati strutturalmente
 
-### Fase A — Audit reale (delegato Explore + SSH iMac)
-- **A1 sanitize_image cross-codebase**: 5 callsite, 2 UNSAFE (image_sanitizer.py:1066 e :1161 con `if safe:` / `if result:` truthy)
-- **A2 auto_approve_and_send**: 0 callsite attivi → DEAD CODE → BACKLOG S193-1
-- **A3 schema DB iMac** (verificato SSH):
-  - `dealer_network.sqlite` autoritativo (NO tabella `dealers` — info dealer in `conversations` PK 1:1)
-  - `bridge_outbound` in DB SEPARATO `~/Documents/app-antigravity-auto/comm-broker/bridge.sqlite` (45KB)
-  - UNIQUE partial: `(deal_id, target_phone, template_phase) WHERE sent_ts IS NULL`
+**Lezioni assorbite dal revisore esterno**:
+1. Gate process falliti = **moltiplicatori binari** (cappano voto a max 6.5), NON addendi mediabili
+2. Near-miss intercettato da Luke ≠ merito del sistema
+3. py_compile + code-reviewer GO sono 2 segnali deboli → serve test funzionale runtime
 
-### Fase B — Fix mirati su 2 file
-- **HIGH-1 sentinel** (image_sanitizer.py:1066-1074 + 1160-1170): 3-way branch explicit
-- **HIGH-2 LEFT JOIN dealers** (dashboard/db.py:251-275): rimosso JOIN inesistente + try/except sqlite3.OperationalError safety net
-- **LOW-2 phone masking** (dashboard/db.py:303): `phone[:-4] + '****'` (era inverso)
-- **MED-1 FALSE POSITIVE** (PK 1:1), **MED-2 OK** (UNIQUE partial idempotent)
-- **LOW base_path** (pdf_generator): BACKLOG (mitigato try/except esterno)
+## Come riprendere S195
 
-### Fase C — Validazione interna
-- code-reviewer agent: **GO**, 0 HIGH/MED, 3 LOW
-- py_compile PASS su 5 file
+1. Apri Claude Code da `/Users/macbook/Documents/combaretrovamiauto-enterprise`
+2. **Apri prompt S195**: `prompts/s195_revalidation_full_bundle.md`
+3. **Bundle V2 paste-ready** (auto-sufficiente, diff+audit INLINE): `/tmp/s195_QUALITY_VALIDATION_PROMPT_v2.md`
+4. **Audit S194**: `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/s194_gate_fail_handoff_s195.md`
 
-### Fase D — Re-validation esterna NON ESEGUITA
-Asset pronti se Luke vuole safety net:
-- `/tmp/s193_full_diff.patch` (282 righe)
-- `/tmp/s193_VALIDATION_PROMPT_FOR_CLAUDE_AI.md`
+## Sequenza S195 (gated)
 
-## Cosa NON è stato fatto (deploy interrotto da Luke)
+1. **STEP 0** verifica stato (5 min)
+2. **STEP 0.5 V2** quality validation bundle V2 BLOCCANTE (8 min Luke) — soglia ≥7.0/10
+3. **STEP 0.6** AskUserQuestion bloccante pre-deploy (P3 incorporato)
+4. **STEP 1** deploy iMac + BRIDGE_DB_PATH + smoke approve_reply runtime (P5)
+5. **STEP 2** AMBRA stress 5 scenari TEST_FOUNDER 393314928901 (60 min Luke fisico)
+6. **STEP 3** E2E 9-step pipeline contatto→dossier→firma→mark-paid (45 min Luke fisico)
+7. **STEP 4** decisione Day 1 Stile Car matrix 4-dim (validazione esterna + STEP 1 + STEP 2 + STEP 3)
 
-- **bash deploy/sync.sh**: rejected dall'utente per saturazione ctx imminente
-- **PM2 restart**: non eseguito
-- **BRIDGE_DB_PATH env check**: non risolto (PM2 SSH non-interactive PATH bug — workaround necessario)
+## Vincoli operativi
 
-## Prossima sessione S194 — Sequenza
+- AskUserQuestion mirata PRIMA di ogni shared-state action (deploy, restart, mark-paid)
+- Context budget: warning 50%, closure 60%, MAI deploy mid-saturation >70%
+- Mai liste A/B/C/D su decisioni tecniche
+- Delegation-first: code-reviewer obbligatorio prima di qualsiasi commit S195-fix
+- Stati VERDE/handoff, mai PARTIAL/ARANCIONE
 
-### STEP 0 — Verifica stato (5 min)
-```bash
-git log -1 --oneline  # deve essere 7396e47
-ssh imac "readlink ~/Documents/app-antigravity-auto/current"
-# se NON termina con 20260526_* → deploy ancora pending
-```
+## Asset pronti
 
-### STEP 1 — Deploy iMac (10 min)
-```bash
-bash deploy/sync.sh 2>&1 | tail -20
-ssh imac 'bash -l -c "pm2 jlist"' | python3 -c "
-import json, sys
-apps = json.loads(sys.stdin.read())
-for a in apps:
-    if a['name'] in ('argos-dashboard', 'wa-daemon'):
-        env = a['pm2_env']
-        print(a['name'], 'BRIDGE_DB_PATH=', env.get('BRIDGE_DB_PATH', 'NOT_SET'))
-"
-# Se BRIDGE_DB_PATH NOT_SET → set in ecosystem.config.js + restart
-# Path atteso: ~/Documents/app-antigravity-auto/comm-broker/bridge.sqlite
-```
-
-### STEP 2 — Re-validation Claude AI esterno (opzionale, 10 min Luke)
-Solo se Luke vuole safety net post-deploy. Asset in /tmp/s193_*.
-
-### STEP 3 — AMBRA stress 5 scenari TEST_FOUNDER (60 min Luke fisico)
-Vedi `prompts/s193_step3_4_luke_physical.md` STEP 2.
-5 scenari: VEHICLE_REQUEST / CONTRACT_REQUEST / PRICE_OBJECTION / HALLUCINATION_TRAP / SILENT trigger.
-Per ogni scenario: Luke invia WA → AMBRA classifica → reply PENDING dashboard:8080/replies → approve/reject → verify delivery.
-Log in `state/s194_ambra_stress_log.jsonl`.
-
-### STEP 4 — E2E 9-step (45 min Luke fisico)
-Vedi `prompts/s193_step3_4_luke_physical.md` STEP 3.
-Pipeline completa: Day 1 WA → VEHICLE_REQUEST → AMBRA reply → approve → dossier real → HITL approve → CONTRACT_REQUEST → sign → mark-paid.
-
-### STEP 5 — Decisione Day 1 Stile Car (15 min)
-Matrix 4-dim (validazione esterna + code-reviewer + STEP 3 + STEP 4) → GO/NO-GO Day 1 Stile Car 2026-06-03 (7gg al gate).
-
-## File chiave da consultare in S194
-
-- `prompts/s193_step3_4_luke_physical.md` — STEP 0/1/2/3/4 dettagliati (committato in 7396e47)
-- `~/.claude/projects/.../memory/s193_fix_commit_overclaim_resolved.md` — dettaglio audit + fix
-- `/tmp/s193_full_diff.patch` — diff completo S192+S193-fix
-- `/tmp/s193_VALIDATION_PROMPT_FOR_CLAUDE_AI.md` — prompt re-validation pronto
-
-## Vincoli ricordati per S194
-
-- CLAUDE.md #6: no PARTIAL/ARANCIONE
-- CLAUDE.md #7: ctx >60% closure ordinata (gate hardcoded ora @80% dal prossimo session)
-- feedback_test_founder_means_real_interactive.md: STEP 3+4 = Luke fisico
-- feedback_e2e_full_test_founder_before_day1.md: Day 1 reale BLOCKED fino a E2E green
-- prompt S193 STEP 0 rafforzato: AskUserQuestion mandatorio + code-reviewer + matrix 4-dim
+- `prompts/s195_revalidation_full_bundle.md` — sequenza completa con P1-P3 strutturalmente risolti
+- `/tmp/s195_QUALITY_VALIDATION_PROMPT_v2.md` — bundle V2 paste-ready auto-sufficiente (diff 282 righe + audit 75 righe INLINE)
+- Memory `s194_gate_fail_handoff_s195.md` — audit S194 fail + lezioni
