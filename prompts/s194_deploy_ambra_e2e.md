@@ -49,6 +49,36 @@ ssh gianlucadistasi@192.168.1.2 'bash -l -c "pm2 status"' 2>&1 | head -20
 
 ---
 
+## STEP 0.5 — Quality validation Claude AI esterno BLOCCANTE (5 min Luke)
+
+> Aggiunto post-S193 close per chiudere process gap #1 auto-eval CTO (re-validation esterna SALTATA dopo i fix). Vincolo: matrix 4-dim del mio stesso prompt S193 STEP 0 dichiarava "validazione esterna come dimensione" — onorarla qui prima di toccare iMac.
+
+### 0.5.1 Bundle paste-ready
+
+Bundle pre-generato: `/tmp/s193_QUALITY_VALIDATION_PROMPT.md` (include diff + audit memory + auto-eval 7.2/10 + JSON schema output).
+
+Allegati:
+1. `/tmp/s193_full_diff.patch` (282 righe, 5 file)
+2. `~/.claude/projects/-Users-macbook-Documents-combaretrovamiauto-enterprise/memory/s193_fix_commit_overclaim_resolved.md`
+3. Prompt da `/tmp/s193_QUALITY_VALIDATION_PROMPT.md`
+
+### 0.5.2 Esecuzione Luke
+
+Apri claude.ai web, incolla bundle, attendi output JSON.
+
+### 0.5.3 Gate decisionale
+
+| `external_score` | `go_no_go_deploy_iMac_S194` | Azione |
+|---|---|---|
+| ≥ 6.5/10 | GO | STEP 1 deploy |
+| ≥ 6.5/10 | GO_WITH_PRECONDITIONS | Applica precondizioni, poi STEP 1 |
+| < 6.5/10 | qualsiasi | STOP deploy, fix process gap segnalati, possibile nuovo commit S194-fix |
+| qualsiasi | NO_GO | STOP, escalation Luke decisione |
+
+**AskUserQuestion obbligatorio in apertura STEP 0.5**: "Output Claude AI validation? Incolla JSON, oppure 'skip' per bypass esplicito documentato in audit log".
+
+---
+
 ## STEP 1 — Deploy iMac + BRIDGE_DB_PATH check (10-15 min)
 
 ### 1.1 Deploy atomico
