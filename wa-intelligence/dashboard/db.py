@@ -352,9 +352,24 @@ def approve_reply(reply_id: str) -> dict:
 
         # Audit separato bridge insert
         # S193-fix LOW-2: phone masking corretto — nasconde ultime 4 cifre
-        _audit(con, 'BRIDGE_INSERTED', dealer_id,
-               {'reply_id': reply_id, 'phone': phone[:-4] + '****' if len(phone) > 4 else '****'})
-        con.commit()
+        # S196-precondition-2 (revisore claude.ai esterno): bridge_outbound e' GIA'
+        # committato su b_con (chiuso sopra). Se _audit/commit qui fallisce, il msg
+        # WA verra' inviato dal daemon ma audit_log NON registrera' l'evento →
+        # buco compliance opt-out (non solo "operational" come da MED-2 backlog).
+        # Mitigation: log ERROR esplicito (visibile fuori audit_log) + return
+        # success comunque (bridge queue e' la verita' operativa).
+        try:
+            _audit(con, 'BRIDGE_INSERTED', dealer_id,
+                   {'reply_id': reply_id, 'phone': phone[:-4] + '****' if len(phone) > 4 else '****'})
+            con.commit()
+        except Exception as audit_err:
+            _logger.error(
+                f'[HITL][bridge][AUDIT-LOSS] reply {reply_id}: bridge_outbound INSERTED '
+                f'ma audit_log commit fallito ({type(audit_err).__name__}: {audit_err}). '
+                f'Compliance gap: msg verra\' inviato senza traccia audit. '
+                f'Manual reconciliation richiesta.'
+            )
+            # NON return error: bridge e' gia' committed, daemon invierà comunque
         _logger.info(f'[HITL][bridge] reply {reply_id} → bridge_outbound queued')
 
         return {"approved": True, "bridge_queued": True, "error": None}

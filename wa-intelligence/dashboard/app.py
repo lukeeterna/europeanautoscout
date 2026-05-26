@@ -125,7 +125,43 @@ async def verify_bridge_db_path():
         log.error(f'[STARTUP][FATAL] {msg}')
         _send_telegram_alert(msg)
         return
-    log.info(f'[STARTUP] BRIDGE_DB_PATH OK: {bp}')
+
+    # S196-precondition-1 (revisore claude.ai esterno gate 7.4): file exists
+    # NON garantisce schema valido. Bridge corrotto / DB vecchio passa il check
+    # precedente e fallisce SOLO a runtime con 'bridge_insert_failed' → silent
+    # failure si sposta da "env mancante" a "schema stale" senza segnalazione.
+    # Verifica leggera: tabella bridge_outbound deve esistere.
+    try:
+        import sqlite3 as _sqlite3
+        _b = _sqlite3.connect(bp, timeout=5)
+        try:
+            # code-review LOW-1: PRAGMA busy_timeout per evitare false-fatal
+            # se daemon Node tiene write lock temporaneo a startup dashboard
+            _b.execute('PRAGMA busy_timeout=3000')
+            row = _b.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='bridge_outbound'"
+            ).fetchone()
+        finally:
+            _b.close()
+        if not row:
+            msg = (
+                f'BRIDGE_DB_PATH ({bp}) esiste ma tabella bridge_outbound MANCANTE. '
+                'DB corrotto o schema vecchio. Reply HITL approvate non andranno in coda.'
+            )
+            log.error(f'[STARTUP][FATAL] {msg}')
+            _send_telegram_alert(msg)
+            return
+    except Exception as e:
+        # SQLite open fallisce (file non-SQLite o lock) → segnala come fatal
+        msg = (
+            f'BRIDGE_DB_PATH ({bp}) NON apribile come SQLite: {type(e).__name__}. '
+            'Verificare integrità file su iMac.'
+        )
+        log.error(f'[STARTUP][FATAL] {msg}')
+        _send_telegram_alert(msg)
+        return
+
+    log.info(f'[STARTUP] BRIDGE_DB_PATH OK: {bp} (schema bridge_outbound verified)')
 
 
 # ── Auth Routes ──────────────────────────────────────────

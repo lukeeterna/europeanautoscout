@@ -20,7 +20,9 @@ Esecuzione:
   cd /Users/macbook/Documents/combaretrovamiauto-enterprise
   python3 tools/tests/test_approve_reply_runtime.py
 
-Output gate: "RUNTIME TEST RESULT: 4/4 PASS" → STEP 4 VERDE.
+Output gate: "RUNTIME TEST RESULT: 5/5 PASS" → STEP 4 VERDE.
+(S196-precondition-4: count 5 — scenario E orphaned aggiunto post code-review S196,
+ stale docstring "4/4" flaggato da revisore esterno claude.ai gate 7.4.)
 """
 
 import os
