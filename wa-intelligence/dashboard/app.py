@@ -65,6 +65,69 @@ def _require_auth_api(request: Request):
     return None
 
 
+# S196-P2/P3: Telegram alert per silent-failure HITL e BRIDGE_DB_PATH missing
+def _send_telegram_alert(text: str) -> bool:
+    """Best-effort Telegram alert. Non blocca mai il chiamante.
+
+    Pattern allineato a wa-intelligence/response-analyzer.py:1738 (urllib stdlib).
+    Env vars: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID. Se mancano → log warning + skip.
+    """
+    token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+    chat_id = os.environ.get('TELEGRAM_CHAT_ID', '')
+    if not (token and chat_id):
+        log.warning(f'[TG-alert] skip (TELEGRAM_BOT_TOKEN/CHAT_ID missing): {text[:80]}')
+        return False
+    try:
+        import urllib.request
+        import urllib.parse
+        url = f'https://api.telegram.org/bot{token}/sendMessage'
+        data = urllib.parse.urlencode({
+            'chat_id': chat_id,
+            'text': f'[ARGOS-Dashboard] {text}',
+        }).encode('utf-8')
+        req = urllib.request.Request(url, data=data, method='POST')
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return resp.status == 200
+    except Exception as e:
+        # S196 code-review MED-1: NON loggare {e} raw — urllib exceptions
+        # possono includere l'URL completo con bot token embedded. Log solo
+        # tipo eccezione + testo del messaggio (no credenziali).
+        log.error(f'[TG-alert] failed: {type(e).__name__} — text={text[:80]}')
+        return False
+
+
+# ── Startup pre-flight (S196-P3) ─────────────────────────
+
+@app.on_event('startup')
+async def verify_bridge_db_path():
+    """Pre-flight check BRIDGE_DB_PATH per HITL approve_reply (S196-P3).
+
+    NON crasha l'app (operatore puo' usare dashboard read-only/audit).
+    Log + Telegram alert se path mancante o invalido. Path felice fix
+    S193-fix HIGH-2 dipende da questa env, silent-failure precedente
+    bloccava daemon senza segnalazione.
+    """
+    bp = os.environ.get('BRIDGE_DB_PATH', '')
+    if not bp:
+        msg = (
+            'BRIDGE_DB_PATH non impostato su processo argos-dashboard. '
+            'Reply HITL approvate non andranno in coda al daemon WA. '
+            'Fix: aggiungere env var in ecosystem.config.js + pm2 reload.'
+        )
+        log.error(f'[STARTUP][FATAL] {msg}')
+        _send_telegram_alert(msg)
+        return
+    if not os.path.exists(bp):
+        msg = (
+            f'BRIDGE_DB_PATH impostato ({bp}) ma file NON esiste. '
+            'Verificare path comm-broker/bridge.sqlite su iMac.'
+        )
+        log.error(f'[STARTUP][FATAL] {msg}')
+        _send_telegram_alert(msg)
+        return
+    log.info(f'[STARTUP] BRIDGE_DB_PATH OK: {bp}')
+
+
 # ── Auth Routes ──────────────────────────────────────────
 
 @app.get('/login', response_class=HTMLResponse)
@@ -690,10 +753,41 @@ async def action_approve_reply(request: Request):
     reply_id = body.get('reply_id')
     if not reply_id:
         return JSONResponse({'error': 'reply_id required'}, status_code=400)
-    ok = db.approve_reply(reply_id)  # reply_id e' TEXT PK (es. 'reply_abc12345')
-    if ok:
-        log.info(f'Reply {reply_id} approved from dashboard')
-    return {'ok': ok}
+
+    # S196-P2: db.approve_reply ora ritorna dict {approved, bridge_queued, error}
+    result = db.approve_reply(reply_id)  # reply_id e' TEXT PK (es. 'reply_abc12345')
+    approved = result.get('approved', False)
+    bridge_queued = result.get('bridge_queued', False)
+    error_code = result.get('error')
+
+    if approved and bridge_queued:
+        log.info(f'Reply {reply_id} approved + bridge queued')
+        ui_message = 'Inviato a daemon'
+        ui_level = 'success'
+    elif approved and not bridge_queued:
+        # Silent-failure precedente: ora alertiamo operatore (P2 fix)
+        log.error(
+            f'Reply {reply_id} approved BUT bridge NOT queued (error={error_code}) — daemon non riceve'
+        )
+        _send_telegram_alert(
+            f'HITL reply {reply_id} approvata ma bridge_outbound non in coda: {error_code}. '
+            f'Verificare BRIDGE_DB_PATH e schema DB. Daemon NON inviera\' fino a fix manuale.'
+        )
+        ui_message = f'Approvato ma daemon NON in coda ({error_code})'
+        ui_level = 'warning'
+    else:
+        log.warning(f'Reply {reply_id} approval failed: {error_code}')
+        ui_message = f'Reply non trovata o gia\' processata ({error_code})'
+        ui_level = 'error'
+
+    return {
+        'ok': approved,
+        'approved': approved,
+        'bridge_queued': bridge_queued,
+        'error': error_code,
+        'message': ui_message,
+        'level': ui_level,
+    }
 
 
 @app.post('/api/actions/skip-reply')

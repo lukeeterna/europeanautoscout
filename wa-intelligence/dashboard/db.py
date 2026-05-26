@@ -230,14 +230,38 @@ def get_llm_cost_total() -> dict:
 
 # ── Action Queries (F5) ────────────────────────────────
 
-def approve_reply(reply_id: str) -> bool:
+def approve_reply(reply_id: str) -> dict:
     """Approva una pending_reply e inserisce in bridge_outbound per invio daemon.
 
+    S196-P2: signature dict per propagare stato bridge_outbound a caller (app.py).
+    Risolve silent-failure return True senza INSERT bridge (schema drift, env mancante,
+    insert exception) che bloccava il daemon senza segnalarlo all'operatore.
+
     S192: reply_id e' TEXT PK (es. 'reply_abc12345'), non int.
-    Dopo UPDATE approved=1, tenta INSERT bridge_outbound via BRIDGE_DB_PATH.
-    Degrada gracefully se BRIDGE_DB_PATH non e' impostato (UPDATE resta valido,
-    ma il daemon non ricevera' il messaggio finche' non aggiornato manualmente).
+
+    Returns:
+        {
+          "approved": bool,           # True se UPDATE pending_replies ha avuto effetto
+          "bridge_queued": bool,      # True se INSERT bridge_outbound OK (riga nuova)
+          "error": Optional[str],     # codice strutturato (None se path felice)
+        }
+
+    Error codes (caller interpretation):
+        None                       — happy path completo (approved + bridge_queued)
+        "not_found_or_processed"   — reply non trovata o gia' approvata
+        "schema_drift"             — sqlite3.OperationalError su SELECT pending_replies
+        "bridge_db_path_missing"   — env var BRIDGE_DB_PATH non impostata
+        "bridge_duplicate"         — riga gia' in bridge_outbound (INSERT OR IGNORE rowcount=0)
+        "bridge_insert_failed"     — eccezione su INSERT bridge_outbound
+        "phone_or_text_missing"    — phone o reply_text vuoti — bridge skip
+
+    Trade-off: cambia signature pubblica (era bool). Path felice S193-fix HIGH-2
+    dipende da env var non verificata — degradazione silenziosa e' bug peggiore
+    di breaking change su un solo callsite (app.py action_approve_reply).
     """
+    import logging as _log
+    _logger = _log.getLogger(__name__)
+
     con = _connect()
     try:
         cur = con.execute(
@@ -245,7 +269,7 @@ def approve_reply(reply_id: str) -> bool:
             (reply_id,)
         )
         if cur.rowcount == 0:
-            return False
+            return {"approved": False, "bridge_queued": False, "error": "not_found_or_processed"}
 
         # S193-fix HIGH-2: rimosso LEFT JOIN dealers (tabella inesistente in dealer_network.sqlite)
         # Schema dump iMac 2026-05-26 conferma: solo conversations ha phone_number (PK dealer_id 1:1).
@@ -261,14 +285,13 @@ def approve_reply(reply_id: str) -> bool:
                 (reply_id,)
             ).fetchone()
         except sqlite3.OperationalError as schema_err:
-            import logging as _log
-            _log.getLogger(__name__).error(
+            _logger.error(
                 f'[HITL][approve_reply] schema drift SELECT fallita per {reply_id}: {schema_err} '
                 f'— UPDATE approved=1 gia\' committato, bridge_outbound NON inserito'
             )
-            # UPDATE gia' rowcount=1, ritorniamo True ma daemon non ricevera' (richiede intervento manuale)
+            # UPDATE gia' rowcount=1: approved=True, bridge_queued=False, errore strutturato
             con.commit()
-            return True
+            return {"approved": True, "bridge_queued": False, "error": "schema_drift"}
 
         dealer_id = dict(row)['dealer_id'] if row else None
         _audit(con, 'REPLY_APPROVED', dealer_id, {'reply_id': reply_id})
@@ -276,59 +299,65 @@ def approve_reply(reply_id: str) -> bool:
 
         # INSERT bridge_outbound — single-writer pattern (S173)
         bridge_db_path = os.environ.get('BRIDGE_DB_PATH', '')
-        if bridge_db_path and row:
-            r = dict(row)
-            phone = (r.get('phone') or '').replace('+', '').replace(' ', '').replace('-', '')
-            reply_text = r.get('reply_text') or ''
-            current_step = r.get('current_step') or 'RESPONSE_RECEIVED'
-            if phone and reply_text:
-                try:
-                    import sqlite3 as _sqlite3
-                    b_con = _sqlite3.connect(bridge_db_path, timeout=10)
-                    b_con.execute('PRAGMA journal_mode=WAL')
-                    b_con.execute('PRAGMA busy_timeout=10000')
-                    b_res = b_con.execute(
-                        """INSERT OR IGNORE INTO bridge_outbound
-                               (deal_id, target_role, target_phone, template_phase, template_lang,
-                                body, state_at_send, created_ts, approved_ts)
-                           VALUES (?, 'dealer', ?, 'response', 'it', ?, ?, strftime('%s','now'), strftime('%s','now'))""",
-                        (reply_id, phone, reply_text, current_step)
-                    )
-                    b_con.commit()
-                    bridge_inserted = b_res.rowcount == 1
-                    b_con.close()
-                    if bridge_inserted:
-                        # Audit separato bridge insert
-                        # S193-fix LOW-2: phone masking corretto — nasconde ultime 4 cifre
-                        _audit(con, 'BRIDGE_INSERTED', dealer_id,
-                               {'reply_id': reply_id, 'phone': phone[:-4] + '****' if len(phone) > 4 else '****'})
-                        con.commit()
-                        import logging as _log
-                        _log.getLogger(__name__).info(
-                            f'[HITL][bridge] reply {reply_id} → bridge_outbound queued'
-                        )
-                    else:
-                        import logging as _log
-                        _log.getLogger(__name__).warning(
-                            f'[HITL][bridge][dedup] reply {reply_id} gia\' in bridge_outbound — skip'
-                        )
-                except Exception as b_err:
-                    import logging as _log
-                    _log.getLogger(__name__).error(
-                        f'[HITL][bridge] INSERT fallito per {reply_id}: {b_err} — approvazione gia\' salvata'
-                    )
-            else:
-                import logging as _log
-                _log.getLogger(__name__).warning(
-                    f'[HITL][bridge] reply {reply_id}: phone o reply_text mancante — bridge skip'
-                )
-        elif not bridge_db_path:
-            import logging as _log
-            _log.getLogger(__name__).warning(
+        if not bridge_db_path:
+            _logger.warning(
                 f'[HITL][bridge] BRIDGE_DB_PATH non impostato — reply {reply_id} approvata ma NON in coda daemon'
             )
+            return {"approved": True, "bridge_queued": False, "error": "bridge_db_path_missing"}
 
-        return True
+        if not row:
+            # row None solo se pending_replies non aveva pr.dealer_id risolvibile
+            _logger.warning(
+                f'[HITL][bridge] reply {reply_id}: SELECT post-UPDATE ha ritornato NULL — bridge skip'
+            )
+            return {"approved": True, "bridge_queued": False, "error": "phone_or_text_missing"}
+
+        r = dict(row)
+        phone = (r.get('phone') or '').replace('+', '').replace(' ', '').replace('-', '')
+        reply_text = r.get('reply_text') or ''
+        current_step = r.get('current_step') or 'RESPONSE_RECEIVED'
+
+        if not (phone and reply_text):
+            _logger.warning(
+                f'[HITL][bridge] reply {reply_id}: phone o reply_text mancante — bridge skip'
+            )
+            return {"approved": True, "bridge_queued": False, "error": "phone_or_text_missing"}
+
+        try:
+            import sqlite3 as _sqlite3
+            b_con = _sqlite3.connect(bridge_db_path, timeout=10)
+            b_con.execute('PRAGMA journal_mode=WAL')
+            b_con.execute('PRAGMA busy_timeout=10000')
+            b_res = b_con.execute(
+                """INSERT OR IGNORE INTO bridge_outbound
+                       (deal_id, target_role, target_phone, template_phase, template_lang,
+                        body, state_at_send, created_ts, approved_ts)
+                   VALUES (?, 'dealer', ?, 'response', 'it', ?, ?, strftime('%s','now'), strftime('%s','now'))""",
+                (reply_id, phone, reply_text, current_step)
+            )
+            b_con.commit()
+            bridge_inserted = b_res.rowcount == 1
+            b_con.close()
+        except Exception as b_err:
+            _logger.error(
+                f'[HITL][bridge] INSERT fallito per {reply_id}: {b_err} — approvazione gia\' salvata'
+            )
+            return {"approved": True, "bridge_queued": False, "error": "bridge_insert_failed"}
+
+        if not bridge_inserted:
+            _logger.warning(
+                f'[HITL][bridge][dedup] reply {reply_id} gia\' in bridge_outbound — skip'
+            )
+            return {"approved": True, "bridge_queued": False, "error": "bridge_duplicate"}
+
+        # Audit separato bridge insert
+        # S193-fix LOW-2: phone masking corretto — nasconde ultime 4 cifre
+        _audit(con, 'BRIDGE_INSERTED', dealer_id,
+               {'reply_id': reply_id, 'phone': phone[:-4] + '****' if len(phone) > 4 else '****'})
+        con.commit()
+        _logger.info(f'[HITL][bridge] reply {reply_id} → bridge_outbound queued')
+
+        return {"approved": True, "bridge_queued": True, "error": None}
     finally:
         con.close()
 

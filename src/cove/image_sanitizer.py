@@ -135,6 +135,10 @@ MIN_IMAGE_BYTES = 30 * 1024  # 30 KB
 # Area-based check non funziona (inpaint preserva dimensioni anche se contenuto = bianco).
 MIN_OUTPUT_SIZE_RATIO = 0.20
 
+# S196-P4: Modulo-level sentinel — distinguishes intentional skip (promo-slide)
+# from crash (None). Import this rather than hardcoding the string.
+SENTINEL_SKIP_PROMO = "__SKIP_PROMO__"
+
 # Words to keep (car specs, our own branding)
 # S179: expanded with BMW/Mercedes/Audi numeric trims vulnerable in S176
 KEEP_WORDS = frozenset({
@@ -956,7 +960,7 @@ def sanitize_image(
                   f"({ratio_pct:.0f}% of orig) — probable dealer marketing slide")
             # S192 FIX: sentinel string distinct from None (which means crash).
             # Caller must exclude this image from PDF (NOT fallback to RAW).
-            return "__SKIP_PROMO__"
+            return SENTINEL_SKIP_PROMO
 
         # ── STAGE 4: Post-verify + Alert (only if text was masked or SOSPETTO) ──
         if has_mask or sospetti:
@@ -1063,11 +1067,11 @@ def sanitize_all_images(
         if src_path and os.path.exists(src_path):
             safe = sanitize_image(src_path, output_dir, listing_id, i,
                                   seller_name=seller_name)
-            # S193-fix HIGH-1: sentinel "__SKIP_PROMO__" e' truthy → esplicito check
+            # S193-fix HIGH-1 / S196-P4: SENTINEL_SKIP_PROMO e' truthy → esplicito check
             # Senza questo, sentinel string verrebbe trattato come path file → leak
-            if safe and safe != "__SKIP_PROMO__":
+            if safe and safe != SENTINEL_SKIP_PROMO:
                 safe_paths.append(safe)
-            elif safe == "__SKIP_PROMO__":
+            elif safe == SENTINEL_SKIP_PROMO:
                 # Promo-slide intenzionalmente esclusa dal PDF (no leak insegna dealer)
                 pass
 
@@ -1164,8 +1168,8 @@ if __name__ == "__main__":
 
     if sys.argv[1] == "--file" and len(sys.argv) >= 3:
         result = sanitize_image(sys.argv[2])
-        # S193-fix HIGH-1: sentinel "__SKIP_PROMO__" e' truthy → 3-way explicit branch
-        if result == "__SKIP_PROMO__":
+        # S193-fix HIGH-1 / S196-P4: sentinel SENTINEL_SKIP_PROMO e' truthy → 3-way explicit branch
+        if result == SENTINEL_SKIP_PROMO:
             print(f"\nSkipped: {sys.argv[2]} (promo-slide detected)")
         elif result:
             print(f"\nSanitized: {result}")

@@ -32,6 +32,15 @@ try:
 except ImportError:
     _requests_module = None
 
+# S196-P4: import sentinel costante. image_sanitizer.py guarda le sue deps pesanti
+# (PIL/cv2) con try/except — import della costante stringa funziona sempre.
+# sys.path setup pattern matcha argos_grade (~r.2033) e sanitize_all_images (~r.2043).
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.dirname(os.path.dirname(_SCRIPT_DIR))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+from src.cove.image_sanitizer import SENTINEL_SKIP_PROMO
+
 # PDF generation imports
 try:
     from reportlab.pdfgen import canvas
@@ -1649,8 +1658,9 @@ print(json.dumps({{"result": result, "size": os.path.getsize(result) if result a
                 result_path = data.get('result')
                 size = data.get('size', 0)
 
-                # S192 FIX: distinguish promo-skip (sentinel) from crash (None)
-                if result_path == "__SKIP_PROMO__":
+                # S192 FIX / S196-P4: distinguish promo-skip (sentinel) from crash (None)
+                # SENTINEL_SKIP_PROMO importata a module-level (vedi top del file)
+                if result_path == SENTINEL_SKIP_PROMO:
                     print(f"  [SANITIZER] img[{image_index}] EXCLUDED (promo-slide detected — dealer marketing)")
                     return None  # signal exclude to caller
                 if result_path and os.path.exists(result_path) and size > 500:

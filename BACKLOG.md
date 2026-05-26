@@ -2,6 +2,27 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
+## S196 2026-05-26 — BACKLOG #S196-1 [MED, observability]
+
+### 🟡 audit BRIDGE_INSERTED può perdersi silent
+
+**Scope**: `wa-intelligence/dashboard/db.py:approve_reply`. Dopo che `bridge_outbound` è già committato + connection chiusa, un `_audit('BRIDGE_INSERTED')` + `con.commit()` su dealer_network.sqlite può fallire (es. disk full, lock contention). Il `finally` chiude `con` con rollback implicito → audit perso. Il chiamante riceve comunque `{approved: True, bridge_queued: True, error: None}` (corretto operativamente: bridge in coda) ma audit trail incompleto.
+
+**Fix proposto**: try/except locale attorno a `_audit` + commit, log.error se fallisce, ritorno positivo invariato.
+
+**Gating**: post-Day1 Stile Car. Audit è monitoring, non operativo.
+**Owner**: backend-architect.
+**Reference**: S196 code-review MED-2 (accepted by reviewer as non-blocking).
+
+## S196 2026-05-26 — BACKLOG #S196-2 [LOW, code-hygiene]
+
+### 🟢 import sqlite3 ridondante in approve_reply
+
+**Scope**: `wa-intelligence/dashboard/db.py:approve_reply` fa `import sqlite3 as _sqlite3` localmente, ma `sqlite3` è già importato a module-level. Refactor cosmetico: usare `sqlite3` direttamente.
+
+**Owner**: chi tocca prossimo db.py.
+**Reference**: S196 code-review note strutturale.
+
 ## S191 2026-05-26 — BACKLOG #S191-1 [LOW, perf]
 
 ### 🟢 image_sanitizer doppia lettura immagine (`_get_image_height`)

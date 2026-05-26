@@ -13,6 +13,7 @@
  *   1. argos-wa-daemon    — WA listener persistente (Node.js)
  *   2. argos-tg-bot       — Telegram human-in-loop (Python)
  *   3. argos-cf-monitor   — Cloudflare alerts → Telegram push (Python, S153)
+ *   4. argos-dashboard    — FastAPI HITL dashboard :8080 (Python, S189/S196)
  */
 
 'use strict';
@@ -142,6 +143,36 @@ module.exports = {
 
             env: {
                 ...SHARED_ENV,
+            },
+        },
+
+        // ── 4. Dashboard FastAPI HITL (S189/S196-P3) ─────────
+        // Prima di S196 era avviato manualmente fuori ecosystem → BRIDGE_DB_PATH
+        // mancante → silent-failure approve_reply (UPDATE OK ma INSERT bridge skip).
+        // Ora eredita SHARED_ENV (BRIDGE_DB_PATH + ARGOS_DB_PATH + Telegram).
+        {
+            name:             'argos-dashboard',
+            script:           path.join(INTEL, 'run_dashboard.py'),
+            cwd:              INTEL,
+            interpreter:      'python3',
+
+            autorestart:      true,
+            watch:            false,
+            max_restarts:     20,
+            min_uptime:       '30s',
+            restart_delay:    5000,
+
+            max_memory_restart: '256M',
+
+            log_file:         '/tmp/argos-dashboard-combined.log',
+            out_file:         '/tmp/argos-dashboard-out.log',
+            error_file:       '/tmp/argos-dashboard-err.log',
+            log_date_format:  'DD/MM/YYYY HH:mm:ss',
+            merge_logs:       true,
+
+            env: {
+                ...SHARED_ENV,
+                ARGOS_DASHBOARD_PASSWORD: dotEnv.ARGOS_DASHBOARD_PASSWORD || '',
             },
         },
     ],
