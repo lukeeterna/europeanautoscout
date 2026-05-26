@@ -954,7 +954,9 @@ def sanitize_image(
             os.remove(safe_path)
             print(f"  SKIP promo-slide: {safe_name} output {out_size//1024}KB "
                   f"({ratio_pct:.0f}% of orig) — probable dealer marketing slide")
-            return None
+            # S192 FIX: sentinel string distinct from None (which means crash).
+            # Caller must exclude this image from PDF (NOT fallback to RAW).
+            return "__SKIP_PROMO__"
 
         # ── STAGE 4: Post-verify + Alert (only if text was masked or SOSPETTO) ──
         if has_mask or sospetti:
@@ -1061,8 +1063,13 @@ def sanitize_all_images(
         if src_path and os.path.exists(src_path):
             safe = sanitize_image(src_path, output_dir, listing_id, i,
                                   seller_name=seller_name)
-            if safe:
+            # S193-fix HIGH-1: sentinel "__SKIP_PROMO__" e' truthy → esplicito check
+            # Senza questo, sentinel string verrebbe trattato come path file → leak
+            if safe and safe != "__SKIP_PROMO__":
                 safe_paths.append(safe)
+            elif safe == "__SKIP_PROMO__":
+                # Promo-slide intenzionalmente esclusa dal PDF (no leak insegna dealer)
+                pass
 
     elapsed = time.time() - t_total
     print(f"  Sanitized {len(safe_paths)}/{len(rows)} images for {listing_id} ({elapsed:.1f}s total)")
@@ -1157,7 +1164,10 @@ if __name__ == "__main__":
 
     if sys.argv[1] == "--file" and len(sys.argv) >= 3:
         result = sanitize_image(sys.argv[2])
-        if result:
+        # S193-fix HIGH-1: sentinel "__SKIP_PROMO__" e' truthy → 3-way explicit branch
+        if result == "__SKIP_PROMO__":
+            print(f"\nSkipped: {sys.argv[2]} (promo-slide detected)")
+        elif result:
             print(f"\nSanitized: {result}")
         else:
             print("\nFailed to sanitize image")

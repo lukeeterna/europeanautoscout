@@ -2400,28 +2400,18 @@ def main():
         print(f'[HOLD] Validator v2: {blocking}')
 
     else:
-        # SAFE → auto-approva e invia (warnings vanno su Telegram ma non bloccano)
-        import random, math
-        current_step = dealer.get('current_step', '') or ''
-        if 'RESPONSE_RECEIVED' in current_step:
-            sleep_s = random.randint(20, 60)
-        else:
-            mean, std = 300, 120
-            sleep_s = int(max(60, min(mean * 3, math.exp(math.log(mean) + random.gauss(0, 1) * (std / mean)))))
-
-        success = auto_approve_and_send(
-            args.db_path, best_id, dealer, best['text'], reply_obj=best)
-
+        # SAFE → S192 HITL gate: reply salvata approved=NULL, Luke approva su dashboard
+        # auto_approve_and_send NON viene chiamata da questo branch.
+        # Rimane disponibile per flussi non-reply (Day3 scheduling, force=true esplicito).
         warning_text = f'\n⚠️ Warning: {"; ".join(warnings)}' if warnings else ''
-        status = (f"✅ *AUTO-APPROVATA* — invio tra ~{sleep_s // 60}min{warning_text}\n"
-                  f"_Usa `/rifiuta {best_id}` entro {sleep_s // 60}min per bloccare_"
-                  if success else "❌ Auto-invio fallito — approva manualmente")
+        status = (f"⏳ *PENDING APPROVAL* — approva su dashboard:8080/replies{warning_text}\n"
+                  f"_Usa `/rifiuta {best_id}` per scartare_")
 
         send_telegram_notification(
             dealer, args.msg_body, classification,
-            best, best_id, llm_cost_info, status, sleep_s)
+            best, best_id, llm_cost_info, status, 0)
 
-        print(f'[AUTO] Risposta auto-approvata, invio tra {sleep_s}s')
+        print(f'[HITL] Reply {best_id} in attesa approvazione Luke — dashboard:8080/replies')
 
     print(f'[{now_it()}] Analyzer completato. Reply IDs: {reply_ids}')
 

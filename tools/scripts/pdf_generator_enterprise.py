@@ -1182,17 +1182,24 @@ def generate_opportunity_dossier(
                     safe_listing_id = re.sub(r'[^a-zA-Z0-9_-]', '_', listing_id)[:32]
                     sanitized_dir = os.path.join(output_dir, "_sanitized", safe_listing_id)
                     os.makedirs(sanitized_dir, exist_ok=True)
+                    # S192 FIX: clean is None now means EXCLUDE (promo-slide) —
+                    # do NOT fallback to RAW (would leak dealer URL/insegna).
+                    # Crash returns img.local_path (RAW) via _sanitize_photo fallback.
                     sanitized_paths = []
+                    excluded_count = 0
                     for idx, img in enumerate(images):
-                        base_path = img.local_path  # default fallback (prevents NameError)
                         clean = _sanitize_photo(img.local_path, idx, listing_id, sanitized_dir, seller_name=seller)
-                        if clean is not None:
-                            base_path = clean
-                        else:
-                            print(f"  [WARN] img[{idx}] sanitizer failed, using RAW (plate/dealer may be visible)")
+                        if clean is None:
+                            excluded_count += 1
+                            continue  # skip image from PDF (promo-slide detected)
+                        base_path = clean
                         if watermark:
                             base_path = apply_watermark(base_path)
                         sanitized_paths.append(base_path)
+                    if excluded_count > 0:
+                        print(f"  [SANITIZER] {excluded_count} image(s) excluded from PDF (promo-slide leak prevention)")
+                    if not sanitized_paths:
+                        print(f"  [WARN] All images excluded — PDF may have no photos. Listing: {listing_id}")
                     vehicle.local_image_paths = sanitized_paths
             except Exception as e:
                 print(f"Image download #{i}: {e}")
@@ -1642,14 +1649,19 @@ print(json.dumps({{"result": result, "size": os.path.getsize(result) if result a
                 result_path = data.get('result')
                 size = data.get('size', 0)
 
+                # S192 FIX: distinguish promo-skip (sentinel) from crash (None)
+                if result_path == "__SKIP_PROMO__":
+                    print(f"  [SANITIZER] img[{image_index}] EXCLUDED (promo-slide detected — dealer marketing)")
+                    return None  # signal exclude to caller
                 if result_path and os.path.exists(result_path) and size > 500:
                     print(f"  [SANITIZER] img[{image_index}] OK ({size:,} bytes) → {os.path.basename(result_path)}")
                     return result_path
                 elif result_path is None:
-                    print(f"  [SANITIZER] img[{image_index}] returned None — using original")
+                    # Crash inside sanitize_image — fallback RAW (legacy behavior)
+                    print(f"  [SANITIZER] img[{image_index}] returned None (crash) — using original RAW")
                     return image_path
                 else:
-                    print(f"  [SANITIZER] img[{image_index}] output missing/empty")
+                    print(f"  [SANITIZER] img[{image_index}] output missing/empty — using original RAW")
                     return image_path
 
         # No JSON output found — check stderr for errors

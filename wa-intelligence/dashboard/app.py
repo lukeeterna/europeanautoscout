@@ -690,7 +690,7 @@ async def action_approve_reply(request: Request):
     reply_id = body.get('reply_id')
     if not reply_id:
         return JSONResponse({'error': 'reply_id required'}, status_code=400)
-    ok = db.approve_reply(int(reply_id))
+    ok = db.approve_reply(reply_id)  # reply_id e' TEXT PK (es. 'reply_abc12345')
     if ok:
         log.info(f'Reply {reply_id} approved from dashboard')
     return {'ok': ok}
@@ -705,7 +705,7 @@ async def action_skip_reply(request: Request):
     reply_id = body.get('reply_id')
     if not reply_id:
         return JSONResponse({'error': 'reply_id required'}, status_code=400)
-    ok = db.skip_reply(int(reply_id))
+    ok = db.skip_reply(reply_id)  # reply_id e' TEXT PK (es. 'reply_abc12345')
     if ok:
         log.info(f'Reply {reply_id} skipped from dashboard')
     return {'ok': ok}
