@@ -150,11 +150,14 @@ module.exports = {
         // Prima di S196 era avviato manualmente fuori ecosystem → BRIDGE_DB_PATH
         // mancante → silent-failure approve_reply (UPDATE OK ma INSERT bridge skip).
         // Ora eredita SHARED_ENV (BRIDGE_DB_PATH + ARGOS_DB_PATH + Telegram).
+        // S197 fix iMac: dashboard usa PEP 604 syntax (`dict | None`) → richiede
+        // Python 3.10+. iMac default `python3` = /usr/bin/python3.9 (CommandLineTools).
+        // Hardcode python3.13 (verificato presente: fastapi 0.116.1, uvicorn 0.35.0).
         {
             name:             'argos-dashboard',
             script:           path.join(INTEL, 'run_dashboard.py'),
             cwd:              INTEL,
-            interpreter:      'python3',
+            interpreter:      '/usr/local/bin/python3.13',
 
             autorestart:      true,
             watch:            false,
