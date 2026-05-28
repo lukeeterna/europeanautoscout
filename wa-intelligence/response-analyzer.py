@@ -235,6 +235,11 @@ CONTRACT_REQUEST_PATTERNS = [
     r'\b(ok|va\s+bene|perfetto|d[\'\u2019]accordo|certo)\b.{0,40}\b(contratto|procedo|proseguo|firmo|firma|mandi)\b',
     r'\b(facciamo|procediamo|facciamolo|chiudiamo)\b.{0,20}\b(contratto|deal|operazione)\b',
     r'^\s*(ok|si|s\u00ec|va\s+bene|d[\'\u2019]accordo|perfetto)[\.\!]?\s*$',
+    # S202-P1 (code-review MED-1 fix): lessico naturale conferma pagamento con anchor
+    # contestuale. 'procediamo' rimosso (duplicato con riga 236 anchor contratto/deal).
+    # Evita false-positive su 'pago io trasporto' o 'bonifico per altro fornitore'.
+    r'\b(ok|s[i\u00ec]|certo|va\s+bene|perfetto|d[\'\u2019]accordo)\b.{0,30}\b(bonifico|pagamento|pago)\b',
+    r'\b(mando|mandato|faccio|fatto|far[\u00f2o])\b.{0,15}\b(il\s+|un\s+)?(bonifico|pagamento)\b',
 ]
 
 
@@ -1168,6 +1173,13 @@ PATTERNS = {
             'ma chi sei', 'ma chi ti conosce', 'vaffanculo', 'vai a cagare',
             'spam', 'segnalo', 'segnalato',
             'non mi convince', 'lascia perdere', 'lasci perdere',
+            # S202-P2: pronomi clitici intercalati (es. "non mi scrivere più").
+            # Code-review MED-2 fix: aggiunte varianti sans-accento (tastiera WA mobile
+            # Sud Italia omette `\u00f9` frequentemente, matcher è substring).
+            'non mi scrivere più', 'non mi contattare più',
+            'non mi cercare più', 'non mi telefonare più',
+            'non mi scrivere piu', 'non mi contattare piu',
+            'non mi cercare piu', 'non mi telefonare piu',
         ],
         'weight': 1.0,
     },
@@ -2114,11 +2126,28 @@ def main():
     # NEGATIVE → NON rispondere, chiudi dealer (sempre, anche se template-first)
     if cls_type == 'NEGATIVE':
         from db_utils import get_connection
+        import sqlite3 as _s202_sqlite3
         con = get_connection(args.db_path)
-        con.execute("""
-            UPDATE conversations SET current_step = 'CLOSED_NO', analyzed_at = datetime('now')
-            WHERE dealer_id = ?
-        """, [args.dealer_id])
+        # S202-P3: popola colonne opt_out per anti-recontatto su cold scrape successivo.
+        # Code-review LOW-1 fix: degraded mode se colonne opt_out non esistono (DB legacy).
+        try:
+            con.execute("""
+                UPDATE conversations SET
+                    current_step = 'CLOSED_NO',
+                    analyzed_at = datetime('now'),
+                    opt_out = 1,
+                    opt_out_at = CURRENT_TIMESTAMP,
+                    opt_out_source = 'auto_negative',
+                    opt_out_raw_message = ?
+                WHERE dealer_id = ?
+            """, [args.msg_body[:500], args.dealer_id])
+        except _s202_sqlite3.OperationalError as _opt_out_err:
+            # Schema legacy senza colonne opt_out → UPDATE minimale per non bloccare CLOSED_NO
+            print(f'[S202-P3 WARN] opt_out columns missing, degraded mode: {_opt_out_err}')
+            con.execute("""
+                UPDATE conversations SET current_step = 'CLOSED_NO', analyzed_at = datetime('now')
+                WHERE dealer_id = ?
+            """, [args.dealer_id])
         con.commit()
         con.close()
 
