@@ -74,6 +74,27 @@ def ensure_tables():
                 dealer_id TEXT, purpose TEXT,
                 created_at TEXT DEFAULT (datetime('now'))
             )''')
+        # S202-INBOX: ALTER idempotent — 3 colonne reactive classifier su messages
+        # SQLite non supporta ADD COLUMN IF NOT EXISTS: check via PRAGMA table_info
+        existing_cols = {row[1] for row in con.execute("PRAGMA table_info(messages)").fetchall()}
+        for col_def, col_name in [
+            ("classifier_intent TEXT",    "classifier_intent"),
+            ("classifier_confidence REAL", "classifier_confidence"),
+            ("raw_payload TEXT",          "raw_payload"),
+        ]:
+            if col_name not in existing_cols:
+                con.execute(f"ALTER TABLE messages ADD COLUMN {col_def}")
+                import logging
+                logging.getLogger(__name__).info("S202: ADD COLUMN messages.%s", col_name)
+
+        # Indici partial reactive (IF NOT EXISTS sicuro su SQLite)
+        con.execute("""CREATE INDEX IF NOT EXISTS idx_messages_phone_dir_ts
+            ON messages(phone_number, direction, created_at DESC)""")
+        con.execute("""CREATE INDEX IF NOT EXISTS idx_messages_intent
+            ON messages(classifier_intent) WHERE classifier_intent IS NOT NULL""")
+        con.execute("""CREATE INDEX IF NOT EXISTS idx_messages_unprocessed
+            ON messages(processed) WHERE processed = 0""")
+
         con.commit()
     finally:
         con.close()

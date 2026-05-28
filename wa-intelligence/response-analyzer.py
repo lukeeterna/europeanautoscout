@@ -1961,6 +1961,22 @@ def main():
         args.msg_body, current_step=dealer.get('current_step', '') or '')
     print(f'  Classificazione: {classification}')
 
+    # S202-INBOX: aggiorna messages con classifier_intent + classifier_confidence
+    # try/except degraded mode: se colonne non ancora migrate (altro nodo), non blocca
+    _cls_intent = classification.get('type', 'UNKNOWN')
+    _cls_conf   = float(classification.get('confidence', 0.0))
+    try:
+        _msg_con = get_connection(args.db_path)
+        _msg_con.execute(
+            "UPDATE messages SET classifier_intent=?, classifier_confidence=? WHERE id=?",
+            (_cls_intent, _cls_conf, args.msg_id)
+        )
+        _msg_con.commit()
+        _msg_con.close()
+        print(f'  [S202] messages.{args.msg_id} → intent={_cls_intent} conf={_cls_conf:.2f}')
+    except Exception as _e:
+        print(f'  [S202] WARN: UPDATE messages classifier fallito (degraded): {_e}')
+
     # S177b CONTRACT_REQUEST: D-07 HITL strict — crea contract via argos-proxy,
     # salva pending_reply approved=NULL, notifica Telegram HOLD per approve manuale.
     # Bypassa anti-spam (intent forte gated da stato DOSSIER_SENT/DAY3_SENT).

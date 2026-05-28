@@ -507,6 +507,33 @@ function ensureSchema() {
             created_at      TEXT DEFAULT (datetime('now'))
         );
     `);
+
+    // S202-INBOX: ALTER idempotent — 3 colonne reactive classifier
+    // SQLite non supporta ADD COLUMN IF NOT EXISTS: usiamo PRAGMA table_info come guard
+    const messagesColumns = db.prepare("PRAGMA table_info(messages)").all().map(r => r.name);
+    if (!messagesColumns.includes('classifier_intent')) {
+        db.prepare("ALTER TABLE messages ADD COLUMN classifier_intent TEXT").run();
+        log('INFO', 'S202: ADD COLUMN messages.classifier_intent');
+    }
+    if (!messagesColumns.includes('classifier_confidence')) {
+        db.prepare("ALTER TABLE messages ADD COLUMN classifier_confidence REAL").run();
+        log('INFO', 'S202: ADD COLUMN messages.classifier_confidence');
+    }
+    if (!messagesColumns.includes('raw_payload')) {
+        db.prepare("ALTER TABLE messages ADD COLUMN raw_payload TEXT").run();
+        log('INFO', 'S202: ADD COLUMN messages.raw_payload');
+    }
+
+    // Indici partial reactive (IF NOT EXISTS sicuro su SQLite)
+    db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_messages_phone_dir_ts
+            ON messages(phone_number, direction, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_messages_intent
+            ON messages(classifier_intent) WHERE classifier_intent IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_messages_unprocessed
+            ON messages(processed) WHERE processed = 0;
+    `);
+
     log('INFO', 'Schema DB verificato (better-sqlite3 WAL mode).');
 }
 
@@ -540,12 +567,19 @@ function persistInboundMessage(msg, dealer) {
     const now  = TC.nowIT();
     const id   = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const db = getDb();
+    // S202-INBOX: raw_payload cattura metadati WA per audit/debug (no PII extra)
+    const rawPayload = JSON.stringify({
+        from:      msg.from,
+        type:      msg.type || 'chat',
+        hasMedia:  msg.hasMedia || false,
+        timestamp: msg.timestamp || null,
+    });
     try {
         db.prepare(`
             INSERT OR IGNORE INTO messages
                 (id, dealer_id, dealer_name, phone_number, direction, body,
-                 timestamp_it, timestamp_iso, wa_msg_id, processed)
-            VALUES (?, ?, ?, ?, 'INBOUND', ?, datetime('now'), ?, ?, 0)
+                 timestamp_it, timestamp_iso, wa_msg_id, processed, raw_payload)
+            VALUES (?, ?, ?, ?, 'INBOUND', ?, datetime('now'), ?, ?, 0, ?)
         `).run(
             id,
             dealer?.dealer_id || 'UNKNOWN',
@@ -553,7 +587,8 @@ function persistInboundMessage(msg, dealer) {
             msg._resolvedPhone || msg.from,
             msg.body,
             now.toISOString(),
-            msg.id?.id || id
+            msg.id?.id || id,
+            rawPayload
         );
     } catch (e) {
         log('ERROR', 'persistInboundMessage failed:', e.message);
