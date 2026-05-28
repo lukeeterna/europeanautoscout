@@ -1,61 +1,49 @@
-# Prompt ripartenza S196 — gate fail S195 5.5/10
+# NEXT SESSION — S205 Deploy iMac + E2E TEST_FOUNDER
 
-## STATO APERTURA S196
-- **S195 chiusa NO_GO HARD**: revisore esterno claude.ai web bundle V2 INLINE = 5.5/10 (< 7.0 soglia) + `go_no_go=NO_GO` + 3/3 fix PARTIAL + overclaim=true
-- **5 red flag diff-grounded** mai visti da CTO interno + code-reviewer agent (vedi `memory/s195_gate_fail_handoff_s196.md`)
-- **Pattern strutturale 2 gate consecutivi**: S194 self 7.2→ext 6.3 / S195 self 6.3→ext 5.5. Self-assessment inflation -0.8/-0.9pt
-- **Deploy iMac NON eseguito** (gate correttamente bloccante), symlink invariato `releases/20260525_211041`
-- **Day 1 Stile Car 2026-06-03 — 7 giorni residui**
+**Da**: S204 (audit codice-first ARGOS + update PLAN.md VOS)
+**A**: S205 (deploy S202/S203 iMac + E2E TEST_FOUNDER fisico Luke)
+**Deadline business**: Day 1 Stile Car 2026-06-03 (T-5gg da S205)
+**Prompt completo**: `prompts/s205_deploy_imac_e2e_test_founder.md`
 
-## AZIONE PRIMARIA S196
-Leggi `prompts/s196_fix_p1_p4_revalidation.md` — handoff completo con:
-- P1 runtime functional test approve_reply (CORE, sostituisce py_compile)
-- P2 fix semantica return True silent-failure (signature → dict)
-- P3 BRIDGE_DB_PATH precondition hard (PM2 env iMac)
-- P4 costante SENTINEL_SKIP_PROMO modulo-level (elimina 4 hardcoded)
-- STEP 5 re-validation bundle V3 gate ≥7.0/10
+## Stato verificato 2026-05-28T19:15
 
----
+- PM2 iMac 4/4 online (argos-wa-daemon 34h uptime, 48 restart in 34h — C-WA-RESTART-001 OPEN).
+- WA daemon /status connected, daily 0/10.
+- CoVe DuckDB 2955 rows, MAX(analyzed_at)=2026-05-28 17:59 (PROCEED=1046).
+- Commit locali: ab6da39 (S202 classifier P1/P2/P3), ecd677c (S203 anello #9 bridge_outbound HITL). **DEPLOY IMAC PENDING** (C-DEPLOY-S203).
+- PLAN.md aggiornato (audit codice-first): 6 DONE / 5 WIP / 2 BLOCKED / 2 MISSING / 1 MISSING_PARTIAL su 15 feature.
+- E2E con dealer reale = 0 (C-E2E-ZERO OPEN).
 
-# Auto-snapshot
+## Critiche aperte (priorità)
 
-**Generato**: `2026-05-26T18:37:24Z`
-**Sessione**: `4e9d4fe1-1a86-41b7-8d35-9cedb23b7d78`
-**Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `master`)
-**Commit auto**: DIRTY (vedi /Users/macbook/Documents/combaretrovamiauto-enterprise/.claude/SESSION_DIRTY.md)
-**Last commit**: `09f615d docs(S194 close): gate STEP 0.5 fail 6.3/10 → handoff S195 con P1-P3 strutturali`
+1. **C-DEPLOY-S203** → deploy iMac codice S202/S203 (STEP A prompt S205).
+2. **C-E2E-ZERO** → E2E TEST_FOUNDER 5/5 fisico Luke (STEP C, gate "pienamente soddisfatto").
+3. **C-SAN-001** → UAT sanitizer 1 sample reale (STEP D).
+4. **C-DB-SPLIT-001** → schema split-brain (deferred, decisione Luke post-E2E).
+5. **C-WA-RESTART-001** → 48 restart/34h daemon, root cause non investigata.
+6. **C-SCRAPERS-COUNT** → 3 scraper reali vs 28 dichiarati.
 
-## Ultimi 5 commit
+## STATO_AUTONOMIA
+
+`L0=ask-always` (PLAN.md). Luke ha chiesto "vai dritto verso produzione con parametri VOS" ma:
+- Luke fisico = gate hard STEP C non eludibile.
+- Memoria `feedback_e2e_full_test_founder` recidiva 2026-05-27 → Day 1 dealer reale BLOCKED finché TEST_FOUNDER verde + Luke "pienamente soddisfatto".
+- Memoria `feedback_no_live_without_test` → mai prompt Day 1 reale auto-eseguibile.
+
+Prossima sessione: CC esegue autonomo STEP A+B+D+E del prompt S205, si ferma a STEP C pingando Luke.
+
+## Avvio S205
+
 ```
-09f615d docs(S194 close): gate STEP 0.5 fail 6.3/10 → handoff S195 con P1-P3 strutturali
-392d173 docs(S194 STEP 0.5): quality validation gate Claude AI esterno bloccante pre-deploy
-3906f04 docs(S194): handoff dettagliato deploy iMac + AMBRA stress + E2E + decisione
-44967ec docs(S193 close): NEXT_SESSION_PROMPT S194 + ctx-77% ordered closure
-7396e47 feat(S192+S193-fix): sanitizer sentinel + HITL gate + audit-driven fix
-```
-
-## File modificati nell'ultimo commit
-```
-M	.claude/NEXT_SESSION_PROMPT.md
-A	prompts/s195_revalidation_full_bundle.md
-```
-
-## Ultimo prompt utente (estratto)
-```
-[{"tool_use_id":"toolu_01DsgRUGkieCjE37xc5nYYvs","type":"tool_result","content":"1\t# Quality validation S193 — bundle V2 paste-ready (auto-sufficiente)\n2\t\n3\t**Versione**: V2 — corregge process gap V1 segnalato da revisore esterno S194 (P1 BLOCCANTE: bundle V1 referenziava allegati senza inlinearli → revisore valutava solo auto-valutazione testuale, non il diff).\n4\t\n5\t**Uso**: S195 STEP 0.5 V2. 8 min Luke (copy-paste su claude.ai web, attendi JSON).\n6\t\n7\t**Cambio gate**: soglia
+cd /Users/macbook/Documents/combaretrovamiauto-enterprise
+cat prompts/s205_deploy_imac_e2e_test_founder.md
+# Esegui PRE-FLIGHT PF1-PF5, poi STEP A.
 ```
 
-## Ultimi turni assistant
-```
-# 3. Cmd+V nel prompt, invio, attendi JSON output
-```
-Vuoi che li esegua io i primi 2 (clipboard + open browser)?
-```
+## Vincoli non sindacabili S205
 
-## Come riprendere
-
-1. Apri Claude Code da `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-2. Leggi questo file (auto-loaded? dipende da config progetto)
-3. Continua dal punto indicato negli ultimi turni assistant sopra
-
-Se `SESSION_DIRTY.md` esiste in questa stessa cartella, risolvi PRIMA i conflitti.
+- TEST_FOUNDER 393314928901 unico canale WA reale.
+- Direzione 3314928901 → 3281536308 (UX gotcha).
+- Gate qualitativo Luke "pienamente soddisfatto" > checklist.
+- Mai PARTIAL/ARANCIONE (vincolo #6).
+- Day 1 Stile Car BLOCKED finché S205 STEP E verde.
