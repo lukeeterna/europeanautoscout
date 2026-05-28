@@ -1688,57 +1688,81 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text, reply_obj=None)
 
     msg_count = len(messages) if (messages and isinstance(messages, list)) else 1
 
-    # S173: branch mono-msg → bridge (single writer D-22)
-    #        multi-msg → Popen fallback + WARN + Telegram alert (BACKLOG #S172-1)
+    # S173/S203: branch mono-msg → bridge INSERT diretto (single-writer D-22, S203 anello #9)
+    #             multi-msg → Popen fallback + WARN + Telegram alert (BACKLOG #S172-1 pending)
     if msg_count <= 1:
-        # Mono-msg: INSERT bridge_outbound (INSERT OR IGNORE per UNIQUE constraint)
+        # Mono-msg: INSERT bridge_outbound diretto (action_type = 'objection_reply' per AMBRA reactive)
+        # S203: NO fallback Popen silenzioso — se bridge non disponibile: log ERROR + raise
         text_to_send = messages[0] if (messages and isinstance(messages, list)) else reply_text
         bridge_db_path = os.environ.get('BRIDGE_DB_PATH', '')
-        bridge_inserted = False
-        if bridge_db_path:
-            try:
-                _b_con = sqlite3.connect(bridge_db_path, timeout=10)
-                _b_con.execute('PRAGMA journal_mode=WAL')
-                _b_con.execute('PRAGMA busy_timeout=10000')
-                _b_res = _b_con.execute(
-                    """
-                    INSERT OR IGNORE INTO bridge_outbound
-                        (deal_id, target_role, target_phone, template_phase, template_lang,
-                         body, state_at_send, created_ts, approved_ts)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%s','now'), strftime('%s','now'))
-                    """,
-                    (
-                        reply_id,        # deal_id = reply_id (correlazione audit)
-                        'dealer',
-                        phone,
-                        'response',      # template_phase = 'response' (AMBRA reply)
-                        'it',
-                        text_to_send,
-                        dealer.get('current_step', 'RESPONSE_RECEIVED'),
+        if not bridge_db_path:
+            err_msg = (
+                f'[S203][bridge] ERRORE: BRIDGE_DB_PATH non impostato — '
+                f'impossibile inserire reply {reply_id} in bridge_outbound. '
+                f'Imposta BRIDGE_DB_PATH nel .env (path assoluto a comm-broker/bridge.sqlite).'
+            )
+            print(err_msg)
+            # S203 code-review fix #2: Telegram alert prima del raise (founder cieco senza)
+            _tg_token = os.environ.get('ARGOS_TELEGRAM_TOKEN', '')
+            _tg_chat = os.environ.get('ARGOS_TELEGRAM_CHAT_ID', '931063621')
+            if _tg_token:
+                try:
+                    import urllib.request as _ureq_alert, urllib.parse as _uparse_alert
+                    _alert_payload = _uparse_alert.urlencode({
+                        'chat_id': _tg_chat,
+                        'text': f'[S203][BLOCKER] BRIDGE_DB_PATH mancante — reply {reply_id} NON inviata a {phone}. Sistema fermo.',
+                    }).encode()
+                    _ureq_alert.urlopen(
+                        f'https://api.telegram.org/bot{_tg_token}/sendMessage',
+                        data=_alert_payload, timeout=5,
                     )
+                except Exception as _tg_err:
+                    print(f'[S203][bridge][tg-alert-fail] {_tg_err}')
+            raise RuntimeError(err_msg)
+
+        try:
+            _b_con = sqlite3.connect(bridge_db_path, timeout=10)
+            _b_con.execute('PRAGMA journal_mode=WAL')
+            _b_con.execute('PRAGMA busy_timeout=10000')
+            # S203 code-review fix #1: total_changes delta (rowcount non affidabile post INSERT OR IGNORE)
+            _changes_before = _b_con.total_changes
+            _b_con.execute(
+                """
+                INSERT OR IGNORE INTO bridge_outbound
+                    (deal_id, target_role, target_phone, template_phase, template_lang,
+                     body, state_at_send, created_ts, approved_ts, action_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, strftime('%s','now'), strftime('%s','now'), ?)
+                """,
+                (
+                    reply_id,          # deal_id = reply_id (correlazione audit)
+                    'dealer',
+                    phone,
+                    'response',        # template_phase = 'response' (AMBRA reply)
+                    'it',
+                    text_to_send,
+                    dealer.get('current_step', 'RESPONSE_RECEIVED'),
+                    'objection_reply', # S203: action_type auto-approve per risposte AMBRA reactive
                 )
-                _b_con.commit()
-                bridge_inserted = _b_res.rowcount == 1
-                _b_con.close()
-                if bridge_inserted:
-                    print(f'[S173][bridge] mono-msg reply {reply_id} → bridge_outbound queued (approved, next poll ~30s)')
-                else:
-                    print(f'[S173][bridge][dedup] INSERT OR IGNORE: reply {reply_id} già presente in bridge_outbound — skip')
-            except Exception as _bridge_err:
-                print(f'[S173][bridge] INSERT failed: {_bridge_err} — fallback Popen')
-                bridge_inserted = False
-        else:
-            print(f'[S173][bridge] BRIDGE_DB_PATH non set — fallback Popen per reply {reply_id}')
+            )
+            _b_con.commit()
+            bridge_inserted = (_b_con.total_changes - _changes_before) == 1
+            _b_con.close()
+        except Exception as _bridge_err:
+            err_msg = f'[S203][bridge] INSERT bridge_outbound fallito per reply {reply_id}: {_bridge_err}'
+            print(err_msg)
+            raise RuntimeError(err_msg) from _bridge_err
 
         if bridge_inserted:
-            print(f'[AUTO] Approvata reply {reply_id} — 1 msg via bridge (sleep bridge poll ~30s)')
-            return True
+            print(f'[S203][bridge] mono-msg reply {reply_id} → bridge_outbound queued (action_type=objection_reply, poll ~30s)')
+        else:
+            print(f'[S203][bridge][dedup] INSERT OR IGNORE: reply {reply_id} già presente in bridge_outbound — skip')
 
-        # Fallback Popen se bridge non disponibile
-        payload_dict = {'phone': phone, 'message': text_to_send, 'dealer_id': dealer_id}
-        endpoint = '/send'
+        print(f'[AUTO] Approvata reply {reply_id} — 1 msg via bridge (sleep bridge poll ~30s)')
+        return True
+
     else:
         # Multi-msg: Popen fallback + WARN + Telegram alert (BACKLOG #S172-1 pending)
+        # S203: path multi-msg NON ancora migrato a bridge — rimane subprocess come noto BACKLOG
         print(f'[WARN][S173] multi-msg reply {reply_id} ({msg_count} messaggi) — bridge non supporta multi-msg ancora (BACKLOG #S172-1). Fallback Popen /send-multi.')
         _tg_token = os.environ.get('ARGOS_TELEGRAM_TOKEN', '')
         _tg_chat  = os.environ.get('ARGOS_TELEGRAM_CHAT_ID', '931063621')
@@ -1754,60 +1778,60 @@ def auto_approve_and_send(db_path, reply_id, dealer, reply_text, reply_obj=None)
         payload_dict = {'phone': phone, 'messages': messages, 'dealer_id': dealer_id}
         endpoint = '/send-multi'
 
-    # Invio differito via subprocess con temp JSON file (no code injection risk)
-    import subprocess as _sp
-    import tempfile as _tf
-    task = {
-        'payload': payload_dict,
-        'endpoint': endpoint,
-        'api_key': api_key,
-        'db_path': db_path,
-        'reply_id': reply_id,
-        'sleep_s': sleep_s,
-    }
-    with _tf.NamedTemporaryFile('w', suffix='.json', prefix='argos_send_', delete=False, dir='/tmp') as _f:
-        json.dump(task, _f)
-        task_file = _f.name
+        # Invio differito via subprocess con temp JSON file (no code injection risk)
+        import subprocess as _sp
+        import tempfile as _tf
+        task = {
+            'payload': payload_dict,
+            'endpoint': endpoint,
+            'api_key': api_key,
+            'db_path': db_path,
+            'reply_id': reply_id,
+            'sleep_s': sleep_s,
+        }
+        with _tf.NamedTemporaryFile('w', suffix='.json', prefix='argos_send_', delete=False, dir='/tmp') as _f:
+            json.dump(task, _f)
+            task_file = _f.name
 
-    # Minimal send script — reads params from JSON file, no string interpolation
-    send_script = (
-        "import time, json, sqlite3, urllib.request, sys, os\n"
-        "task = json.load(open(sys.argv[1]))\n"
-        "os.unlink(sys.argv[1])\n"
-        "time.sleep(task['sleep_s'])\n"
-        "try:\n"
-        "    data = json.dumps(task['payload']).encode('utf-8')\n"
-        "    req = urllib.request.Request(\n"
-        "        f'http://127.0.0.1:9191{task[\"endpoint\"]}',\n"
-        "        data=data,\n"
-        "        headers={'Content-Type': 'application/json', 'X-API-Key': task['api_key']},\n"
-        "        method='POST',\n"
-        "    )\n"
-        "    resp = urllib.request.urlopen(req, timeout=30)\n"
-        "    result = json.loads(resp.read())\n"
-        "    if result.get('status') in ('sent', 'queued'):\n"
-        "        c = sqlite3.connect(task['db_path'], timeout=10)\n"
-        "        c.execute('PRAGMA journal_mode=WAL')\n"
-        "        c.execute('PRAGMA busy_timeout=10000')\n"
-        "        c.execute('UPDATE pending_replies SET sent=1 WHERE id=?', [task['reply_id']])\n"
-        "        c.commit(); c.close()\n"
-        "        print(f'[AUTO] Reply {task[\"reply_id\"]} inviata')\n"
-        "    else:\n"
-        "        print(f'[ERROR] Reply {task[\"reply_id\"]} — daemon: {result}')\n"
-        "except Exception as e:\n"
-        "    print(f'[ERROR] Reply {task[\"reply_id\"]} fallita: {e}')\n"
-    )
-    log_fd = open('/tmp/argos-auto-send.log', 'a')
-    _sp.Popen(
-        [sys.executable, '-c', send_script, task_file],
-        close_fds=True,
-        stdout=log_fd,
-        stderr=log_fd,
-    )
-    log_fd.close()
+        # Minimal send script — reads params from JSON file, no string interpolation
+        send_script = (
+            "import time, json, sqlite3, urllib.request, sys, os\n"
+            "task = json.load(open(sys.argv[1]))\n"
+            "os.unlink(sys.argv[1])\n"
+            "time.sleep(task['sleep_s'])\n"
+            "try:\n"
+            "    data = json.dumps(task['payload']).encode('utf-8')\n"
+            "    req = urllib.request.Request(\n"
+            "        f'http://127.0.0.1:9191{task[\"endpoint\"]}',\n"
+            "        data=data,\n"
+            "        headers={'Content-Type': 'application/json', 'X-API-Key': task['api_key']},\n"
+            "        method='POST',\n"
+            "    )\n"
+            "    resp = urllib.request.urlopen(req, timeout=30)\n"
+            "    result = json.loads(resp.read())\n"
+            "    if result.get('status') in ('sent', 'queued'):\n"
+            "        c = sqlite3.connect(task['db_path'], timeout=10)\n"
+            "        c.execute('PRAGMA journal_mode=WAL')\n"
+            "        c.execute('PRAGMA busy_timeout=10000')\n"
+            "        c.execute('UPDATE pending_replies SET sent=1 WHERE id=?', [task['reply_id']])\n"
+            "        c.commit(); c.close()\n"
+            "        print(f'[AUTO] Reply {task[\"reply_id\"]} inviata')\n"
+            "    else:\n"
+            "        print(f'[ERROR] Reply {task[\"reply_id\"]} — daemon: {result}')\n"
+            "except Exception as e:\n"
+            "    print(f'[ERROR] Reply {task[\"reply_id\"]} fallita: {e}')\n"
+        )
+        log_fd = open('/tmp/argos-auto-send.log', 'a')
+        _sp.Popen(
+            [sys.executable, '-c', send_script, task_file],
+            close_fds=True,
+            stdout=log_fd,
+            stderr=log_fd,
+        )
+        log_fd.close()
 
-    print(f'[AUTO] Approvata + schedulata reply {reply_id} — {msg_count} msg via {endpoint} Popen — invio tra {sleep_s}s')
-    return True
+        print(f'[AUTO] Approvata + schedulata reply {reply_id} — {msg_count} msg via {endpoint} Popen — invio tra {sleep_s}s')
+        return True
 
 
 # ── Telegram notification ────────────────────────────────────

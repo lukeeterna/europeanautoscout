@@ -267,6 +267,7 @@ async function bridgeIngestInbound(msg) {
 }
 
 // S171: schema migration idempotente (additive cols processing_ts + attempt_count)
+// S203: aggiunge action_type per HITL routing (auto-approve whitelist vs HITL required)
 function ensureBridgeOutboundSchemaS171(bdb) {
     try {
         const cols = bdb.prepare("PRAGMA table_info(bridge_outbound)").all().map(c => c.name);
@@ -278,8 +279,13 @@ function ensureBridgeOutboundSchemaS171(bdb) {
             bdb.exec('ALTER TABLE bridge_outbound ADD COLUMN attempt_count INTEGER DEFAULT 0');
             log('INFO', '[bridge] S171 schema: added attempt_count');
         }
+        // S203: action_type per HITL routing
+        if (!cols.includes('action_type')) {
+            bdb.exec("ALTER TABLE bridge_outbound ADD COLUMN action_type TEXT DEFAULT 'agent_auto'");
+            log('INFO', '[bridge] S203 schema: added action_type');
+        }
     } catch (e) {
-        log('WARN', `[bridge] S171 schema migration skipped: ${e.message}`);
+        log('WARN', `[bridge] S171/S203 schema migration skipped: ${e.message}`);
     }
 }
 
@@ -371,11 +377,25 @@ async function pollBridgeOutbound(clientRef) {
     }
 }
 
-// ── S173: Bridge insert helper (Day3 + auto_approve mono-msg) ───────────────
+// ── S173/S203: Bridge insert helper ─────────────────────────────────────────
 // Usa INSERT OR IGNORE — il UNIQUE INDEX uq_outbound_deal_phone_phase (migrazione S173)
 // impedisce duplicati silenziosamente senza eccezioni.
+//
+// S203: action_type per HITL routing.
+//   Auto-approve (approved_ts = NOW):  day1_send, day3_followup, day7_followup,
+//                                      objection_reply, partial_report, agent_auto
+//   HITL required (approved_ts = NULL): contract_create, mark_paid, price_override
+//
 // Returns: { inserted: bool, rowId: number }
-function insertBridgeOutbound({ dealId, role, phone, phase, lang, body, state }) {
+const BRIDGE_AUTO_APPROVE_ACTIONS = new Set([
+    'day1_send', 'day3_followup', 'day7_followup',
+    'objection_reply', 'partial_report', 'agent_auto',
+]);
+const BRIDGE_HITL_ACTIONS = new Set([
+    'contract_create', 'mark_paid', 'price_override',
+]);
+
+function insertBridgeOutbound({ dealId, role, phone, phase, lang, body, state, actionType = 'agent_auto' }) {
     const bdb = getBridgeDb();
     if (!bdb) {
         log('WARN', '[bridge] insertBridgeOutbound: no bridge DB, skip');
@@ -383,15 +403,21 @@ function insertBridgeOutbound({ dealId, role, phone, phase, lang, body, state })
     }
     try {
         const now = Math.floor(Date.now() / 1000);
+        // S203: HITL actions → approved_ts=NULL (dashboard popola); auto-approve → NOW
+        const isHitl = BRIDGE_HITL_ACTIONS.has(actionType);
+        const approvedTs = isHitl ? null : now;
+
         const res = bdb.prepare(`
             INSERT OR IGNORE INTO bridge_outbound
                 (deal_id, target_role, target_phone, template_phase, template_lang,
-                 body, state_at_send, created_ts)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(dealId, role, phone, phase, lang, body, state, now);
+                 body, state_at_send, created_ts, approved_ts, action_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(dealId, role, phone, phase, lang, body, state, now, approvedTs, actionType);
         const inserted = res.changes === 1;
         if (!inserted) {
             log('INFO', `[bridge][dedup] INSERT OR IGNORE skipped duplicate deal=${dealId} phone=${phone} phase=${phase}`);
+        } else {
+            log('INFO', `[bridge] queued action_type=${actionType} deal=${dealId} phone=${phone} hitl=${isHitl}`);
         }
         return { inserted, rowId: res.lastInsertRowid || -1 };
     } catch (e) {

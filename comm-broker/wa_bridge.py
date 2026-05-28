@@ -130,6 +130,9 @@ class WABridge:
             cols = {row[1] for row in conn.execute("PRAGMA table_info(bridge_outbound)").fetchall()}
             if "wa_msg_id" not in cols:
                 conn.execute("ALTER TABLE bridge_outbound ADD COLUMN wa_msg_id TEXT")
+            # S203: action_type per HITL routing (auto-approve whitelist vs HITL required)
+            if "action_type" not in cols:
+                conn.execute("ALTER TABLE bridge_outbound ADD COLUMN action_type TEXT DEFAULT 'agent_auto'")
             conn.commit()
         finally:
             conn.close()
