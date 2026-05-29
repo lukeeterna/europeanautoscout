@@ -17,7 +17,7 @@
 - path: /Users/macbook/Documents/combaretrovamiauto-enterprise
 - maturità: maturing          <!-- mature | maturing | greenfield, CONFERMATA via assess -->
 - creato: 2026-05-28T07:54:59Z
-- ultimo_update: 2026-05-28T19:10:00Z
+- ultimo_update: 2026-05-29T13:55:00Z
 - modalità_ingaggio: adopt  <!-- adopt | create | greenfield -->
 
 ## OBIETTIVO
@@ -174,7 +174,8 @@ scouting on-demand auto per micro-dealer commissione P.IVA forfettaria Italia, c
 - [ADDRESSED] [LUKE] C-WA-DUP-001: dedup single-writer bridge_outbound (memoria s173_dedup_implementation_closed commit 1cdb5e1). PROVA: iMac comm-broker/bridge.sqlite schema 15 col incluso wa_msg_id/sent_ts/approved_ts.
 - [OPEN] [CC] C-DB-SPLIT-001: schema split-brain. MacBook dealer_network.sqlite ha `dealers` (18) ma NO `messages`. iMac ~/Documents/app-antigravity-auto/dealer_network.sqlite ha `messages` (81, INBOUND 15/OUTBOUND 66) ma NO `dealers`. Decidere DB autoritativo unico prima outreach reale.
 - [OPEN] [CC] C-WA-RESTART-001: argos-wa-daemon 48 restart in 34h (~1/40min), root cause non investigata. PROVA: pm2 list iMac. Rischio anti-ban + perdita session WA.
-- [OPEN] [CC] C-DEPLOY-S203: commit ab6da39 (classifier P1/P2/P3) + ecd677c (anello #9 bridge_outbound HITL) presenti repo, ma deploy iMac mai eseguito (memoria s203_closure "Step C deploy iMac pending"). E2E TEST_FOUNDER post-deploy mai testato.
+- [ADDRESSED] [CC] C-DEPLOY-S203: deploy S205 STEP A 2026-05-29 13:50. Rsync sha-verified 3/3 (response-analyzer.py + wa-daemon.js + wa_bridge.py). Migration S203 idempotente applicata bridge.sqlite (action_type col verified). PM2 reload daemon+dashboard, /status connected, log clean (S202 ALTER messages classifier_intent/confidence/raw_payload applied). STEP B smoke 5/5 PASS (test_ambra_5scenarios.py). E2E TEST_FOUNDER fisico Luke = S206 (resta C-E2E-ZERO).
+- [OPEN] [CC] C-DB-ENV-001: ARGOS_DB_PATH PM2 env iMac punta a releases/20260527_083951/dealer_network.sqlite (28KB, 0 messages runtime). DB root 389KB con 81 messages history (max 2026-05-16) è disgiunto da daemon. Daemon+dashboard convergono entrambi su releases/ DB → consistenti per E2E, ma storia legacy persa. Finding S205. Consolidamento DB autoritativo unico + history merge prima Day 1 dealer reali.
 - [OPEN] [LUKE] C-E2E-ZERO: zero feature provata end-to-end con dealer reale. CoVe gira (2955 rows), WA daemon connected, contract worker /health 200, ma E2E completo scrape→PDF→WA→reply→sign→paid mai chiuso (memoria feedback_e2e_full_test_founder, Day 1 Stile Car BLOCKED).
 - [OPEN] [LUKE] C-SCRAPERS-COUNT: CLAUDE.md project dichiara "28 portali", repo ha 3 file `*_scraper.py` (autoscout, mobile_de, generic). Allineare claim a realtà o estendere copertura.
 ## METRICHE_SOGLIE
@@ -207,4 +208,4 @@ L0=ask-always
 
 ## PROSSIMA_AZIONE
 <!-- Una sola azione concreta. Quando completata, aggiornare con la successiva. -->
-Risolvere C-DEPLOY-S203: deploy iMac codice commit ab6da39 (classifier P1/P2/P3) + ecd677c (anello #9 bridge_outbound HITL), seguito da E2E TEST_FOUNDER fisico Luke (scrape→CoVe→sanitizer→PDF→WA→reply classifier→HITL gate→contract sign→mark-paid). Gate: Luke dichiara "pienamente soddisfatto" (memoria feedback_e2e_full_test_founder). Blocca Day 1 Stile Car (T-6gg = 2026-06-03). Dopo: C-SAN-001 UAT visual 5/5 + C-DB-SPLIT-001 decisione DB autoritativo unico.
+S206 STEP C E2E TEST_FOUNDER fisico Luke: trigger pipeline BMW X1 → HITL approve dashboard:8080 → reply WA POSITIVE/CONTRACT_REQUEST/NEGATIVE → contract sign → mark-paid. Codice S202+S203 LIVE su iMac (S205 STEP A+B verde, gate VERDE). Gate finale: Luke dichiara "pienamente soddisfatto" (memoria feedback_e2e_full_test_founder). Blocca Day 1 Stile Car (T-5gg = 2026-06-03). Dopo: C-SAN-001 UAT visual 5/5 + C-DB-ENV-001 consolidamento DB autoritativo.
