@@ -123,13 +123,18 @@ class Prospect:
     provincia: str = ""
     citta: str = ""
     operatore_nome: str = ""
-    telefono: str = ""       # normalizzato +39XXXXXXXXXX
+    telefono: str = ""       # normalizzato +39XXXXXXXXXX — colonna PIU' IMPORTANTE (canale chiamata Luke + dedup)
     whatsapp: str = ""
     portale: str = ""
     n_auto_in_stock_visibili: int = 0
     indirizzo_visibile: str = ""
     flag_residenziale_si_no: str = "no"
-    flag_target_alto_si_no: str = "no"
+    # S207 (2026-05-30): logica stock INVERTITA — modello mandato demand-side.
+    # Target = micro-operatore stock piccolo (1-8), multi-brand. NON dealer con magazzino.
+    # 4 livelli: plausibile (1-8) | borderline (9-15) | deprioritizzato (16+) | escluso (big dealer)
+    flag_micro_operatore_plausibile: str = "no"  # plausibile | borderline | deprioritizzato | escluso
+    multi_brand: str = "no"                        # si se >=2 brand diversi nello stock visibile
+    accesso_clienti: str = "DA_VERIFICARE_AL_TELEFONO"  # esplicito: scraping NON misura questo
     note: str = ""
     url_profilo_venditore: str = ""
 
@@ -1109,32 +1114,42 @@ def build_prospects(listings: List[RawListing]) -> List[Prospect]:
 
         flag_res = "si" if _is_residential(indirizzo) else "no"
 
-        # Ignore big dealers
-        if _is_big_dealer(name, indirizzo) and n_stock > 30:
-            continue
-
-        # Target alto criteria:
-        # 1. n_stock 1-30 (family/micro)
-        # 2. non è concessionario ufficiale grande
-        # 3. ha segnali di qualità nella descrizione O è residenziale
+        # S207 — escludi sempre big_dealer (concessionari ufficiali) indipendentemente da stock:
+        # modello mandato premia micro-operatore demand-side, non rivenditore con magazzino.
+        is_big = _is_big_dealer(name, indirizzo)
         desc_combined = " ".join(l.description for l in seller_listings if l.description)
         title_combined = " ".join(l.title for l in seller_listings if l.title)
-
         target_signals = _has_target_signals(desc_combined, title_combined)
-        not_big = not _is_big_dealer(name, indirizzo)
-        stock_ok = 1 <= n_stock <= 60
 
-        flag_target = "si" if (stock_ok and not_big and (target_signals or flag_res == "si" or n_stock <= 15)) else "no"
+        makes_in_stock = list({l.make for l in seller_listings if l.make})
+        is_multi_brand = len(makes_in_stock) >= 2
+
+        # S207 — flag_micro_operatore_plausibile (4 livelli, logica stock INVERTITA):
+        #   plausibile      = 1-8 auto, NOT big_dealer        (TARGET PRIMARIO modello mandato)
+        #   borderline      = 9-15 auto, NOT big_dealer        (possibile micro con piu' stock)
+        #   deprioritizzato = 16+ auto, NOT big_dealer         (rivenditore-con-magazzino, vecchio target)
+        #   escluso         = big_dealer (qualunque stock)     (concessionario ufficiale)
+        if is_big:
+            flag_micro = "escluso"
+        elif 1 <= n_stock <= 8:
+            flag_micro = "plausibile"
+        elif 9 <= n_stock <= 15:
+            flag_micro = "borderline"
+        else:
+            flag_micro = "deprioritizzato"
 
         # Note
-        makes_in_stock = list({l.make for l in seller_listings})
         note_parts = []
         if makes_in_stock:
             note_parts.append(f"brand: {', '.join(makes_in_stock)}")
+        if is_multi_brand:
+            note_parts.append("multi_brand: si")
         archetype = _estimate_seller_type_from_stock(n_stock, name, indirizzo)
         note_parts.append(f"archetype_est: {archetype}")
         if target_signals:
             note_parts.append("segnali_qualita: si")
+        if flag_res == "si":
+            note_parts.append("indirizzo_residenziale: si")
         note = " | ".join(note_parts)
 
         # Seller profile URL
@@ -1146,37 +1161,39 @@ def build_prospects(listings: List[RawListing]) -> List[Prospect]:
         if not seller_url and seller_listings:
             seller_url = seller_listings[0].listing_url
 
+        # S207 D4 — telefono = chiave canale + dedup. Riga senza telefono = inutile per Luke.
+        # Hard-skip indipendentemente dal flag (no "salvataggi" su segnali deboli).
         if not phone:
-            # Skip no-phone entries unless they have clear signals
-            if flag_target == "no":
-                continue
+            continue
 
         prospects.append(Prospect(
             provincia=first.provincia,
             citta=citta,
             operatore_nome=name,
             telefono=phone,
-            whatsapp=phone if phone else "",
+            whatsapp=phone,
             portale=portale,
             n_auto_in_stock_visibili=n_stock,
             indirizzo_visibile=indirizzo,
             flag_residenziale_si_no=flag_res,
-            flag_target_alto_si_no=flag_target,
+            flag_micro_operatore_plausibile=flag_micro,
+            multi_brand="si" if is_multi_brand else "no",
+            accesso_clienti="DA_VERIFICARE_AL_TELEFONO",
             note=note,
             url_profilo_venditore=seller_url,
         ))
 
-    # Deduplicate by telefono
+    # Dedup by telefono (canonical key — S207 ogni prospect ha telefono per costruzione)
     seen_phones: set = set()
     deduped = []
     for p in prospects:
-        phone_key = p.telefono if p.telefono else f"notel_{p.operatore_nome}_{p.provincia}"
-        if phone_key not in seen_phones:
-            seen_phones.add(phone_key)
+        if p.telefono not in seen_phones:
+            seen_phones.add(p.telefono)
             deduped.append(p)
 
-    # Sort: target_alto first, then by provincia
-    deduped.sort(key=lambda x: (x.flag_target_alto_si_no == "no", x.provincia, x.citta))
+    # Sort: plausibile > borderline > deprioritizzato > escluso, poi provincia/citta
+    _priority = {"plausibile": 0, "borderline": 1, "deprioritizzato": 2, "escluso": 3}
+    deduped.sort(key=lambda x: (_priority.get(x.flag_micro_operatore_plausibile, 9), x.provincia, x.citta))
     return deduped
 
 
@@ -1330,8 +1347,10 @@ def write_prospect_csv(prospects: List[Prospect]) -> Path:
     fieldnames = [
         "regione", "provincia", "citta", "operatore_nome", "telefono",
         "whatsapp", "portale", "n_auto_in_stock_visibili", "indirizzo_visibile",
-        "flag_residenziale_si_no", "flag_target_alto_si_no", "note",
-        "url_profilo_venditore",
+        "flag_residenziale_si_no",
+        # S207: nuovo schema flag (modello mandato demand-side)
+        "flag_micro_operatore_plausibile", "multi_brand", "accesso_clienti",
+        "note", "url_profilo_venditore",
     ]
     with open(out, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -1360,14 +1379,19 @@ def write_prospect_by_province(prospects: List[Prospect]) -> Path:
     for p in prospects:
         by_prov.setdefault(p.provincia, []).append(p)
 
-    total_target = sum(1 for p in prospects if p.flag_target_alto_si_no == "si")
-    lines.append(f"**Totale operatori: {len(prospects)} | Target alto: {total_target}**")
+    total_plaus = sum(1 for p in prospects if p.flag_micro_operatore_plausibile == "plausibile")
+    total_border = sum(1 for p in prospects if p.flag_micro_operatore_plausibile == "borderline")
+    lines.append(f"**Totale operatori: {len(prospects)} | Plausibili (1-8 auto): {total_plaus} | Borderline (9-15): {total_border}**")
+    lines.append("")
+    lines.append("> NOTA S207: `accesso_clienti = DA_VERIFICARE_AL_TELEFONO` su ogni riga. "
+                 "Lo scraping NON misura la qualifica reale (accesso a compratori altospendenti). "
+                 "Lista grezza per chiamate Luke, NON lista qualificata.")
     lines.append("")
 
     for prov_code in sorted(by_prov.keys()):
         prov_name = PROVINCE_MARCHE.get(prov_code, prov_code)
         prov_prospects = by_prov[prov_code]
-        target_count = sum(1 for p in prov_prospects if p.flag_target_alto_si_no == "si")
+        target_count = sum(1 for p in prov_prospects if p.flag_micro_operatore_plausibile == "plausibile")
 
         lines.append(f"## {prov_code} — {prov_name}")
         lines.append(f"_Operatori: {len(prov_prospects)} | Target alto: {target_count}_")
@@ -1380,13 +1404,13 @@ def write_prospect_by_province(prospects: List[Prospect]) -> Path:
 
         for city in sorted(by_city.keys()):
             city_prospects = by_city[city]
-            target_city = sum(1 for p in city_prospects if p.flag_target_alto_si_no == "si")
+            target_city = sum(1 for p in city_prospects if p.flag_micro_operatore_plausibile == "plausibile")
             lines.append(f"### {city}")
-            lines.append(f"_Operatori: {len(city_prospects)} | Target alto: {target_city}_")
+            lines.append(f"_Operatori: {len(city_prospects)} | Plausibili: {target_city}_")
             lines.append("")
 
             for p in city_prospects:
-                flag = "TARGET ALTO" if p.flag_target_alto_si_no == "si" else "monitoraggio"
+                flag = p.flag_micro_operatore_plausibile.upper()
                 phone_display = p.telefono or "N/D"
                 lines.append(f"- **{p.operatore_nome}** | {phone_display} | {p.portale}")
                 lines.append(f"  Stock visibile: {p.n_auto_in_stock_visibili} auto | [{flag}]")
@@ -1410,8 +1434,14 @@ def write_execution_report(
     """Write EXECUTION_REPORT.md."""
     out = OUTPUT_DIR / "EXECUTION_REPORT.md"
 
-    target_high = [p for p in prospects if p.flag_target_alto_si_no == "si"]
-    with_phone = [p for p in prospects if p.telefono]
+    # S207 — schema flag nuovo (modello mandato demand-side)
+    plausibili = [p for p in prospects if p.flag_micro_operatore_plausibile == "plausibile"]
+    borderline = [p for p in prospects if p.flag_micro_operatore_plausibile == "borderline"]
+    deprio = [p for p in prospects if p.flag_micro_operatore_plausibile == "deprioritizzato"]
+    esclusi = [p for p in prospects if p.flag_micro_operatore_plausibile == "escluso"]
+    multi_brand = [p for p in prospects if p.multi_brand == "si"]
+    with_phone = [p for p in prospects if p.telefono]  # per costruzione ora = len(prospects)
+    with_desc_listings = [l for l in all_listings if len(l.description) > 50]
 
     # Count per portal
     portal_counts = {}
@@ -1423,35 +1453,86 @@ def write_execution_report(
     for section, phrases in corpus.items():
         top_phrases[section] = [p["phrase"] for p in phrases[:5]]
 
+    # S207 — onesty metrics (D5)
+    n_listings = len(all_listings)
+    pct_desc = (100 * len(with_desc_listings) // n_listings) if n_listings else 0
+    pct_phone_prospects = 100  # per costruzione S207: skip se no phone
+
     lines = [
-        "# EXECUTION REPORT — S206 Marche Register",
+        "# EXECUTION REPORT — S207 Marche Register (ri-target modello mandato)",
         f"_Data: {datetime.now().strftime('%Y-%m-%d %H:%M')} | Elapsed: {elapsed_seconds:.0f}s_",
         "",
-        "---",
-        "## 1. Portali e copertura",
+        "## 0. Cambio modello S206 → S207 (cosa è cambiato e perchè)",
         "",
+        "**S206 (vecchio, broker supply-side)**: scoring premiava stock visibile 5-30 auto e segnalava prospect ricaricabili EU→IT (filtro F5 — ereditato dal motore CoVe, NON presente in questo scraper).",
+        "",
+        "**S207 (nuovo, mandato demand-side)**: il cliente ARGOS è un micro-operatore che vende SU MANDATO, non tiene stock (0-2 auto), compra solo dopo richiesta cliente altospendente.",
+        "",
+        "Modifiche operative:",
+        "- D1: invertita logica stock → `plausibile` 1-8 auto, `borderline` 9-15, `deprioritizzato` 16+, `escluso` big dealer ufficiale",
+        "- D2: filtro F5 (anomalia prezzo EU→IT) verificato NON presente in questo scraper — confermata non-applicabilità a scoring prospect (resta in CoVe per scoring veicoli)",
+        "- D3: `flag_target_alto_si_no` → `flag_micro_operatore_plausibile`; aggiunte colonne `multi_brand` e `accesso_clienti=DA_VERIFICARE_AL_TELEFONO`",
+        "- D4: telefono mandatory (skip prospect senza numero — riga inutile per Luke)",
+        "- D5: tabella onestà 4 metriche + gate VERDE solo su dati reali",
+        "",
+        "**Onestà del segnale**: l'accesso a compratori altospendenti NON è visibile in un annuncio. ",
+        "`flag_micro_operatore_plausibile` indica solo la _forma_ del seller (micro/multi-brand/no-big), NON la qualifica reale. ",
+        "Verità ottenibile SOLO via telefonata Luke.",
+        "",
+        "---",
+        "## 1. Tabella onestà (D5 — gate trasparente)",
+        "",
+        "| Metrica | Valore | Soglia VERDE | Stato |",
+        "|---|---|---|---|",
     ]
 
-    for portal in portali_reached:
+    portali_atteso = ["autoscout24", "subito", "automobile.it"]
+    portali_ok = [p for p in portali_atteso if portal_counts.get(p, 0) >= 5]
+    portali_status = "VERDE" if len(portali_ok) >= 2 else "GIALLO"
+    lines.append(f"| Portali con >=5 listing | {len(portali_ok)}/{len(portali_atteso)} | >=2 | {portali_status} |")
+
+    desc_status = "VERDE" if pct_desc >= 40 else "GIALLO"
+    lines.append(f"| % listing con description (>50 char) | {pct_desc}% | >=40% | {desc_status} |")
+
+    phone_status = "VERDE" if len(prospects) >= 10 else "GIALLO"
+    lines.append(f"| Prospect con telefono (post-skip) | {len(prospects)} | >=10 | {phone_status} |")
+
+    plaus_status = "VERDE" if len(plausibili) >= 3 else "GIALLO"
+    lines.append(f"| Plausibili (1-8 auto, no big dealer) | {len(plausibili)} | >=3 | {plaus_status} |")
+
+    lines += [
+        "",
+        "**Listing per portale:**",
+    ]
+    for portal in portali_atteso:
         n = portal_counts.get(portal, 0)
-        lines.append(f"- **{portal}**: {n} listing grezzi estratti")
+        marker = "OK" if n >= 5 else ("403/captcha?" if n == 0 else "basso")
+        lines.append(f"- {portal}: {n} listing  [{marker}]")
+    for portal in portali_reached:
+        if portal not in portali_atteso:
+            lines.append(f"- {portal}: {portal_counts.get(portal, 0)} listing")
 
     lines += [
         "",
         "---",
-        "## 2. Conteggi",
+        "## 2. Conteggi prospect (schema S207)",
         "",
-        f"- Listing grezzi totali: **{len(all_listings)}**",
-        f"- Listing filtrati per range prezzo {PRICE_MIN:,}-{PRICE_MAX:,}€: **{len([l for l in all_listings if PRICE_MIN <= l.price <= PRICE_MAX or l.price == 0])}**",
-        f"- Operatori unici estratti: **{len(prospects)}**",
-        f"- Con telefono valido: **{len(with_phone)}**",
-        f"- Flag TARGET ALTO: **{len(target_high)}**",
+        f"- Listing grezzi totali: **{n_listings}**",
+        f"- Listing in range prezzo {PRICE_MIN:,}-{PRICE_MAX:,}€: **{len([l for l in all_listings if PRICE_MIN <= l.price <= PRICE_MAX or l.price == 0])}**",
+        f"- Operatori unici con telefono: **{len(prospects)}** (riga senza telefono = scartata)",
+        f"- Multi-brand (>=2 brand nel stock visibile): **{len(multi_brand)}**",
         "",
-        "**Breakdown TARGET ALTO per provincia:**",
+        "**Breakdown flag_micro_operatore_plausibile:**",
+        f"- plausibile (1-8 auto, no big dealer): **{len(plausibili)}**  ← TARGET PRIMARIO chiamate Luke",
+        f"- borderline (9-15 auto): **{len(borderline)}**",
+        f"- deprioritizzato (16+ auto): **{len(deprio)}**",
+        f"- escluso (big dealer ufficiale): **{len(esclusi)}**",
+        "",
+        "**Plausibili per provincia:**",
     ]
 
     for prov_code, prov_name in PROVINCE_MARCHE.items():
-        n_prov = sum(1 for p in target_high if p.provincia == prov_code)
+        n_prov = sum(1 for p in plausibili if p.provincia == prov_code)
         if n_prov > 0:
             lines.append(f"  - {prov_code} ({prov_name}): {n_prov}")
 
@@ -1520,11 +1601,11 @@ def write_execution_report(
     else:
         obs.append("Copertura garanzia bassa nel corpus: molti annunci privati non citano garanzia esplicitamente.")
 
-    # Target signals
-    if len(target_high) >= 5:
-        obs.append(f"Register marchigiano: tono più formale rispetto atteso da Sud Italia. Frasi come 'visionabile su appuntamento', 'unico proprietario' frequenti anche in privati — segnale compatibilità con approccio ARGOS B2B.")
+    # Target signals (S207 — riferito a plausibili, non più target_high)
+    if len(plausibili) >= 5:
+        obs.append(f"Register marchigiano: {len(plausibili)} micro-operatori plausibili (1-8 auto). Liste grezze pronte per chiamate Luke — qualifica reale (accesso clienti altospendenti) verificabile SOLO al telefono.")
     else:
-        obs.append("Corpus limitato: sample insufficiente per generalizzare il register marchigiano. Ondata 2 con province Sud Italia darà baseline comparativo.")
+        obs.append(f"Solo {len(plausibili)} plausibili: sample insufficiente. Possibili cause: portali in 403/captcha, schema __NEXT_DATA__ cambiato, parser tornano vuoti. Verificare 'Listing per portale' sopra.")
 
     for i, ob in enumerate(obs, 1):
         lines.append(f"{i}. {ob}")
@@ -1534,25 +1615,28 @@ def write_execution_report(
         for b in blockers:
             lines.append(f"- {b}")
 
+    # S207 — gate onesto: VERDE solo se tutte 4 metriche tabella onestà sono VERDE
+    onesty_all_green = (
+        len(portali_ok) >= 2 and
+        pct_desc >= 40 and
+        len(prospects) >= 10 and
+        len(plausibili) >= 3
+    )
+
     lines += [
         "",
         "---",
-        "## 6. Gate chiusura",
+        "## 6. Gate chiusura S207",
         "",
-        f"- corpus_register.md: {sum(len(v) for v in corpus.values())} frasi totali (gate: >=40)",
-        f"- prospect_list.csv: {len(prospects)} operatori, {len(target_high)} target alto (gate: >=15 op, >=5 target)",
-        f"- description committata in git: branch s206/marche-register",
+        f"- Onestà 4 metriche: vedi tabella sezione 1",
+        f"- corpus_register.md: {sum(len(v) for v in corpus.values())} frasi totali (informativo, non gate)",
+        f"- prospect_list.csv: {len(prospects)} con telefono, {len(plausibili)} plausibili",
         f"- EXECUTION_REPORT.md: presente",
+        "",
+        f"**GATE STATUS: {'VERDE' if onesty_all_green else 'GIALLO — pipeline produce dati parziali, vedi tabella sezione 1'}**",
+        "",
+        "_Vincolo Luke #6: mai stati PARTIAL/ARANCIONE. GIALLO onesto > VERDE su pipeline rotta._",
     ]
-
-    # Gate status
-    gate_ok = (
-        sum(len(v) for v in corpus.values()) >= 40 and
-        len(prospects) >= 15 and
-        len(target_high) >= 5
-    )
-    lines.append("")
-    lines.append(f"**GATE STATUS: {'VERDE' if gate_ok else 'GIALLO — vedi note'}**")
 
     out.write_text("\n".join(lines), encoding="utf-8")
     log.info("[output] EXECUTION_REPORT.md")
@@ -1615,10 +1699,14 @@ def main() -> None:
     total_corpus = sum(len(v) for v in corpus.values())
     log.info("Corpus frasi: %d (%s)", total_corpus, {k: len(v) for k, v in corpus.items()})
 
-    # Build prospects
+    # Build prospects (S207 schema)
     prospects = build_prospects(all_listings)
-    log.info("Prospects: %d (%d target alto)", len(prospects),
-             sum(1 for p in prospects if p.flag_target_alto_si_no == "si"))
+    log.info("Prospects: %d (plausibili: %d | borderline: %d | deprio: %d | esclusi: %d)",
+             len(prospects),
+             sum(1 for p in prospects if p.flag_micro_operatore_plausibile == "plausibile"),
+             sum(1 for p in prospects if p.flag_micro_operatore_plausibile == "borderline"),
+             sum(1 for p in prospects if p.flag_micro_operatore_plausibile == "deprioritizzato"),
+             sum(1 for p in prospects if p.flag_micro_operatore_plausibile == "escluso"))
 
     # Write outputs
     write_corpus_register(corpus)
@@ -1627,18 +1715,15 @@ def main() -> None:
     elapsed = time.time() - start
     write_execution_report(all_listings, prospects, corpus, portali_reached, elapsed, blockers)
 
-    # Gate check
-    total_fr = sum(len(v) for v in corpus.values())
-    n_target = sum(1 for p in prospects if p.flag_target_alto_si_no == "si")
-    n_with_phone = sum(1 for p in prospects if p.telefono)
-
-    log.info("=== GATE CHECK ===")
-    log.info("corpus frasi: %d (gate >=40): %s", total_fr, "PASS" if total_fr >= 40 else "FAIL")
-    log.info("prospects: %d (gate >=15): %s", len(prospects), "PASS" if len(prospects) >= 15 else "FAIL")
-    log.info("target_alto: %d (gate >=5): %s", n_target, "PASS" if n_target >= 5 else "FAIL")
-    log.info("con_telefono: %d", n_with_phone)
+    # S207 — gate onesto 4 metriche
+    n_plaus = sum(1 for p in prospects if p.flag_micro_operatore_plausibile == "plausibile")
+    n_with_phone = len(prospects)  # per costruzione = total
+    log.info("=== GATE CHECK S207 (4 metriche onestà) ===")
+    log.info("portali_reached: %d (gate >=2): %s", len(portali_reached), "PASS" if len(portali_reached) >= 2 else "FAIL")
+    log.info("prospects con telefono: %d (gate >=10): %s", n_with_phone, "PASS" if n_with_phone >= 10 else "FAIL")
+    log.info("plausibili (1-8 auto): %d (gate >=3): %s", n_plaus, "PASS" if n_plaus >= 3 else "FAIL")
     log.info("elapsed: %.0fs", elapsed)
-    log.info("=== S206 Marche Register Scraper DONE ===")
+    log.info("=== S207 Marche Register Scraper (ri-target) DONE — vedi EXECUTION_REPORT per tabella onesta' ===")
 
 
 if __name__ == "__main__":
