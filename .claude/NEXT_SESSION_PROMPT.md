@@ -1,32 +1,40 @@
-# S213 — Implementazione gating pagamento→rilascio-fonte (C-GATE-FONTE-001)
+# S217 — Test empirico reverse-search anti-tracciamento foto preview
 
-> Branch: `s210/audit-master-plan`. S212 chiusa VERDE (commit `c2dde5a`).
-> S212 era SOLO documentale: ha aggiunto la feature `gating pagamento→rilascio-fonte: MISSING` a /PLAN.md. S213 = il CODICE.
+## Stato (chiuso a context 60%, vincolo #7)
 
-## STATO S212 (fatto)
-Riconciliazione /PLAN.md ↔ ARGOS_MASTER applicata (delta A/B/E approvati Luke riga-per-riga):
-- Nuova FEATURE `gating pagamento→rilascio-fonte: MISSING` + CRITIQUE `C-GATE-FONTE-001` in /PLAN.md.
-- sales agent riformulato (outbound=target vs realtà reattivo+HITL) + GATE-CAMPO in METRICHE.
-- sanitizer C-SAN-001 annotato 2° strato; gating-fonte 1° strato.
-- Fee Luke S212: **STARTUP €400 flat → SCALING a salire (€800+)**. Stock target <20.
-- Nuovi: C-IDENTITY-RESIDUE-001 (identity.md "30-80" da correggere), C-MASTER-SYNC-001 (4 dettagli da backportare nel MASTER).
-Memory: `s212_plan_reconciliation_applied.md`.
+Validato output Gemini Deep Research su anti-reverse foto preview. Posizione CTO:
+- **img2img ESCLUSO** (verificato): Draw Things 12.4+ / DiffusionBee 13.1+ incompat Big Sur 11;
+  rischio legale reale D.Lgs 145/2007 → AGCM €5.000–500.000 se rimuove difetti reali (pubblicità ingannevole B2B).
+- **Macro-crop dettagli reali = protezione STRUTTURALE** (no geometria globale → no exact match; zero
+  alterazione pixel → zero rischio legale). È il cuore raccomandato.
+- **Line-art esterno = NON verificato** ("100%" di Gemini = stesso claim non testato di S216). Da misurare.
+- Principio Luke: solo i DATI validano. Domanda A (tecnica) testabile ora a costo zero; Domanda B (il dealer
+  reverse-searcha davvero?) = N=0 dealer, dato non forzabile → non sovra-ingegnerizzare prima del Day 1 reale.
 
-## GAP da non dimenticare
-Delta #3 e #14 (su 15 dichiarati S211) NON persistiti, non recuperabili. 13/15 documentati, 3 critici coperti. Se Luke li ricorda, riaprire.
+## Artefatti pronti (throwaway, /tmp — NON in repo)
+- Script: `/tmp/s217_revtest.py` (scraper reale AS24 DE → 3 varianti, solo PIL+numpy, no cv2, Big Sur OK).
+- Sample in `/tmp/s217_revtest/` da listing REALE BMW X5 xDrive40d grigio (DE):
+  - `00_original.jpg` (1280×960, foto sorgente reale)
+  - `01_macrocrop.jpg` (crop centrale 400×400)
+  - `02_lineart.png` (adaptive gaussian threshold)
+  - Listing sorgente: autoscout24.de/.../d8924ac1-44fe-40c5-a150-09573b3188ec
 
-## DESIGN GATING concordato (da implementare in S213)
-- Innesto: **state machine** (`comm-broker/deal_state_machine.py`: 8 stati, confirm_payment :92, hook on_transition :171, audit state_transitions).
-- Deliverable post-pagamento = **2° PDF gated** su transizione `confirm_payment` (riuso `tools/scripts/pdf_generator_enterprise.py`, 0-cost). NO portale (over-eng N=0 paganti).
-- Conferma pagamento = **manuale Luke** (no webhook SEPA) via **G-APPROVAL CLI CC** → azione atomica: marca fattura PAID (payment_handler.py mark_paid :251) + avanza stato + rilascia fonte.
-- Fonte vive in `metadata_json.source_locked` (deal_state_machine.py :35), salvata a creazione deal, mai in output finché stato != payment_confirmed.
-- FIX collaterale: `payment_handler.py:38` path DB STALE (`~/Documents/app-antigravity-auto/.../dealer_network.duckdb`, workspace morto) → puntare al DB autoritativo.
-- I due NON si parlano oggi: DuckDB fee_invoices vs SQLite deals.sqlite; mark_paid non chiama confirm_payment. Da collegare.
-- CAVEAT: garanzia parziale finché C-SAN-001 BLOCKED (gating-fonte + sanitizer = due metà stessa serratura).
+## PROSSIMO STEP (manuale Luke — TinEye/Lens non hanno API free)
+1. Caricare i 3 sample su **TinEye** + **Google Lens**.
+2. Annotare per ciascuno: match con la listing AS24 sorgente? (SI/NO).
+3. Esito atteso/ipotesi:
+   - macro-crop → NO match (protezione strutturale confermata) = va in produzione.
+   - line-art → da verificare. Se SI match → morto come S216. Se NO → candidato.
+   - original → SI match (baseline, conferma che il test funziona).
+4. Solo le varianti NO-match = protezione VERIFICATA. Le altre fuori.
 
-## PRIMA AZIONE S213
-1. Rileggi /PLAN.md CRITIQUE C-GATE-FONTE-001 + memory s212.
-2. Delega architect: piano implementazione gating su deal_state_machine (innesto confirm_payment → release source_locked → genera 2° PDF). NO codice prima del piano approvato Luke.
-3. Vincolo: zero-cost, conferma manuale Luke, idempotenza, test su TEST_FOUNDER 393314928901 prima di qualsiasi dealer reale.
+## NON modificare
+- `image_sanitizer.py` e codice produzione: INTATTI. Il test è throwaway. Integrazione discussa solo
+  DOPO che il test dà il dato.
 
-Day 1 Stile Car (2026-06-03) resta BLOCCATO su: C-COMM-INTEL-001 (intel/AMBRA funnel) + C-SAN-001 + C-GATE-FONTE-001 + C-E2E-ZERO.
+## Decisione di scope aperta (Luke)
+Il fossato ARGOS è "il dealer non trova l'annuncio" o "anche se lo trova, scavalcarti non conviene"
+(import/IVA/trasporto, come Bolidem/AUTO1 che NON nascondono le foto)? Determina quanto investire in anti-reverse.
+
+## Riferimenti memory
+- `s216_anti_reverse_transform_refuted.md` (TinEye becca processed 2/2; no-foto rifiutato da Luke)
