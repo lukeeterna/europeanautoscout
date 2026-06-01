@@ -1,36 +1,35 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-01T19:46:08Z`
+**Generato**: `2026-06-01T19:53:21Z`
 **Sessione**: `4dd0144d-8f3b-4a1f-a438-ec6ed403a2df`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
 **Commit auto**: no-changes
-**Last commit**: `cd163ec chore(S221 close): leak hook fixato + DECISIONE partner-unico → handoff S222`
+**Last commit**: `b5baf7b chore(S221): auto-prompt regen [skip-ci]`
 
 ## Ultimi 5 commit
 ```
+b5baf7b chore(S221): auto-prompt regen [skip-ci]
 cd163ec chore(S221 close): leak hook fixato + DECISIONE partner-unico → handoff S222
 3e97b6a chore(S220 close): handoff S221 — secret leak risolto, 2/3 token morti, OpenRouter da revocare
 e1f8aec feat(S180-S218): lavoro accumulato — research, audit, planning, skills, scraper Marche
 d635e6d chore(S219 close): handoff S220 — fisco verificato fonte primaria + dirty 2/3 committato, commit 3 blocca secret
-1bf984d chore(S219): rimuovi 64 prompts/ legacy + STATE/CURRENT_SPRINT → riorg .planning
 ```
 
 ## File modificati nell'ultimo commit
 ```
-M	.claude/NEXT_SESSION_PROMPT.manual.md
 M	.claude/NEXT_SESSION_PROMPT.md
 ```
 
 ## Ultimo prompt utente (estratto)
 ```
-[{"tool_use_id":"toolu_013z4wrqGUKEB3cS7K9ZZMu1","type":"tool_result","content":"🔍 ARGOS Pre-Commit Checks...\n✅ Pre-commit checks passed\n[s210/audit-master-plan cd163ec] chore(S221 close): leak hook fixato + DECISIONE partner-unico → handoff S222\n 2 files changed, 69 insertions(+), 74 deletions(-)\n rewrite .claude/NEXT_SESSION_PROMPT.manual.md (97%)\n rewrite .claude/NEXT_SESSION_PROMPT.md (61%)\n--- exit code: 0 ---\ncd163ec chore(S221 close): leak hook fixato + DECISIONE partner-uni
+[{"tool_use_id":"toolu_014ArupGWjzd49HJk4LnQvX3","type":"tool_result","content":"🔍 ARGOS Pre-Commit Checks...\n✅ Pre-commit checks passed\nexit=0\nWORKING TREE PULITO","is_error":false}]
 ```
 
 ## Ultimi turni assistant
 ```
-**Stato reale ARGOS** (non ready): anelli VERIFIED 1/9, safety 0/8, E2E non osservato.
-**Push**: NON ho pushato. Il branch `s210/audit-master-plan` ha nella history profonda (S49-S51) token Telegram ormai morti — pubblicarli è basso rischio ma è una scelta tua, non l'ho fatta in autonomia. Dimmi se vuoi che pushi.
-Sessione chiusa verde sul lavoro completato. Context 64%.
+Vincoli portati avanti: 2 guardrail (affidabilità dati, zero costi) + decisione partner-unico in memory `s221_decisione_partner_unico_orchestratore.md`.
+Commit di chiusura: `cd163ec` + auto-prompt. Niente push (tua decisione, branch con token morti in history profonda).
+Buona domenica — è il tuo giorno OFF, niente scadenze su di te fino a lunedì.
 ```
 
 ## Come riprendere
