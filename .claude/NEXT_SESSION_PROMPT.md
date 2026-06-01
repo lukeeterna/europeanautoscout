@@ -1,23 +1,16 @@
-# S211 — Post-audit: chiudere i delta del MASTER PLAN
+# NEXT SESSION — S212
 
-> Prerequisito: leggi `AUDIT_E2E.md` (branch `s210/audit-master-plan`) e `ARGOS_MASTER/00_INDEX/ARGOS_MASTER_PLAN.md`. NON ri-eseguire l'audit (già fatto S210, 11 delta verificati).
+> Branch: `s210/audit-master-plan`. Chiusura S211 al gate context 62%.
+> Leggi PRIMA: `prompts/s212_apply_delta_plan.md` (handoff completo).
 
-## Stato di partenza (verificato S210)
-- Branch corrente: `s210/audit-master-plan` (2 commit: import MASTER + AUDIT_E2E.md). NON ancora su master/PR.
-- Workspace: `~/Documents/combaretrovamiauto-enterprise` (confermato).
-- Pipeline E2E core (scrape→CoVe→PDF): funzionante. CoVe v4 testato su 2.955 listing reali.
+## STATO S211 (fatto)
+1. Diagnosi 15 delta `/PLAN.md` (VOS operativo, UNICO) ↔ ARGOS_MASTER. NO modifiche al PLAN — attesa approvazione Luke riga-per-riga.
+2. Gating pagamento→fonte (priorità #1): **verificato INESISTENTE sul codice** (non abbozzo). Due DB scollegati (payment_handler DuckDB+path STALE / state machine SQLite), `mark_paid`↛`confirm_payment`, nessun `source_locked`.
+3. Design concordato: secondo PDF gated su `confirm_payment`, innesto state machine, conferma manuale Luke via G-APPROVAL. NO portale. Caveat: garanzia parziale finché sanitizer C-SAN-001 BLOCKED.
 
-## I 3 delta che pesano (da decidere con Luke PRIMA di codare)
-1. **GATING pagamento→rilascio-fonte NON ESISTE** (solo commento `image_sanitizer.py:13`). È il nodo che "protegge il ricavo" nel MASTER. Decisione scope: lo si progetta ora o resta deferred? `mark_paid()` (`payment_handler.py:251`) non rilascia campi sorgente.
-2. **MASTER PLAN ha errori fattuali** da correggere nel source-of-truth: telefoni Marche (AS24 non Subito), param `cy=D` non `?source=DE`, CoVe non più "untested", plate-detection rimossa non "bug aperto". Decidere: si patcha `ARGOS_MASTER/04_STATO_TECNICO/STATO_COMPONENTI.md` con i fix verificati?
-3. **Sales agent NON è outbound autonomo** (è AMBRA reattivo+HITL). Il MASTER Fase 1 assume un sales agent che contatta a tappeto. Gap reale: GATE-CAMPO mai eseguito, 0 dealer contattati. Decidere build-order.
+## PRIMA AZIONE S212
+1. 3 verifiche pendenti (NON a memoria): AS24 `source=DE` vs `cy=D`; plate-detector "becca watermark" vs "rimosso"; corpus "171 frasi" vs "223 frammenti troncati" → grep scraper + leggi AUDIT_E2E.md.
+2. Conferma Luke riga-per-riga sui 15 delta corretti.
+3. Applica righe approvate a `/PLAN.md` + aggiungi `gating pagamento→fonte: MISSING`.
 
-## Backlog tecnico minore (da AUDIT)
-- corpus_register.md inservibile per "traccia colloquio" (frammenti-dotazioni AS24 troncati). Se serve la traccia, ri-estrarre linguaggio-dealer reale (non liste-optional).
-- DB split-brain: `messages` solo su iMac, `dealers`(18) su MacBook. Path iMac hardcoded in 6 file. Valutare consolidamento o documentare come voluto.
-- "28/100+ portali" overclaim in identity.md → ~9-10 reali. Allineare doc.
-
-## Vincoli invariati
-- Branch dedicato, mai master. Test su TEST_FOUNDER 393314928901 prima di qualsiasi dealer reale.
-- Day 1 dealer reale BLOCKED finché E2E verde su TEST_FOUNDER + Luke "pienamente soddisfatto".
-- Zero-cost, HITL Telegram obbligatorio su contatto/vendita.
+Memory: `s211_delta_plan_vs_master.md`.

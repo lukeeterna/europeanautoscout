@@ -18,7 +18,25 @@ ARRICCHISCI MASTER (dettaglio solo nel PLAN): #9 CoVe run, #10 split-brain DB, #
 MASTER INCOMPLETO: #4 soglia stock numerica, #5 range fee €800/€400 da riconfermare Luke, #13 corpus_register 171 frasi → nel PLAN.
 CAT.1 PRE-PIVOT: #4 "30-80 auto" in identity.md, #6 argos-proxy possibile ridondante vs AS24 source=DE.
 
+## GATING PAGAMENTO→FONTE — verificato sul codice (S211, NO abbozzo)
+Letti i due file. Gating CONFERMATO inesistente:
+- `payment_handler.py`: DuckDB + `fee_invoices` + `mark_paid()` (riga 251) fa UPDATE fee_invoices PAID + dealer_leads CLOSED. **Path DB STALE** riga 38 `~/Documents/app-antigravity-auto/.../dealer_network.duckdb` (workspace morto S210) → DA FIXARE.
+- `deal_state_machine.py`: SQLite `deals.sqlite`, 8 stati forward +aborted, `confirm_payment` (riga 92) payment_pending→payment_confirmed, hook `on_transition` (riga 171) + audit `state_transitions` + `history()`. Ben fatto.
+- **I due NON si parlano**: DB diversi, `mark_paid` non chiama `confirm_payment`, nessuno rilascia la fonte. NESSUN campo `source_locked` (solo `metadata_json` free-form riga 35).
+
+## DESIGN GATING concordato (flusso, codice in S212)
+- Innesto: **state machine** (è il posto giusto, impalcatura già presente).
+- Deliverable post-pagamento = **SECONDO PDF gated** su transizione `confirm_payment` (riuso `pdf_generator_enterprise.py`, 0-cost). NO portale (over-engineering N=0 paganti).
+- Conferma pagamento = **manuale Luke** (no webhook SEPA) via G-APPROVAL CLI CC → unica azione atomica che marca fattura PAID + avanza stato + rilascia fonte.
+- Fonte vive in `metadata_json.source_locked`, salvata a creazione deal, mai in output finché stato != payment_confirmed.
+- CAVEAT: garanzia parziale finché sanitizer C-SAN-001 BLOCKED (gating-fonte + sanitizer = due metà stessa serratura).
+
+## 3 VERIFICHE PENDENTI prima di scrivere il PLAN (Claude AI flag, NON confermate a memoria)
+1. AS24 param: `source=DE` (master) vs `cy=D` (Claude AI dice audit) → grep scraper reale.
+2. Plate-detector: "becca watermark 5FP" (master) vs "RIMOSSO/maschera cieca" (audit S210) → leggi AUDIT_E2E.md.
+3. corpus_register: "171 frasi utili" (master) vs "223 frammenti troncati inservibili" (audit) → verifica file reale.
+
 ## PRIMA AZIONE S212
-1. Leggi `src/marketing/payment_handler.py` + `comm-broker/deal_state_machine.py` → aggiorna riga #1 (gating davvero inesistente o abbozzo?).
-2. Chiedi a Luke conferma riga-per-riga sui 15 delta.
-3. Applica SOLO le righe approvate a `/PLAN.md`. Branch dedicato, no master.
+1. Esegui le 3 verifiche sopra (grep + AUDIT_E2E.md) → fissa i fatti.
+2. Chiedi a Luke conferma riga-per-riga sui 15 delta (corretti con i fatti verificati).
+3. Applica SOLO le righe approvate a `/PLAN.md` + aggiungi feature `gating pagamento→fonte: MISSING`. Branch dedicato, no master.
