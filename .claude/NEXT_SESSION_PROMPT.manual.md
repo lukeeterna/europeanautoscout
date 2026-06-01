@@ -16,7 +16,24 @@
 
 **Luke S216**: foto REALI processate dalle feature ARGOS esistenti (sanitizer + watermark), pseudo-produzione. → si MISURA con gate empirico, NON si costruisce filtro su premessa falsa.
 
-## GATE EMPIRICO — AZIONE LUKE (manuale, pending)
+## GATE EMPIRICO — ESITO S216: FALLITO (transform morto)
+- Luke ha caricato sample0 + sample1 su TinEye. **PROCESSED beccato su entrambi** (match esatto identico
+  all'ORIGINAL: sample0→autoscout24.com/.bg BMW 330; sample1→importemoi.pt/fr + autoscout24.de BMW X1).
+- CONCLUSIONE: sanitizer (crop+mask) + watermark ARGOS 0.35 NON rompono TinEye, e Google Lens (embedding
+  semantico) è ancora più robusto. La via "foto reale trasformata nel preview" è **empiricamente refutata**.
+  NON reintrodurre transform pixel (pHash/crop/watermark) come difesa anti-reverse: provato morto S216.
+- VINCOLO PRODOTTO Luke S216: "non possiamo proporre auto senza mostrarla" → no-foto NON accettato.
+  Il problema diventa: mostrare l'auto VERA (carrozzeria/interni/km/condizione) senza foto rintracciabile alla sorgente.
+
+## PROSSIMO PASSO S217 = Deep Research (in corso, azione Luke)
+- Luke lancia **Gemini Deep Research** (NON modello math/coding) col prompt in `.claude/S217_DEEP_RESEARCH_PROMPT.md`.
+- S217 STEP 0: prendere output Deep Research di Luke → **validare claim** (vincolo #1, no fiducia cieca) →
+  raccomandazione singola implementabile zero-cost Big Sur-no-GPU.
+- Ipotesi CTO da confermare/refutare: img2img regeneration stessa auto (pixel nuovi non matchabili) vs
+  car-isolation+sfondo neutro (rischio: corpo-auto resta semantic-matchabile). Background-only NON basta.
+- Solo DOPO soluzione foto validata → C-E2E-ZERO (cablaggio create_deal) → E2E TEST_FOUNDER.
+
+## (storico) GATE EMPIRICO — generato S216
 - 10 file generati in **`/Volumes/MontereyT7/argos-poc/S216_gate/`** (5 ORIGINAL + 5 PROCESSED).
   - PROCESSED = pipeline ARGOS reale: `sanitize_image` + `apply_watermark` (ciò che il dealer vede).
   - Sample reali AS24.de (sanitizer ha mascherato PII reale: telefono +49, testo dealer).
