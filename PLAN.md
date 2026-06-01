@@ -17,12 +17,13 @@
 - path: /Users/macbook/Documents/combaretrovamiauto-enterprise
 - maturità: maturing          <!-- mature | maturing | greenfield, CONFERMATA via assess -->
 - creato: 2026-05-28T07:54:59Z
-- ultimo_update: 2026-05-29T13:55:00Z
+- ultimo_update: 2026-06-01T13:00:00Z  <!-- S212 riconciliazione delta PLAN↔ARGOS_MASTER (A+B+E), no codice gating -->
+
 - modalità_ingaggio: adopt  <!-- adopt | create | greenfield -->
 
 ## OBIETTIVO
 <!-- Una frase netta. Cosa deve produrre il progetto, per chi, in che orizzonte. -->
-scouting on-demand auto per micro-dealer commissione P.IVA forfettaria Italia, commissione su consegna posizione
+scouting on-demand auto per micro-dealer commissione P.IVA forfettaria Italia, commissione su consegna posizione. Agent (AMBRA) comunica in modo nativo al target: lessico/tono/timing tarati su come parlano i micro-dealer reali per regione/provincia/città, lungo l'intero funnel (cold → credibilità/relazione → proposta), usando KB mercato auto + conoscenza tecnica + psicologia conversione. Approccio cold UNICO definito da dati intel, non da assunzione founder.
 
 ## GUARDRAIL
 <!-- Vincoli non derogabili (budget, stack, compat, founder-decisions). Uno per riga. -->
@@ -155,8 +156,10 @@ scouting on-demand auto per micro-dealer commissione P.IVA forfettaria Italia, c
 - Brand auto target: BMW / Mercedes / Audi (DE/BE/NL/AT)
 - Canale outreach: WA daemon vs LinkedIn vs cold email (default WA, bloccato da C-WA-DUP)
 - Volume scouting/settimana (configurabile, default basso pre-revenue)
-- Pricing commissione: % o flat (default % su consegna) [DEFERRED:negozia post-prima-vendita]
+- Pricing commissione: STARTUP €400 flat → SCALING a salire (€800+) su consegna posizione [VERIFIED:Luke S212]. Negozia upward post-traction.
 - Hit dossier per dealer (n. veicoli proposti per outreach)
+- Registro/tono AMBRA per fase funnel (cold / relazione / proposta) — derivato da KB intel target
+- Geo-tier comunicativo: regione → provincia → città (lessico, dialettalismi, formalità) — derivato da KB intel
 
 ## STACK_TOOL
 <!-- Tecnologia attiva. Una libreria/runtime per riga + versione se vincolante. -->
@@ -164,13 +167,13 @@ scouting on-demand auto per micro-dealer commissione P.IVA forfettaria Italia, c
 - SQLite (`dealer_network.sqlite` — 18 dealers, 41 market_listings al 2026-05-28)
 - CoVe Engine v4 (production stage)
 - WA daemon (con bug C-WA-DUP-001 noto)
-- argos-proxy (proxies per scraping geo-distribuito)
+- argos-proxy (proxies per scraping geo-distribuito) — NOTA S210: AS24 mercato DE raggiungibile da IP IT via param `cy=D` (non `source=DE`, verificato autoscout_scraper.py:472) → valutare ridondanza/0-cost del proxy
 - Telegram HITL (founder approval workflow)
 - LLM routing OpenRouter (free-tier first, hard cap €30/mese)
 - Tesseract OCR (Big Sur compat verificata)
 
 ## CRITIQUE
-- [OPEN] [LUKE] C-SAN-001: sanitizer D-32 over-mask UAT NO-GO 1/5 (S187) + 1/5 ambiguo. Fix non committato. PROVA: src/cove/image_sanitizer.py 1190 righe, 5 .bak files, ultima mod 2026-05-26. Gate: UAT visual 5/5 PASS Luke su sample T7.
+- [OPEN] [LUKE] C-SAN-001: sanitizer D-32 over-mask UAT NO-GO 1/5 (S187) + 1/5 ambiguo. Fix non committato. PROVA: src/cove/image_sanitizer.py 1190 righe, 5 .bak files, ultima mod 2026-05-26. Gate: UAT visual 5/5 PASS Luke su sample T7. NOTA S210: detection-targa via Vision RIMOSSA (S183 s183_autogen_zones.py:94-99), sostituita da mascheratura cieca fascia bassa ~12% → niente falso-positivo watermark MA nessun vero plate-detector (strato fragile: targa fuori fascia bassa = non coperta). Il sanitizer è il **2° strato** di protezione-fonte; il **1° strato** è il gating pagamento→rilascio-fonte (C-GATE-FONTE-001). Due metà della stessa serratura.
 - [ADDRESSED] [LUKE] C-WA-DUP-001: dedup single-writer bridge_outbound (memoria s173_dedup_implementation_closed commit 1cdb5e1). PROVA: iMac comm-broker/bridge.sqlite schema 15 col incluso wa_msg_id/sent_ts/approved_ts.
 - [OPEN] [CC] C-DB-SPLIT-001: schema split-brain. MacBook dealer_network.sqlite ha `dealers` (18) ma NO `messages`. iMac ~/Documents/app-antigravity-auto/dealer_network.sqlite ha `messages` (81, INBOUND 15/OUTBOUND 66) ma NO `dealers`. Decidere DB autoritativo unico prima outreach reale.
 - [OPEN] [CC] C-WA-RESTART-001: argos-wa-daemon 48 restart in 34h (~1/40min), root cause non investigata. PROVA: pm2 list iMac. Rischio anti-ban + perdita session WA.
@@ -178,9 +181,15 @@ scouting on-demand auto per micro-dealer commissione P.IVA forfettaria Italia, c
 - [OPEN] [CC] C-DB-ENV-001: ARGOS_DB_PATH PM2 env iMac punta a releases/20260527_083951/dealer_network.sqlite (28KB, 0 messages runtime). DB root 389KB con 81 messages history (max 2026-05-16) è disgiunto da daemon. Daemon+dashboard convergono entrambi su releases/ DB → consistenti per E2E, ma storia legacy persa. Finding S205. Consolidamento DB autoritativo unico + history merge prima Day 1 dealer reali.
 - [OPEN] [LUKE] C-E2E-ZERO: zero feature provata end-to-end con dealer reale. CoVe gira (2955 rows), WA daemon connected, contract worker /health 200, ma E2E completo scrape→PDF→WA→reply→sign→paid mai chiuso (memoria feedback_e2e_full_test_founder, Day 1 Stile Car BLOCKED).
 - [OPEN] [LUKE] C-SCRAPERS-COUNT: CLAUDE.md project dichiara "28 portali", repo ha 3 file `*_scraper.py` (autoscout, mobile_de, generic). Allineare claim a realtà o estendere copertura.
+- [OPEN] [LUKE] C-COMM-INTEL-001: approccio cold + funnel comunicativo AMBRA NON definito da dati. Regole project si contraddicono (communication.md riga "PRIMO CONTENUTO = veicolo REALE" vs sequenza credibilità Sud "chi sei → chi ti ha mandato → cosa hai fatto → cosa offri" vs send_day1_tier1.py "ZERO veicoli Day 1"). MISSING intel-STILE (pattern lessicali pubblici, GDPR-low) + intel-LEAD (anagrafica segmentata, GDPR-high) + KB-mercato-auto (leva credibilità proposta). Vincoli verifiche: (a) precedenti USA Meta v Bright Data ritirata feb 2024 + X v Bright Data mag 2024 = scraping logged-off di dati PUBBLICI legalmente difendibile su base contratto/ToS USA, NON copre GDPR (regime UE governa il TRATTAMENTO dato personale a prescindere dai Terms); (b) ostacolo FB/IG = TECNICO (anti-bot aggressivo), non legale; (c) vincolo vero Luke = GDPR su intel-LEAD (legittimo interesse B2B + minimizzazione + opt-out), non blocco su intel-STILE pattern aggregati. AMBRA oggi compone su template generici → conversione attesa bassa. GATE: build intel-STILE + KB-mercato-auto + tarare AMBRA per fase (cold/relazione/proposta) PRIMA di TEST_FOUNDER cold reale (vincolo Luke S206 2026-05-29). intel-LEAD attesa nota legale.
+- [OPEN] [LUKE] C-COMM-CONFLICT-001: deprecare riga "PRIMO CONTENUTO = veicolo REALE con numeri REALI" in .claude/rules/communication.md (conflitto con sequenza credibilità nello stesso file + con send_day1_tier1.py V3). Risolvere dopo C-COMM-INTEL-001 (l'intel decide l'approccio, non assunzione founder).
+- [OPEN] [LUKE] C-GATE-FONTE-001: gating pagamento→rilascio-fonte INESISTENTE in codice (solo commento image_sanitizer.py:13 "source revealed ONLY after fee payment"). È il nodo che "protegge il ricavo" (MASTER priorità #1) ed è il pezzo più scoperto. PROVA: payment_handler.py mark_paid() (:251, DuckDB fee_invoices) e deal_state_machine.py confirm_payment (:92, SQLite deals.sqlite) NON si parlano (DB disgiunti), nessun campo source_locked (solo metadata_json free-form :35), secretazione attuale = redazione PASSIVA (source_url='' VehicleData.from_opportunity :164). CAVEAT: garanzia parziale finché C-SAN-001 BLOCKED (gating-fonte + sanitizer = due metà stessa serratura). Implementazione = **S213** (design concordato: innesto state machine + 2° PDF gated su transizione confirm_payment + conferma manuale Luke via G-APPROVAL CLI + source in metadata_json.source_locked). NO codice in S212.
+- [OPEN] [CC] C-IDENTITY-RESIDUE-001: .claude/rules/identity.md dichiara target "30-80 auto" (PRE-PIVOT) in conflitto con target validato stock <20 (GUARDRAIL + TARGET_VALIDATO). Correggere identity.md → micro-dealer stock <20. (Fuori scope documentale S212: edit file rules richiede sessione dedicata.)
+- [OPEN] [CC] C-MASTER-SYNC-001: 4 dettagli operativi vivono SOLO nel PLAN e vanno backportati nel MASTER (ARGOS_MASTER, sessione separata sul master): (1) CoVe 2955 run/1046 PROCEED, (2) split-brain DB MacBook↔iMac (C-DB-SPLIT/ENV), (3) daemon 48 restart/34h (C-WA-RESTART), (4) footprint GDPR intel-STILE basso / intel-LEAD alto (C-COMM-INTEL). NO edit master in S212.
 ## METRICHE_SOGLIE
 <!-- Numeri che dicono "ok" o "rosso". Es: latenza p95 < 500ms, revenue >= €800. -->
-- primo €800 commissione dealer
+- primo €400 commissione dealer (STARTUP); a salire (€800+) in fase SCALING [Luke S212]
+- GATE-CAMPO: conversione validata su campione N dealer reali prima di dichiarare sales-agent / AMBRA funnel-aware DONE (oggi 0 dealer reali contattati → NON validato, vedi C-E2E-ZERO)
 
 ## STATO_FEATURE
 <!-- Matrice feature × stato (DONE|WIP|MISSING|BLOCKED|TBD).
@@ -199,7 +208,12 @@ scouting on-demand auto per micro-dealer commissione P.IVA forfettaria Italia, c
 - HITL gate dossier dashboard:8080 (S190+S203 anello #9): WIP — PM2 argos-dashboard online 34h pid 99205, commit ecd677c, deploy iMac pending (C-DEPLOY-S203).
 - dedup WA single-writer bridge_outbound (S173): DONE — iMac bridge.sqlite schema 15 col, 6 record. E2E reale = NO.
 - 28 scrapers EU portali: MISSING_PARTIAL — claim CLAUDE.md 28 portali, repo ha 3 file *_scraper.py (autoscout, mobile_de, generic) + portal_profiles.py. Vedi C-SCRAPERS-COUNT.
-- sales agent WA segmentazione (regione/provincia/città): MISSING — schema dealers ha col region/province/city/archetype/tier ma N=18 troppo basso; nessun runner che filtra+invia per segmento.
+- sales agent WA segmentazione (regione/provincia/città): MISSING — schema dealers ha col region/province/city/archetype/tier ma N=18 troppo basso; nessun runner che filtra+invia per segmento. NOTA S210: il MASTER lo inquadra OUTBOUND autonomo + KB pre-addestrata; realtà = REATTIVO + HITL Telegram obbligatorio (response-analyzer.py:13-17), n8n ASSENTE. "Outbound autonomo" = TARGET, non stato. Gate prima di DONE = GATE-CAMPO (vedi METRICHE_SOGLIE).
+- gating pagamento→rilascio-fonte: MISSING — leva primaria del modello (fonte secretata sbloccata SOLO a pagamento confermato) NON esiste come codice. mark_paid() (payment_handler.py:251, DuckDB) chiude dealer_leads ma non rilascia alcun campo sorgente; confirm_payment (deal_state_machine.py:92, SQLite) avanza stato ma nessun hook rilascia URL; i due DB sono disgiunti, nessun campo source_locked. Secretazione attuale = redazione PASSIVA (source_url='' :164), NON gate. Implementazione S213. Vedi C-GATE-FONTE-001.
+- intel-STILE: MISSING — pattern lessicali/tono dealer target da fonti pubbliche (Google Business reviews, TG canali pubblici, post FB/IG pubblici logged-off). Output: `intel/lexicon.jsonl` (pattern, NON identità). Footprint GDPR: basso (no dato personale memorizzato, solo signatures/n-gram). Prerequisito C-COMM-INTEL-001.
+- intel-LEAD: MISSING — anagrafica dealer segmentata regione/prov/città. Footprint GDPR: ALTO → richiede base "legittimo interesse" B2B documentata + minimizzazione + opt-out + DPIA-light. NON avviare senza nota legale (legal-compliance-checker). Prerequisito C-COMM-INTEL-001.
+- KB-mercato-auto: MISSING — corpus dominio (prezzi/tempi/margini import EU→IT, obiezioni tipiche, terminologia settore, optional cruciali per modello) come LEVA di credibilità AMBRA in fase proposta. Fa suonare AMBRA "del mestiere". Retrieval semplice (`kb/auto_market.jsonl` + grep, NO vector db — vincolo anti-over-engineering). Sorgenti: research/s73* + .claude/agent-memory/ + memorie esistenti, consolidamento. NOTA S210: corpus_register.md (s206) NON usabile come fonte — 223 frammenti-dotazioni AS24 troncati (es. "forgiati M doppi raggi st"), AS24-only, non linguaggio-dealer conversazionale.
+- AMBRA funnel-aware (cold / relazione-credibilità / proposta con tono diverso): MISSING — prompt modules esistenti (vehicle_request_broker S175.1) coprono solo VEHICLE_REQUEST reactive, non phase-aware outbound. Consumerà intel-STILE (tono geo-tier) + KB-mercato-auto (credibilità proposta).
 
 ## STATO_AUTONOMIA
 <!-- Livello di autonomia operativa concesso al motore/CC su questo progetto.
@@ -208,4 +222,12 @@ L0=ask-always
 
 ## PROSSIMA_AZIONE
 <!-- Una sola azione concreta. Quando completata, aggiornare con la successiva. -->
-S206 STEP C E2E TEST_FOUNDER fisico Luke: trigger pipeline BMW X1 → HITL approve dashboard:8080 → reply WA POSITIVE/CONTRACT_REQUEST/NEGATIVE → contract sign → mark-paid. Codice S202+S203 LIVE su iMac (S205 STEP A+B verde, gate VERDE). Gate finale: Luke dichiara "pienamente soddisfatto" (memoria feedback_e2e_full_test_founder). Blocca Day 1 Stile Car (T-5gg = 2026-06-03). Dopo: C-SAN-001 UAT visual 5/5 + C-DB-ENV-001 consolidamento DB autoritativo.
+S206 PIVOT (Luke 2026-05-29): risolvere C-COMM-INTEL-001 PRIMA di STEP C cold reale TEST_FOUNDER. Fasi sequenziali:
+(1) DEFINIRE perimetro intel: micro-dealer target stock <20 P.IVA forfettaria — fonti TG canali/gruppi auto, FB pagine business, IG profili, Google Business + recensioni — scope geo: tutta Italia con tier regione/provincia/città. Time-box build: 1 sessione decisionale + 2-3 sessioni harvest.
+(2) HARVEST: estrarre testi pubblici (post, bio, recensioni, risposte) da N≥30 micro-dealer rappresentativi (selezione stratificata per macro-area Nord/Centro/Sud + ≥3 città per area) — output `intel/micro_dealer_communication_corpus.jsonl` con campi {dealer, geo, source, text, timestamp, archetype_guess}.
+(3) ANALISI lessico: top-N termini ricorrenti, formule apertura/chiusura, registro (formale/colloquiale/dialettale), tabù lessicali, time-of-day risposta — output `intel/communication_patterns.md` per regione/provincia.
+(4) BUILD KB mercato auto: consolidare research/s73* + .claude/agent-memory in `kb/auto_market/` strutturato (modelli, anni, optional cruciali, prezzi reference, margini tipici, obiezioni dealer, contro-argomenti).
+(5) AMBRA funnel-aware: prompt modules separati per phase=cold | phase=relationship | phase=proposal, ognuno consumando lessico geo-tier + KB auto via retrieval semplice (no rewrite stack).
+(6) DEPRECARE riga conflittuale communication.md, scrivere policy unica derivata da dati intel.
+(7) TEST E2E TEST_FOUNDER cold con messaggio composto da AMBRA funnel-aware (NON template hardcoded) → HITL → reply → relazione → dossier → contract → paid. Gate finale: Luke "pienamente soddisfatto".
+Blocca Day 1 Stile Car (T-5gg = 2026-06-03) — possibile slittamento target, decisione Luke. Dopo: C-SAN-001 UAT visual 5/5 + C-DB-ENV-001 consolidamento DB autoritativo + C-SCRAPERS-COUNT allineamento claim 28 portali + **S213 C-GATE-FONTE-001 implementazione gating** (state machine + 2° PDF gated su confirm_payment + conferma manuale Luke via G-APPROVAL CLI + source in metadata_json.source_locked).
