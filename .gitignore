@@ -20,5 +20,18 @@ src/cove/data/cove_tracker.duckdb
 # PDF dossier output (generated per dealer, non-source; root cause DIRTY 100% sessioni —
 # git diff --check legge xref del PDF come trailing whitespace, hook auto-commit aborta.
 # Vedi ~/venture-os/state/blueprint-deviations.jsonl entry argos-dirty-rate-root-cause-2026-05-13).
-dossiers/*.pdf
-dossiers/*.PDF
+# S219: ignoro intera dir (130MB, 424 file: PDF dealer + foto AS24 copyright + PII + JSON).
+dossiers/
+dossiers */
+
+# OS / junk
+.DS_Store
+
+# Security: QR login WhatsApp + captcha screenshots (mai in repo — vedi rules/security.md)
+*_qr_code.png
+*captcha*.png
+
+# Debug screenshots in root (S62/S63 dashboard snapshots, non-source)
+s62_*.png
+s63_*.png
+landing_full_page.png
