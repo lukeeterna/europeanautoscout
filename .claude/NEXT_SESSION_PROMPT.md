@@ -1,36 +1,35 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-01T20:10:19Z`
+**Generato**: `2026-06-01T20:14:51Z`
 **Sessione**: `f097900b-821a-45ab-af19-c60827efa091`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
 **Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
-**Last commit**: `5b2e744 chore(S221): auto-regen prompt + vos decision log`
+**Last commit**: `17f8727 auto-close session f097900b-821a-45ab-af19-c60827efa091 @ 2026-06-01T20:13:54Z`
 
 ## Ultimi 5 commit
 ```
+17f8727 auto-close session f097900b-821a-45ab-af19-c60827efa091 @ 2026-06-01T20:13:54Z
+999a755 chore(S222): regen session prompt pre-merge
 5b2e744 chore(S221): auto-regen prompt + vos decision log
 1f4dd5c docs(S221): opzione PR/merge-master + spiegazione non-dev nel handoff S222
 99e9a93 auto-close session 4dd0144d-8f3b-4a1f-a438-ec6ed403a2df @ 2026-06-01T20:03:46Z
-b5baf7b chore(S221): auto-prompt regen [skip-ci]
-cd163ec chore(S221 close): leak hook fixato + DECISIONE partner-unico → handoff S222
 ```
 
 ## File modificati nell'ultimo commit
 ```
-M	.claude/NEXT_SESSION_PROMPT.md
 M	vos-out/decisions.jsonl
 ```
 
 ## Ultimo prompt utente (estratto)
 ```
-consiglio CTO
+❯ ora hai deciso di chiudere questa sessione e darmi next prompt?
 ```
 
 ## Ultimi turni assistant
 ```
-3. **Pattern noto su sistemi simili**: founder non-dev + assistente che produce molto → si confonde "tanto codice" con "progresso". Il tuo hook `production_claim_gate` esiste proprio perché questo pattern si è già ripetuto.
-4. **Dove sto sovradimensionando io**: forse il fix #6+#9 è più grosso di mezza sessione e va spezzato — non l'ho misurato. E "congela tutto lo scope" è netto: se la deadline Stile Car ha un vincolo commerciale reale che non vedo, la priorità potrebbe legittimamente restare sulla landing. Quello lo sai tu, è una scelta di business, non tecnica.
-Vuoi che: (1) faccio il merge ora, e (2) la prossima sessione parte verificando #6/#9 sul codice reale e provando l'E2E? Confermi e procedo col merge.
+- **Continuiamo ora**: parto subito a verificare sul codice reale #6 (`messages`) e #9 (bug HITL). È il lavoro vero, e l'avevo proposto io.
+- **Chiudiamo qui**: genero il prompt di ripartenza per la prossima sessione con lo stato esatto (merge fatto, target #6/#9).
+L'unica cosa che terrei d'occhio è il budget di contesto — questa sessione ha caricato parecchi dump di sistema. Se vuoi continuare col lavoro su #6/#9 senza rischiare degrado, conviene farlo in una sessione fresca. Ma decidi tu: che faccio?
 ```
 
 ## Come riprendere
