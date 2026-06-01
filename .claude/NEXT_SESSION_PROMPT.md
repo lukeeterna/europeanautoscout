@@ -1,18 +1,18 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-01T20:03:46Z`
-**Sessione**: `4dd0144d-8f3b-4a1f-a438-ec6ed403a2df`
+**Generato**: `2026-06-01T20:10:19Z`
+**Sessione**: `f097900b-821a-45ab-af19-c60827efa091`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
-**Commit auto**: committed: 99e9a93
-**Last commit**: `99e9a93 auto-close session 4dd0144d-8f3b-4a1f-a438-ec6ed403a2df @ 2026-06-01T20:03:46Z`
+**Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
+**Last commit**: `5b2e744 chore(S221): auto-regen prompt + vos decision log`
 
 ## Ultimi 5 commit
 ```
+5b2e744 chore(S221): auto-regen prompt + vos decision log
+1f4dd5c docs(S221): opzione PR/merge-master + spiegazione non-dev nel handoff S222
 99e9a93 auto-close session 4dd0144d-8f3b-4a1f-a438-ec6ed403a2df @ 2026-06-01T20:03:46Z
 b5baf7b chore(S221): auto-prompt regen [skip-ci]
 cd163ec chore(S221 close): leak hook fixato + DECISIONE partner-unico → handoff S222
-3e97b6a chore(S220 close): handoff S221 — secret leak risolto, 2/3 token morti, OpenRouter da revocare
-e1f8aec feat(S180-S218): lavoro accumulato — research, audit, planning, skills, scraper Marche
 ```
 
 ## File modificati nell'ultimo commit
@@ -23,14 +23,14 @@ M	vos-out/decisions.jsonl
 
 ## Ultimo prompt utente (estratto)
 ```
-[{"tool_use_id":"toolu_01Q6ZwGS6AhZKCj9kCVoTv2G","type":"tool_result","content":"remote: \nremote: Create a pull request for 's210/audit-master-plan' on GitHub by visiting:        \nremote:      https://github.com/lukeeterna/europeanautoscout/pull/new/s210/audit-master-plan        \nremote: \nTo https://github.com/lukeeterna/europeanautoscout\n * [new branch]      s210/audit-master-plan -> s210/audit-master-plan\nBranch 's210/audit-master-plan' set up to track remote branch 's210/audit-master-pl
+consiglio CTO
 ```
 
 ## Ultimi turni assistant
 ```
-- Auth: token `gho_` valido (lukeeterna), non il PAT morto.
-**Sicurezza confermata**: scan pre-push pulito sul vivo. In remote è salito solo il riferimento troncato+morto alla vecchia chiave dentro i doc di handoff — inutilizzabile. La nuova chiave OpenRouter (in `.env`, gitignored) non è mai stata committata.
-Tutto chiuso: lavoro su GitHub, albero pulito, handoff S222 pronto. Quando vuoi aprire la PR verso master fammelo sapere — è il prossimo passo naturale, ma non l'ho fatto in autonomia (merge su master = scelta tua).
+3. **Pattern noto su sistemi simili**: founder non-dev + assistente che produce molto → si confonde "tanto codice" con "progresso". Il tuo hook `production_claim_gate` esiste proprio perché questo pattern si è già ripetuto.
+4. **Dove sto sovradimensionando io**: forse il fix #6+#9 è più grosso di mezza sessione e va spezzato — non l'ho misurato. E "congela tutto lo scope" è netto: se la deadline Stile Car ha un vincolo commerciale reale che non vedo, la priorità potrebbe legittimamente restare sulla landing. Quello lo sai tu, è una scelta di business, non tecnica.
+Vuoi che: (1) faccio il merge ora, e (2) la prossima sessione parte verificando #6/#9 sul codice reale e provando l'E2E? Confermi e procedo col merge.
 ```
 
 ## Come riprendere
