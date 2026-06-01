@@ -1,30 +1,36 @@
-# S223 — Verifica anelli #6 + #9 su CODICE REALE (no fix prima della verifica)
+# S224 — Fix #9 guard atomico (legacy) + E2E TEST_FOUNDER → VERIFIED verso 3/9
 
-## STATO CHIUSO S222
-### ✅ Merge branch→master consolidato
-- `s210/audit-master-plan` → `master` ESEGUITO (fast-forward pulito). master == branch == origin/master == origin/branch, tutti su `999a755`. Divergenza 0/0.
-- 31 commit accumulati S180→S221 ora in master ufficiale GitHub.
-- Scan secret pre-merge sul diff: pulito.
-- Memory: `s222_merge_master_consolidato.md`.
+## STATO CHIUSO S223
+### Verifica anelli su CODICE/DB REALE (no fix, solo verifica)
+- **#6 inbox `messages` → VERIFIED EXISTS.** Conflitto S222 risolto: il gate "MISSING" guardava il DB SBAGLIATO.
+  - DB iMac AUTORITATIVO `~/Documents/app-antigravity-auto/dealer_network.sqlite`: `messages` esiste, 14 col (11+3 ALTER) + 3 idx, **81 righe**. → memory S201/S202 corretta.
+  - DB locale repo `./dealer_network.sqlite` = DB scraping (`dealers`+`market_*`), NO `messages`. Gate guardava questo. Lezione S204 (path identity.md ingannevole).
+  - **#6 NON richiede fix.**
+- **#9 HITL `sent=1/approved=0` → CONFERMATO ma confinato a path LEGACY.**
+  - Riprodotto: 1 violazione `reply_e9be3ac6` (Test Concessionaria Founder, 2026-05-16) su `pending_replies` iMac.
+  - **Bridge canonico = SAFE**: `wa-daemon.js:310-311` `WHERE approved_ts IS NOT NULL AND sent_ts IS NULL` (D-07 HITL strict). NON può inviare non approvato.
+  - **Path UNSAFE (legacy)**: `telegram-handler.py:246` (subprocess `/approva`), `response-analyzer.py:1816` (send_script multi-msg) → scrivono `sent=1` senza ri-controllo `approved`. + `cmd_rifiuta` telegram-handler.py:302 manca guard `AND approved IS NULL` (la dashboard `db.py:406` ce l'ha).
 
-### Stato reale anelli ARGOS (production_ready=FALSE — gate VOS)
-VERIFIED = **1/9** (#1 scrape, 2026-05-22). Safety 0/8. E2E osservato Luke: NO.
+### Gate
+VERIFIED = **2/9** (#1 scrape + #6 inbox). #9 = bug safety reale ma già mitigato sul flusso produzione (bridge). Memory: `s223_verifica_anelli_6_9.md`.
 
-## STANCE CTO (Luke ha approvato in S222)
-ARGOS produce codice più veloce di quanto verifica: 60 sessioni, 1/9 anelli VERIFIED. S221 ha allargato lo scope (partner-unico = +trasporto+pratiche+fiscale) sopra una catena dove l'inbox base manca.
-→ **Scope S222 CONGELATO** (rewrite landing / Gemini Deep Research / scraper trasporto). Niente parte finché non sale il numero che conta: **anelli VERIFIED su 9**. Obiettivo S223 = portarlo verso 3/9.
+## PROSSIMI STEP S224 (CTO raccomanda fix minimo, Luke ha chiesto opzione (a))
+1. **Fix #9 guard atomico minimo (locale, NO deploy fino a E2E):**
+   - `response-analyzer.py:1816` (send_script): `UPDATE pending_replies SET sent=1 WHERE id=? AND approved=1`; se `rowcount==0` → NON considerare inviato, log ERROR (il msg era stato rifiutato durante lo sleep).
+   - `telegram-handler.py:246` (subprocess `/approva`): stesso guard `AND approved=1`.
+   - `telegram-handler.py:302` (`cmd_rifiuta`): aggiungi `AND approved IS NULL` come la dashboard.
+   - Code-review delegato (code-reviewer) prima del commit.
+2. **E2E su TEST_FOUNDER 393314928901** (Luke FISICO — vedi feedback memory `test_founder_means_real_interactive`): scenario approva→rifiuta-durante-sleep deve risultare in NESSUN invio + `sent=0`. Gate qualitativo: Luke dichiara "soddisfatto".
+3. **Solo dopo E2E verde** → deploy iMac (rsync atomico + healthcheck, vedi security.md). Prima del deploy: `lsof`/pm2 check.
 
-## PROSSIMI STEP S223 (in ordine, NO fix prima di verifica)
-1. **Verifica #6 inbox `messages`** SUL CODICE/DB REALE, locale E iMac.
-   - ⚠️ CONFLITTO DA RISOLVERE: gate-state S222 dice `messages` MISSING; ma memory S201/S202 (`s201_closure_pivot_architect_findings.md`, `s202_closure_2of5_handoff_s203.md`) dicono EXISTS + ALTER 3 col + 3 idx già applicato su iMac (commit 7e0521f). Uno dei due è stale.
-   - Comando: `ssh gianlucadistasi@192.168.1.2` + `sqlite3 dealer_network.sqlite ".schema messages"` (o path DB iMac autoritativo — vedi `s204_verita_codice_audit`). Stesso check su DB locale.
-2. **Verifica #9 HITL bug `sent=1 approvata=0`** — riprodurre. Codice: `wa-intelligence/` (bridge_outbound vive in `comm-broker/bridge.sqlite` separato, lezione S193). Capire dove un messaggio viene marcato `sent` senza essere `approvata`.
-3. **Solo se i dati confermano il gate** → fix #6 (creare tabella) + #9 (bug safety) + 1 E2E su TEST_FOUNDER 393314928901 (Luke fisico, vedi feedback memory). Se i dati dicono altro → da CTO ricalibro priorità, niente parte senza verifica.
+## BACKLOG (non in scope S224)
+- Migrare i path legacy multi-msg + Telegram diretto al bridge canonico (single-writer S173) → elimina la classe di bug invece del singolo guard. Coerente `feedback_single_writer_principle_bridge`.
+- Verifica anelli #2..#5, #7, #8 per salire oltre 3/9.
 
 ## NON toccare
-image_sanitizer.py / codice produzione. NON deploy landing/PDF/messaggi. Scope partner-unico (landing/Gemini/trasporto) congelato.
+image_sanitizer.py / scope partner-unico (landing/Gemini/trasporto) CONGELATO. NO deploy landing/PDF.
 
 ## Vincoli sessione
-- Context: chiusa S222 a 51%. Partire fresca.
-- TEST_FOUNDER prima di qualsiasi dealer reale. Domenica = OFF Luke (no scadenze fisiche di domenica).
+- Context: S223 chiusa ~50%. Partire fresca.
+- TEST_FOUNDER prima di qualsiasi dealer reale. Domenica = OFF Luke.
 - Day 1 Stile Car blocker invariati: C-SAN-001, C-E2E-ZERO, C-COMM-INTEL-001, C-GATE-FONTE-001.
