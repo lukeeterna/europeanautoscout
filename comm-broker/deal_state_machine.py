@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS deals (
     fee_eur        INTEGER DEFAULT 1000,
     created_ts     INTEGER NOT NULL,
     updated_ts     INTEGER NOT NULL,
-    metadata_json  TEXT
+    metadata_json  TEXT,
+    paid_at        INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS state_transitions (
@@ -120,6 +121,13 @@ class DealStateMachine(StateMachine):
         conn = sqlite3.connect(self.db_path)
         try:
             conn.executescript(DB_SCHEMA)
+            # Migration idempotente: aggiunge paid_at a DB esistenti (Task 4 C-GATE-FONTE-001)
+            try:
+                conn.execute("ALTER TABLE deals ADD COLUMN paid_at INTEGER")
+                conn.commit()
+            except sqlite3.OperationalError as e:
+                if "duplicate column" not in str(e).lower():
+                    raise
             conn.commit()
         finally:
             conn.close()
@@ -210,6 +218,40 @@ class DealStateMachine(StateMachine):
             return [dict(zip(cols, row)) for row in cur.fetchall()]
         finally:
             conn.close()
+
+
+def create_deal(
+    deal_id: str,
+    dealer_alias: str,
+    seller_alias: str,
+    vehicle_desc: str,
+    source_locked: dict,
+    db_path: str | Path = "deals.sqlite",
+    fee_eur: int = 1000,
+) -> DealStateMachine:
+    """Crea un nuovo Deal e lo persiste con fonte in cassaforte (C-GATE-FONTE-001).
+
+    source_locked DEVE contenere: listing_url, seller_name, seller_city, seller_phone, portal.
+    La fonte rimane nascosta finché current_state != 'payment_confirmed'.
+
+    Returns:
+        DealStateMachine istanziata nello stato iniziale offer_sent.
+    """
+    required_keys = {"listing_url", "seller_name", "seller_city", "seller_phone", "portal"}
+    missing = required_keys - set(source_locked.keys())
+    if missing:
+        raise ValueError(f"source_locked mancante di campi obbligatori: {missing}")
+
+    deal = Deal(
+        deal_id=deal_id,
+        dealer_alias=dealer_alias,
+        seller_alias=seller_alias,
+        vehicle_desc=vehicle_desc,
+        fee_eur=fee_eur,
+        metadata={"source_locked": source_locked},
+    )
+    fsm = DealStateMachine(deal, db_path=db_path)
+    return fsm
 
 
 if __name__ == "__main__":

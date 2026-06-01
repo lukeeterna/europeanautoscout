@@ -218,7 +218,11 @@ class ARGOSPDFGenerator:
         dealer: DealerInfo,
         output_path: str,
         grade_data: Optional[dict] = None,
+        source_dossier: Optional[dict] = None,
     ) -> str:
+        # C-GATE-FONTE-001: source_dossier è renderizzato SOLO se passato esplicitamente.
+        # Il path dealer standard non lo passa mai → la fonte non può mai trapelare nel
+        # PDF preview. Unico caller legittimo: release_source_dossier() post-pagamento.
         if not REPORTLAB_AVAILABLE:
             return self._generate_fallback_text_report(vehicle, dealer, output_path)
 
@@ -253,6 +257,12 @@ class ARGOSPDFGenerator:
         # Executive summary — key numbers (V2: uses grade_data for market price)
         story.append(self._create_executive_summary(vehicle, grade_data=grade_data))
         story.append(Spacer(1, 6*mm))
+
+        # C-GATE-FONTE-001: sezione fonte veicolo (venditore/URL/contatti) renderizzata
+        # SOLO post-pagamento, quando release_source_dossier passa source_dossier.
+        if source_dossier:
+            story.append(self._create_source_section(source_dossier))
+            story.append(Spacer(1, 6*mm))
 
         # Two-column: Vehicle details + Scoring side by side
         story.append(self._create_details_and_scoring(vehicle, grade_data=grade_data))
@@ -946,6 +956,50 @@ class ARGOSPDFGenerator:
             ('LINEBELOW', (0, 1), (-1, -1), 0.3, HexColor('#E5E7EB')),
         ]))
         return opp_table
+
+    def _create_source_section(self, source_dossier: dict) -> Table:
+        """C-GATE-FONTE-001: sezione 'Fonte veicolo' renderizzata SOLO post-pagamento.
+
+        Mostra in chiaro venditore, città, telefono, portale e URL annuncio.
+        Mai invocata nel path dealer standard: richiede source_dossier esplicito,
+        passato unicamente da release_source_dossier (current_state==payment_confirmed).
+        """
+        value_style = ParagraphStyle(
+            'SourceValue', fontSize=9, fontName='Helvetica',
+            textColor=self.text_dark, leading=11,
+        )
+
+        def _cell(key: str, default: str = "N/D") -> "Paragraph":
+            v = source_dossier.get(key)
+            return Paragraph(str(v) if v else default, value_style)
+
+        source_data = [
+            ['FONTE VEICOLO — DOCUMENTO RISERVATO', ''],
+            ['Venditore', _cell('seller_name')],
+            ['Citta', _cell('seller_city')],
+            ['Telefono', _cell('seller_phone')],
+            ['Portale', _cell('portal')],
+            ['Annuncio (URL)', _cell('listing_url')],
+        ]
+
+        source_table = Table(source_data, colWidths=[45*mm, 95*mm])
+        source_table.setStyle(TableStyle([
+            ('SPAN', (0, 0), (1, 0)),
+            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
+            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 1), (0, -1), 9),
+            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
+            ('LINEBELOW', (0, 1), (-1, -1), 0.3, HexColor('#E5E7EB')),
+        ]))
+        return source_table
 
     def _create_verification_section(self, vehicle: VehicleData, grade_data: dict = None) -> Table:
         """Create verification section with REAL data from VIN verification pipeline."""
@@ -1762,7 +1816,7 @@ def generate_dossier_from_data(
         transmission=_translate_transmission(best.get('transmission', '')),
         color=best.get('color', '') or 'N/D',
         source_country=_translate_country(best.get('country', '')),
-        source_url=best.get('listing_url', ''),
+        source_url="",  # C-GATE-FONTE-001: fonte nascosta nel preview, esposta solo dal pdf_gated_source.py post-pagamento
         vin=best.get('vin'),
         km_score=int(confidence * 90),
         price_score=int(confidence * 100),
