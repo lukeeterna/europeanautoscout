@@ -1,40 +1,40 @@
-# S217 — Test empirico reverse-search anti-tracciamento foto preview
+# S219 — Fossato-servizio import: verifica Gemini + wording materiali
 
-## Stato (chiuso a context 60%, vincolo #7)
+## STATO (chiuso S218 a context 61%)
+Research-first su S218 step2 ("rendere visibile handling import"). 3 sub-agent WebSearch a buon
+fine (legal/operativo/competitivo), fonti citate. Sintesi in memory `s218_fossato_servizio_import_research.md`.
 
-Validato output Gemini Deep Research su anti-reverse foto preview. Posizione CTO:
-- **img2img ESCLUSO** (verificato): Draw Things 12.4+ / DiffusionBee 13.1+ incompat Big Sur 11;
-  rischio legale reale D.Lgs 145/2007 → AGCM €5.000–500.000 se rimuove difetti reali (pubblicità ingannevole B2B).
-- **Macro-crop dettagli reali = protezione STRUTTURALE** (no geometria globale → no exact match; zero
-  alterazione pixel → zero rischio legale). È il cuore raccomandato.
-- **Line-art esterno = NON verificato** ("100%" di Gemini = stesso claim non testato di S216). Da misurare.
-- Principio Luke: solo i DATI validano. Domanda A (tecnica) testabile ora a costo zero; Domanda B (il dealer
-  reverse-searcha davvero?) = N=0 dealer, dato non forzabile → non sovra-ingegnerizzare prima del Day 1 reale.
+## SCOPERTA CHIAVE (convergenza 3/3)
+**Soggetto IVA intracomunitaria = SEMPRE e SOLO il dealer (acquirente).** F24 Elide esce dalla sua P.IVA.
+→ Claim S218 "gestisco IVA intracomunitaria" è FALSO + rischio AGCM D.Lgs 145/2007 (caso Prima Ass. €250k).
+"gestisco" è FUORI. Per esserlo davvero ARGOS dovrebbe comprare lui l'auto (mandato senza rappresentanza
+→ capitale+VIES, incompat zero-capex).
 
-## Artefatti pronti (throwaway, /tmp — NON in repo)
-- Script: `/tmp/s217_revtest.py` (scraper reale AS24 DE → 3 varianti, solo PIL+numpy, no cv2, Big Sur OK).
-- Sample in `/tmp/s217_revtest/` da listing REALE BMW X5 xDrive40d grigio (DE):
-  - `00_original.jpg` (1280×960, foto sorgente reale)
-  - `01_macrocrop.jpg` (crop centrale 400×400)
-  - `02_lineart.png` (adaptive gaussian threshold)
-  - Listing sorgente: autoscout24.de/.../d8924ac1-44fe-40c5-a150-09573b3188ec
+## MODELLO RACCOMANDATO (non finale, gated su Gemini)
+ARGOS = "ufficio acquisti estero": coordina/orchestra, **il dealer compra e resta soggetto fiscale**.
+Vero fossato = "trovo + ti QUALIFICO FISCALMENTE l'auto (margine vs IVA → margine netto reale) +
+orchestro filiera assicurata; compri TU e tieni margine+regime IVA; paghi solo a deal chiuso".
+Anelli orchestrabili a costo zero: targa export €50-80 / trasporto broker €350-900 / CoC €120-300 /
+agenzia pratiche IT €300-600. Combo scouting-B2B-proattivo+success-fee+dealer-fiscale = territorio vuoto.
 
-## PROSSIMO STEP (manuale Luke — TinEye/Lens non hanno API free)
-1. Caricare i 3 sample su **TinEye** + **Google Lens**.
-2. Annotare per ciascuno: match con la listing AS24 sorgente? (SI/NO).
-3. Esito atteso/ipotesi:
-   - macro-crop → NO match (protezione strutturale confermata) = va in produzione.
-   - line-art → da verificare. Se SI match → morto come S216. Se NO → candidato.
-   - original → SI match (baseline, conferma che il test funziona).
-4. Solo le varianti NO-match = protezione VERIFICATA. Le altre fuori.
+## PROSSIMI STEP S219
+1. **Luke incolla in Gemini Deep Research** i 3 prompt consegnati nel thread S218 (priorità PROMPT 1
+   FISCALE — è il kill-shot legale). Riporta gli output a CC.
+2. **CC**: incrocia output Gemini in matrix VERIFIED/DISPUTED/UNVERIFIABLE (come S217). Chiudi
+   raccomandazione finale sul wording esatto materiali.
+3. **Solo dopo fiscale blindato**: riconcilia landing/index.html (Step03 :523, FAQ :588, card :476,
+   fee :597 dicono OGGI l'opposto — "a parte/gestisci tu"). Poi PDF. Messaggi Day1 NO (rule vieta
+   import/Germania/estero + gated C-COMM-INTEL-001).
 
-## NON modificare
-- `image_sanitizer.py` e codice produzione: INTATTI. Il test è throwaway. Integrazione discussa solo
-  DOPO che il test dà il dato.
+## 3 VINCOLI da blindare
+- L.264/1991: pratiche abituali per terzi = autorizzazione provinciale → ARGOS orchestra agenzia esistente.
+- Qualificazione fiscale = "verifica documentale" non "consulenza" (servirebbe commercialista convenzionato).
+- Trappola "auto nuova" IVA: <6 mesi O <6.000 km = IVA 22% sempre IT → colpisce premium km0/demo recenti.
 
-## Decisione di scope aperta (Luke)
-Il fossato ARGOS è "il dealer non trova l'annuncio" o "anche se lo trova, scavalcarti non conviene"
-(import/IVA/trasporto, come Bolidem/AUTO1 che NON nascondono le foto)? Determina quanto investire in anti-reverse.
+## NON toccare
+- image_sanitizer.py / codice produzione (S218 step1 TinEye manuale Luke su /tmp/s217_revtest/ ancora pending).
+- landing/PDF/messaggi finché fiscale NON blindato (= scrivere claim su terreno non verificato).
 
-## Riferimenti memory
-- `s216_anti_reverse_transform_refuted.md` (TinEye becca processed 2/2; no-foto rifiutato da Luke)
+## Rif
+- memory: `s218_fossato_servizio_import_research.md`, `s217_anti_reverse_validation.md`
+- blocker Day1 PLAN.md: C-SAN-001, C-E2E-ZERO, C-COMM-INTEL-001, C-GATE-FONTE-001
