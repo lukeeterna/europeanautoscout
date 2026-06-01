@@ -12,6 +12,21 @@ Luke decide: ARGOS NON più "scouting only" → orchestra l'intera filiera (tras
 **2 GUARDRAIL (Luke):** (1) affidabilità dati — claim fiscali verificati fonte primaria, mai inventati; (2) zero costi — ogni anello orchestrato a costo zero ARGOS.
 **3 PALETTI WORDING:** "coordino agenzie autorizzate" (no pratiche in proprio, L.264/1991) · "verifica documentale del regime fiscale" (no "consulenza") · MAI "gestisco/assolvo IVA" → "resti TU soggetto fiscale".
 
+### 🔵 OPZIONE APERTA — aprire la PR e fare merge su master (DECISIONE LUKE)
+Stato: il branch `s210/audit-master-plan` è stato PUSHATO su GitHub (27 commit). NON è ancora unito a `master`.
+
+**Cosa significa in parole semplici (per Luke, non-dev):**
+- `master` = il ramo "ufficiale" del progetto su GitHub, la versione considerata buona/definitiva.
+- `s210/audit-master-plan` = un ramo SEPARATO dove Claude ha accumulato tutto il lavoro recente. Ora è su GitHub ma vive a parte, senza toccare master.
+- **"merge su master"** = unire questo lavoro dentro il ramo ufficiale → diventa la versione definitiva del progetto. Da quel momento master "contiene" tutto.
+- **"= scelta tua"** = è un'azione che cambia la storia ufficiale ed è di fatto irreversibile. Finché NON fai merge, master resta esattamente com'era prima (nessun rischio). Quindi decidi TU se e quando farlo — Claude non lo fa in autonomia.
+- **PR (Pull Request)** = la pagina GitHub dove si rivede il lavoro prima di unirlo. Link già pronto: https://github.com/lukeeterna/europeanautoscout/pull/new/s210/audit-master-plan
+
+**Opzione per S222 — Luke sceglie UNA (scope, non tecnica):**
+- (A) Apro la PR e faccio merge su master ora (consolido tutto l'accumulato S180→S221).
+- (B) Lascio il branch separato e procedo col lavoro S222 (Gemini + landing) sullo stesso branch, merge più avanti.
+> Nota: prima del merge, ri-scansione secret sul diff verso master (già fatta in S221: pulito sul vivo, solo riferimento troncato+morto alla vecchia chiave nei doc handoff).
+
 ## PROSSIMI STEP S222 (in ordine)
 1. **Gemini Deep Research** — validare LEGALMENTE il modello orchestrazione (guardrail #1). Riprendere i 3 prompt consegnati S218 (stream fiscale prioritario). Output → matrix VERIFIED/DISPUTED come S217.
 2. **Rewrite 3 sezioni landing** `landing/index.html` (card :476, Step03 :523, FAQ :588, fee :597) rispettando i 3 paletti. La frase illegale "gestisco IVA" NON è presente oggi (verificato) — il problema è il posizionamento "import a parte / gestisci tu", opposto al partner-unico.
