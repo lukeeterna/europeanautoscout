@@ -1,35 +1,36 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-01T19:36:05Z`
+**Generato**: `2026-06-01T19:46:08Z`
 **Sessione**: `4dd0144d-8f3b-4a1f-a438-ec6ed403a2df`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
-**Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
-**Last commit**: `3e97b6a chore(S220 close): handoff S221 — secret leak risolto, 2/3 token morti, OpenRouter da revocare`
+**Commit auto**: no-changes
+**Last commit**: `cd163ec chore(S221 close): leak hook fixato + DECISIONE partner-unico → handoff S222`
 
 ## Ultimi 5 commit
 ```
+cd163ec chore(S221 close): leak hook fixato + DECISIONE partner-unico → handoff S222
 3e97b6a chore(S220 close): handoff S221 — secret leak risolto, 2/3 token morti, OpenRouter da revocare
 e1f8aec feat(S180-S218): lavoro accumulato — research, audit, planning, skills, scraper Marche
 d635e6d chore(S219 close): handoff S220 — fisco verificato fonte primaria + dirty 2/3 committato, commit 3 blocca secret
 1bf984d chore(S219): rimuovi 64 prompts/ legacy + STATE/CURRENT_SPRINT → riorg .planning
-5bd5c63 chore(S219): gitignore hardening — dossiers/ 130MB + QR login + junk; untrack .pyc
 ```
 
 ## File modificati nell'ultimo commit
 ```
 M	.claude/NEXT_SESSION_PROMPT.manual.md
+M	.claude/NEXT_SESSION_PROMPT.md
 ```
 
 ## Ultimo prompt utente (estratto)
 ```
-[{"tool_use_id":"toolu_018n5n25SiQiPj15PM4pAFgn","type":"tool_result","content":"Deleted branch backup-pre-s220-reset-1a132e3 (was 1a132e3).\n--- verifica: 1a132e3 ora irraggiungibile dai branch ---","is_error":false}]
+[{"tool_use_id":"toolu_013z4wrqGUKEB3cS7K9ZZMu1","type":"tool_result","content":"🔍 ARGOS Pre-Commit Checks...\n✅ Pre-commit checks passed\n[s210/audit-master-plan cd163ec] chore(S221 close): leak hook fixato + DECISIONE partner-unico → handoff S222\n 2 files changed, 69 insertions(+), 74 deletions(-)\n rewrite .claude/NEXT_SESSION_PROMPT.manual.md (97%)\n rewrite .claude/NEXT_SESSION_PROMPT.md (61%)\n--- exit code: 0 ---\ncd163ec chore(S221 close): leak hook fixato + DECISIONE partner-uni
 ```
 
 ## Ultimi turni assistant
 ```
-Se **NO** → la landing resta com'è, e cade anche lo step 5 (scraper trasporto, che serve solo al modello orchestrazione).
----
-Context al 57% (chiudo a 60%). Aggiorno `NEXT_SESSION_PROMPT.manual.md` con stato reale (step 1-2-3 done, anelli VERIFIED 1/9, step 4-5 in attesa del tuo SÌ/NO) e chiudo ordinato. Procedo?
+**Stato reale ARGOS** (non ready): anelli VERIFIED 1/9, safety 0/8, E2E non osservato.
+**Push**: NON ho pushato. Il branch `s210/audit-master-plan` ha nella history profonda (S49-S51) token Telegram ormai morti — pubblicarli è basso rischio ma è una scelta tua, non l'ho fatta in autonomia. Dimmi se vuoi che pushi.
+Sessione chiusa verde sul lavoro completato. Context 64%.
 ```
 
 ## Come riprendere
