@@ -1,15 +1,15 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-01T17:41:35Z`
-**Sessione**: `faaf04c5-452e-4e04-9fc3-a314ddf03101`
+**Generato**: `2026-06-01T19:36:05Z`
+**Sessione**: `4dd0144d-8f3b-4a1f-a438-ec6ed403a2df`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
-**Commit auto**: committed: cd25f0b
-**Last commit**: `cd25f0b auto-close session faaf04c5-452e-4e04-9fc3-a314ddf03101 @ 2026-06-01T17:41:35Z`
+**Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
+**Last commit**: `3e97b6a chore(S220 close): handoff S221 — secret leak risolto, 2/3 token morti, OpenRouter da revocare`
 
 ## Ultimi 5 commit
 ```
-cd25f0b auto-close session faaf04c5-452e-4e04-9fc3-a314ddf03101 @ 2026-06-01T17:41:35Z
-1a132e3 auto-close session faaf04c5-452e-4e04-9fc3-a314ddf03101 @ 2026-06-01T17:37:54Z
+3e97b6a chore(S220 close): handoff S221 — secret leak risolto, 2/3 token morti, OpenRouter da revocare
+e1f8aec feat(S180-S218): lavoro accumulato — research, audit, planning, skills, scraper Marche
 d635e6d chore(S219 close): handoff S220 — fisco verificato fonte primaria + dirty 2/3 committato, commit 3 blocca secret
 1bf984d chore(S219): rimuovi 64 prompts/ legacy + STATE/CURRENT_SPRINT → riorg .planning
 5bd5c63 chore(S219): gitignore hardening — dossiers/ 130MB + QR login + junk; untrack .pyc
@@ -17,20 +17,19 @@ d635e6d chore(S219 close): handoff S220 — fisco verificato fonte primaria + di
 
 ## File modificati nell'ultimo commit
 ```
-M	.claude/NEXT_SESSION_PROMPT.md
-D	.claude/SESSION_DIRTY.md
+M	.claude/NEXT_SESSION_PROMPT.manual.md
 ```
 
 ## Ultimo prompt utente (estratto)
 ```
-[{"tool_use_id":"toolu_01U6ZEbJyWUW2qsXUiLqhytR","type":"tool_result","content":"=== 1a132e3 include chrome_profile / DB? ===\nsrc/marketing/chroma_db/chroma.sqlite3\ntools/scrapers/.chrome_profile/AmountExtractionHeuristicRegexes/4/_metadata/verified_contents.json\ntools/scrapers/.chrome_profile/AmountExtractionHeuristicRegexes/4/heuristic_regexes.binarypb\ntools/scrapers/.chrome_profile/AmountExtractionHeuristicRegexes/4/manifest.json\ntools/scrapers/.chrome_profile/AutofillStates/2025.6.13.84
+[{"tool_use_id":"toolu_018n5n25SiQiPj15PM4pAFgn","type":"tool_result","content":"Deleted branch backup-pre-s220-reset-1a132e3 (was 1a132e3).\n--- verifica: 1a132e3 ora irraggiungibile dai branch ---","is_error":false}]
 ```
 
 ## Ultimi turni assistant
 ```
-5. Commit selettivo del lavoro vero (src/tools/tests/landing/research/.planning/skills), **mai** `git add -A`.
-L'alternativa (lasciare così) significa 3 secret live + 140MB junk nella history locale, che al primo push diventano pubblici: strettamente peggio.
-Il punto 1 riscrive il tip del branch — locale e reversibile, ma è un'operazione di history rewrite. **Dammi un GO** e procedo con tutta la sequenza 1-5. La revoca dei 3 secret resta tua e urgente, indipendente da questo.
+Se **NO** → la landing resta com'è, e cade anche lo step 5 (scraper trasporto, che serve solo al modello orchestrazione).
+---
+Context al 57% (chiudo a 60%). Aggiorno `NEXT_SESSION_PROMPT.manual.md` con stato reale (step 1-2-3 done, anelli VERIFIED 1/9, step 4-5 in attesa del tuo SÌ/NO) e chiudo ordinato. Procedo?
 ```
 
 ## Come riprendere

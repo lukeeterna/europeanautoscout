@@ -1,32 +1,28 @@
-# S221 — Fix hook auto-close + wording fisco landing + scraper trasporto
+# S222 — Partner unico: Gemini Deep Research → rewrite landing fiscale
 
-## STATO CHIUSO S220 (context 61%)
+## STATO CHIUSO S221
+### ✅ Sicurezza leak (step 1-2-3 S221) — CHIUSO
+- **Step 1** — `~/.claude/hooks/global_session_end.sh`: gate secret+junk DOPO `git add -A`. Scansiona staged diff (regex sk-or/sk-ant/sk-/ghp_/github_pat_/AKIA/xox/Telegram + junk .chrome_profile/.bak/.db/.sqlite). Hit → `git reset` + SESSION_DIRTY.md redatto, MAI commit. Testato in repo temp: vettori S220 bloccati, codice pulito passa.
+- **Step 3** — `.git/hooks/pre-commit`: stesso TOKEN_PATTERN aggiunto (prima matchava solo `api_key=`). Testato.
+- **Step 2** — branch `backup-pre-s220-reset-1a132e3` ELIMINATO. Commit-disastro `1a132e3` fuori da ogni branch (solo reflog ~30gg).
+- **OpenRouter**: Luke ha ruotato, nuovo token in `.env` (verificato presenza prefisso sk-or-v1). GitHub PAT + Telegram già morti.
 
-### ✅ Risolto: secret leak + commit-disastro auto-close
-- **Premessa S220 superata**: non era "un secret blocca commit 3". Un **hook di auto-close** aveva già committato in locale `1a132e3` = 3477 file con **3 secret LIVE** + 140MB `.chrome_profile` + DB.
-- **Fix applicato** (tutto locale, branch `s210/audit-master-plan` mai pushato):
-  1. `git reset --mixed d635e6d` (disfa auto-close). Backup in branch `backup-pre-s220-reset-1a132e3`.
-  2. gitignore v2: `*.bak`, `.claude/*.backup_*`, `tools/scrapers/.chrome_profile/`, `*.db`, `*.sqlite3`.
-  3. `rm` 4 `.bak` con command-history leakante.
-  4. Scrub token nei doc `.planning/CODE-AUDIT.md` + `SECURITY-AUDIT.md` → `<REDACTED-*>`.
-  5. ARGOS_API_KEY → `os.environ` in chaos_db_stress.py/chaos_test.sh + placeholder prompt.
-  6. **Commit pulito `e1f8aec`** (278 file, zero junk, zero secret, pre-commit passato).
+### ✅ DECISIONE FOUNDER S221 — "PARTNER UNICO ORCHESTRATORE"
+Luke decide: ARGOS NON più "scouting only" → orchestra l'intera filiera (trasporto+pratiche+qualificazione fiscale), dealer resta acquirente+soggetto fiscale, paga a risultato. Punto = **unicità del servizio**. Memory: `s221_decisione_partner_unico_orchestratore.md`.
+**2 GUARDRAIL (Luke):** (1) affidabilità dati — claim fiscali verificati fonte primaria, mai inventati; (2) zero costi — ogni anello orchestrato a costo zero ARGOS.
+**3 PALETTI WORDING:** "coordino agenzie autorizzate" (no pratiche in proprio, L.264/1991) · "verifica documentale del regime fiscale" (no "consulenza") · MAI "gestisco/assolvo IVA" → "resti TU soggetto fiscale".
 
-### 🔴 AZIONE LUKE PENDING — revoca 1 secret
-Verifica live fatta su tutti e 3:
-- GitHub PAT `ghp_zgws…` → **già MORTO** (401). Nulla da fare.
-- Telegram bot `8691360619:AAG…` → **già MORTO** (Unauthorized). Nulla da fare.
-- **OpenRouter `sk-or-v1-2f13…` → ANCORA VIVA** → revoca su https://openrouter.ai/settings/keys, rigenera, nuova in `.env`.
-
-## PROSSIMI STEP S221 (in ordine)
-1. **Fix hook auto-close** (P1 strutturale) — fa `git add -A` cieco bypassando check secret. Renderlo secret-aware o limitarlo a file in-scope. Probabilmente Stop hook in `~/.claude/settings.json`. Vedi memory `s220_autoclose_hook_secret_leak.md`.
-2. **`git branch -D backup-pre-s220-reset-1a132e3`** — DOPO che Luke conferma revoca OpenRouter (il branch contiene il commit-disastro con i secret, solo locale).
-3. **Pre-commit hook v2** — il check attuale matcha solo il pattern `api_key` assegnato a stringa. Estendere a prefissi `sk-or-`/`sk-`/`ghp_`/`github_pat_` e token Telegram `\d{8,10}:AA`.
-4. **Wording fisco landing** (`landing/index.html` Step03:523, FAQ:588, card:476, fee:597) — dice l'opposto del fisco verificato S219. Riconciliare: "resti TU acquirente e soggetto fiscale; coordino agenzie autorizzate; paghi solo a risultato". MAI "gestisco/assolvo io l'IVA".
-5. **S220-2 scraper trasporto** DE→IT (Clicktrans/Macingo) — prima validare quali portali espongono preventivi pubblici scrapeable.
-
-## Day 1 Stile Car — blocker invariati
-C-SAN-001 (TinEye manuale Luke /tmp/s217_revtest/ pending), C-E2E-ZERO, C-COMM-INTEL-001, C-GATE-FONTE-001.
+## PROSSIMI STEP S222 (in ordine)
+1. **Gemini Deep Research** — validare LEGALMENTE il modello orchestrazione (guardrail #1). Riprendere i 3 prompt consegnati S218 (stream fiscale prioritario). Output → matrix VERIFIED/DISPUTED come S217.
+2. **Rewrite 3 sezioni landing** `landing/index.html` (card :476, Step03 :523, FAQ :588, fee :597) rispettando i 3 paletti. La frase illegale "gestisco IVA" NON è presente oggi (verificato) — il problema è il posizionamento "import a parte / gestisci tu", opposto al partner-unico.
+3. **Review legal-compliance** sulla copy riscritta PRIMA di qualsiasi deploy (gate AGCM €5k-500k).
+4. **Step 5 — scraper trasporto** DE→IT (Clicktrans/Macingo): validare quali portali espongono preventivi pubblici scrapeable. Sbloccato dal modello orchestrazione.
 
 ## NON toccare
-image_sanitizer.py / codice produzione. landing/PDF/messaggi finché materiali non riscritti+rivisti.
+image_sanitizer.py / codice produzione. NON deployare landing/PDF/messaggi finché copy riscritta E rivista.
+
+## Stato reale anelli ARGOS (NON production-ready)
+VERIFIED = 1/9 (#1 scrape). #6 inbox `messages` MISSING. #9 HITL EXISTS_BUGGY (`sent=1 approvata=0`). Safety 0/8. E2E osservato Luke: NO.
+
+## Day 1 Stile Car — blocker invariati
+C-SAN-001 (TinEye manuale Luke /tmp/s217_revtest/), C-E2E-ZERO, C-COMM-INTEL-001, C-GATE-FONTE-001.
