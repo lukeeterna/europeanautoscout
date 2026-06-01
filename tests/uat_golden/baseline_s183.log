@@ -1,0 +1,155 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.11.11, pytest-9.0.3, pluggy-1.6.0 -- /Users/macbook/.argos-sanitizer-venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/macbook/Documents/combaretrovamiauto-enterprise
+plugins: anyio-4.13.0
+collecting ... collected 10 items
+
+tests/test_sanitizer_golden.py::test_sanitizer_golden[g01_isernhagen_smoke_00.zones] FAILED [ 10%]
+tests/test_sanitizer_golden.py::test_sanitizer_golden[g02_isernhagen_smoke_01.zones] FAILED [ 20%]
+tests/test_sanitizer_golden.py::test_sanitizer_golden[g03_isernhagen_smoke_02.zones] FAILED [ 30%]
+tests/test_sanitizer_golden.py::test_sanitizer_golden[g04_isernhagen_raw_00.zones] FAILED [ 40%]
+tests/test_sanitizer_golden.py::test_sanitizer_golden[g05_isernhagen_raw_01.zones] FAILED [ 50%]
+tests/test_sanitizer_golden.py::test_sanitizer_golden[g06_mixed_030c.zones] FAILED [ 60%]
+tests/test_sanitizer_golden.py::test_sanitizer_golden[g07_mixed_39d6.zones] FAILED [ 70%]
+tests/test_sanitizer_golden.py::test_sanitizer_golden[g08_mixed_4289.zones] FAILED [ 80%]
+tests/test_sanitizer_golden.py::test_sanitizer_golden[g09_mixed_76ea.zones] FAILED [ 90%]
+tests/test_sanitizer_golden.py::test_sanitizer_golden[g10_mixed_7baf.zones] FAILED [100%]
+
+=================================== FAILURES ===================================
+E   AssertionError: auto_features OVER-MASKED ratio=0.6341 > 0.02 bbox=(432,216,1007,842)
+    assert not ['auto_features OVER-MASKED ratio=0.6341 > 0.02 bbox=(432,216,1007,842)']
+----------------------------- Captured stdout call -----------------------------
+  [BANNER] Crop top 54px (5%)
+  [BANNER] Crop bottom at row 937px (87%)
+  [OCR] 3 seller match(es): "Autohaus Isernhagen", "barshagen to n Servicaparner:", "Autohaus Isernhagen"
+  [OCR] 2 other text region(s) to mask
+  [FILL] 5 text region(s) covered (Pillow rect)
+  [CROP] Bottom at row 883px
+  SANITIZED: argos_golden_00.jpg (172 KB, 4.1s)
+------------------------------ Captured log call -------------------------------
+WARNING  argos.sanitizer:image_sanitizer.py:687 HOOD REFLECTION: golden img#0
+Possible text reflection on hood — review manually
+WARNING  argos.sanitizer:image_sanitizer.py:167 TELEGRAM_BOT_TOKEN or TELEGRAM_ADMIN_CHAT_IDS not set — alert skipped
+/Users/macbook/Documents/combaretrovamiauto-enterprise/tests/test_sanitizer_golden.py:127: AssertionError: auto_features OVER-MASKED ratio=0.6341 > 0.02 bbox=(432,216,1007,842)
+E   AssertionError: auto_features OVER-MASKED ratio=0.7674 > 0.02 bbox=(432,216,1007,842)
+    assert not ['auto_features OVER-MASKED ratio=0.7674 > 0.02 bbox=(432,216,1007,842)']
+----------------------------- Captured stdout call -----------------------------
+  [BANNER] Crop top 54px (5%)
+  [BANNER] Crop bottom at row 819px (76%)
+  [OCR] 2 seller match(es): "Autohaus Isernhagen", "Autohaus Isernhagen BMW Servicopartner"
+  [FILL] 2 text region(s) covered (Pillow rect)
+  [CROP] Bottom at row 765px
+  SANITIZED: argos_golden_01.jpg (121 KB, 3.1s)
+/Users/macbook/Documents/combaretrovamiauto-enterprise/tests/test_sanitizer_golden.py:127: AssertionError: auto_features OVER-MASKED ratio=0.7674 > 0.02 bbox=(432,216,1007,842)
+E   AssertionError: auto_features OVER-MASKED ratio=0.6508 > 0.02 bbox=(384,192,896,748)
+    assert not ['auto_features OVER-MASKED ratio=0.6508 > 0.02 bbox=(384,192,896,748)']
+----------------------------- Captured stdout call -----------------------------
+  [BANNER] Crop top 48px (5%)
+  [OCR] 1 seller match(es): "Autohaus Isemhagen"
+  [OCR] 1 other text region(s) to mask
+  [FILL] 2 text region(s) covered (Pillow rect)
+  [CROP] Bottom 137px (uniform strip)
+  SANITIZED: argos_golden_02.jpg (120 KB, 2.9s)
+/Users/macbook/Documents/combaretrovamiauto-enterprise/tests/test_sanitizer_golden.py:127: AssertionError: auto_features OVER-MASKED ratio=0.6508 > 0.02 bbox=(384,192,896,748)
+E   AssertionError: auto_features OVER-MASKED ratio=0.6341 > 0.02 bbox=(432,216,1007,842)
+    assert not ['auto_features OVER-MASKED ratio=0.6341 > 0.02 bbox=(432,216,1007,842)']
+----------------------------- Captured stdout call -----------------------------
+  [BANNER] Crop top 54px (5%)
+  [BANNER] Crop bottom at row 937px (87%)
+  [OCR] 2 seller match(es): "- Autohaus Isernhagen", "Autohaus Isernhagen"
+  [OCR] 3 other text region(s) to mask
+  [FILL] 5 text region(s) covered (Pillow rect)
+  [CROP] Bottom at row 883px
+  SANITIZED: argos_golden_00.jpg (172 KB, 3.0s)
+------------------------------ Captured log call -------------------------------
+WARNING  argos.sanitizer:image_sanitizer.py:687 HOOD REFLECTION: golden img#0
+Possible text reflection on hood — review manually
+WARNING  argos.sanitizer:image_sanitizer.py:167 TELEGRAM_BOT_TOKEN or TELEGRAM_ADMIN_CHAT_IDS not set — alert skipped
+/Users/macbook/Documents/combaretrovamiauto-enterprise/tests/test_sanitizer_golden.py:127: AssertionError: auto_features OVER-MASKED ratio=0.6341 > 0.02 bbox=(432,216,1007,842)
+E   AssertionError: auto_features OVER-MASKED ratio=0.7678 > 0.02 bbox=(432,216,1007,842)
+    assert not ['auto_features OVER-MASKED ratio=0.7678 > 0.02 bbox=(432,216,1007,842)']
+----------------------------- Captured stdout call -----------------------------
+  [BANNER] Crop top 54px (5%)
+  [BANNER] Crop bottom at row 819px (76%)
+  [OCR] 2 seller match(es): "Autohaus Isernhagen", "Autohaus Isernhagen BMW Servicopartner"
+  [FILL] 2 text region(s) covered (Pillow rect)
+  [CROP] Bottom at row 765px
+  SANITIZED: argos_golden_01.jpg (117 KB, 2.8s)
+/Users/macbook/Documents/combaretrovamiauto-enterprise/tests/test_sanitizer_golden.py:127: AssertionError: auto_features OVER-MASKED ratio=0.7678 > 0.02 bbox=(432,216,1007,842)
+E   AssertionError: auto_features OVER-MASKED ratio=0.6418 > 0.02 bbox=(432,216,1007,842)
+    assert not ['auto_features OVER-MASKED ratio=0.6418 > 0.02 bbox=(432,216,1007,842)']
+----------------------------- Captured stdout call -----------------------------
+  [BANNER] Crop top 54px (5%)
+  [BANNER] Crop bottom at row 938px (87%)
+  [OCR] 4 other text region(s) to mask
+  [FILL] 4 text region(s) covered (Pillow rect)
+  [CROP] Bottom at row 884px
+  SANITIZED: argos_golden_00.jpg (169 KB, 2.8s)
+/Users/macbook/Documents/combaretrovamiauto-enterprise/tests/test_sanitizer_golden.py:127: AssertionError: auto_features OVER-MASKED ratio=0.6418 > 0.02 bbox=(432,216,1007,842)
+E   AssertionError: auto_features OVER-MASKED ratio=0.5934 > 0.02 bbox=(432,216,1007,842)
+    assert not ['auto_features OVER-MASKED ratio=0.5934 > 0.02 bbox=(432,216,1007,842)']
+----------------------------- Captured stdout call -----------------------------
+  [BANNER] Crop top 198px (18%)
+  [BANNER] Crop bottom at row 889px (82%)
+  [OCR] 5 other text region(s) to mask
+  [FILL] 5 text region(s) covered (Pillow rect)
+  [CROP] Bottom at row 691px
+  SANITIZED: argos_golden_00.jpg (164 KB, 2.9s)
+------------------------------ Captured log call -------------------------------
+WARNING  argos.sanitizer:image_sanitizer.py:687 HOOD REFLECTION: golden img#0
+Possible text reflection on hood — review manually
+WARNING  argos.sanitizer:image_sanitizer.py:167 TELEGRAM_BOT_TOKEN or TELEGRAM_ADMIN_CHAT_IDS not set — alert skipped
+/Users/macbook/Documents/combaretrovamiauto-enterprise/tests/test_sanitizer_golden.py:127: AssertionError: auto_features OVER-MASKED ratio=0.5934 > 0.02 bbox=(432,216,1007,842)
+E   AssertionError: auto_features OVER-MASKED ratio=0.6450 > 0.02 bbox=(432,216,1007,842)
+    assert not ['auto_features OVER-MASKED ratio=0.6450 > 0.02 bbox=(432,216,1007,842)']
+----------------------------- Captured stdout call -----------------------------
+  [BANNER] Crop top 198px (18%)
+  [BANNER] Crop bottom at row 869px (80%)
+  [OCR] 5 other text region(s) to mask
+  [FILL] 5 text region(s) covered (Pillow rect)
+  [CROP] Bottom at row 671px
+  SANITIZED: argos_golden_00.jpg (121 KB, 3.0s)
+/Users/macbook/Documents/combaretrovamiauto-enterprise/tests/test_sanitizer_golden.py:127: AssertionError: auto_features OVER-MASKED ratio=0.6450 > 0.02 bbox=(432,216,1007,842)
+E   AssertionError: auto_features OVER-MASKED ratio=0.8284 > 0.02 bbox=(383,192,894,748)
+    assert not ['auto_features OVER-MASKED ratio=0.8284 > 0.02 bbox=(383,192,894,748)']
+----------------------------- Captured stdout call -----------------------------
+  [BANNER] Crop top 199px (21%)
+  [BANNER] Crop bottom at row 792px (82%)
+  [OCR] 7 other text region(s) to mask
+  [FILL] 7 text region(s) covered (Pillow rect)
+  [CROP] Bottom at row 593px
+  SANITIZED: argos_golden_00.jpg (208 KB, 3.0s)
+/Users/macbook/Documents/combaretrovamiauto-enterprise/tests/test_sanitizer_golden.py:127: AssertionError: auto_features OVER-MASKED ratio=0.8284 > 0.02 bbox=(383,192,894,748)
+E   AssertionError: auto_features OVER-MASKED ratio=0.7517 > 0.02 bbox=(540,216,1260,842)
+    assert not ['auto_features OVER-MASKED ratio=0.7517 > 0.02 bbox=(540,216,1260,842)']
+----------------------------- Captured stdout call -----------------------------
+  [BANNER] Crop top 251px (23%)
+  [BANNER] Crop bottom at row 893px (83%)
+  [OCR] 12 other text region(s) to mask
+  [FILL] 12 text region(s) covered (Pillow rect)
+  [CROP] Bottom at row 642px
+  SANITIZED: argos_golden_00.jpg (138 KB, 3.2s)
+------------------------------ Captured log call -------------------------------
+WARNING  argos.sanitizer:image_sanitizer.py:687 HOOD REFLECTION: golden img#0
+Possible text reflection on hood — review manually
+WARNING  argos.sanitizer:image_sanitizer.py:167 TELEGRAM_BOT_TOKEN or TELEGRAM_ADMIN_CHAT_IDS not set — alert skipped
+/Users/macbook/Documents/combaretrovamiauto-enterprise/tests/test_sanitizer_golden.py:127: AssertionError: auto_features OVER-MASKED ratio=0.7517 > 0.02 bbox=(540,216,1260,842)
+=============================== warnings summary ===============================
+tests/test_sanitizer_golden.py: 10 warnings
+  /Users/macbook/Documents/combaretrovamiauto-enterprise/tests/test_sanitizer_golden.py:118: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    diff_pixels = sum(1 for p in diff.getdata() if sum(p) > DIFF_PIXEL_THRESHOLD)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_sanitizer_golden.py::test_sanitizer_golden[g01_isernhagen_smoke_00.zones]
+FAILED tests/test_sanitizer_golden.py::test_sanitizer_golden[g02_isernhagen_smoke_01.zones]
+FAILED tests/test_sanitizer_golden.py::test_sanitizer_golden[g03_isernhagen_smoke_02.zones]
+FAILED tests/test_sanitizer_golden.py::test_sanitizer_golden[g04_isernhagen_raw_00.zones]
+FAILED tests/test_sanitizer_golden.py::test_sanitizer_golden[g05_isernhagen_raw_01.zones]
+FAILED tests/test_sanitizer_golden.py::test_sanitizer_golden[g06_mixed_030c.zones]
+FAILED tests/test_sanitizer_golden.py::test_sanitizer_golden[g07_mixed_39d6.zones]
+FAILED tests/test_sanitizer_golden.py::test_sanitizer_golden[g08_mixed_4289.zones]
+FAILED tests/test_sanitizer_golden.py::test_sanitizer_golden[g09_mixed_76ea.zones]
+FAILED tests/test_sanitizer_golden.py::test_sanitizer_golden[g10_mixed_7baf.zones]
+======================= 10 failed, 10 warnings in 33.28s =======================

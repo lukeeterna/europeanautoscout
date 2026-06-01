@@ -1,0 +1,214 @@
+2026-04-04 21:47:58,160 [INFO] === MODALITA' DRY-RUN — nessun messaggio inviato ===
+2026-04-04 21:47:58,162 [INFO] --- [1/5] Az Auto Evolution (393683259045) ---
+2026-04-04 21:47:58,212 [INFO]   [DRY-RUN] Az Auto Evolution → 393683259045 | risposta: {'status': 'sent', 'msg_id': 'dry_1775332078357_h6vq2', 'dry_run': True}
+2026-04-04 21:47:58,212 [INFO] --- [2/5] Autoesse S.r.l. (390825610208) ---
+2026-04-04 21:47:58,213 [INFO]   NOTA: canale primario = TELEFONO. Chiamare 390825610208 prima di inviare WA.
+2026-04-04 21:47:58,225 [ERROR]   ERRORE HTTP 400: {"error":"invalid italian phone number","phone":"390825610208"} — continuo
+2026-04-04 21:47:58,225 [INFO] --- [3/5] WP Cars (393479227573) ---
+2026-04-04 21:47:58,242 [INFO]   [DRY-RUN] WP Cars → 393479227573 | risposta: {'status': 'sent', 'msg_id': 'dry_1775332078383_mlxw8', 'dry_run': True}
+2026-04-04 21:47:58,242 [INFO] --- [4/5] Expert Auto (390823987096) ---
+2026-04-04 21:47:58,242 [INFO]   NOTA: canale primario = TELEFONO. Chiamare 390823987096 prima di inviare WA.
+2026-04-04 21:47:58,266 [ERROR]   ERRORE HTTP 400: {"error":"invalid italian phone number","phone":"390823987096"} — continuo
+2026-04-04 21:47:58,280 [INFO] --- [5/5] Romanazzi Auto (390804249944) ---
+2026-04-04 21:47:58,280 [INFO]   NOTA: canale primario = TELEFONO. Chiamare 390804249944 prima di inviare WA.
+2026-04-04 21:47:58,311 [ERROR]   ERRORE HTTP 400: {"error":"invalid italian phone number","phone":"390804249944"} — continuo
+2026-04-04 21:47:58,312 [INFO] ==============================================
+2026-04-04 21:47:58,312 [INFO] RIEPILOGO: inviati=2 | skippati=0 | falliti=3
+2026-04-04 21:47:58,313 [INFO] ==============================================
+2026-04-04 21:49:07,847 [INFO] === MODALITA' DRY-RUN — nessun messaggio inviato ===
+2026-04-04 21:49:07,850 [INFO] --- [1/5] Az Auto Evolution | WA: 393683259045 | Tel: N/A ---
+2026-04-04 21:49:07,907 [INFO]   [DRY-RUN] Az Auto Evolution → 393683259045 | risposta: {'status': 'sent', 'msg_id': 'dry_1775332148048_gp5fb', 'dry_run': True}
+2026-04-04 21:49:07,908 [INFO] --- [2/5] Autoesse S.r.l. | WA: N/A | Tel: 0825610208 ---
+2026-04-04 21:49:07,908 [INFO]   [AZIONE MANUALE RICHIESTA] Canale = TELEFONO.
+  Chiamare: 0825610208
+  Messaggio da leggere/inviare dopo la chiamata:
+  -----
+Buongiorno, ho trovato una BMW X3 xDrive20d 2022, 65.000 km
+a €33.000 a Monaco. In Italia la stessa sta a €38.500.
+Trasporto Atripalda: circa €800. Netto per lei: ~€4.700.
+Trattate BMW — ha senso parlarne?
+
+Luca Ferretti
+  -----
+2026-04-04 21:49:07,908 [INFO]   Nessun WA disponibile — dealer registrato come TEL_PENDING
+2026-04-04 21:49:07,910 [INFO] --- [3/5] WP Cars | WA: 393479227573 | Tel: N/A ---
+2026-04-04 21:49:07,927 [INFO]   [DRY-RUN] WP Cars → 393479227573 | risposta: {'status': 'sent', 'msg_id': 'dry_1775332148066_211ta', 'dry_run': True}
+2026-04-04 21:49:07,928 [INFO] --- [4/5] Expert Auto | WA: N/A | Tel: 0823987096 ---
+2026-04-04 21:49:07,928 [INFO]   [AZIONE MANUALE RICHIESTA] Canale = TELEFONO.
+  Chiamare: 0823987096
+  Messaggio da leggere/inviare dopo la chiamata:
+  -----
+Buongiorno Domenico, ho trovato un’Audi Q5 40 TDI 2022,
+60.000 km, Düsseldorf — €34.000. In Italia la stessa sta a €39.000.
+Tratta Audi — i numeri le tornano?
+
+Luca Ferretti
+  -----
+2026-04-04 21:49:07,928 [INFO]   Nessun WA disponibile — dealer registrato come TEL_PENDING
+2026-04-04 21:49:07,931 [INFO] --- [5/5] Romanazzi Auto | WA: N/A | Tel: 0804249944 ---
+2026-04-04 21:49:07,931 [INFO]   [AZIONE MANUALE RICHIESTA] Canale = TELEFONO.
+  Chiamare: 0804249944
+  Messaggio da leggere/inviare dopo la chiamata:
+  -----
+Buongiorno, sono Luca Ferretti — lavoro con concessionari
+del Sud per trovare BMW e Audi dalla Germania.
+30 anni di attività come i suoi si vedono — sa già come funziona l’import.
+Ho una BMW X3 2022, 65.000 km, Monaco, €33.000. Le mando i numeri?
+
+Luca
+  -----
+2026-04-04 21:49:07,932 [INFO]   Nessun WA disponibile — dealer registrato come TEL_PENDING
+2026-04-04 21:49:07,942 [INFO] ==============================================
+2026-04-04 21:49:07,943 [INFO] RIEPILOGO: inviati=2 | skippati=3 | falliti=0
+2026-04-04 21:49:07,943 [INFO] ==============================================
+2026-04-07 18:50:59,903 [INFO] === MODALITA' DRY-RUN — nessun messaggio inviato ===
+2026-04-07 18:50:59,906 [INFO] --- [1/5] Az Auto Evolution | WA: 393683259045 | Tel: N/A ---
+2026-04-07 18:50:59,933 [INFO]   [DRY-RUN] Az Auto Evolution → 393683259045 | risposta: {'status': 'sent', 'msg_id': 'dry_1775580659865_jmjej', 'dry_run': True}
+2026-04-07 18:50:59,933 [INFO] --- [2/5] Autoesse S.r.l. | WA: N/A | Tel: 0825610208 ---
+2026-04-07 18:50:59,933 [INFO]   [AZIONE MANUALE RICHIESTA] Canale = TELEFONO.
+  Chiamare: 0825610208
+  Messaggio da leggere/inviare dopo la chiamata:
+  -----
+Buongiorno, ho trovato una BMW X3 xDrive20d 2022, 50.000 km
+a €34.000 in Germania. In Italia la stessa sta a €38.500.
+Trasporto Atripalda: circa €800. Netto per lei: ~€3.700.
+Trattate BMW — ha senso parlarne?
+
+Luca Ferretti
+  -----
+2026-04-07 18:50:59,934 [INFO]   Nessun WA disponibile — dealer registrato come TEL_PENDING
+2026-04-07 18:50:59,935 [INFO] --- [3/5] WP Cars | WA: 393479227573 | Tel: N/A ---
+2026-04-07 18:50:59,952 [INFO]   [DRY-RUN] WP Cars → 393479227573 | risposta: {'status': 'sent', 'msg_id': 'dry_1775580659881_794vn', 'dry_run': True}
+2026-04-07 18:50:59,952 [INFO] --- [4/5] Expert Auto | WA: N/A | Tel: 0823987096 ---
+2026-04-07 18:50:59,953 [INFO]   [AZIONE MANUALE RICHIESTA] Canale = TELEFONO.
+  Chiamare: 0823987096
+  Messaggio da leggere/inviare dopo la chiamata:
+  -----
+Buongiorno Domenico, ho trovato un’Audi Q5 40 TDI 2022,
+63.000 km, Germania — €33.800. In Italia la stessa sta a €39.000.
+Tratta Audi — i numeri le tornano?
+
+Luca Ferretti
+  -----
+2026-04-07 18:50:59,953 [INFO]   Nessun WA disponibile — dealer registrato come TEL_PENDING
+2026-04-07 18:50:59,953 [INFO] --- [5/5] Romanazzi Auto | WA: N/A | Tel: 0804249944 ---
+2026-04-07 18:50:59,954 [INFO]   [AZIONE MANUALE RICHIESTA] Canale = TELEFONO.
+  Chiamare: 0804249944
+  Messaggio da leggere/inviare dopo la chiamata:
+  -----
+Buongiorno, sono Luca Ferretti — lavoro con concessionari
+del Sud per trovare BMW e Audi dalla Germania.
+30 anni di attività come i suoi si vedono — sa già come funziona l’import.
+Ho una BMW X3 2022, 50.000 km, Germania, €34.000. Le mando i numeri?
+
+Luca
+  -----
+2026-04-07 18:50:59,954 [INFO]   Nessun WA disponibile — dealer registrato come TEL_PENDING
+2026-04-07 18:50:59,955 [INFO] ==============================================
+2026-04-07 18:50:59,955 [INFO] RIEPILOGO: inviati=2 | skippati=3 | falliti=0
+2026-04-07 18:50:59,955 [INFO] ==============================================
+2026-04-07 18:54:45,309 [INFO] === MODALITA' DRY-RUN — nessun messaggio inviato ===
+2026-04-07 18:54:45,312 [INFO] --- [1/5] Az Auto Evolution | WA: 393683259045 | Tel: N/A ---
+2026-04-07 18:54:47,558 [INFO]   [GATE] OK — autoscout24_de_d9204d82ff00 | PROCEED | conf=0.8225 | CLEAN
+2026-04-07 18:54:47,611 [INFO]   [DRY-RUN] Az Auto Evolution → 393683259045 | risposta: {'status': 'sent', 'msg_id': 'dry_1775580887542_ya76k', 'dry_run': True}
+2026-04-07 18:54:47,614 [INFO] --- [2/5] Autoesse S.r.l. | WA: N/A | Tel: 0825610208 ---
+2026-04-07 18:54:48,353 [INFO]   [GATE] OK — autoscout24_de_b0d65f095510 | PROCEED | conf=0.8425 | CLEAN
+2026-04-07 18:54:48,353 [INFO]   [AZIONE MANUALE RICHIESTA] Canale = TELEFONO.
+  Chiamare: 0825610208
+  Messaggio da leggere/inviare dopo la chiamata:
+  -----
+Buongiorno, ho trovato una BMW X3 xDrive20d 2022, 50.000 km
+a €34.000 in Germania. In Italia la stessa sta a €38.500.
+Trasporto Atripalda: circa €800. Netto per lei: ~€3.700.
+Trattate BMW — ha senso parlarne?
+
+Luca Ferretti
+  -----
+2026-04-07 18:54:48,354 [INFO]   Nessun WA disponibile — dealer registrato come TEL_PENDING
+2026-04-07 18:54:48,355 [INFO] --- [3/5] WP Cars | WA: 393479227573 | Tel: N/A ---
+2026-04-07 18:54:48,356 [INFO]   [GATE] No listing_id — skip validation (prezzo da web)
+2026-04-07 18:54:48,365 [INFO]   [DRY-RUN] WP Cars → 393479227573 | risposta: {'status': 'sent', 'msg_id': 'dry_1775580888298_wq6oe', 'dry_run': True}
+2026-04-07 18:54:48,365 [INFO] --- [4/5] Expert Auto | WA: N/A | Tel: 0823987096 ---
+2026-04-07 18:54:48,940 [INFO]   [GATE] OK — autoscout24_de_da6eb6e540f8 | PROCEED | conf=0.8425 | CLEAN
+2026-04-07 18:54:48,941 [INFO]   [AZIONE MANUALE RICHIESTA] Canale = TELEFONO.
+  Chiamare: 0823987096
+  Messaggio da leggere/inviare dopo la chiamata:
+  -----
+Buongiorno Domenico, ho trovato un’Audi Q5 40 TDI 2022,
+63.000 km, Germania — €33.800. In Italia la stessa sta a €39.000.
+Tratta Audi — i numeri le tornano?
+
+Luca Ferretti
+  -----
+2026-04-07 18:54:48,941 [INFO]   Nessun WA disponibile — dealer registrato come TEL_PENDING
+2026-04-07 18:54:48,949 [INFO] --- [5/5] Romanazzi Auto | WA: N/A | Tel: 0804249944 ---
+2026-04-07 18:54:49,489 [INFO]   [GATE] OK — autoscout24_de_b0d65f095510 | PROCEED | conf=0.8425 | CLEAN
+2026-04-07 18:54:49,489 [INFO]   [AZIONE MANUALE RICHIESTA] Canale = TELEFONO.
+  Chiamare: 0804249944
+  Messaggio da leggere/inviare dopo la chiamata:
+  -----
+Buongiorno, sono Luca Ferretti — lavoro con concessionari
+del Sud per trovare BMW e Audi dalla Germania.
+30 anni di attività come i suoi si vedono — sa già come funziona l’import.
+Ho una BMW X3 2022, 50.000 km, Germania, €34.000. Le mando i numeri?
+
+Luca
+  -----
+2026-04-07 18:54:49,490 [INFO]   Nessun WA disponibile — dealer registrato come TEL_PENDING
+2026-04-07 18:54:49,501 [INFO] ==============================================
+2026-04-07 18:54:49,501 [INFO] RIEPILOGO: inviati=2 | skippati=3 | falliti=0
+2026-04-07 18:54:49,501 [INFO] ==============================================
+2026-04-07 20:20:52,058 [WARNING]   [GATE] BLOCCATO — listing FAKE_LISTING_XXXXX non trovato in DuckDB
+2026-04-07 20:20:53,882 [INFO]   [GATE] OK — autoscout24_de_b0d65f095510 | PROCEED | conf=0.8425 | CLEAN
+2026-04-07 20:20:53,883 [INFO]   [GATE] No listing_id — skip validation (prezzo da web)
+2026-04-07 20:54:34,845 [INFO] === MODALITA' DRY-RUN — nessun messaggio inviato ===
+2026-04-07 20:54:34,845 [INFO] --- [1/5] Az Auto Evolution | WA: 393683259045 | Tel: N/A ---
+2026-04-07 20:54:36,725 [INFO]   [GATE] OK — autoscout24_de_d9204d82ff00 | PROCEED | conf=0.8225 | CLEAN
+2026-04-07 20:54:36,764 [INFO]   [DRY-RUN] Az Auto Evolution → 393683259045 | risposta: {'status': 'sent', 'msg_id': 'dry_1775588076808_x0tnn', 'dry_run': True}
+2026-04-07 20:54:36,765 [INFO] --- [2/5] Autoesse S.r.l. | WA: N/A | Tel: 0825610208 ---
+2026-04-07 20:54:37,458 [INFO]   [GATE] OK — autoscout24_de_b0d65f095510 | PROCEED | conf=0.8425 | CLEAN
+2026-04-07 20:54:37,458 [INFO]   [AZIONE MANUALE RICHIESTA] Canale = TELEFONO.
+  Chiamare: 0825610208
+  Messaggio da leggere/inviare dopo la chiamata:
+  -----
+Buongiorno, ho trovato una BMW X3 xDrive20d 2022, 50.000 km
+a €34.000 in Germania. In Italia la stessa sta a €38.500.
+Trasporto Atripalda: circa €800. Netto per lei: ~€3.700.
+Trattate BMW — ha senso parlarne?
+
+Luca Ferretti
+  -----
+2026-04-07 20:54:37,458 [INFO]   Nessun WA disponibile — dealer registrato come TEL_PENDING
+2026-04-07 20:54:37,464 [INFO] --- [3/5] WP Cars | WA: 393479227573 | Tel: N/A ---
+2026-04-07 20:54:37,464 [INFO]   [GATE] No listing_id — skip validation (prezzo da web)
+2026-04-07 20:54:37,475 [INFO]   [DRY-RUN] WP Cars → 393479227573 | risposta: {'status': 'sent', 'msg_id': 'dry_1775588077520_thnw3', 'dry_run': True}
+2026-04-07 20:54:37,475 [INFO] --- [4/5] Expert Auto | WA: N/A | Tel: 0823987096 ---
+2026-04-07 20:54:38,123 [INFO]   [GATE] OK — autoscout24_de_da6eb6e540f8 | PROCEED | conf=0.8425 | CLEAN
+2026-04-07 20:54:38,123 [INFO]   [AZIONE MANUALE RICHIESTA] Canale = TELEFONO.
+  Chiamare: 0823987096
+  Messaggio da leggere/inviare dopo la chiamata:
+  -----
+Buongiorno Domenico, ho trovato un’Audi Q5 40 TDI 2022,
+63.000 km, Germania — €33.800. In Italia la stessa sta a €39.000.
+Tratta Audi — i numeri le tornano?
+
+Luca Ferretti
+  -----
+2026-04-07 20:54:38,123 [INFO]   Nessun WA disponibile — dealer registrato come TEL_PENDING
+2026-04-07 20:54:38,124 [INFO] --- [5/5] Romanazzi Auto | WA: N/A | Tel: 0804249944 ---
+2026-04-07 20:54:38,776 [INFO]   [GATE] OK — autoscout24_de_b0d65f095510 | PROCEED | conf=0.8425 | CLEAN
+2026-04-07 20:54:38,776 [INFO]   [AZIONE MANUALE RICHIESTA] Canale = TELEFONO.
+  Chiamare: 0804249944
+  Messaggio da leggere/inviare dopo la chiamata:
+  -----
+Buongiorno, sono Luca Ferretti — lavoro con concessionari
+del Sud per trovare BMW e Audi dalla Germania.
+30 anni di attività come i suoi si vedono — sa già come funziona l’import.
+Ho una BMW X3 2022, 50.000 km, Germania, €34.000. Le mando i numeri?
+
+Luca
+  -----
+2026-04-07 20:54:38,776 [INFO]   Nessun WA disponibile — dealer registrato come TEL_PENDING
+2026-04-07 20:54:38,786 [INFO] ==============================================
+2026-04-07 20:54:38,787 [INFO] RIEPILOGO: inviati=2 | skippati=3 | falliti=0
+2026-04-07 20:54:38,787 [INFO] ==============================================

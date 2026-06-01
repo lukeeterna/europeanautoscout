@@ -7,12 +7,20 @@ src/cove/data/cove_tracker.duckdb
 
 # Database files — NEVER commit (GDPR + PII)
 *.sqlite
+*.sqlite3
+*.db
 *.sqlite-shm
 *.sqlite-wal
 *.duckdb
 
 # Local Claude settings (contains command history with tokens)
 .claude/settings.local.json
+# S220: backup di settings.* leakano secret (OpenRouter/Telegram/GitHub PAT in command history)
+*.bak
+.claude/*.backup_*
+
+# S220: Chrome profile scraper = 140MB junk + DB tracking, mai source
+tools/scrapers/.chrome_profile/
 
 # Playwright MCP artifacts (DOM snapshots may capture autofilled credentials — see S146)
 .playwright-mcp/

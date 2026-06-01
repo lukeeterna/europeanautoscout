@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1200px;height:900px;background:#06060a;font-family:Arial,sans-serif;overflow:hidden;position:relative}
+.bg{position:absolute;inset:0;background:linear-gradient(160deg,#06060a 0%,#0c0c12 50%,#0f0f18 100%)}
+.content{position:relative;z-index:2;padding:60px;height:100%;display:flex;flex-direction:column;justify-content:space-between}
+.tag{font-family:'Courier New',monospace;font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#c8a446;display:flex;align-items:center;gap:10px}
+.tag::before{content:'';width:20px;height:1px;background:#c8a446}
+.title{font-family:Georgia,serif;font-size:48px;color:#e8e8f0;font-weight:normal;margin-top:16px;line-height:1.15}
+.title em{color:#c8a446;font-style:italic}
+.steps{display:flex;gap:24px;margin-top:auto}
+.step{flex:1;background:rgba(26,26,36,.6);border:1px solid rgba(200,164,70,.1);padding:36px 28px;position:relative}
+.step:hover{border-color:rgba(200,164,70,.3)}
+.step-num{font-family:Georgia,serif;font-size:72px;color:rgba(200,164,70,.06);position:absolute;top:8px;right:16px;line-height:1}
+.step-icon{width:40px;height:40px;border:1px solid rgba(200,164,70,.3);display:flex;align-items:center;justify-content:center;margin-bottom:18px;color:#c8a446;font-size:18px}
+.step-title{font-family:Georgia,serif;font-size:22px;color:#e8e8f0;margin-bottom:10px}
+.step-desc{font-size:13px;line-height:1.8;color:#68687a}
+.step-time{font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c8a446;margin-top:14px;display:inline-block;padding:4px 10px;border:1px solid rgba(200,164,70,.2)}
+.footer{display:flex;justify-content:space-between;align-items:center;margin-top:32px}
+.footer-name{font-family:Georgia,serif;font-size:16px;color:#68687a}
+.footer-contact{font-family:'Courier New',monospace;font-size:12px;color:#68687a}
+</style></head><body>
+<div class="bg"></div>
+<div class="content">
+<div>
+<div class="tag">Come lavoro</div>
+<div class="title">Tre passaggi.<br><em>Nessun impegno</em> fino alla fine.</div>
+</div>
+<div class="steps">
+<div class="step">
+<div class="step-num">01</div>
+<div class="step-icon">&#x1F50D;</div>
+<div class="step-title">Scouting</div>
+<div class="step-desc">Mi dici cosa cerchi. Attivo la ricerca su 7 mercati europei e seleziono solo le auto che passano i controlli.</div>
+<div class="step-time">24-48h</div>
+</div>
+<div class="step">
+<div class="step-num">02</div>
+<div class="step-icon">&#x2713;</div>
+<div class="step-title">Verifica</div>
+<div class="step-desc">Controllo km, storico, prezzo di mercato e anomalie. Se qualcosa non torna, l'auto non arriva a te.</div>
+<div class="step-time">Controlli indipendenti</div>
+</div>
+<div class="step">
+<div class="step-num">03</div>
+<div class="step-icon">&#x1F3AF;</div>
+<div class="step-title">Consegna</div>
+<div class="step-desc">Report completo con tutti i numeri. Decidi tu se procedere. Gestisco trattativa e trasporto.</div>
+<div class="step-time">Success fee</div>
+</div>
+</div>
+<div class="footer">
+<div class="footer-name">Luca Ferretti &middot; Vehicle Sourcing</div>
+<div class="footer-contact">+39 328 153 6308</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,12 @@
+[
+  {
+    "domain": ".leboncoin.fr",
+    "expiry": 1805908888,
+    "httpOnly": false,
+    "name": "datadome",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "n7uuVQt58DpETMh4BK1qVfFWMALN4Fo6s23jHcYB21fLtjuePP70itsilgmMh3EpoiqLDdBUyS2g0N5DUb5FYU6NfsLoLcPGnEsta~r8975mySxMa4qpyiUSW2HDD~aj"
+  }
+]

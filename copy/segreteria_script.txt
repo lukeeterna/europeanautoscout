@@ -1,0 +1,61 @@
+SCRIPT SEGRETERIA TELEFONICA — 0972 536 918
+============================================
+Ultimo aggiornamento: 2026-03-22
+VoIP: EhiWeb / Zoiper
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERSIONE STANDARD (usare questa)
+Durata: ~14 secondi | Tono: calmo, professionale, nessuna fretta
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"Buongiorno, ha chiamato Luca Ferretti.
+Sono al momento occupato — la richiamo non appena possibile.
+Per urgenze, mi scriva su WhatsApp al tre-due-otto, uno-cinque-tre-sei-tre-zero-otto.
+Grazie per la chiamata."
+
+---
+
+COME LEGGERE IL NUMERO IN VOCE:
+  +39 328 153 6308
+  → "tre-due-otto, uno-cinque-tre, sei-tre-zero-otto"
+  Scandire cifra per cifra, pausa tra i gruppi.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERSIONE BREVE (alternativa, ~10 secondi)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"Buongiorno, sono Luca Ferretti — sono impegnato in questo momento.
+La richiamo al più presto. Per urgenze: WhatsApp al tre-due-otto uno-cinque-tre-sei-tre-zero-otto."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ISTRUZIONI DI REGISTRAZIONE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ambiente:
+- Stanza silenziosa, nessun rumore di fondo
+- NON registrare vicino a finestre aperte o con aria condizionata accesa
+- Nessuna musica di sottofondo (suona amatoriale)
+
+Voce:
+- Tono naturale, come se parlassi a un collega che stimi
+- Velocità media, non affrettata — chi ascolta deve capire il numero al primo ascolto
+- Una pausa leggera dopo "Buongiorno"
+- Il numero WA va letto lentamente, cifra per cifra
+
+Tecnico:
+- Registrare con il telefono in mano in modalità memo vocale (qualità sufficiente)
+- Oppure usare un microfono USB/AirPods (qualità migliore)
+- Formato accettato da EhiWeb: MP3 o WAV, max 2MB
+- Caricare dal pannello EhiWeb: Centralino > Segreteria > Carica messaggio personalizzato
+
+Test:
+- Chiamare il numero da un altro telefono dopo il caricamento
+- Verificare che il numero WA sia comprensibile al primo ascolto
+- Se non si capisce il numero: ri-registrare più lentamente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NOTA CRITICA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Un dealer del Sud Italia che chiama e non trova nessuno — né voce reale né messaggio
+professionale — chiude e non richiama. La segreteria è il fallback minimo accettabile.
+Richiamare entro 2 ore in orario lavorativo è obbligatorio per non perdere il contatto.

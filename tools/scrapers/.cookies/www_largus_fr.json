@@ -1,0 +1,150 @@
+[
+  {
+    "domain": ".largus.fr",
+    "expiry": 1805908917,
+    "httpOnly": false,
+    "name": "datadome",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "wYosjr0yJq3fWWed5gRrdpmHRiWOnEgrzNVyAyqW1vx6ooIlyOgMKYFVKRd4NULVToLbl61LajxiBdCGyfc3twJnQ~VL~VvgMltmvOKH7UZJZ0l47tsmaSnhQ8vHYJsj"
+  },
+  {
+    "domain": "www.largus.fr",
+    "expiry": 1774977717,
+    "httpOnly": false,
+    "name": "AWSALBCORS",
+    "path": "/",
+    "sameSite": "None",
+    "secure": true,
+    "value": "YLX02fowlFI9IZTNS2Ziwrg3aV7+vHx/nv2618iBeZN+ZtLtBnRmozCHQfYq+pKimUb20NAq5fn/EzrCBBD7YKF1KWf63ZuGtOdFhRA6AP4XWcyMuWm1rTH70jLc"
+  },
+  {
+    "domain": ".www.largus.fr",
+    "httpOnly": false,
+    "name": "AWSALBCORS",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "JzOM1+AgzIpz9MA++fDzGP1ORtHJMmxPo1IIloX3hcTmrdyrvPVHE3vZQe71uO9/1/YYUwWe3Y/43oOp9zDaU5VFNe9X+RRtX5pXAWCvu6trTOhfvdW7GDVASapP"
+  },
+  {
+    "domain": ".www.largus.fr",
+    "httpOnly": false,
+    "name": "AWSALB",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "JzOM1+AgzIpz9MA++fDzGP1ORtHJMmxPo1IIloX3hcTmrdyrvPVHE3vZQe71uO9/1/YYUwWe3Y/43oOp9zDaU5VFNe9X+RRtX5pXAWCvu6trTOhfvdW7GDVASapP"
+  },
+  {
+    "domain": "www.largus.fr",
+    "expiry": 1805908917,
+    "httpOnly": false,
+    "name": "didomi_cookies",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "essential"
+  },
+  {
+    "domain": ".largus.fr",
+    "expiry": 1790180517,
+    "httpOnly": false,
+    "name": "didomi_dcs",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "CGdIN4PQPYhOviA_XzKU3D0IZvSE0IZvSEwABEAACAABAAAgAAAA..."
+  },
+  {
+    "domain": "www.largus.fr",
+    "expiry": 1774483199,
+    "httpOnly": false,
+    "name": "nadz_dailyVisits",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "1"
+  },
+  {
+    "domain": ".largus.fr",
+    "expiry": 1808932916,
+    "httpOnly": false,
+    "name": "_ga",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "GA1.1.1509044357.1774372916"
+  },
+  {
+    "domain": "www.largus.fr",
+    "expiry": 1808673715,
+    "httpOnly": false,
+    "name": "atuserid",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "%7B%22name%22%3A%22atuserid%22%2C%22val%22%3A%22436c6ac4-0552-4d8e-bd8e-012adaba5a56%22%2C%22options%22%3A%7B%22end%22%3A%222027-04-25T17%3A21%3A55.976Z%22%2C%22path%22%3A%22%2F%22%7D%7D"
+  },
+  {
+    "domain": "www.largus.fr",
+    "expiry": 1808500916,
+    "httpOnly": false,
+    "name": "sp_i",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "19d20de0b945ebf1532aaa"
+  },
+  {
+    "domain": "www.largus.fr",
+    "expiry": 1774977717,
+    "httpOnly": false,
+    "name": "AWSALB",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "YLX02fowlFI9IZTNS2Ziwrg3aV7+vHx/nv2618iBeZN+ZtLtBnRmozCHQfYq+pKimUb20NAq5fn/EzrCBBD7YKF1KWf63ZuGtOdFhRA6AP4XWcyMuWm1rTH70jLc"
+  },
+  {
+    "domain": ".largus.fr",
+    "expiry": 1774545715,
+    "httpOnly": true,
+    "name": "CFTOKEN",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "72a17d49004f84c4-48AC54BF-00F5-A58B-8D9D0BD505A07D3A"
+  },
+  {
+    "domain": ".largus.fr",
+    "expiry": 1808932916,
+    "httpOnly": false,
+    "name": "_ga_DQ2ZNN15ZE",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "GS2.1.s1774372916$o1$g0$t1774372916$j60$l0$h0"
+  },
+  {
+    "domain": "www.largus.fr",
+    "expiry": 1808673715,
+    "httpOnly": false,
+    "name": "atauthority",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "%7B%22name%22%3A%22atauthority%22%2C%22val%22%3A%7B%22authority_name%22%3A%22cnil%22%2C%22visitor_mode%22%3A%22exempt%22%7D%2C%22options%22%3A%7B%22end%22%3A%222027-04-25T17%3A21%3A55.987Z%22%2C%22path%22%3A%22%2F%22%7D%7D"
+  },
+  {
+    "domain": ".largus.fr",
+    "expiry": 1774545715,
+    "httpOnly": true,
+    "name": "CFID",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "238365092"
+  }
+]

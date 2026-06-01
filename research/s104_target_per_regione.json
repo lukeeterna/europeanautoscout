@@ -1,0 +1,870 @@
+[
+  {
+    "name": "SIRIO S.r.l.",
+    "province": "teramo",
+    "region": "abruzzo",
+    "source": "subito.it",
+    "seller_id": "30372",
+    "phone": null,
+    "city": "Mosciano Sant'Angelo",
+    "listing_count": 7,
+    "brands": [
+      "VOLKSWAGEN",
+      "TOYOTA",
+      "Mercedes",
+      "Audi"
+    ],
+    "brand_diversity": 4,
+    "premium_brands": [
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 0.5,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "MM AUTO",
+    "province": "l-aquila",
+    "region": "abruzzo",
+    "source": "subito.it",
+    "seller_id": "52388",
+    "phone": null,
+    "city": "Avezzano",
+    "listing_count": 9,
+    "brands": [
+      "NISSAN",
+      "PEUGEOT",
+      "FORD",
+      "FIAT",
+      "Mercedes",
+      "Audi"
+    ],
+    "brand_diversity": 6,
+    "premium_brands": [
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 0.3333333333333333,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "Gruppo Brindisi",
+    "province": "potenza",
+    "region": "basilicata",
+    "source": "subito.it",
+    "seller_id": "18977",
+    "phone": null,
+    "city": "Potenza",
+    "listing_count": 7,
+    "brands": [
+      "TOYOTA",
+      "OPEL",
+      "PEUGEOT",
+      "Alfa Romeo",
+      "Mercedes"
+    ],
+    "brand_diversity": 5,
+    "premium_brands": [
+      "Alfa Romeo",
+      "Mercedes"
+    ],
+    "premium_pct": 0.4,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "Concessionaria BMW e MINI ULTRAMOTOR",
+    "province": "matera",
+    "region": "basilicata",
+    "source": "subito.it",
+    "seller_id": "30161",
+    "phone": null,
+    "city": "Matera",
+    "listing_count": 19,
+    "brands": [
+      "SKODA",
+      "HYUNDAI",
+      "Alfa Romeo",
+      "VOLKSWAGEN",
+      "BMW",
+      "Volvo",
+      "Mercedes"
+    ],
+    "brand_diversity": 7,
+    "premium_brands": [
+      "Alfa Romeo",
+      "BMW",
+      "Volvo",
+      "Mercedes"
+    ],
+    "premium_pct": 0.5714285714285714,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 4.1,
+    "fit_score": 7.1
+  },
+  {
+    "name": "2F MOTORS LAMEZIA",
+    "province": "catanzaro",
+    "region": "calabria",
+    "source": "subito.it",
+    "seller_id": "55197",
+    "phone": null,
+    "city": "Lamezia Terme",
+    "listing_count": 13,
+    "brands": [
+      "Range Rover",
+      "PEUGEOT",
+      "VOLKSWAGEN",
+      "BMW",
+      "FIAT",
+      "Porsche"
+    ],
+    "brand_diversity": 6,
+    "premium_brands": [
+      "Range Rover",
+      "BMW",
+      "Porsche"
+    ],
+    "premium_pct": 0.5,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "Grandinetti Auto",
+    "province": "catanzaro",
+    "region": "calabria",
+    "source": "subito.it",
+    "seller_id": "5309",
+    "phone": null,
+    "city": "Soveria Mannelli",
+    "listing_count": 10,
+    "brands": [
+      "NISSAN",
+      "PEUGEOT",
+      "BMW",
+      "Jaguar",
+      "FIAT",
+      "Audi"
+    ],
+    "brand_diversity": 6,
+    "premium_brands": [
+      "BMW",
+      "Jaguar",
+      "Audi"
+    ],
+    "premium_pct": 0.5,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "AZ AUTO EVOLUTION CUCCINIELLO",
+    "province": "avellino",
+    "region": "campania",
+    "source": "subito.it",
+    "seller_id": "44195",
+    "phone": null,
+    "city": "Solofra",
+    "listing_count": 18,
+    "brands": [
+      "Alfa Romeo",
+      "BMW",
+      "Jaguar",
+      "Mercedes",
+      "Audi"
+    ],
+    "brand_diversity": 5,
+    "premium_brands": [
+      "Alfa Romeo",
+      "BMW",
+      "Jaguar",
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 1.0,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 4.1,
+    "fit_score": 7.1
+  },
+  {
+    "name": "Eurotarget S.p.A",
+    "province": "bologna",
+    "region": "emilia-romagna",
+    "source": "subito.it",
+    "seller_id": "53618",
+    "phone": null,
+    "city": "Pieve di Cento",
+    "listing_count": 7,
+    "brands": [
+      "DACIA",
+      "NISSAN",
+      "PEUGEOT",
+      "FORD",
+      "Alfa Romeo",
+      "BMW",
+      "Audi"
+    ],
+    "brand_diversity": 7,
+    "premium_brands": [
+      "Alfa Romeo",
+      "BMW",
+      "Audi"
+    ],
+    "premium_pct": 0.42857142857142855,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "Linea Car di Guicciardi Christian",
+    "province": "modena",
+    "region": "emilia-romagna",
+    "source": "subito.it",
+    "seller_id": "35380",
+    "phone": null,
+    "city": "Mirandola",
+    "listing_count": 5,
+    "brands": [
+      "VOLKSWAGEN",
+      "Volvo",
+      "PEUGEOT",
+      "Audi"
+    ],
+    "brand_diversity": 4,
+    "premium_brands": [
+      "Volvo",
+      "Audi"
+    ],
+    "premium_pct": 0.5,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "COMELLI AUTO",
+    "province": "udine",
+    "region": "friuli-venezia-giulia",
+    "source": "subito.it",
+    "seller_id": "50830",
+    "phone": null,
+    "city": "Cervignano del Friuli",
+    "listing_count": 12,
+    "brands": [
+      "OPEL",
+      "Alfa Romeo",
+      "RENAULT",
+      "FIAT",
+      "Mercedes",
+      "Audi"
+    ],
+    "brand_diversity": 6,
+    "premium_brands": [
+      "Alfa Romeo",
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 0.5,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "MartinAuto",
+    "province": "trieste",
+    "region": "friuli-venezia-giulia",
+    "source": "subito.it",
+    "seller_id": "49569",
+    "phone": null,
+    "city": "Trieste",
+    "listing_count": 13,
+    "brands": [
+      "Maserati",
+      "PEUGEOT",
+      "FORD",
+      "VOLKSWAGEN",
+      "RENAULT",
+      "Mercedes",
+      "Porsche"
+    ],
+    "brand_diversity": 7,
+    "premium_brands": [
+      "Maserati",
+      "Mercedes",
+      "Porsche"
+    ],
+    "premium_pct": 0.42857142857142855,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "A.B. AUTO SHOP",
+    "province": "latina",
+    "region": "lazio",
+    "source": "subito.it",
+    "seller_id": "12682",
+    "phone": null,
+    "city": "Latina",
+    "listing_count": 10,
+    "brands": [
+      "FORD",
+      "Alfa Romeo",
+      "BMW",
+      "FIAT",
+      "Audi"
+    ],
+    "brand_diversity": 5,
+    "premium_brands": [
+      "Alfa Romeo",
+      "BMW",
+      "Audi"
+    ],
+    "premium_pct": 0.6,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "MIXAUTO S.R.L.",
+    "province": "latina",
+    "region": "lazio",
+    "source": "subito.it",
+    "seller_id": "57251",
+    "phone": null,
+    "city": "Latina",
+    "listing_count": 13,
+    "brands": [
+      "Lamborghini",
+      "KIA",
+      "NISSAN",
+      "OPEL",
+      "PEUGEOT",
+      "BMW",
+      "RENAULT",
+      "Audi"
+    ],
+    "brand_diversity": 8,
+    "premium_brands": [
+      "Lamborghini",
+      "BMW",
+      "Audi"
+    ],
+    "premium_pct": 0.375,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "Gallotti Auto",
+    "province": "varese",
+    "region": "lombardia",
+    "source": "subito.it",
+    "seller_id": "23568",
+    "phone": null,
+    "city": "Gallarate",
+    "listing_count": 5,
+    "brands": [
+      "Alfa Romeo",
+      "VOLKSWAGEN",
+      "BMW",
+      "FIAT"
+    ],
+    "brand_diversity": 4,
+    "premium_brands": [
+      "Alfa Romeo",
+      "BMW"
+    ],
+    "premium_pct": 0.5,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "Auto Italy",
+    "province": "brescia",
+    "region": "lombardia",
+    "source": "subito.it",
+    "seller_id": "19800",
+    "phone": null,
+    "city": "Brescia",
+    "listing_count": 8,
+    "brands": [
+      "SKODA",
+      "PEUGEOT",
+      "FORD",
+      "VOLKSWAGEN",
+      "FIAT",
+      "Mercedes"
+    ],
+    "brand_diversity": 6,
+    "premium_brands": [
+      "Mercedes"
+    ],
+    "premium_pct": 0.16666666666666666,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 7.5
+  },
+  {
+    "name": "RedAuto Civitanova",
+    "province": "macerata",
+    "region": "marche",
+    "source": "subito.it",
+    "seller_id": "44362",
+    "phone": null,
+    "city": "Civitanova Marche",
+    "listing_count": 5,
+    "brands": [
+      "Audi",
+      "Mercedes",
+      "PEUGEOT",
+      "FIAT"
+    ],
+    "brand_diversity": 4,
+    "premium_brands": [
+      "Audi",
+      "Mercedes"
+    ],
+    "premium_pct": 0.5,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "CAR 2001",
+    "province": "macerata",
+    "region": "marche",
+    "source": "subito.it",
+    "seller_id": "41014",
+    "phone": null,
+    "city": "San Severino Marche",
+    "listing_count": 9,
+    "brands": [
+      "NISSAN",
+      "FORD",
+      "VOLKSWAGEN",
+      "Alfa Romeo",
+      "FIAT",
+      "Mercedes"
+    ],
+    "brand_diversity": 6,
+    "premium_brands": [
+      "Alfa Romeo",
+      "Mercedes"
+    ],
+    "premium_pct": 0.3333333333333333,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "AUTOPIA SRL",
+    "province": "campobasso",
+    "region": "molise",
+    "source": "subito.it",
+    "seller_id": "57319",
+    "phone": null,
+    "city": "Campobasso",
+    "listing_count": 6,
+    "brands": [
+      "KIA",
+      "FIAT",
+      "Audi"
+    ],
+    "brand_diversity": 3,
+    "premium_brands": [
+      "Audi"
+    ],
+    "premium_pct": 0.3333333333333333,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 4.5,
+    "fit_score": 7.5
+  },
+  {
+    "name": "PUNTO AUTO SRL",
+    "province": "isernia",
+    "region": "molise",
+    "source": "subito.it",
+    "seller_id": "9342",
+    "phone": null,
+    "city": "Isernia",
+    "listing_count": 20,
+    "brands": [
+      "CITROEN",
+      "Land Rover",
+      "TOYOTA",
+      "OPEL",
+      "PEUGEOT",
+      "FORD",
+      "VOLKSWAGEN",
+      "BMW",
+      "Volvo",
+      "Mercedes"
+    ],
+    "brand_diversity": 10,
+    "premium_brands": [
+      "Land Rover",
+      "BMW",
+      "Volvo",
+      "Mercedes"
+    ],
+    "premium_pct": 0.4,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 4.1,
+    "fit_score": 7.1
+  },
+  {
+    "name": "AutoQuarta Monteroni",
+    "province": "lecce",
+    "region": "puglia",
+    "source": "subito.it",
+    "seller_id": "9769",
+    "phone": null,
+    "city": "Monteroni di Lecce",
+    "listing_count": 5,
+    "brands": [
+      "FORD",
+      "BMW",
+      "Mercedes",
+      "Audi"
+    ],
+    "brand_diversity": 4,
+    "premium_brands": [
+      "BMW",
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 0.75,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "F.A. AUTO SRLS",
+    "province": "brindisi",
+    "region": "puglia",
+    "source": "subito.it",
+    "seller_id": "26892",
+    "phone": null,
+    "city": "San Michele Salentino",
+    "listing_count": 8,
+    "brands": [
+      "CITROEN",
+      "Alfa Romeo",
+      "BMW",
+      "FIAT",
+      "Audi"
+    ],
+    "brand_diversity": 5,
+    "premium_brands": [
+      "Alfa Romeo",
+      "BMW",
+      "Audi"
+    ],
+    "premium_pct": 0.6,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "LB AUTOMOBILI  SRL",
+    "province": "cagliari",
+    "region": "sardegna",
+    "source": "subito.it",
+    "seller_id": "4511",
+    "phone": null,
+    "city": "Sestu",
+    "listing_count": 9,
+    "brands": [
+      "CITROEN",
+      "NISSAN",
+      "Mercedes",
+      "FIAT"
+    ],
+    "brand_diversity": 4,
+    "premium_brands": [
+      "Mercedes"
+    ],
+    "premium_pct": 0.25,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 7.5
+  },
+  {
+    "name": "MOTORVIP",
+    "province": "messina",
+    "region": "sicilia",
+    "source": "subito.it",
+    "seller_id": "20250",
+    "phone": null,
+    "city": "Milazzo",
+    "listing_count": 6,
+    "brands": [
+      "HYUNDAI",
+      "BMW",
+      "Volvo",
+      "Mercedes",
+      "Audi"
+    ],
+    "brand_diversity": 5,
+    "premium_brands": [
+      "BMW",
+      "Volvo",
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 0.8,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "David's Auto",
+    "province": "messina",
+    "region": "sicilia",
+    "source": "subito.it",
+    "seller_id": "31655",
+    "phone": null,
+    "city": "Milazzo",
+    "listing_count": 5,
+    "brands": [
+      "PEUGEOT",
+      "VOLKSWAGEN",
+      "BMW",
+      "Mercedes",
+      "Audi"
+    ],
+    "brand_diversity": 5,
+    "premium_brands": [
+      "BMW",
+      "Mercedes",
+      "Audi"
+    ],
+    "premium_pct": 0.6,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "Car Village",
+    "province": "firenze",
+    "region": "toscana",
+    "source": "subito.it",
+    "seller_id": "32119",
+    "phone": null,
+    "city": "Sesto Fiorentino",
+    "listing_count": 5,
+    "brands": [
+      "VOLKSWAGEN",
+      "BMW",
+      "Mercedes",
+      "PEUGEOT"
+    ],
+    "brand_diversity": 4,
+    "premium_brands": [
+      "BMW",
+      "Mercedes"
+    ],
+    "premium_pct": 0.5,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "EMV AUTO srl",
+    "province": "firenze",
+    "region": "toscana",
+    "source": "subito.it",
+    "seller_id": "38454",
+    "phone": null,
+    "city": "Firenze",
+    "listing_count": 10,
+    "brands": [
+      "Range Rover",
+      "Land Rover",
+      "Lexus",
+      "BMW",
+      "FIAT",
+      "Mercedes"
+    ],
+    "brand_diversity": 6,
+    "premium_brands": [
+      "Range Rover",
+      "Land Rover",
+      "Lexus",
+      "BMW",
+      "Mercedes"
+    ],
+    "premium_pct": 0.8333333333333334,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "JBcars",
+    "province": "trento",
+    "region": "trentino-alto-adige",
+    "source": "subito.it",
+    "seller_id": "47805",
+    "phone": null,
+    "city": "Riva del Garda",
+    "listing_count": 8,
+    "brands": [
+      "FORD",
+      "BMW",
+      "Audi",
+      "FIAT"
+    ],
+    "brand_diversity": 4,
+    "premium_brands": [
+      "BMW",
+      "Audi"
+    ],
+    "premium_pct": 0.5,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 8.5
+  },
+  {
+    "name": "Centro Auto D'Occasione BARCHETTI · Autocity BZ",
+    "province": "bolzano",
+    "region": "trentino-alto-adige",
+    "source": "subito.it",
+    "seller_id": "42683",
+    "phone": null,
+    "city": "Bolzano",
+    "listing_count": 6,
+    "brands": [
+      "BMW",
+      "Mercedes",
+      "PEUGEOT"
+    ],
+    "brand_diversity": 3,
+    "premium_brands": [
+      "BMW",
+      "Mercedes"
+    ],
+    "premium_pct": 0.6666666666666666,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 4.5,
+    "fit_score": 7.5
+  },
+  {
+    "name": "FASHIONCAR",
+    "province": "perugia",
+    "region": "umbria",
+    "source": "subito.it",
+    "seller_id": "23250",
+    "phone": null,
+    "city": "Perugia",
+    "listing_count": 7,
+    "brands": [
+      "CITROEN",
+      "PEUGEOT",
+      "FORD",
+      "Jaguar",
+      "FIAT"
+    ],
+    "brand_diversity": 5,
+    "premium_brands": [
+      "Jaguar"
+    ],
+    "premium_pct": 0.2,
+    "has_commission_keywords": false,
+    "matched_keywords": [],
+    "shop_url": null,
+    "source_url": null,
+    "commission_score": 5.5,
+    "fit_score": 7.5
+  }
+]

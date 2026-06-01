@@ -1,0 +1,364 @@
+[
+  {
+    "name": "SIRIO S.r.l.",
+    "city": "Mosciano Sant Angelo",
+    "province": "TE",
+    "phone_wa": "393455603870",
+    "premium_brands": [
+      "Mercedes",
+      "Audi"
+    ],
+    "fit_score": 8.5,
+    "id": "SIRIO_TE_001"
+  },
+  {
+    "name": "MM AUTO",
+    "city": "Avezzano",
+    "province": "AQ",
+    "phone_wa": "393894397325",
+    "premium_brands": [
+      "Mercedes",
+      "Audi"
+    ],
+    "fit_score": 8.5,
+    "id": "MM_AUTO_AQ_001"
+  },
+  {
+    "name": "2F MOTORS LAMEZIA",
+    "city": "Lamezia Terme",
+    "province": "CZ",
+    "phone_wa": "393713040093",
+    "premium_brands": [
+      "Range Rover",
+      "BMW",
+      "Porsche"
+    ],
+    "fit_score": 8.5,
+    "id": "2F_MOTORS_CZ_001"
+  },
+  {
+    "name": "Grandinetti Auto",
+    "city": "Soveria Mannelli",
+    "province": "CZ",
+    "phone_wa": "393281088737",
+    "premium_brands": [
+      "BMW",
+      "Jaguar",
+      "Audi"
+    ],
+    "fit_score": 8.5,
+    "id": "GRANDINETTI_CZ_001"
+  },
+  {
+    "name": "Eurotarget S.p.A",
+    "city": "Pieve di Cento",
+    "province": "BO",
+    "phone_wa": "393930000760",
+    "premium_brands": [
+      "BMW",
+      "Audi"
+    ],
+    "fit_score": 8.5,
+    "id": "EUROTARGET_BO_001"
+  },
+  {
+    "name": "Linea Car Guicciardi",
+    "city": "Mirandola",
+    "province": "MO",
+    "phone_wa": "393459830651",
+    "premium_brands": [
+      "Volvo",
+      "Audi"
+    ],
+    "fit_score": 8.5,
+    "id": "LINEACAR_MO_001"
+  },
+  {
+    "name": "MartinAuto",
+    "city": "Trieste",
+    "province": "TS",
+    "phone_wa": "393337836425",
+    "premium_brands": [
+      "Maserati",
+      "Mercedes",
+      "Porsche"
+    ],
+    "fit_score": 8.5,
+    "id": "MARTINAUTO_TS_001"
+  },
+  {
+    "name": "A.B. AUTO SHOP",
+    "city": "Latina",
+    "province": "LT",
+    "phone_wa": "393770406170",
+    "premium_brands": [
+      "BMW",
+      "Audi"
+    ],
+    "fit_score": 8.5,
+    "id": "AB_AUTO_LT_001"
+  },
+  {
+    "name": "MIXAUTO S.R.L.",
+    "city": "Latina",
+    "province": "LT",
+    "phone_wa": "393484723335",
+    "premium_brands": [
+      "Lamborghini",
+      "BMW",
+      "Audi"
+    ],
+    "fit_score": 8.5,
+    "id": "MIXAUTO_LT_001"
+  },
+  {
+    "name": "Gallotti Auto",
+    "city": "Gallarate",
+    "province": "VA",
+    "phone_wa": "393345768604",
+    "premium_brands": [
+      "BMW"
+    ],
+    "fit_score": 8.5,
+    "id": "GALLOTTI_VA_001"
+  },
+  {
+    "name": "RedAuto Civitanova",
+    "city": "Civitanova Marche",
+    "province": "MC",
+    "phone_wa": "393208340517",
+    "premium_brands": [
+      "Audi",
+      "Mercedes"
+    ],
+    "fit_score": 8.5,
+    "id": "REDAUTO_MC_001"
+  },
+  {
+    "name": "CAR 2001",
+    "city": "San Severino Marche",
+    "province": "MC",
+    "phone_wa": "393668713191",
+    "premium_brands": [
+      "Mercedes"
+    ],
+    "fit_score": 8.5,
+    "id": "CAR2001_MC_001"
+  },
+  {
+    "name": "AutoQuarta Monteroni",
+    "city": "Monteroni di Lecce",
+    "province": "LE",
+    "phone_wa": "393803442964",
+    "premium_brands": [
+      "BMW",
+      "Mercedes",
+      "Audi"
+    ],
+    "fit_score": 8.5,
+    "id": "AUTOQUARTA_LE_001"
+  },
+  {
+    "name": "F.A. AUTO SRLS",
+    "city": "San Michele Salentino",
+    "province": "BR",
+    "phone_wa": "393273245894",
+    "premium_brands": [
+      "BMW",
+      "Audi"
+    ],
+    "fit_score": 8.5,
+    "id": "FA_AUTO_BR_001"
+  },
+  {
+    "name": "MACCHITELLA SRL",
+    "city": "San Vito dei Normanni",
+    "province": "BR",
+    "phone_wa": "393482538909",
+    "premium_brands": [
+      "BMW",
+      "Audi"
+    ],
+    "fit_score": 8.5,
+    "id": "MACCHITELLA_BR_001"
+  },
+  {
+    "name": "MOTORVIP",
+    "city": "Milazzo",
+    "province": "ME",
+    "phone_wa": "393273069742",
+    "premium_brands": [
+      "BMW",
+      "Volvo",
+      "Mercedes"
+    ],
+    "fit_score": 8.5,
+    "id": "MOTORVIP_ME_001"
+  },
+  {
+    "name": "Davids Auto",
+    "city": "San Filippo del Mela",
+    "province": "ME",
+    "phone_wa": "393467844480",
+    "premium_brands": [
+      "BMW",
+      "Mercedes",
+      "Audi"
+    ],
+    "fit_score": 8.5,
+    "id": "DAVIDS_ME_001"
+  },
+  {
+    "name": "Car Village",
+    "city": "Sesto Fiorentino",
+    "province": "FI",
+    "phone_wa": "393351900979",
+    "premium_brands": [
+      "BMW",
+      "Mercedes"
+    ],
+    "fit_score": 8.5,
+    "id": "CARVILLAGE_FI_001"
+  },
+  {
+    "name": "Auto Italy",
+    "city": "Brescia",
+    "province": "BS",
+    "phone_wa": "393277442224",
+    "premium_brands": [
+      "Mercedes"
+    ],
+    "fit_score": 7.5,
+    "id": "AUTOITALY_BS_001"
+  },
+  {
+    "name": "LB AUTOMOBILI SRL",
+    "city": "Sestu",
+    "province": "CA",
+    "phone_wa": "393405863425",
+    "premium_brands": [
+      "Mercedes"
+    ],
+    "fit_score": 7.5,
+    "id": "LB_AUTO_CA_001"
+  },
+  {
+    "name": "Greco Auto",
+    "city": "Rende",
+    "province": "CS",
+    "phone_wa": "393381668681",
+    "premium_brands": [
+      "Mercedes",
+      "Audi"
+    ],
+    "fit_score": 7.5,
+    "id": "GRECO_CS_001"
+  },
+  {
+    "name": "GP Auto",
+    "city": "Gallipoli",
+    "province": "LE",
+    "phone_wa": "393453582093",
+    "premium_brands": [
+      "Land Rover",
+      "Mercedes"
+    ],
+    "fit_score": 7.5,
+    "id": "GP_AUTO_LE_001"
+  },
+  {
+    "name": "AZ AUTO EVOLUTION",
+    "city": "Solofra",
+    "province": "AV",
+    "phone_wa": "393454146671",
+    "premium_brands": [
+      "Mercedes",
+      "BMW",
+      "Audi"
+    ],
+    "fit_score": 7.1,
+    "id": "AZ_AUTO_AV_001"
+  },
+  {
+    "name": "PUNTO AUTO SRL",
+    "city": "Isernia",
+    "province": "IS",
+    "phone_wa": "393471706128",
+    "premium_brands": [
+      "Land Rover",
+      "BMW",
+      "Volvo"
+    ],
+    "fit_score": 7.1,
+    "id": "PUNTOAUTO_IS_001"
+  },
+  {
+    "name": "Stefano Auto",
+    "city": "Cerignola",
+    "province": "FG",
+    "phone_wa": "393388199414",
+    "premium_brands": [
+      "Mercedes"
+    ],
+    "fit_score": 6.5,
+    "id": "STEFANO_FG_001"
+  },
+  {
+    "name": "SAINAUTO",
+    "city": "Sala Consilina",
+    "province": "SA",
+    "phone_wa": "393333620122",
+    "premium_brands": [
+      "BMW",
+      "Mercedes"
+    ],
+    "fit_score": 6.5,
+    "id": "SAINAUTO_SA_001"
+  },
+  {
+    "name": "PRONTERAUTO",
+    "city": "Surano",
+    "province": "LE",
+    "phone_wa": "393356690803",
+    "premium_brands": [
+      "BMW",
+      "Range Rover"
+    ],
+    "fit_score": 6.5,
+    "id": "PRONTERAUTO_LE_001"
+  },
+  {
+    "name": "3D Automotive",
+    "city": "Manduria",
+    "province": "TA",
+    "phone_wa": "393289163991",
+    "premium_brands": [
+      "BMW"
+    ],
+    "fit_score": 5.5,
+    "id": "3D_AUTO_TA_001"
+  },
+  {
+    "name": "CARLEO SERVICE",
+    "city": "Ricigliano",
+    "province": "SA",
+    "phone_wa": "393334457867",
+    "premium_brands": [
+      "BMW"
+    ],
+    "fit_score": 5.5,
+    "id": "CARLEO_SA_001"
+  },
+  {
+    "name": "CUOMO CARS",
+    "city": "Sant Egidio del Monte Albino",
+    "province": "SA",
+    "phone_wa": "393515672993",
+    "premium_brands": [
+      "Mercedes",
+      "Audi"
+    ],
+    "fit_score": 5.5,
+    "id": "CUOMO_SA_001"
+  }
+]

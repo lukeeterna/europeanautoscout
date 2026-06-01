@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1200px;height:900px;background:#06060a;font-family:Arial,sans-serif;overflow:hidden;position:relative}
+.bg{position:absolute;inset:0;background:linear-gradient(160deg,#06060a 0%,#0c0c12 50%,#0f0f18 100%)}
+.glow{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(200,164,70,.04) 0%,transparent 70%);top:50%;right:-100px;transform:translateY(-50%)}
+.content{position:relative;z-index:2;padding:60px;height:100%;display:flex;flex-direction:column;justify-content:space-between}
+.tag{font-family:'Courier New',monospace;font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#c8a446;display:flex;align-items:center;gap:10px}
+.tag::before{content:'';width:20px;height:1px;background:#c8a446}
+.title{font-family:Georgia,serif;font-size:46px;color:#e8e8f0;font-weight:normal;margin-top:16px;line-height:1.15}
+.title em{color:#c8a446;font-style:italic}
+.stats{display:flex;gap:24px;margin-top:auto}
+.stat{flex:1;background:rgba(26,26,36,.6);border:1px solid rgba(200,164,70,.1);padding:36px 28px;text-align:center}
+.stat-value{font-family:Georgia,serif;font-size:56px;color:#c8a446;font-weight:normal;line-height:1}
+.stat-label{font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#68687a;margin-top:12px}
+.stat-desc{font-size:13px;color:#a0a0b4;margin-top:8px;line-height:1.6}
+.footer{display:flex;justify-content:space-between;align-items:center;margin-top:32px}
+.footer-name{font-family:Georgia,serif;font-size:16px;color:#68687a}
+.footer-contact{font-family:'Courier New',monospace;font-size:12px;color:#68687a}
+</style></head><body>
+<div class="bg"></div>
+<div class="glow"></div>
+<div class="content">
+<div>
+<div class="tag">Perch&eacute; importare dalla Germania</div>
+<div class="title">Tre numeri.<br><em>Un'opportunit&agrave;</em> che esiste da sempre.</div>
+</div>
+<div class="stats">
+<div class="stat">
+<div class="stat-value">-15%</div>
+<div class="stat-label">Prezzo medio</div>
+<div class="stat-desc">Le stesse auto costano fino al 15% in meno in Germania rispetto all'Italia</div>
+</div>
+<div class="stat">
+<div class="stat-value">38k</div>
+<div class="stat-label">Km medi</div>
+<div class="stat-desc">Auto aziendali tedesche: km bassi, tagliandi certificati, un solo proprietario</div>
+</div>
+<div class="stat">
+<div class="stat-value">2a</div>
+<div class="stat-label">Garanzia EU</div>
+<div class="stat-desc">Garanzia costruttore valida in tutta Europa &mdash; identica all'auto comprata in Italia</div>
+</div>
+</div>
+<div class="footer">
+<div class="footer-name">Luca Ferretti &middot; Vehicle Sourcing</div>
+<div class="footer-contact">+39 328 153 6308</div>
+</div>
+</div>
+</body></html>

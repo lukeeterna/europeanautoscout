@@ -1,0 +1,175 @@
+[
+  {
+    "domain": ".autoscout24.de",
+    "expiry": 1808760009,
+    "httpOnly": false,
+    "name": "_uetvid",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "9d2c1b902c5511f19583530d8cb97a84"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "expiry": 1775150409,
+    "httpOnly": false,
+    "name": "_cq_pxg",
+    "path": "/",
+    "sameSite": "None",
+    "secure": true,
+    "value": "3|f467713357677939144|1036130807|event=conversion"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "expiry": 1809624009,
+    "httpOnly": false,
+    "name": "_ga_BGSHTTTQ7W",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "GS2.1.s1775062582$o3$g0$t1775064009$j60$l0$h0"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "expiry": 1809624008,
+    "httpOnly": false,
+    "name": "_cq_session",
+    "path": "/",
+    "sameSite": "None",
+    "secure": true,
+    "value": "3.1775062581652.xnlBRwAPRaNjbmgO.1775064008845"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "httpOnly": false,
+    "name": "last-5-seen-classifieds",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "1341b4f0-7adf-480f-adf0-e8717442b143|b35bb127-c5c2-4e57-97ca-44270f065f30|efd5ff4a-9636-4872-bf4c-3732bcdbe10d|b2b1235e-dd5f-48de-9484-0d02db3ef1d5|7154da68-eff7-4d3c-a899-874cf389b43f"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "expiry": 1782948008,
+    "httpOnly": false,
+    "name": "_cq_duid",
+    "path": "/",
+    "sameSite": "None",
+    "secure": true,
+    "value": "1.1774888163.o2aXBvzKsnwHrZRX"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "httpOnly": false,
+    "name": "ab_test_dp",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "%7B%7D"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "httpOnly": false,
+    "name": "ab_test_lp",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "%7B%22abTest765VkhModalExperience%22%3A%22abtest-765-variation%22%7D"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "httpOnly": false,
+    "name": "last-seen-classified-guid",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "1341b4f0-7adf-480f-adf0-e8717442b143"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "expiry": 1809624009,
+    "httpOnly": false,
+    "name": "_ga",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "GA1.1.2039031213.1774888164"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "expiry": 1782664165,
+    "httpOnly": false,
+    "name": "_gcl_au",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "1.1.1946652166.1774888165"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "httpOnly": false,
+    "name": "last-seen-listing-type",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "car-buying"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "httpOnly": false,
+    "name": "culture",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "de-DE"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "httpOnly": false,
+    "name": "_cq_suid",
+    "path": "/",
+    "sameSite": "None",
+    "secure": true,
+    "value": "1.1774888163.EzaQ9T8h3ofgfRni"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "expiry": 1782840009,
+    "httpOnly": false,
+    "name": "_fbp",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "fb.1.1774888164468.415816265232012810"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "expiry": 1775150409,
+    "httpOnly": false,
+    "name": "_uetsid",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "9d2bf4c02c5511f1aadf534c177f32f2"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "expiry": 1782840009,
+    "httpOnly": false,
+    "name": "disable-cmp",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "false"
+  },
+  {
+    "domain": ".autoscout24.de",
+    "expiry": 1806600009,
+    "httpOnly": false,
+    "name": "as24Visitor",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "6c010c8c-a084-4076-890c-f5956e488e8b"
+  }
+]

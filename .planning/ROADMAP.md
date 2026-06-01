@@ -142,6 +142,26 @@ Plans:
 - [ ] 06-04-PLAN.md — Knowledge base ARGOS + iniezione nel prompt LLM
 - [ ] 06-05-PLAN.md — Anti-ban layer: typing/recording indicator, delay log-normale, onWhatsApp check
 
+## Operations Debt
+
+Issues non legati a feature nuove ma a operations/scheduling code esistente.
+
+- [ ] **OPS-01 — Scheduler market_intelligence.py orfano** (rilevato 2026-05-21, brief mattutino S183)
+  - Root cause `market_listings=0` e `market_price_changes=0` in `dealer_network.sqlite`
+  - `tools/scrapers/market_intelligence.py` esiste e funziona, ma NON è mai schedulato:
+    - LaunchAgent `wa-intelligence/launchd/com.argos.scheduler.plist` punta a path utente sbagliato (`gianlucadistasi` non `macbook`) e DB sbagliato (`.duckdb` non `.sqlite`) → broken, non caricato in launchd
+    - `ecosystem.config.js` PM2 gestisce solo wa-daemon, tg-bot, cf-monitor → market_intelligence non incluso
+    - crontab utente vuoto per market
+    - `ecosystem.market.config.js` referenziato nel docstring ma NON esiste sul filesystem
+  - Fix raccomandato: aggiungere 4° app a `ecosystem.config.js` con `cron_restart: '0 5 * * 1-5'` (lun-ven 5am, allineato a docstring riga 14 di market_intelligence.py). PM2 supporta cron_restart nativo, riusa SHARED_ENV già configurato con ARGOS_DB_PATH corretto.
+  - Cleanup: rimuovere LaunchAgent `com.argos.scheduler.plist` broken (path utente hardcoded, formato DB obsoleto).
+
+- [ ] **OPS-02 — invisible_playwright candidato se bot detection emerge** (segnalato tool-scout 2026-W21)
+  - Repo `feder-cr/invisible_playwright` (MIT, 328⭐) — stealth Firefox drop-in Playwright replace che passa bot detection test
+  - Attivare SOLO se dopo fix OPS-01 lo scraper market_intelligence inizia a vedere HTTP 403/429/Cloudflare challenges su autoscout24/mobile.de
+  - `base_scraper.py` ha già backoff 403/429 e `resilient_fetcher.py` ha 5 backend fallback — se basta, non introdurre nuova dipendenza
+  - Trigger esplicito per migration: ≥2 portali con block-rate >20% su 7gg consecutivi
+
 ## Progress
 
 **Execution Order:**

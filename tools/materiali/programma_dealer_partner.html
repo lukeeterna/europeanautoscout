@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programma Partner ARGOS</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8f9fa; color: #1a1a2e; line-height: 1.6; }
+.header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #fff; padding: 40px 20px; text-align: center; }
+.header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+.header .gold { color: #d4af37; }
+.header p { font-size: 16px; opacity: 0.85; max-width: 600px; margin: 0 auto; }
+.container { max-width: 900px; margin: 0 auto; padding: 30px 20px; }
+.intro { background: #fff; border-radius: 12px; padding: 30px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.intro h2 { color: #1a1a2e; font-size: 22px; margin-bottom: 12px; }
+.tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 30px; }
+.tier { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-top: 4px solid #ccc; }
+.tier.base { border-top-color: #6c757d; }
+.tier.pro { border-top-color: #d4af37; }
+.tier.elite { border-top-color: #1a1a2e; }
+.tier h3 { font-size: 20px; margin-bottom: 4px; }
+.tier .vol { font-size: 14px; color: #888; margin-bottom: 16px; }
+.tier .fee { font-size: 28px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
+.tier .fee span { font-size: 14px; font-weight: 400; color: #888; }
+.tier ul { list-style: none; padding: 0; }
+.tier ul li { padding: 6px 0; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+.tier ul li:last-child { border: none; }
+.section { background: #fff; border-radius: 12px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.section h2 { color: #1a1a2e; font-size: 20px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #d4af37; }
+.cta { background: #1a1a2e; color: #fff; text-align: center; padding: 40px 20px; border-radius: 12px; margin-top: 20px; }
+.cta h2 { color: #d4af37; margin-bottom: 12px; }
+.cta .phone { font-size: 22px; font-weight: 700; color: #d4af37; }
+.footer { text-align: center; padding: 20px; color: #888; font-size: 13px; }
+@media print { body { background: #fff; } .container { padding: 10px; } }
+</style>
+</head>
+<body>
+<div class="header">
+    <h1>Programma <span class="gold">Partner</span></h1>
+    <p>Accesso riservato alle migliori opportunita auto premium dalla Germania. Zero anticipi, zero rischi.</p>
+</div>
+<div class="container">
+    <div class="intro">
+        <h2>Come funziona</h2>
+        <p>Il Programma Partner e riservato ai concessionari che lavorano regolarmente con noi. Piu auto acquisti, piu vantaggi sblocchi. La fee resta sempre fissa: paghi solo a macchina consegnata e approvata.</p>
+    </div>
+    <div class="tiers">
+        <div class="tier base">
+            <h3>Base</h3>
+            <div class="vol">1-2 auto / mese</div>
+            <div class="fee">&euro;1.000 <span>/ auto</span></div>
+            <ul>
+                <li>Dossier completo gratuito (foto HD, km, storico)</li>
+                <li>Verifica 100 punti su ogni veicolo</li>
+                <li>Gestione documenti (COC, TD17, F24)</li>
+                <li>Consegna in 5-7 giorni lavorativi</li>
+                <li>Supporto WhatsApp diretto con Luca</li>
+            </ul>
+        </div>
+        <div class="tier pro">
+            <h3>Pro</h3>
+            <div class="vol">3-5 auto / mese</div>
+            <div class="fee">&euro;1.000 <span>/ auto</span></div>
+            <ul>
+                <li>Tutto il pacchetto Base, piu:</li>
+                <li>Ricerca personalizzata su richiesta</li>
+                <li>Dossier arricchito (confronto prezzi IT/DE)</li>
+                <li>Accesso prioritario alle nuove opportunita</li>
+                <li>Report mensile andamento mercato DE</li>
+                <li>Consegna prioritaria (4-5 giorni)</li>
+            </ul>
+        </div>
+        <div class="tier elite">
+            <h3>Elite</h3>
+            <div class="vol">6+ auto / mese</div>
+            <div class="fee">&euro;1.000 <span>/ auto</span></div>
+            <ul>
+                <li>Tutto il pacchetto Pro, piu:</li>
+                <li>Scouting dedicato settimanale</li>
+                <li>Canale diretto con fornitori DE verificati</li>
+                <li>Supporto documentale completo</li>
+                <li>Materiali marketing personalizzati</li>
+                <li>Referral priority</li>
+                <li>Consegna express (3-4 giorni)</li>
+            </ul>
+        </div>
+    </div>
+    <div class="section">
+        <h2>Cosa include ogni dossier</h2>
+        <ul>
+            <li><strong>Foto HD</strong> — minimo 15 foto (esterno, interno, dettagli)</li>
+            <li><strong>Storico veicolo</strong> — passaggi, incidenti, richiami costruttore</li>
+            <li><strong>Km certificati</strong> — verifica con storico tagliandi costruttore</li>
+            <li><strong>Ispezione 100 punti</strong> — carrozzeria, meccanica, elettronica</li>
+            <li><strong>VIN check</strong> — verifica telaio, corrispondenza documenti</li>
+            <li><strong>Confronto prezzi</strong> — prezzo DE vs Italia (solo Pro/Elite)</li>
+        </ul>
+    </div>
+    <div class="section">
+        <h2>Garanzie</h2>
+        <ul>
+            <li><strong>Zero anticipi</strong> — la fee si paga solo a veicolo consegnato e approvato</li>
+            <li><strong>Garanzia costruttore UE</strong> — BMW, Mercedes, Audi: 2 anni, valida in Italia</li>
+            <li><strong>Diritto di recesso</strong> — se non corrisponde al dossier, nessun costo</li>
+            <li><strong>Documenti completi</strong> — COC, fattura, TD17, F24 pronti</li>
+            <li><strong>Trasporto assicurato</strong> — copertura completa DE-IT</li>
+        </ul>
+    </div>
+    <div class="section">
+        <h2>Come iniziare</h2>
+        <p>Non serve firmare nulla.</p>
+        <ol style="padding-left: 20px; margin-top: 12px;">
+            <li>Dimmi marca e fascia di prezzo</li>
+            <li>Ti mando il primo dossier gratuito entro 48h</li>
+            <li>Se ti convince, procediamo. Se no, zero costi</li>
+        </ol>
+        <p style="margin-top: 12px; color: #888; font-size: 14px;">Il tier si aggiorna in base al volume. Nessun impegno minimo.</p>
+    </div>
+    <div class="cta">
+        <h2>Pronto a partire?</h2>
+        <p>Scrivimi su WhatsApp con marca e budget. Il primo dossier e gratuito.</p>
+        <div class="phone">Luca Ferretti</div>
+    </div>
+</div>
+<div class="footer">ARGOS Automotive &mdash; Documento riservato per concessionari partner</div>
+</body>
+</html>

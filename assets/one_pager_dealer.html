@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luca Ferretti — Vehicle Sourcing</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 210mm; height: 297mm;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: #06060a; color: #e8e8f0;
+    position: relative; overflow: hidden;
+  }
+  .page {
+    width: 210mm; height: 297mm;
+    padding: 20mm 22mm;
+    position: relative;
+  }
+  /* Top gold line */
+  .top-line { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #c8a446, #e8c870); }
+  /* Grid subtle */
+  .grid { position: absolute; inset: 0; opacity: 0.02;
+    background-image: linear-gradient(rgba(200,164,70,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(200,164,70,0.5) 1px, transparent 1px);
+    background-size: 40px 40px; }
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14mm; position: relative; z-index: 1; }
+  .brand-name { font-size: 28pt; font-weight: 300; color: #e8e8f0; letter-spacing: 3px; }
+  .brand-role { font-family: 'Courier New', monospace; font-size: 8pt; color: #c8a446; letter-spacing: 3px; text-transform: uppercase; margin-top: 3px; }
+  .avatar-box {
+    width: 22mm; height: 22mm; background: #1a1a24;
+    border: 1px solid rgba(200,164,70,0.25); display: flex;
+    align-items: center; justify-content: center; border-radius: 3px;
+  }
+  .avatar-box span { font-family: Georgia, serif; font-size: 24pt; color: #c8a446; }
+  /* Divider */
+  .divider { height: 1px; background: linear-gradient(90deg, #c8a446, transparent); margin: 6mm 0; opacity: 0.4; }
+  /* Section */
+  .section-tag { font-family: 'Courier New', monospace; font-size: 7pt; color: #c8a446; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4mm; }
+  .section-title { font-size: 16pt; font-weight: 300; color: #e8e8f0; margin-bottom: 4mm; line-height: 1.3; }
+  .section-title em { color: #c8a446; font-style: italic; }
+  .body-text { font-size: 9.5pt; line-height: 1.9; color: #a0a0b4; margin-bottom: 4mm; }
+  .body-text strong { color: #e8e8f0; font-weight: 500; }
+  /* Steps */
+  .steps { display: flex; gap: 4mm; margin: 5mm 0; }
+  .step-card {
+    flex: 1; background: rgba(200,164,70,0.03);
+    border: 1px solid rgba(200,164,70,0.1);
+    padding: 4mm; border-radius: 2px;
+  }
+  .step-num { font-family: Georgia, serif; font-size: 22pt; color: rgba(200,164,70,0.1); line-height: 1; }
+  .step-title { font-size: 10pt; color: #e8e8f0; margin: 1mm 0; }
+  .step-desc { font-family: 'Courier New', monospace; font-size: 7pt; color: #68687a; line-height: 1.7; }
+  /* Numbers row */
+  .numbers { display: flex; gap: 3mm; margin: 5mm 0; }
+  .num-card {
+    flex: 1; background: rgba(200,164,70,0.04);
+    border-left: 2px solid rgba(200,164,70,0.3);
+    padding: 3mm 4mm;
+  }
+  .num-val { font-size: 20pt; font-weight: 300; color: #c8a446; line-height: 1; }
+  .num-val small { font-size: 12pt; color: #68687a; }
+  .num-lbl { font-family: 'Courier New', monospace; font-size: 6.5pt; color: #68687a; letter-spacing: 2px; text-transform: uppercase; margin-top: 2mm; }
+  /* Fee highlight */
+  .fee-box {
+    background: rgba(200,164,70,0.05); border: 1px solid rgba(200,164,70,0.2);
+    padding: 5mm 6mm; margin: 5mm 0; border-radius: 2px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .fee-amount { font-size: 22pt; font-weight: 300; color: #e8e8f0; }
+  .fee-amount em { color: #c8a446; font-style: normal; }
+  .fee-sub { font-family: 'Courier New', monospace; font-size: 8pt; color: #c8a446; letter-spacing: 2px; }
+  .fee-note { font-size: 8pt; color: #68687a; max-width: 55mm; text-align: right; line-height: 1.6; }
+  /* Brands */
+  .brands { display: flex; gap: 3mm; margin: 3mm 0; }
+  .brand-pill {
+    font-family: 'Courier New', monospace; font-size: 7pt; color: #68687a;
+    letter-spacing: 2px; padding: 2mm 4mm;
+    background: rgba(200,164,70,0.03); border: 1px solid rgba(200,164,70,0.08);
+  }
+  /* Contact footer */
+  .contact {
+    position: absolute; bottom: 18mm; left: 22mm; right: 22mm;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    padding-top: 4mm; border-top: 1px solid rgba(200,164,70,0.15);
+  }
+  .contact-item { font-family: 'Courier New', monospace; font-size: 8pt; color: #a0a0b4; line-height: 2; }
+  .contact-item span { color: #c8a446; }
+  .contact-right { text-align: right; }
+  .contact-right .url { font-size: 9pt; color: #c8a446; letter-spacing: 1px; }
+  /* Bottom line */
+  .bottom-line { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #c8a446, #e8c870); opacity: 0.5; }
+  /* Corner accents */
+  .corner-tl, .corner-tr, .corner-bl, .corner-br { position: absolute; width: 15px; height: 15px; }
+  .corner-tl { top: 10mm; left: 10mm; border-top: 1px solid rgba(200,164,70,0.15); border-left: 1px solid rgba(200,164,70,0.15); }
+  .corner-tr { top: 10mm; right: 10mm; border-top: 1px solid rgba(200,164,70,0.15); border-right: 1px solid rgba(200,164,70,0.15); }
+  .corner-bl { bottom: 10mm; left: 10mm; border-bottom: 1px solid rgba(200,164,70,0.15); border-left: 1px solid rgba(200,164,70,0.15); }
+  .corner-br { bottom: 10mm; right: 10mm; border-bottom: 1px solid rgba(200,164,70,0.15); border-right: 1px solid rgba(200,164,70,0.15); }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top-line"></div>
+  <div class="grid"></div>
+  <div class="corner-tl"></div><div class="corner-tr"></div>
+  <div class="corner-bl"></div><div class="corner-br"></div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="brand-name">Luca Ferretti</div>
+      <div class="brand-role">Vehicle Sourcing · Mercati EU</div>
+    </div>
+    <div class="avatar-box"><span>LF</span></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- CHI SONO -->
+  <div class="section-tag">Chi sono</div>
+  <p class="body-text">
+    Opero nel settore automotive europeo da oltre 10 anni. Cerco <strong>BMW, Mercedes, Audi e Porsche</strong> sui mercati tedesco, belga e olandese per concessionari italiani. Ogni veicolo e' verificato prima di proporlo: km, storico, prezzo di mercato. <strong>Lavoro con massimo 2-3 concessionari per provincia.</strong>
+  </p>
+
+  <!-- COME FUNZIONA -->
+  <div class="section-tag" style="margin-top:3mm">Come funziona</div>
+  <div class="steps">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <div class="step-title">Mi dici cosa cerchi</div>
+      <div class="step-desc">Brand, modello, anno, budget. In 24-48h attivo la ricerca su 7 mercati EU.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <div class="step-title">Verifico prima di proporti</div>
+      <div class="step-desc">Km, storico, prezzo, anomalie. Se non passa i controlli, non te la propongo.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <div class="step-title">Paghi solo a buon fine</div>
+      <div class="step-desc">Report completo con tutti i costi. Se non ti convince, non mi devi nulla.</div>
+    </div>
+  </div>
+
+  <!-- NUMERI -->
+  <div class="section-tag" style="margin-top:3mm">I numeri</div>
+  <div class="numbers">
+    <div class="num-card">
+      <div class="num-val">7<small>+</small></div>
+      <div class="num-lbl">Mercati EU coperti</div>
+    </div>
+    <div class="num-card">
+      <div class="num-val">-15%</div>
+      <div class="num-lbl">Delta prezzo DE vs IT</div>
+    </div>
+    <div class="num-card">
+      <div class="num-val">€4.500</div>
+      <div class="num-lbl">Margine medio netto</div>
+    </div>
+    <div class="num-card">
+      <div class="num-val">48<small>h</small></div>
+      <div class="num-lbl">Prima proposta</div>
+    </div>
+  </div>
+
+  <!-- FEE -->
+  <div class="fee-box">
+    <div>
+      <div class="fee-amount">€<em>800</em> — €1.200</div>
+      <div class="fee-sub">Per veicolo consegnato · Success fee</div>
+    </div>
+    <div class="fee-note">
+      Nessun anticipo, nessun abbonamento, nessun vincolo. Se non si conclude, non mi devi nulla.
+    </div>
+  </div>
+
+  <!-- BRANDS -->
+  <div class="brands">
+    <div class="brand-pill">BMW</div>
+    <div class="brand-pill">MERCEDES</div>
+    <div class="brand-pill">AUDI</div>
+    <div class="brand-pill">PORSCHE</div>
+    <div class="brand-pill">LAND ROVER</div>
+  </div>
+  <p class="body-text" style="margin-top:2mm;font-size:8.5pt;">
+    Fascia €25.000 — €90.000 · Max 120.000 km · 2019-2025 · Garanzia costruttore UE
+  </p>
+
+  <!-- CONTACT FOOTER -->
+  <div class="contact">
+    <div class="contact-item">
+      <span>WhatsApp</span> +39 328 153 6308<br>
+      <span>Telefono</span> 0972 536 918<br>
+      <span>Email</span> ferretti.argosautomotive@gmail.com
+    </div>
+    <div class="contact-right">
+      <div class="url">argos-automotive.pages.dev</div>
+      <div class="contact-item" style="margin-top:1mm;font-size:7pt;color:#68687a;">
+        Lun-Ven 8:30-18:30 · Sab 9:00-13:00
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-line"></div>
+</div>
+</body>
+</html>

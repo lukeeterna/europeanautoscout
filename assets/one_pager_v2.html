@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:794px;height:1123px;background:#06060a;font-family:Arial,sans-serif;overflow:hidden;position:relative;color:#e8e8f0}
+.page{width:100%;height:100%;display:flex;flex-direction:column}
+.header{background:linear-gradient(135deg,#06060a,#0c0c12);padding:40px;border-bottom:2px solid #c8a446}
+.header-name{font-family:Georgia,serif;font-size:36px;color:#e8e8f0;letter-spacing:2px}
+.header-role{font-family:'Courier New',monospace;font-size:12px;letter-spacing:4px;text-transform:uppercase;color:#c8a446;margin-top:6px}
+.header-desc{font-size:14px;color:#68687a;margin-top:12px;line-height:1.7;max-width:500px}
+.main{flex:1;padding:32px 40px;display:flex;flex-direction:column;gap:28px}
+.section-tag{font-family:'Courier New',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#c8a446;display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.section-tag::before{content:'';width:16px;height:1px;background:#c8a446}
+.steps-row{display:flex;gap:16px}
+.step-card{flex:1;background:rgba(26,26,36,.6);border:1px solid rgba(200,164,70,.12);padding:20px;position:relative}
+.step-num{font-family:Georgia,serif;font-size:36px;color:rgba(200,164,70,.08);position:absolute;top:6px;right:10px}
+.step-title{font-family:Georgia,serif;font-size:18px;color:#e8e8f0;margin-bottom:6px}
+.step-desc{font-size:11px;color:#68687a;line-height:1.7}
+.step-badge{font-family:'Courier New',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#c8a446;margin-top:8px;display:inline-block;padding:3px 8px;border:1px solid rgba(200,164,70,.2)}
+.vehicles{display:flex;gap:12px}
+.vehicle{flex:1;background:rgba(26,26,36,.6);border:1px solid rgba(200,164,70,.12);padding:16px}
+.v-model{font-family:Georgia,serif;font-size:16px;color:#e8e8f0}
+.v-specs{font-family:'Courier New',monospace;font-size:9px;color:#68687a;margin-top:4px;letter-spacing:1px}
+.v-prices{display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid rgba(200,164,70,.1)}
+.v-p{display:flex;flex-direction:column;gap:2px}
+.v-p-label{font-family:'Courier New',monospace;font-size:8px;color:#68687a;text-transform:uppercase;letter-spacing:1px}
+.v-p-val{font-family:Georgia,serif;font-size:18px;color:#e8e8f0}
+.v-p-val.gold{color:#c8a446}
+.fee-box{background:rgba(200,164,70,.06);border:1px solid rgba(200,164,70,.2);padding:20px;display:flex;justify-content:space-between;align-items:center}
+.fee-left{}
+.fee-title{font-family:Georgia,serif;font-size:20px;color:#e8e8f0}
+.fee-sub{font-size:12px;color:#68687a;margin-top:4px}
+.fee-right{text-align:right}
+.fee-amount{font-family:Georgia,serif;font-size:32px;color:#c8a446}
+.fee-note{font-family:'Courier New',monospace;font-size:9px;color:#68687a;letter-spacing:1px;margin-top:2px}
+.advantages{display:flex;gap:12px}
+.adv{flex:1;padding:12px 14px;border-left:2px solid rgba(200,164,70,.3)}
+.adv-title{font-size:12px;color:#e8e8f0;font-weight:500;margin-bottom:4px}
+.adv-desc{font-size:10px;color:#68687a;line-height:1.6}
+.footer{background:linear-gradient(135deg,#06060a,#0c0c12);padding:24px 40px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(200,164,70,.2)}
+.footer-left{display:flex;flex-direction:column;gap:3px}
+.footer-name{font-family:Georgia,serif;font-size:14px;color:#c8a446}
+.footer-contact{font-family:'Courier New',monospace;font-size:10px;color:#68687a;letter-spacing:1px}
+.footer-right{font-family:'Courier New',monospace;font-size:9px;color:rgba(200,164,70,.3);letter-spacing:1px;text-transform:uppercase}
+</style></head><body>
+<div class="page">
+<div class="header">
+<div class="header-name">Luca Ferretti</div>
+<div class="header-role">Vehicle Sourcing &middot; Mercati EU</div>
+<div class="header-desc">Trovo BMW, Mercedes, Audi e Porsche dai mercati europei per concessionari italiani. Ogni veicolo verificato. Paghi solo a buon fine.</div>
+</div>
+<div class="main">
+
+<div>
+<div class="section-tag">Come lavoro</div>
+<div class="steps-row">
+<div class="step-card"><div class="step-num">01</div><div class="step-title">Scouting</div><div class="step-desc">Mi dici cosa cerchi. Attivo la ricerca su 7 mercati europei e seleziono le migliori opportunit&agrave;.</div><div class="step-badge">24-48h</div></div>
+<div class="step-card"><div class="step-num">02</div><div class="step-title">Verifica</div><div class="step-desc">Controllo km, storico, prezzo di mercato. Solo auto che passano i controlli arrivano a te.</div><div class="step-badge">Indipendente</div></div>
+<div class="step-card"><div class="step-num">03</div><div class="step-title">Consegna</div><div class="step-desc">Report completo con numeri. Gestisco trattativa e trasporto su bisarca.</div><div class="step-badge">Success fee</div></div>
+</div>
+</div>
+
+<div>
+<div class="section-tag">Veicoli reali &mdash; disponibili ora</div>
+<div class="vehicles">
+<div class="vehicle">
+<div class="v-model">BMW X3 xDrive20d</div>
+<div class="v-specs">2022 &middot; 38.000 km &middot; Diesel &middot; Germania</div>
+<div class="v-prices">
+<div class="v-p"><div class="v-p-label">Prezzo DE</div><div class="v-p-val">&euro;34.100</div></div>
+<div class="v-p"><div class="v-p-label">Valore IT</div><div class="v-p-val">&euro;42.000</div></div>
+<div class="v-p"><div class="v-p-label">Margine</div><div class="v-p-val gold">+&euro;4.500</div></div>
+</div>
+</div>
+<div class="vehicle">
+<div class="v-model">Mercedes GLC 220d</div>
+<div class="v-specs">2021 &middot; 45.000 km &middot; Diesel &middot; Belgio</div>
+<div class="v-prices">
+<div class="v-p"><div class="v-p-label">Prezzo BE</div><div class="v-p-val">&euro;31.500</div></div>
+<div class="v-p"><div class="v-p-label">Valore IT</div><div class="v-p-val">&euro;39.000</div></div>
+<div class="v-p"><div class="v-p-label">Margine</div><div class="v-p-val gold">+&euro;4.200</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div>
+<div class="section-tag">Modello economico</div>
+<div class="fee-box">
+<div class="fee-left">
+<div class="fee-title">Success Fee &mdash; Zero Anticipi</div>
+<div class="fee-sub">Paghi solo a veicolo consegnato. Se non si conclude, non mi devi nulla.</div>
+</div>
+<div class="fee-right">
+<div class="fee-amount">&euro;800 &ndash; 1.200</div>
+<div class="fee-note">Per veicolo consegnato</div>
+</div>
+</div>
+</div>
+
+<div>
+<div class="section-tag">Perch&eacute; scegliere questo servizio</div>
+<div class="advantages">
+<div class="adv"><div class="adv-title">Scouting proattivo</div><div class="adv-desc">Ti propongo io le auto. Non devi cercare su portali esteri.</div></div>
+<div class="adv"><div class="adv-title">Tutto verificato</div><div class="adv-desc">Km, storico, prezzo &mdash; ogni dato controllato prima di proporti l'auto.</div></div>
+<div class="adv"><div class="adv-title">Esclusivit&agrave; zona</div><div class="adv-desc">Max 2-3 concessionari per provincia. I tuoi competitor non vedono le stesse auto.</div></div>
+<div class="adv"><div class="adv-title">Zero rischio</div><div class="adv-desc">Nessun contratto, nessun abbonamento. Provi con un'auto.</div></div>
+</div>
+</div>
+
+</div>
+<div class="footer">
+<div class="footer-left">
+<div class="footer-name">Luca Ferretti &middot; Vehicle Sourcing</div>
+<div class="footer-contact">WA: +39 328 153 6308 &middot; Tel: 0972 536 918 &middot; ferretti.argosautomotive@gmail.com</div>
+</div>
+<div class="footer-right">Protocollo ARGOS</div>
+</div>
+</div>
+</body></html>

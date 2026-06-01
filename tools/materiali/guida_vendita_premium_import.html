@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guida Vendita Premium Import — ARGOS Automotive</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0a;
+    color: #e8e0d0;
+    min-height: 100vh;
+  }
+
+  .header {
+    background: #0a0a0a;
+    border-bottom: 1px solid #c8a446;
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-shield {
+    width: 44px;
+    height: 44px;
+    border: 2px solid #c8a446;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #c8a446;
+    flex-shrink: 0;
+  }
+  .logo-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: #c8a446;
+    letter-spacing: 0.08em;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .header-right {
+    text-align: right;
+  }
+  .header-right h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    color: #e8e0d0;
+  }
+  .header-right p {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 52px 32px 80px;
+  }
+
+  .intro-banner {
+    background: #111118;
+    border: 1px solid #c8a446;
+    border-left: 4px solid #c8a446;
+    border-radius: 4px;
+    padding: 24px 28px;
+    margin-bottom: 48px;
+  }
+  .intro-banner p {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #ccc;
+  }
+  .intro-banner strong {
+    color: #c8a446;
+  }
+
+  .section {
+    margin-bottom: 52px;
+  }
+
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: #c8a446;
+    border-bottom: 1px solid #222;
+    padding-bottom: 12px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-number {
+    background: #c8a446;
+    color: #0a0a0a;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .insight-box {
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .insight-box h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #c8a446;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .insight-box p {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #ccc;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .col-do {
+    background: #0a150a;
+    border: 1px solid #2a4a2a;
+    border-left: 3px solid #4a9a4a;
+    border-radius: 4px;
+    padding: 18px 20px;
+  }
+  .col-do h4 {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4a9a4a;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 12px;
+  }
+
+  .col-dont {
+    background: #150a0a;
+    border: 1px solid #4a2a2a;
+    border-left: 3px solid #9a4a4a;
+    border-radius: 4px;
+    padding: 18px 20px;
+  }
+  .col-dont h4 {
+    font-size: 12px;
+    font-weight: 600;
+    color: #9a4a4a;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 12px;
+  }
+
+  .col-do ul, .col-dont ul {
+    list-style: none;
+    padding: 0;
+  }
+  .col-do ul li, .col-dont ul li {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #ccc;
+    padding: 5px 0;
+    padding-left: 16px;
+    position: relative;
+  }
+  .col-do ul li::before {
+    content: '+';
+    position: absolute;
+    left: 0;
+    color: #4a9a4a;
+    font-weight: 700;
+  }
+  .col-dont ul li::before {
+    content: '-';
+    position: absolute;
+    left: 0;
+    color: #9a4a4a;
+    font-weight: 700;
+  }
+
+  .script-block {
+    background: #0e0e18;
+    border: 1px solid #2a2a3e;
+    border-left: 4px solid #c8a446;
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .script-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #c8a446;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 10px;
+  }
+  .script-text {
+    font-size: 14px;
+    line-height: 1.75;
+    color: #e0d8c8;
+    font-style: italic;
+  }
+  .script-note {
+    font-size: 12px;
+    color: #777;
+    margin-top: 10px;
+    font-style: normal;
+  }
+
+  .objection-row {
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin-bottom: 14px;
+  }
+  .objection-q {
+    font-size: 13px;
+    font-weight: 600;
+    color: #aaa;
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+  .objection-q::before {
+    content: 'Cliente: ';
+    color: #666;
+    font-style: normal;
+  }
+  .objection-a {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #e0d8c8;
+  }
+  .objection-a strong {
+    color: #c8a446;
+  }
+
+  .highlight-number {
+    display: inline-block;
+    background: #c8a446;
+    color: #0a0a0a;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin: 0 2px;
+  }
+
+  .argomento-card {
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .argomento-icon {
+    width: 36px;
+    height: 36px;
+    background: #1a1a0e;
+    border: 1px solid #c8a446;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .argomento-content h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #c8a446;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .argomento-content p {
+    font-size: 13px;
+    line-height: 1.65;
+    color: #bbb;
+  }
+  .argomento-content .esempio {
+    font-size: 12px;
+    color: #888;
+    margin-top: 6px;
+    font-style: italic;
+    border-left: 2px solid #333;
+    padding-left: 10px;
+  }
+
+  .footer {
+    border-top: 1px solid #1e1e1e;
+    padding: 28px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 60px;
+  }
+  .footer-left {
+    font-size: 12px;
+    color: #555;
+  }
+  .footer-right {
+    font-size: 12px;
+    color: #555;
+    text-align: right;
+  }
+  .footer-right span {
+    color: #c8a446;
+    font-weight: 600;
+  }
+
+  @media print {
+    body { background: #fff; color: #111; }
+    .header { border-bottom: 2px solid #c8a446; background: #fff; }
+    .logo-text, .section-title { color: #1a1a2e; }
+    .logo-shield { border-color: #c8a446; color: #c8a446; }
+    .insight-box, .script-block, .objection-row, .argomento-card { background: #f9f9f9; border-color: #ddd; }
+    .col-do { background: #f0f7f0; }
+    .col-dont { background: #f7f0f0; }
+    .footer { border-top: 1px solid #ccc; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-shield">A</div>
+    <div>
+      <div class="logo-text">ARGOS Automotive</div>
+      <div class="logo-sub">Vehicle Sourcing Specialist EU</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <h1>Guida Vendita Premium Import</h1>
+    <p>Materiale Riservato Partner — Uso Interno</p>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="intro-banner">
+    <p>
+      Questa guida raccoglie le tecniche che uso ogni giorno nel mio lavoro con i concessionari.
+      La vera sfida nell'import premium non è trovare il veicolo — è aiutarla a presentarlo al suo cliente
+      in modo che la provenienza tedesca diventi un argomento di vendita, non un ostacolo.
+      <strong>Il cliente finale non sa cosa perده, non aiutandolo a capirlo.</strong>
+    </p>
+  </div>
+
+  <!-- SEZIONE 1 -->
+  <div class="section">
+    <div class="section-title">
+      <span class="section-number">1</span>
+      La psicologia del cliente di fronte a un'auto tedesca
+    </div>
+
+    <div class="insight-box">
+      <h3>Il vero problema</h3>
+      <p>
+        Il cliente italiano medio ha tre dubbi su un'auto importata: non sa se è "a posto" con i documenti,
+        non sa se qualcosa è stato nascosto, e non si fida di non poter "tornare dal venditore" se qualcosa va storto.
+        Non sta mettendo in discussione lei — sta cercando rassicurazione che riduca il suo rischio percepito.
+      </p>
+    </div>
+
+    <div class="insight-box">
+      <h3>Cosa vuole sentirsi dire</h3>
+      <p>
+        Il cliente vuole che lei si assuma la responsabilità della scelta. Vuole sentire che c'è qualcuno
+        — lei, il concessionario — che risponde. La provenienza geografica è irrilevante se lei è presente.
+        Il suo marchio locale vale più di qualsiasi certificazione straniera.
+      </p>
+    </div>
+
+    <div class="two-col">
+      <div class="col-do">
+        <h4>Cosa funziona</h4>
+        <ul>
+          <li>Presentare lei stesso come garante del veicolo</li>
+          <li>Mostrare i documenti originali fisicamente</li>
+          <li>Tradurre ogni voce del libretto in italiano</li>
+          <li>Citare il tagliando fatto dopo l'arrivo in Italia</li>
+          <li>Usare il risparmio in euro netti, non percentuali</li>
+          <li>Spiegare la garanzia costruttore residua</li>
+        </ul>
+      </div>
+      <div class="col-dont">
+        <h4>Cosa non funziona</h4>
+        <ul>
+          <li>Difendersi ("ma è tutto in regola, guardi qui")</li>
+          <li>Sovraccaricare di sigla e documentazione</li>
+          <li>Dire "viene dalla Germania" come prima cosa</li>
+          <li>Minimizzare le preoccupazioni del cliente</li>
+          <li>Usare termini burocratici (COC, TD17, omologazione)</li>
+          <li>Paragonarla a un'altra auto nel lotto</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEZIONE 2 -->
+  <div class="section">
+    <div class="section-title">
+      <span class="section-number">2</span>
+      Script di vendita — Apertura e presentazione
+    </div>
+
+    <p style="font-size:13px; color:#888; margin-bottom:20px;">
+      Questi script sono punti di partenza, non formule rigide. Adattarli alla sua voce e al suo rapporto con il cliente.
+    </p>
+
+    <div class="script-block">
+      <div class="script-label">Apertura — quando il cliente vede l'auto per la prima volta</div>
+      <div class="script-text">
+        "Questa è una delle auto che mi ha fatto più soddisfazione portare. L'ho selezionata personalmente
+        tra decine di esemplari sul mercato europeo — l'ho scelta perché i chilometri sono verificati,
+        la manutenzione è regolare dal primo giorno, e la garanzia costruttore è ancora attiva.
+        Gliene parlo come se fosse un'auto del mio stock, perché di fatto lo è."
+      </div>
+      <div class="script-note">Nota: non usa mai "Germania" o "importata" nella frase di apertura. La provenienza viene dopo, a domanda.</div>
+    </div>
+
+    <div class="script-block">
+      <div class="script-label">Quando il cliente chiede da dove viene</div>
+      <div class="script-text">
+        "Viene dalla Germania, esatto. Il mercato tedesco è il più rigido d'Europa per la cura dei veicoli —
+        tagliandi obbligatori, revisioni ogni due anni, storico tracciato. Questo esemplare ha [X] km
+        e la storia completa dal concessionario originale. In Italia la stessa configurazione costerebbe
+        [Y] euro in più. Questo è il vantaggio."
+      </div>
+      <div class="script-note">Nota: risponde alla domanda, poi riporta subito su un dato concreto in euro. La Germania diventa un argomento di qualità, non di sospetto.</div>
+    </div>
+
+    <div class="script-block">
+      <div class="script-label">Chiusura — quando il cliente è indeciso</div>
+      <div class="script-text">
+        "Capisco che vuole essere sicuro. Se vuole, prima di decidere le mostro i documenti originali —
+        il libretto tedesco con tutti i tagliandi, il certificato di conformità europeo e il foglio
+        della revisione fatta in Italia. Poi mi dica lei. Io questa auto la vendo solo se lei è convinto,
+        non perché le devo svuotare il piazzale."
+      </div>
+      <div class="script-note">Nota: la chiusura "soft" funziona meglio su clienti incerti. Non spinge, abbassa la pressione e guadagna fiducia.</div>
+    </div>
+  </div>
+
+  <!-- SEZIONE 3 -->
+  <div class="section">
+    <div class="section-title">
+      <span class="section-number">3</span>
+      Argomenti di vendita — cosa funziona davvero
+    </div>
+
+    <div class="argomento-card">
+      <div class="argomento-icon">€</div>
+      <div class="argomento-content">
+        <h4>Il risparmio in euro netti</h4>
+        <p>
+          Non parlare di percentuali. Tradurre sempre in cifra assoluta: "su un'auto da 45.000 euro
+          lei risparmia 6.000 euro rispetto al listino italiano". Il cliente capisce un numero concreto,
+          non un "18% di margine".
+        </p>
+        <div class="esempio">Esempio: "BMW X3 equivalente da concessionario BMW Italia: €42.000.
+        Questo esemplare tedesco, stessa dotazione, 2022: €36.000. Lei ci guadagna €6.000 netti."</div>
+      </div>
+    </div>
+
+    <div class="argomento-card">
+      <div class="argomento-icon">G</div>
+      <div class="argomento-content">
+        <h4>La garanzia costruttore residua</h4>
+        <p>
+          La garanzia costruttore europea è valida in tutta l'UE, quindi anche in Italia.
+          Un'auto BMW acquistata in Germania nel 2022 ha ancora garanzia BMW Italia fino al 2024+
+          (a seconda del chilometraggio). Questo è un argomento forte e verificabile.
+        </p>
+        <div class="esempio">Esempio: "Ha ancora [X] mesi di garanzia costruttore attiva — la porta
+        direttamente in concessionaria BMW a [città] se serve. Non è una garanzia nostra, è la garanzia BMW."</div>
+      </div>
+    </div>
+
+    <div class="argomento-card">
+      <div class="argomento-icon">K</div>
+      <div class="argomento-content">
+        <h4>I chilometri certificati</h4>
+        <p>
+          In Germania il libretto di manutenzione è timbrato ad ogni tagliando con km dichiarati.
+          La storia è tracciabile e difficile da alterare. Mostrare fisicamente il libretto
+          con tutti i timbri è più convincente di qualsiasi dichiarazione verbale.
+        </p>
+        <div class="esempio">Esempio: "Guardi qui — ogni tagliando timbrato dal concessionario originale.
+        Monaco, 2022. Monaco, 2023. I km corrispondono. Non c'è storia inventata."</div>
+      </div>
+    </div>
+
+    <div class="argomento-card">
+      <div class="argomento-icon">D</div>
+      <div class="argomento-content">
+        <h4>La dotazione accessori</h4>
+        <p>
+          Le auto tedesche hanno spesso dotazioni superiori rispetto alla versione base italiana
+          dello stesso modello, perché il mercato DE acquista più optional di fabbrica.
+          Questo è un argomento ulteriore da evidenziare item per item.
+        </p>
+        <div class="esempio">Esempio: "In Italia questa versione non la trova con il tetto panoramico
+        e i sedili ventilati insieme. In Germania è configurazione standard su questo allestimento."</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEZIONE 4 -->
+  <div class="section">
+    <div class="section-title">
+      <span class="section-number">4</span>
+      Obiezioni frequenti del cliente finale — come rispondere
+    </div>
+
+    <div class="objection-row">
+      <div class="objection-q">"Ma se ho problemi, dove vado?"</div>
+      <div class="objection-a">
+        "Viene da me, esattamente come per qualsiasi altra auto che vende. La garanzia costruttore
+        vale presso qualsiasi concessionario autorizzato della marca in Italia. Per tutto il resto
+        lei ha il suo referente qui — non deve chiamare nessuno in Germania."
+        <br><br>
+        <strong>Principio:</strong> il cliente ha paura di restare solo. Mettere lei in mezzo risolve il problema.
+      </div>
+    </div>
+
+    <div class="objection-row">
+      <div class="objection-q">"Posso fidarmi dei chilometri dichiarati?"</div>
+      <div class="objection-a">
+        "Il libretto di manutenzione originale tedesco riporta i km ad ogni tagliando — è un documento
+        che viene timbrato dal concessionario ufficiale. Possiamo verificare anche tramite il numero
+        di telaio su banche dati europee se lo vuole, ma guardi prima il libretto: è la prova più
+        semplice e diretta."
+        <br><br>
+        <strong>Principio:</strong> mostrare il documento fisico vale più di qualsiasi rassicurazione verbale.
+      </div>
+    </div>
+
+    <div class="objection-row">
+      <div class="objection-q">"Perché la vendono in Germania se è un buon affare?"</div>
+      <div class="objection-a">
+        "In Germania i cicli di sostituzione dei veicoli aziendali e di leasing sono molto brevi —
+        spesso 24-36 mesi. Non vendono perché l'auto ha problemi, vendono perché il loro contratto
+        è finito. È esattamente questo che rende il mercato dell'usato tedesco interessante
+        per chi sa dove guardare."
+        <br><br>
+        <strong>Principio:</strong> rispondere alla domanda reale, che è "c'è qualcosa che non va?".
+      </div>
+    </div>
+
+    <div class="objection-row">
+      <div class="objection-q">"I documenti sono tutti a posto? La immatricolazione è complicata?"</div>
+      <div class="objection-a">
+        "L'immatricolazione di un'auto EU in Italia è una procedura standard — la fa qualsiasi
+        studio pratiche auto in mezza giornata. Il Certificato di Conformità Europeo è già incluso.
+        Non è più complicata di un cambio di proprietà italiano. Gliela gestiamo noi, non deve
+        preoccuparsi di niente."
+        <br><br>
+        <strong>Principio:</strong> il cliente teme la complessità burocratica. Togliergli il peso è un argomento di valore.
+      </div>
+    </div>
+  </div>
+
+  <!-- SEZIONE 5 -->
+  <div class="section">
+    <div class="section-title">
+      <span class="section-number">5</span>
+      Cosa NON dire mai — errori da evitare
+    </div>
+
+    <div class="insight-box">
+      <h3>Linguaggio da evitare</h3>
+      <p style="margin-bottom:12px;">
+        Alcune frasi sembrano normali ma generano sospetto o abbassano il valore percepito del veicolo:
+      </p>
+      <ul style="list-style:none; padding:0;">
+        <li style="padding: 7px 0; border-bottom: 1px solid #1e1e2e; font-size:13px; color:#bbb;">
+          <span style="color:#9a4a4a; font-weight:600;">Non dire:</span> "è un'auto di importazione" —
+          <span style="color:#ccc;">dire invece:</span> "è un'auto selezionata sul mercato europeo"
+        </li>
+        <li style="padding: 7px 0; border-bottom: 1px solid #1e1e2e; font-size:13px; color:#bbb;">
+          <span style="color:#9a4a4a; font-weight:600;">Non dire:</span> "costa meno perché viene dalla Germania" —
+          <span style="color:#ccc;">dire invece:</span> "il prezzo riflette il mercato tedesco, più competitivo"
+        </li>
+        <li style="padding: 7px 0; border-bottom: 1px solid #1e1e2e; font-size:13px; color:#bbb;">
+          <span style="color:#9a4a4a; font-weight:600;">Non dire:</span> "i tedeschi sono precisi" (stereotipo) —
+          <span style="color:#ccc;">dire invece:</span> "la manutenzione è documentata tagliando per tagliando"
+        </li>
+        <li style="padding: 7px 0; border-bottom: 1px solid #1e1e2e; font-size:13px; color:#bbb;">
+          <span style="color:#9a4a4a; font-weight:600;">Non dire:</span> "non si preoccupi" (minimizza) —
+          <span style="color:#ccc;">dire invece:</span> "capisco la domanda, le mostro subito il documento"
+        </li>
+        <li style="padding: 7px 0; font-size:13px; color:#bbb;">
+          <span style="color:#9a4a4a; font-weight:600;">Non dire:</span> prezzi di acquisto o margini propri —
+          <span style="color:#ccc;">mai:</span> la struttura del costo ARGOS non è informazione del cliente finale
+        </li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <div class="footer-left">
+    Materiale riservato — uso esclusivo dealer partner ARGOS<br>
+    Non riprodurre o distribuire a terzi
+  </div>
+  <div class="footer-right">
+    <span>Luca Ferretti</span> — Vehicle Sourcing Specialist EU<br>
+    ARGOS Automotive | +39 328 153 6308
+  </div>
+</div>
+
+</body>
+</html>

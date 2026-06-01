@@ -1,0 +1,98 @@
+[
+  {
+    "domain": ".bilbasen.dk",
+    "expiry": 1774375193,
+    "httpOnly": false,
+    "name": "_pulsesession",
+    "path": "/",
+    "sameSite": "None",
+    "secure": true,
+    "value": "%5B%22sdrn%3Aschibsted%3Asession%3Afcdc7701-3877-4813-8f4f-aeeb5a215d13%22%2C1774373393890%2C1774373393890%5D"
+  },
+  {
+    "domain": ".bilbasen.dk",
+    "expiry": 1805909393,
+    "httpOnly": false,
+    "name": "GdprConsent",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "{\"version\":\"IAB TCF 2.0\",\"consentString\":\"CQhkkgAQhkkgAAGABCENCWFgAAAAAELAABCYAAAOWgEgAqAD4AMsAmgCsgFzAMhAb8A5YAQIACAJoAyEJABAGWOABgB8AZCA5YkABAcs.IJtNR7C_1LWlFoTZ3SZMgUYxX4dhirkQxBAZJk0QFwLOCIBQGkiEwNEzANiICGBAAOFBBIQFsGICQBQCgKAgRrDDkaESUgCJCJ4AEgCMQQwJICFBJGgFCGQAYwvg6YhBQmB6NwMruAMxwi4BGmWY5BoCwUBAVAYcpHPv0ZBKSkxAE9bw0egnwZEaBEkAAABAAAAAAAAAAAAAAAAAAAQA.YAAAAAAAAAAA\"}"
+  },
+  {
+    "domain": ".www.bilbasen.dk",
+    "expiry": 1774718992,
+    "httpOnly": false,
+    "name": "aws-waf-token",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "0048109f-459e-41ab-b9f4-1e159d4abac6:CQoAlbx6hH+JAAAA:RIE68NXB/0j3DpvZioMSa7JJ4hZ0N4iBl47PK3a5034JoYggN7EIw5wLT06Gc5VCdsvUjAJxGGi9d2sIcneyBw1uJtRqTgddb1qhrp/9s7UUUJ5XvgzxsJQ52Dck1Oow1oQudJWKxjtlqKVC5XyXT6Kb9SXaYkgIs/ZGJOEcXSPIcuOlv3f6YxNW+7yM21i/Oc8="
+  },
+  {
+    "domain": ".www.bilbasen.dk",
+    "httpOnly": false,
+    "name": "bbtracker",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "id=d9d5ab4a-b7ef-4d17-b046-ea83c3fac291"
+  },
+  {
+    "domain": "www.bilbasen.dk",
+    "httpOnly": true,
+    "name": "bbsession",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "id=ca3ba2d3-f407-4ea9-a838-b4ffd74d9448"
+  },
+  {
+    "domain": "www.bilbasen.dk",
+    "expiry": 1805478920,
+    "httpOnly": true,
+    "name": "bbtracker",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "id=d9d5ab4a-b7ef-4d17-b046-ea83c3fac291"
+  },
+  {
+    "domain": ".bilbasen.dk",
+    "expiry": 1805909393,
+    "httpOnly": false,
+    "name": "GdprConsent-Custom",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "eyJ2ZW5kb3JJZHMiOnt9fQ=="
+  },
+  {
+    "domain": ".bilbasen.dk",
+    "httpOnly": false,
+    "name": "consentUUID",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "77969a72-42d7-43ec-9750-4167ded8d8bd"
+  },
+  {
+    "domain": ".www.bilbasen.dk",
+    "httpOnly": false,
+    "name": "bbsession",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "id=43a00769-e3ce-40e7-bd6f-8b78e5c48b7d"
+  },
+  {
+    "domain": ".bilbasen.dk",
+    "expiry": 1808933393,
+    "httpOnly": false,
+    "name": "_pulse2data",
+    "path": "/",
+    "sameSite": "None",
+    "secure": true,
+    "value": "%2Cv%2C%2C1773938831336%2C%2C%2C0%2C%2C%2C"
+  }
+]

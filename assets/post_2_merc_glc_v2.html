@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1200px;height:900px;background:#06060a;font-family:Arial,sans-serif;overflow:hidden;position:relative}
+.bg{position:absolute;inset:0;background:linear-gradient(160deg,#06060a 0%,#0c0c12 50%,#0f0f18 100%)}
+.glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(200,164,70,.05) 0%,transparent 70%);bottom:-80px;left:-80px}
+.content{position:relative;z-index:2;padding:60px;height:100%;display:flex;flex-direction:column;justify-content:space-between}
+.tag{font-family:'Courier New',monospace;font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#c8a446;display:flex;align-items:center;gap:10px}
+.tag::before{content:'';width:20px;height:1px;background:#c8a446}
+.model{font-family:Georgia,serif;font-size:56px;color:#e8e8f0;font-weight:normal;margin-top:16px;line-height:1.1}
+.specs{display:flex;gap:32px;margin-top:20px}
+.spec{display:flex;flex-direction:column;gap:4px}
+.spec-label{font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#68687a}
+.spec-value{font-family:Georgia,serif;font-size:22px;color:#e8e8f0}
+.price-compare{display:flex;gap:48px;margin-top:auto;padding:40px;background:rgba(26,26,36,.8);border:1px solid rgba(200,164,70,.15)}
+.price-block{display:flex;flex-direction:column;gap:6px}
+.price-country{font-family:'Courier New',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#68687a}
+.price-value{font-family:Georgia,serif;font-size:48px;color:#e8e8f0;font-weight:normal}
+.price-value.de{color:#c8a446}
+.vs{display:flex;align-items:center;font-family:Georgia,serif;font-size:28px;color:#68687a;padding:0 20px}
+.margin-block{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:6px}
+.margin-label{font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#c8a446}
+.margin-value{font-family:Georgia,serif;font-size:42px;color:#c8a446}
+.footer{display:flex;justify-content:space-between;align-items:center;margin-top:24px}
+.footer-name{font-family:Georgia,serif;font-size:16px;color:#68687a}
+.footer-badge{font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(200,164,70,.4);border:1px solid rgba(200,164,70,.2);padding:6px 14px}
+</style></head><body>
+<div class="bg"></div>
+<div class="glow"></div>
+<div class="content">
+<div>
+<div class="tag">Opportunit&agrave; verificata</div>
+<div class="model">Mercedes GLC<br>220d 4MATIC 2021</div>
+<div class="specs">
+<div class="spec"><div class="spec-label">Chilometri</div><div class="spec-value">45.000 km</div></div>
+<div class="spec"><div class="spec-label">Alimentazione</div><div class="spec-value">Diesel</div></div>
+<div class="spec"><div class="spec-label">Provenienza</div><div class="spec-value">Belgio</div></div>
+<div class="spec"><div class="spec-label">Score verifica</div><div class="spec-value">89/100</div></div>
+</div>
+</div>
+<div class="price-compare">
+<div class="price-block">
+<div class="price-country">Prezzo Belgio</div>
+<div class="price-value de">&euro;31.500</div>
+</div>
+<div class="vs">&rarr;</div>
+<div class="price-block">
+<div class="price-country">Valore Italia</div>
+<div class="price-value">&euro;39.000</div>
+</div>
+<div class="margin-block">
+<div class="margin-label">Margine stimato</div>
+<div class="margin-value">+&euro;4.200</div>
+</div>
+</div>
+<div class="footer">
+<div class="footer-name">Luca Ferretti &middot; Vehicle Sourcing</div>
+<div class="footer-badge">Verificato &middot; Protocollo ARGOS</div>
+</div>
+</div>
+</body></html>

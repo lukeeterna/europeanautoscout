@@ -2,21 +2,79 @@
 ARGOS Dealer Discovery — Configurazione province target e segnali commissione
 """
 
-# Province target Sud Italia — ordinate per priorita'
+# Province target TUTTA ITALIA — ordinate per priorita'
+# P1: Sud core (family business premium, territorio vuoto)
+# P2: Sud esteso + Sicilia/Sardegna
+# P3: Centro Italia
+# P4: Nord Italia (piu' competitivo ma volume alto)
 PROVINCE_TARGET = [
+    # ── PRIORITA' 1: Sud core (territorio vuoto, family business) ──
     {"province": "foggia", "region": "puglia", "priority": 1},
     {"province": "caserta", "region": "campania", "priority": 1},
     {"province": "cosenza", "region": "calabria", "priority": 1},
-    {"province": "avellino", "region": "campania", "priority": 2},
-    {"province": "lecce", "region": "puglia", "priority": 2},
-    {"province": "taranto", "region": "puglia", "priority": 2},
-    {"province": "salerno", "region": "campania", "priority": 2},
+    {"province": "avellino", "region": "campania", "priority": 1},
+    {"province": "lecce", "region": "puglia", "priority": 1},
+    {"province": "taranto", "region": "puglia", "priority": 1},
+    {"province": "salerno", "region": "campania", "priority": 1},
+    # ── PRIORITA' 2: Sud esteso + Isole ──
     {"province": "catanzaro", "region": "calabria", "priority": 2},
-    {"province": "bari", "region": "puglia", "priority": 3},
-    {"province": "benevento", "region": "campania", "priority": 3},
-    {"province": "potenza", "region": "basilicata", "priority": 3},
-    {"province": "crotone", "region": "calabria", "priority": 3},
-    {"province": "reggio-calabria", "region": "calabria", "priority": 3},
+    {"province": "bari", "region": "puglia", "priority": 2},
+    {"province": "benevento", "region": "campania", "priority": 2},
+    {"province": "potenza", "region": "basilicata", "priority": 2},
+    {"province": "crotone", "region": "calabria", "priority": 2},
+    {"province": "reggio-calabria", "region": "calabria", "priority": 2},
+    {"province": "napoli", "region": "campania", "priority": 2},
+    {"province": "brindisi", "region": "puglia", "priority": 2},
+    {"province": "matera", "region": "basilicata", "priority": 2},
+    {"province": "catania", "region": "sicilia", "priority": 2},
+    {"province": "palermo", "region": "sicilia", "priority": 2},
+    {"province": "messina", "region": "sicilia", "priority": 2},
+    {"province": "siracusa", "region": "sicilia", "priority": 2},
+    {"province": "cagliari", "region": "sardegna", "priority": 2},
+    {"province": "sassari", "region": "sardegna", "priority": 2},
+    {"province": "vibo-valentia", "region": "calabria", "priority": 2},
+    # ── PRIORITA' 3: Centro Italia ──
+    {"province": "roma", "region": "lazio", "priority": 3},
+    {"province": "frosinone", "region": "lazio", "priority": 3},
+    {"province": "latina", "region": "lazio", "priority": 3},
+    {"province": "rieti", "region": "lazio", "priority": 3},
+    {"province": "viterbo", "region": "lazio", "priority": 3},
+    {"province": "perugia", "region": "umbria", "priority": 3},
+    {"province": "terni", "region": "umbria", "priority": 3},
+    {"province": "pescara", "region": "abruzzo", "priority": 3},
+    {"province": "chieti", "region": "abruzzo", "priority": 3},
+    {"province": "teramo", "region": "abruzzo", "priority": 3},
+    {"province": "l-aquila", "region": "abruzzo", "priority": 3},
+    {"province": "campobasso", "region": "molise", "priority": 3},
+    {"province": "isernia", "region": "molise", "priority": 3},
+    {"province": "firenze", "region": "toscana", "priority": 3},
+    {"province": "arezzo", "region": "toscana", "priority": 3},
+    {"province": "siena", "region": "toscana", "priority": 3},
+    {"province": "grosseto", "region": "toscana", "priority": 3},
+    {"province": "ancona", "region": "marche", "priority": 3},
+    {"province": "pesaro-urbino", "region": "marche", "priority": 3},
+    {"province": "macerata", "region": "marche", "priority": 3},
+    # ── PRIORITA' 4: Nord Italia (competitivo, volume alto) ──
+    {"province": "milano", "region": "lombardia", "priority": 4},
+    {"province": "brescia", "region": "lombardia", "priority": 4},
+    {"province": "bergamo", "region": "lombardia", "priority": 4},
+    {"province": "monza-e-della-brianza", "region": "lombardia", "priority": 4},
+    {"province": "varese", "region": "lombardia", "priority": 4},
+    {"province": "torino", "region": "piemonte", "priority": 4},
+    {"province": "cuneo", "region": "piemonte", "priority": 4},
+    {"province": "verona", "region": "veneto", "priority": 4},
+    {"province": "padova", "region": "veneto", "priority": 4},
+    {"province": "treviso", "region": "veneto", "priority": 4},
+    {"province": "vicenza", "region": "veneto", "priority": 4},
+    {"province": "bologna", "region": "emilia-romagna", "priority": 4},
+    {"province": "modena", "region": "emilia-romagna", "priority": 4},
+    {"province": "parma", "region": "emilia-romagna", "priority": 4},
+    {"province": "reggio-emilia", "region": "emilia-romagna", "priority": 4},
+    {"province": "trento", "region": "trentino-alto-adige", "priority": 4},
+    {"province": "bolzano", "region": "trentino-alto-adige", "priority": 4},
+    {"province": "genova", "region": "liguria", "priority": 4},
+    {"province": "udine", "region": "friuli-venezia-giulia", "priority": 4},
+    {"province": "trieste", "region": "friuli-venezia-giulia", "priority": 4},
 ]
 
 # Segnali che indicano dealer "su commissione"

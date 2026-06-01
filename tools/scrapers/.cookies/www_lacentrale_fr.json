@@ -1,0 +1,12 @@
+[
+  {
+    "domain": ".lacentrale.fr",
+    "expiry": 1805908930,
+    "httpOnly": false,
+    "name": "datadome",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "ZT68p1YNtR2kTbkr_VvegEkrR0U08LJOIE7F8ZKztrVY8x8xHnKDpZ7acweJ0bU0NmLuenCb0yUgxT0XJSsJ7_NR7P3JcSeHNS2BErhA9hAPu8YWzR1Er6uNyx_ZLxbq"
+  }
+]

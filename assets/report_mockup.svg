@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#06060a"/>
+      <stop offset="100%" stop-color="#0c0c12"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c8a446"/>
+      <stop offset="100%" stop-color="#e8c870"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2ecc71"/>
+      <stop offset="100%" stop-color="#27ae60"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <!-- Top bar -->
+  <rect x="0" y="0" width="800" height="3" fill="url(#gold)" opacity="0.7"/>
+  <!-- Header -->
+  <g transform="translate(50, 50)">
+    <text x="0" y="24" font-family="Georgia,'Cormorant Garamond',serif" font-size="14" fill="#c8a446" letter-spacing="4">REPORT VEICOLO</text>
+    <text x="0" y="60" font-family="Georgia,serif" font-size="32" fill="#e8e8f0" font-weight="300">BMW X3 xDrive20d</text>
+    <text x="0" y="86" font-family="'Courier New',monospace" font-size="11" fill="#68687a" letter-spacing="2">2022 · 50.058 KM · GERMANIA · AUTOSCOUT24</text>
+    <!-- Status badge -->
+    <rect x="550" y="15" width="150" height="30" rx="3" fill="rgba(46,204,113,0.1)" stroke="#2ecc71" stroke-width="0.8"/>
+    <text x="625" y="35" text-anchor="middle" font-family="'Courier New',monospace" font-size="10" fill="#2ecc71" letter-spacing="2">VERIFICATO</text>
+    <!-- Confidence -->
+    <text x="550" y="70" font-family="'Courier New',monospace" font-size="9" fill="#68687a" letter-spacing="1">CONFIDENCE</text>
+    <text x="625" y="70" font-family="Georgia,serif" font-size="18" fill="#c8a446">81/100</text>
+  </g>
+  <!-- Divider -->
+  <line x1="50" y1="120" x2="750" y2="120" stroke="rgba(200,164,70,0.15)" stroke-width="0.5"/>
+  <!-- Car placeholder area -->
+  <g transform="translate(50, 140)">
+    <rect x="0" y="0" width="700" height="220" rx="6" fill="#1a1a24" stroke="rgba(200,164,70,0.1)" stroke-width="0.5"/>
+    <!-- Abstract car -->
+    <g transform="translate(350, 110)" opacity="0.15">
+      <rect x="-160" y="-35" width="320" height="80" rx="12" fill="#c8a446"/>
+      <rect x="-120" y="-70" width="240" height="42" rx="8" fill="#c8a446"/>
+      <circle cx="-100" cy="55" r="24" fill="#c8a446"/>
+      <circle cx="100" cy="55" r="24" fill="#c8a446"/>
+    </g>
+    <text x="350" y="90" text-anchor="middle" font-family="'Courier New',monospace" font-size="10" fill="#68687a" letter-spacing="2">FOTO VEICOLO HD</text>
+    <!-- Photo count -->
+    <rect x="590" y="180" width="90" height="24" rx="3" fill="rgba(200,164,70,0.08)" stroke="rgba(200,164,70,0.15)" stroke-width="0.5"/>
+    <text x="635" y="196" text-anchor="middle" font-family="'Courier New',monospace" font-size="9" fill="#c8a446">12 FOTO</text>
+  </g>
+  <!-- Price section -->
+  <g transform="translate(50, 390)">
+    <text x="0" y="14" font-family="'Courier New',monospace" font-size="10" fill="#c8a446" letter-spacing="3">ANALISI PREZZO</text>
+    <rect x="0" y="28" width="340" height="130" rx="4" fill="rgba(200,164,70,0.03)" stroke="rgba(200,164,70,0.1)" stroke-width="0.5"/>
+    <!-- DE price -->
+    <text x="20" y="56" font-family="'Courier New',monospace" font-size="9" fill="#68687a" letter-spacing="1">PREZZO GERMANIA</text>
+    <text x="20" y="82" font-family="Georgia,serif" font-size="28" fill="#c8a446">€34.140</text>
+    <!-- IT price -->
+    <text x="20" y="110" font-family="'Courier New',monospace" font-size="9" fill="#68687a" letter-spacing="1">PREZZO ITALIA EQUIVALENTE</text>
+    <text x="20" y="136" font-family="Georgia,serif" font-size="28" fill="#a0a0b4">€41.500 — €43.000</text>
+    <!-- Costs -->
+    <rect x="360" y="28" width="340" height="130" rx="4" fill="rgba(200,164,70,0.03)" stroke="rgba(200,164,70,0.1)" stroke-width="0.5"/>
+    <text x="380" y="56" font-family="'Courier New',monospace" font-size="9" fill="#68687a" letter-spacing="1">COSTI TOTALI</text>
+    <text x="380" y="78" font-family="'Courier New',monospace" font-size="10" fill="#a0a0b4">Veicolo DE .............. €34.140</text>
+    <text x="380" y="96" font-family="'Courier New',monospace" font-size="10" fill="#a0a0b4">Trasporto bisarca ....... €850</text>
+    <text x="380" y="114" font-family="'Courier New',monospace" font-size="10" fill="#a0a0b4">Fee Luca Ferretti ....... €900</text>
+    <line x1="380" y1="122" x2="680" y2="122" stroke="rgba(200,164,70,0.2)" stroke-width="0.5"/>
+    <text x="380" y="142" font-family="'Courier New',monospace" font-size="11" fill="#e8e8f0" font-weight="bold">TOTALE .................. €35.890</text>
+  </g>
+  <!-- Margin highlight -->
+  <g transform="translate(50, 570)">
+    <rect x="0" y="0" width="700" height="70" rx="4" fill="rgba(46,204,113,0.05)" stroke="rgba(46,204,113,0.2)" stroke-width="0.8"/>
+    <text x="30" y="30" font-family="'Courier New',monospace" font-size="10" fill="#2ecc71" letter-spacing="2">MARGINE STIMATO PER IL CONCESSIONARIO</text>
+    <text x="30" y="55" font-family="Georgia,serif" font-size="28" fill="#2ecc71">€5.610 — €7.110</text>
+    <text x="400" y="55" font-family="'Courier New',monospace" font-size="10" fill="#68687a">al netto di tutti i costi</text>
+  </g>
+  <!-- Vehicle details -->
+  <g transform="translate(50, 670)">
+    <text x="0" y="14" font-family="'Courier New',monospace" font-size="10" fill="#c8a446" letter-spacing="3">DETTAGLI VEICOLO</text>
+    <g transform="translate(0, 30)">
+      <rect x="0" y="0" width="170" height="50" rx="3" fill="rgba(200,164,70,0.03)" stroke="rgba(200,164,70,0.08)" stroke-width="0.5"/>
+      <text x="15" y="18" font-family="'Courier New',monospace" font-size="8" fill="#68687a" letter-spacing="1">MOTORE</text>
+      <text x="15" y="38" font-family="Georgia,serif" font-size="14" fill="#e8e8f0">2.0 diesel 190cv</text>
+    </g>
+    <g transform="translate(180, 30)">
+      <rect x="0" y="0" width="170" height="50" rx="3" fill="rgba(200,164,70,0.03)" stroke="rgba(200,164,70,0.08)" stroke-width="0.5"/>
+      <text x="15" y="18" font-family="'Courier New',monospace" font-size="8" fill="#68687a" letter-spacing="1">CAMBIO</text>
+      <text x="15" y="38" font-family="Georgia,serif" font-size="14" fill="#e8e8f0">Automatico 8 marce</text>
+    </g>
+    <g transform="translate(360, 30)">
+      <rect x="0" y="0" width="170" height="50" rx="3" fill="rgba(200,164,70,0.03)" stroke="rgba(200,164,70,0.08)" stroke-width="0.5"/>
+      <text x="15" y="18" font-family="'Courier New',monospace" font-size="8" fill="#68687a" letter-spacing="1">TRAZIONE</text>
+      <text x="15" y="38" font-family="Georgia,serif" font-size="14" fill="#e8e8f0">xDrive (integrale)</text>
+    </g>
+    <g transform="translate(540, 30)">
+      <rect x="0" y="0" width="160" height="50" rx="3" fill="rgba(200,164,70,0.03)" stroke="rgba(200,164,70,0.08)" stroke-width="0.5"/>
+      <text x="15" y="18" font-family="'Courier New',monospace" font-size="8" fill="#68687a" letter-spacing="1">IMMATRICOLAZIONE</text>
+      <text x="15" y="38" font-family="Georgia,serif" font-size="14" fill="#e8e8f0">03/2022</text>
+    </g>
+  </g>
+  <!-- Verification status -->
+  <g transform="translate(50, 790)">
+    <text x="0" y="14" font-family="'Courier New',monospace" font-size="10" fill="#c8a446" letter-spacing="3">VERIFICHE</text>
+    <g transform="translate(0, 30)">
+      <circle cx="10" cy="8" r="5" fill="#2ecc71"/><text x="24" y="12" font-family="'Courier New',monospace" font-size="10" fill="#a0a0b4">Chilometraggio coerente con eta' veicolo</text>
+    </g>
+    <g transform="translate(0, 52)">
+      <circle cx="10" cy="8" r="5" fill="#2ecc71"/><text x="24" y="12" font-family="'Courier New',monospace" font-size="10" fill="#a0a0b4">Prezzo in linea con mercato DE (±5%)</text>
+    </g>
+    <g transform="translate(0, 74)">
+      <circle cx="10" cy="8" r="5" fill="#2ecc71"/><text x="24" y="12" font-family="'Courier New',monospace" font-size="10" fill="#a0a0b4">Nessuna anomalia rilevata (storico, incidenti, richiami)</text>
+    </g>
+    <g transform="translate(0, 96)">
+      <circle cx="10" cy="8" r="5" fill="#2ecc71"/><text x="24" y="12" font-family="'Courier New',monospace" font-size="10" fill="#a0a0b4">Garanzia costruttore UE residua</text>
+    </g>
+  </g>
+  <!-- Footer -->
+  <rect x="0" y="940" width="800" height="60" fill="rgba(200,164,70,0.04)"/>
+  <text x="50" y="970" font-family="'Courier New',monospace" font-size="9" fill="#68687a" letter-spacing="1">Verificato con protocollo ARGOS · Generato il 21/03/2026</text>
+  <text x="750" y="970" text-anchor="end" font-family="Georgia,serif" font-size="12" fill="#c8a446" letter-spacing="1">Luca Ferretti</text>
+  <rect x="0" y="997" width="800" height="3" fill="url(#gold)" opacity="0.5"/>
+</svg>

@@ -1,0 +1,114 @@
+TEMPLATE WA — RICHIESTA RECENSIONE GOOGLE
+==========================================
+Ultimo aggiornamento: 2026-03-22
+
+REGOLA D'ORO: chiedere la recensione a caldo — entro 24-48 ore
+dall'evento positivo (consegna, proposta apprezzata, referral).
+Aspettare una settimana = probabilità di risposta dimezzata.
+
+Link da inserire nei template:
+→ Recuperare da Google Business > "Chiedi recensioni" > copia link diretto
+   (formato: g.page/[nome-profilo]/review)
+   Finché il profilo non è attivo, usare la versione senza link (vedi NOTE).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEMPLATE A — Post-transazione completata
+Quando: l'auto è stata consegnata, tutto ok
+Tono: soddisfazione condivisa, nessuna pressione
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Buongiorno [Nome],
+
+l'auto è arrivata bene — sono contento che sia andato tutto liscio.
+
+Le chiedo un favore: se ha 2 minuti, una recensione su Google mi aiuta molto per far conoscere il servizio ad altri concessionari. Basta scrivere come è andato il lavoro insieme.
+
+[LINK GOOGLE REVIEW]
+
+Grazie. A presto per la prossima.
+Luca
+
+---
+NOTE INVIO:
+- Inviare il giorno dopo la consegna, non il giorno stesso
+- Se non risponde in 3 giorni, nessun secondo messaggio — la pressione brucia il rapporto
+- "[Nome]" = nome del titolare, non della concessionaria
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEMPLATE B — Post-proposta apprezzata (senza transazione)
+Quando: il dealer ha risposto positivamente, ha visto una proposta che
+gli è piaciuta, ma non ha ancora comprato (timing, budget, altra auto)
+Tono: leggero, zero pressione, costruisce relazione a lungo termine
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Buongiorno [Nome],
+
+le ho mandato alcune proposte nelle ultime settimane — spero siano state utili anche solo per vedere i prezzi del mercato tedesco.
+
+Se le fa piacere, una parola su Google su come lavoro mi aiuta molto — anche solo "risponde velocemente e le proposte sono concrete" vale oro per chi mi incontra per la prima volta.
+
+[LINK GOOGLE REVIEW]
+
+Nessun obbligo, ovviamente. A presto.
+Luca
+
+---
+NOTE INVIO:
+- Usare SOLO se il dealer ha risposto almeno 2 volte e il rapporto è caldo
+- Non usare con dealer freddi o che non hanno mai risposto
+- Se risponde "ci penso" o non risponde: lasciare perdere, nessun follow-up
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEMPLATE C — Rete personale (amici, colleghi, conoscenti del settore)
+Quando: persone che ti conoscono già, anche fuori dal contesto dealer
+Tono: diretto, informale, nessuna formula commerciale
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ciao [Nome],
+
+sto costruendo la mia presenza su Google per il lavoro di scouting auto che faccio.
+
+Se hai 2 minuti e vuoi darmi una mano, una recensione — anche breve — mi aiuta tantissimo con i nuovi concessionari che non mi conoscono ancora.
+
+[LINK GOOGLE REVIEW]
+
+Grazie davvero.
+Luca
+
+---
+NOTE INVIO:
+- Usare con persone che ti conoscono: ex colleghi del settore, fornitori,
+  amici che sanno cosa fai
+- NON usare per chiedere recensioni false a persone che non hanno mai
+  interagito con il servizio (Google penalizza e rimuove)
+- Questo template non ha "Lei" — è informale by design
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OBIETTIVO RECENSIONI — ROADMAP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fase 0 (adesso):    0 rec  → attivare Template C con rete personale (5-10 persone)
+Fase 1 (1° mese):   5 rec  → Google inizia a mostrare la valutazione media
+Fase 2 (3° mese):  15 rec  → passare a Google Business Description Versione B
+Fase 3 (6° mese):  30 rec  → credibilità comparabile a operatori affermati
+
+Benchmark competitor:
+- Bolidem: 219 recensioni 4.8/5 (25 anni attività)
+- Autotedesche.it: 162 recensioni 4.9/5 Trustpilot
+- Obiettivo ARGOS anno 1: 30 recensioni 4.8+ — sufficiente per superare il gap
+  percettivo con un dealer che ci confronta
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COME RECUPERARE IL LINK GOOGLE REVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Aprire Google Business Profile Manager (business.google.com)
+2. Selezionare il profilo "Luca Ferretti / ARGOS Automotive"
+3. Home > sezione "Ottieni altre recensioni" > "Condividi il modulo di recensione"
+4. Copiare il link breve (es. g.page/r/xxx/review)
+5. Incollare il link al posto di [LINK GOOGLE REVIEW] nei template sopra
+
+Se il profilo Google Business non è ancora verificato:
+→ Il link non esiste ancora. In questo caso, omettere il link e scrivere:
+   "...puoi cercarlo su Google come 'Luca Ferretti Vehicle Sourcing' e lasciare
+   una recensione dalla scheda."

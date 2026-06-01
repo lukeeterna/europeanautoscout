@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checklist Consegna Veicolo — ARGOS Automotive</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0a;
+    color: #e8e0d0;
+    min-height: 100vh;
+  }
+
+  .header {
+    background: #0a0a0a;
+    border-bottom: 1px solid #c8a446;
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-shield {
+    width: 44px;
+    height: 44px;
+    border: 2px solid #c8a446;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #c8a446;
+    flex-shrink: 0;
+  }
+  .logo-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: #c8a446;
+    letter-spacing: 0.08em;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .header-right {
+    text-align: right;
+  }
+  .header-right h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    color: #e8e0d0;
+  }
+  .header-right p {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .meta-bar {
+    background: #111118;
+    border-bottom: 1px solid #1e1e2e;
+    padding: 14px 48px;
+    display: flex;
+    gap: 40px;
+  }
+  .meta-field {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .meta-label {
+    font-size: 10px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .meta-value {
+    font-size: 13px;
+    color: #e0d8c8;
+    border-bottom: 1px solid #333;
+    min-width: 140px;
+    padding-bottom: 2px;
+  }
+
+  .main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  .intro-note {
+    background: #111118;
+    border: 1px solid #c8a446;
+    border-left: 4px solid #c8a446;
+    border-radius: 4px;
+    padding: 18px 22px;
+    margin-bottom: 40px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: #bbb;
+  }
+
+  .phase {
+    margin-bottom: 40px;
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #1e1e2e;
+  }
+  .phase-badge {
+    background: #c8a446;
+    color: #0a0a0a;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+  .phase-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: #e8e0d0;
+  }
+  .phase-subtitle {
+    font-size: 12px;
+    color: #666;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  .checklist-item {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    gap: 14px;
+    align-items: start;
+    padding: 12px 0;
+    border-bottom: 1px solid #141420;
+  }
+  .checklist-item:last-child {
+    border-bottom: none;
+  }
+
+  .check-box {
+    width: 22px;
+    height: 22px;
+    border: 1.5px solid #c8a446;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .item-content {
+    flex: 1;
+  }
+  .item-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #e0d8c8;
+    margin-bottom: 3px;
+  }
+  .item-detail {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.5;
+  }
+  .item-critical {
+    font-size: 10px;
+    font-weight: 700;
+    color: #c8a446;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: #1a1a0e;
+    border: 1px solid #c8a44644;
+    padding: 2px 7px;
+    border-radius: 2px;
+    white-space: nowrap;
+    align-self: start;
+    margin-top: 2px;
+  }
+  .item-ok {
+    font-size: 10px;
+    font-weight: 600;
+    color: #4a9a4a;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: #0a150a;
+    border: 1px solid #2a4a2a;
+    padding: 2px 7px;
+    border-radius: 2px;
+    white-space: nowrap;
+    align-self: start;
+    margin-top: 2px;
+  }
+
+  .note-box {
+    background: #0e0e18;
+    border: 1px solid #2a2a3e;
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin-top: 16px;
+    font-size: 12px;
+    color: #888;
+    line-height: 1.6;
+  }
+  .note-box strong {
+    color: #c8a446;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .firma-section {
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 6px;
+    padding: 24px 28px;
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+  }
+  .firma-field h4 {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+  .firma-line {
+    border-bottom: 1px solid #333;
+    padding-bottom: 4px;
+    min-height: 32px;
+    margin-bottom: 6px;
+  }
+  .firma-label {
+    font-size: 10px;
+    color: #555;
+  }
+
+  .footer {
+    border-top: 1px solid #1e1e1e;
+    padding: 24px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 40px;
+  }
+  .footer-left {
+    font-size: 11px;
+    color: #555;
+  }
+  .footer-right {
+    font-size: 11px;
+    color: #555;
+    text-align: right;
+  }
+  .footer-right span {
+    color: #c8a446;
+    font-weight: 600;
+  }
+
+  @media print {
+    body { background: #fff; color: #111; }
+    .header { background: #fff; border-bottom: 2px solid #c8a446; }
+    .meta-bar { background: #f5f5f5; border-bottom: 1px solid #ddd; }
+    .logo-text, .phase-title { color: #1a1a2e; }
+    .logo-shield { border-color: #c8a446; color: #c8a446; }
+    .intro-note, .note-box, .firma-section { background: #f9f9f9; border-color: #ddd; }
+    .checklist-item { border-bottom: 1px solid #eee; }
+    .check-box { border-color: #333; }
+    .phase-badge { background: #1a1a2e; color: #fff; }
+    .item-critical { background: #fffbee; border-color: #c8a446; color: #8a6000; }
+    .footer { border-top: 1px solid #ccc; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-shield">A</div>
+    <div>
+      <div class="logo-text">ARGOS Automotive</div>
+      <div class="logo-sub">Vehicle Sourcing Specialist EU</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <h1>Checklist Consegna Veicolo</h1>
+    <p>Materiale Operativo Partner — Uso Interno</p>
+  </div>
+</div>
+
+<div class="meta-bar">
+  <div class="meta-field">
+    <span class="meta-label">Veicolo</span>
+    <span class="meta-value">&nbsp;</span>
+  </div>
+  <div class="meta-field">
+    <span class="meta-label">Targa / Telaio</span>
+    <span class="meta-value">&nbsp;</span>
+  </div>
+  <div class="meta-field">
+    <span class="meta-label">Data ritiro</span>
+    <span class="meta-value">&nbsp;</span>
+  </div>
+  <div class="meta-field">
+    <span class="meta-label">Responsabile</span>
+    <span class="meta-value">&nbsp;</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="intro-note">
+    Questa checklist va completata al ritiro del veicolo da ARGOS e prima di mostrarlo al cliente finale.
+    Ogni punto flaggato non OK va segnalato immediatamente a Luca Ferretti (+39 328 153 6308).
+    Non procedere alla vendita finche' i punti critici non sono risolti.
+  </div>
+
+  <!-- FASE 1: DOCUMENTI -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-badge">Fase 1</span>
+      <span class="phase-title">Documenti — Verifica completa</span>
+      <span class="phase-subtitle">Da completare prima di tutto il resto</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Certificato di Conformita' Europeo (COC)</div>
+        <div class="item-detail">Documento originale presente, dati corrispondenti al veicolo (targa/telaio, marca, modello, anno). Verifica che non sia una fotocopia non autenticata.</div>
+      </div>
+      <span class="item-critical">Critico</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Libretto di manutenzione originale (Scheckheft)</div>
+        <div class="item-detail">Presenza di tutti i timbri concessionario ufficiale con date e km corrispondenti. Almeno un tagliando nell'ultimo anno o entro i km previsti.</div>
+      </div>
+      <span class="item-critical">Critico</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Carta di circolazione tedesca (Fahrzeugschein / Zulassungsbescheinigung Teil I)</div>
+        <div class="item-detail">Documento di immatricolazione originale tedesco con numero di telaio leggibile e corrispondente al veicolo fisico.</div>
+      </div>
+      <span class="item-critical">Critico</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Titolo di proprieta' tedesco (Zulassungsbescheinigung Teil II)</div>
+        <div class="item-detail">Il "libretto" del proprietario — certifica la catena di proprieta'. Verifica che non ci siano ipoteche o riserve di proprieta' (Sicherungsubereignung) ancora attive.</div>
+      </div>
+      <span class="item-critical">Critico</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Dichiarazione doganale / prova di acquisto EU</div>
+        <div class="item-detail">Fattura di acquisto originale dal venditore tedesco con IVA esposta o regime del margine indicato chiaramente. Necessaria per la registrazione IVA italiana.</div>
+      </div>
+      <span class="item-ok">Necessario</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Chiavi originali (tutte le copie)</div>
+        <div class="item-detail">Verifica il numero di chiavi fisiche e telecomandi. Minimo 2 chiavi per veicoli premium. Un mancante da comunicare subito — duplicato BMW/Mercedes costa €300-500.</div>
+      </div>
+      <span class="item-ok">Necessario</span>
+    </div>
+
+    <div class="note-box">
+      <strong>Nota documenti</strong>
+      Se COC o titolo di proprieta' non sono presenti o hanno irregolarita', sospendere la pratica
+      di immatricolazione e contattare ARGOS prima di procedere. Non comunicare al cliente
+      una data di consegna prima che i documenti siano verificati completi.
+    </div>
+  </div>
+
+  <!-- FASE 2: ISPEZIONE ESTERNA -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-badge">Fase 2</span>
+      <span class="phase-title">Ispezione visiva — Esterno</span>
+      <span class="phase-subtitle">Luce naturale, preferibilmente mattina</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Carrozzeria — assenza danni non dichiarati</div>
+        <div class="item-detail">Controllare tutti i pannelli con luce radente: graffi profondi, ammaccature, riverniciature parziali. Confrontare con il dossier ARGOS — ogni anomalia non segnalata va documentata e comunicata.</div>
+      </div>
+      <span class="item-critical">Critico</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Congruenza colori pannelli (spessimetro)</div>
+        <div class="item-detail">Se disponibile uno spessimetro, verificare uniformita' dello spessore vernice. Valori molto piu' alti (>150 micron) su singoli pannelli indicano riverniciatura successiva non dichiarata.</div>
+      </div>
+      <span class="item-ok">Consigliato</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Vetri — assenza crepe, chip o sostituzione non originale</div>
+        <div class="item-detail">Il parabrezza originale riporta il marchio del produttore (es. AGC, Pilkington) e l'anno di fabbricazione. Un parabrezza sostituito non e' necessariamente un problema, ma va dichiarato.</div>
+      </div>
+      <span class="item-ok">Necessario</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Pneumatici — usura e marca</div>
+        <div class="item-detail">Profilo minimo 3mm per vendita sicura (limite legale 1.6mm). Verificare che tutti e 4 siano della stessa marca o che eventuali differenze siano dichiarate. Anno di produzione pneumatico leggibile sul fianco.</div>
+      </div>
+      <span class="item-ok">Necessario</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Cerchi — assenza danni, graffi o ammaccature</div>
+        <div class="item-detail">Cerchi in lega danneggiati sono visibili e abbassano la percezione qualitativa del veicolo. Se presenti, ripassatura cerchi prima della vendita al cliente finale.</div>
+      </div>
+      <span class="item-ok">Consigliato</span>
+    </div>
+  </div>
+
+  <!-- FASE 3: ISPEZIONE INTERNA -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-badge">Fase 3</span>
+      <span class="phase-title">Ispezione visiva — Interno e meccanica</span>
+      <span class="phase-subtitle">Motore acceso per tutta la durata</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Plancia e display — assenza errori o warning</div>
+        <div class="item-detail">Con motore avviato: nessuna spia gialla o rossa attiva. Se presenti warning, identificarli prima di procedere. Nota: alcune spie si attivano a freddo e spariscono — verificare dopo 5 minuti.</div>
+      </div>
+      <span class="item-critico">Critico</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Climatizzatore — funzionamento corretto</div>
+        <div class="item-detail">Test riscaldamento e raffreddamento. Verifica che entrambe le zone (lato guida e passeggero) funzionino. Su veicoli con climatizzatore automatico verificare i display di zona.</div>
+      </div>
+      <span class="item-ok">Necessario</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Infotainment e connettivita'</div>
+        <div class="item-detail">Navigazione, Bluetooth, Apple CarPlay/Android Auto se presenti. Inserire una SIM o testare la connessione telefono. Aggiornare il software di navigazione alla versione italiana se richiesto dalla dotazione.</div>
+      </div>
+      <span class="item-ok">Consigliato</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Sedili, cinture, airbag</div>
+        <div class="item-detail">Sedili: regolazione manuale e elettrica funzionante, nessuna lacerazione o macchia visibile. Cinture: retrazione corretta. Spia airbag: spenta con motore avviato. Fondamentale per la sicurezza del cliente finale.</div>
+      </div>
+      <span class="item-critical">Critico</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Livelli fluidi — verifica visiva</div>
+        <div class="item-detail">Olio motore, liquido freni, liquido raffreddamento: tutti nei range corretti. Un livello basso non blocca la vendita ma va corretto prima della consegna al cliente e registrato.</div>
+      </div>
+      <span class="item-ok">Necessario</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Freni — test pedale e freno di stazionamento</div>
+        <div class="item-detail">Pedale fermo senza cedimenti. Freno a mano (o elettrico) funzionante. Test in movimento a bassa velocita' su area privata se possibile prima del test drive cliente.</div>
+      </div>
+      <span class="item-critical">Critico</span>
+    </div>
+  </div>
+
+  <!-- FASE 4: PRIMA DI MOSTRARE AL CLIENTE -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-badge">Fase 4</span>
+      <span class="phase-title">Preparazione per il cliente finale</span>
+      <span class="phase-subtitle">Checklist prima dell'appuntamento</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Lavaggio esterno professionale e sanificazione interna</div>
+        <div class="item-detail">Primo impatto visivo critico. Un veicolo pulito vale percettivamente il 5-10% in piu'. Lucidatura cerchi se graffiati. Profumatore neutro (mai aggressivo) nell'abitacolo.</div>
+      </div>
+      <span class="item-ok">Consigliato</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Carburante sufficiente per test drive</div>
+        <div class="item-detail">Almeno 1/4 di serbatoio. Un'auto con la spia rossa del carburante abbassa la percezione di cura del veicolo. Per PHEV: batteria carica.</div>
+      </div>
+      <span class="item-ok">Necessario</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Documenti tradotti e riassunti in italiano</div>
+        <div class="item-detail">Preparare un foglio riepilogativo in italiano: km reali, data immatricolazione, garanzia costruttore residua, numero tagliandi, eventuali interventi. Il cliente deve poter leggere tutto senza conoscere il tedesco.</div>
+      </div>
+      <span class="item-ok">Consigliato</span>
+    </div>
+
+    <div class="checklist-item">
+      <div class="check-box"></div>
+      <div class="item-content">
+        <div class="item-title">Pratica immatricolazione avviata o pronta</div>
+        <div class="item-detail">Verificare che lo studio pratiche sia disponibile nei tempi richiesti. Comunicare al cliente la data stimata di immatricolazione prima dell'appuntamento, non dopo la firma.</div>
+      </div>
+      <span class="item-ok">Necessario</span>
+    </div>
+
+    <div class="note-box">
+      <strong>Prima di far salire il cliente</strong>
+      Verificare che non ci siano oggetti personali dimenticati nell'abitacolo (documentazione del precedente proprietario, oggetti nel vano bagagli).
+      Impostare la lingua del sistema di navigazione e infotainment in italiano se ancora in tedesco.
+    </div>
+  </div>
+
+  <!-- FIRME -->
+  <div class="firma-section">
+    <div class="firma-field">
+      <h4>Responsabile ritiro veicolo</h4>
+      <div class="firma-line"></div>
+      <div class="firma-label">Nome e firma</div>
+    </div>
+    <div class="firma-field">
+      <h4>Data e ora completamento checklist</h4>
+      <div class="firma-line"></div>
+      <div class="firma-label">GG/MM/AAAA — HH:MM</div>
+    </div>
+    <div class="firma-field">
+      <h4>Anomalie rilevate (si/no)</h4>
+      <div class="firma-line"></div>
+      <div class="firma-label">Se si: comunicare a ARGOS prima di procedere</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <div class="footer-left">
+    Materiale operativo riservato — uso esclusivo dealer partner ARGOS<br>
+    Conservare copia firmata per ogni veicolo consegnato
+  </div>
+  <div class="footer-right">
+    <span>Luca Ferretti</span> — Vehicle Sourcing Specialist EU<br>
+    ARGOS Automotive | +39 328 153 6308
+  </div>
+</div>
+
+</body>
+</html>

@@ -16,7 +16,7 @@
 Cloudflare repo separato. Tentativo curl:
 ```bash
 curl -X POST 'https://argos-proxy.gianlucanewtech.workers.dev/api/v1/contract/create' \
-  -H "X-API-Key: h_65WFGPMtlgROInLfZtU5TM8hFlVLfYLrn8vSV6kko" \
+  -H "X-API-Key: $ARGOS_API_KEY" \
   -d '{"dealer_id":"PROBE","vehicle_ref":"BMW_X1_2022","fee":800}'
 # → {"error":"Unauthorized","code":"INVALID_TOKEN"}
 ```

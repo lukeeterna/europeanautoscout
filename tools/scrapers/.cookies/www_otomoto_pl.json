@@ -1,0 +1,105 @@
+[
+  {
+    "domain": ".otomoto.pl",
+    "httpOnly": false,
+    "name": "lqonap",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "19d3a1aa0b1x4b6f69e9"
+  },
+  {
+    "domain": ".otomoto.pl",
+    "httpOnly": false,
+    "name": "laquesisff",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "cars-53718#cars-68201#euads-2750#euads-4388"
+  },
+  {
+    "domain": ".otomoto.pl",
+    "httpOnly": false,
+    "name": "laquesis",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "cars-67016@b#cars-74927@a#cars-75219@b#cars-78587@a#cars-78623@a#cars-81171@b#cars-81335@b#cars-81950@c#cars-81954@b#cars-82302@a#cars-82417@c#platf-21345@a"
+  },
+  {
+    "domain": ".otomoto.pl",
+    "httpOnly": false,
+    "name": "test",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "1"
+  },
+  {
+    "domain": ".otomoto.pl",
+    "expiry": 1805900497,
+    "httpOnly": false,
+    "name": "onap",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "19d3a1aa0b1x4b6f69e9-1-19d3a1aa0b1x4b6f69e9-15-1774798298"
+  },
+  {
+    "domain": ".otomoto.pl",
+    "expiry": 1809356497,
+    "httpOnly": false,
+    "name": "ab.storage.sessionId.0d8dd5cd-3d58-414d-960d-884f3829888b",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "g%3Ae02379e8-a1db-e80f-1479-46ab28a2653a%7Ce%3A1774798144871%7Cc%3A1774796344871%7Cl%3A1774796344871"
+  },
+  {
+    "domain": ".otomoto.pl",
+    "expiry": 1806332497,
+    "httpOnly": false,
+    "name": "OptanonConsent",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": false,
+    "value": "isGpcEnabled=0&datestamp=Sun+Mar+29+2026+17%3A01%3A37+GMT%2B0200+(Ora+legale+dell%E2%80%99Europa+centrale)&version=202601.2.0&browserGpcFlag=0&isIABGlobal=false&hosts=&genVendors=V4%3A0%2CV3%3A0%2CV11%3A0%2CV10%3A0%2C&consentId=a9cc79c1-8438-4b6a-b36a-9dfdda1ea04e&interactionCount=0&isAnonUser=1&prevHadToken=0&landingPath=NotLandingPage&groups=C0004%3A0%2CC0003%3A0%2CC0001%3A1%2CC0002%3A0%2CV2STACK42%3A0&AwaitingReconsent=false"
+  },
+  {
+    "domain": "www.otomoto.pl",
+    "httpOnly": true,
+    "name": "__Host-next-auth.csrf-token",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "d36a78b478fc276cc2a15b700501dae37565590540160ce20a6c14fcb2b1bbca%7C7307806b8d832bb30e4c14ad08ab5436a44fd041498a349969b6b8c2d4206e61"
+  },
+  {
+    "domain": ".otomoto.pl",
+    "httpOnly": false,
+    "name": "__Secure-next-auth.callback-url",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "https%3A%2F%2Fwww.otomoto.pl"
+  },
+  {
+    "domain": ".otomoto.pl",
+    "httpOnly": false,
+    "name": "ldf",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "BAY2VLEM"
+  },
+  {
+    "domain": ".otomoto.pl",
+    "expiry": 1806332497,
+    "httpOnly": false,
+    "name": "lqstatus",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "1774797580|||||0|1774796320|0"
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "domain": ".www.xe.gr",
+    "expiry": 1774299075,
+    "httpOnly": false,
+    "name": "aws-waf-token",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "f4414de5-fbaa-45e7-8ddc-e8e001b1b00d:CQoAthSRDUOyAAAA:gQW5yg4X0zVdifkZoGkZUJ9jOxnnkeWLSNzkc53O5r5hM1FfHf1rDAYc+Vhc6f8UgZfbf/hrPsdbE41C5B8hB9WQTPmRBT6+ULJ726k1ap0xtYFNPQ7vv2pL6vlO4D5+fO96o4ikSO9Rmr3QZPh4eUoMdVfd+PSifqP/QXkZgk4VgJaSmO/1yRCM049cqC/Wf9rb2ZJXUS2TyY//C+X7+77iJ6Q/lI0BSAudHwD36CguJg=="
+  }
+]

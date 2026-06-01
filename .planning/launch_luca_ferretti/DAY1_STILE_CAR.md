@@ -119,8 +119,30 @@ Luca
 
 ## Post-invio
 
-- Annota nel DB dealer_network.sqlite: outbound_count++, last_contact_at, messaggio inviato
+### SQL update DB iMac (eseguire SUBITO dopo conferma WA "sent")
+```bash
+ssh gianlucadistasi@192.168.1.2 "sqlite3 /Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite \"UPDATE conversations SET current_step='DAY1_SENT', conversation_state='ENGAGED', outbound_count=outbound_count+1, last_contact_at=datetime('now'), state_updated_at=datetime('now'), notes='S145 Day 1 RELAZIONALE — BMW X3 xDrive20i 2022 €34.904 Autohaus Becker-Tiemann' WHERE dealer_id='TIER0_FG_001';\""
+```
+
+### Verifica post-invio
+```bash
+ssh gianlucadistasi@192.168.1.2 "sqlite3 -header -column /Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite \"SELECT dealer_id, current_step, conversation_state, outbound_count, last_contact_at FROM conversations WHERE dealer_id='TIER0_FG_001';\""
+```
+
+### Pre-flight giorno 4 (PRIMA di inviare)
+```bash
+# 1. Daemon health
+ssh gianlucadistasi@192.168.1.2 "curl -sf http://localhost:9191/status | grep -E 'wa_status|daily_remaining'"
+
+# 2. Listing X3 ancora vivo (se 404 → rieseguire scrape, top candidate cambia)
+curl -sI 'https://www.autoscout24.de/angebote/bmw-x3-xdrive20i-ahk-hifi-sportsitze-benzin-schwarz-70dcd99b-3d68-45ac-ae20-2113e8f3d719' | head -1
+
+# 3. Test su TEST_FOUNDER 393314928901 (regola CLAUDE.md non negoziabile)
+#    NB: TEST_FOUNDER ha già 9 outbound CLOSED_NO — usare messaggio test marker, non DAY1 reale
+```
+
+### Timeline post-invio
 - Attendi 48h senza follow-up
-- Se risposta: segui albero risposte pronte
+- Se risposta inbound: segui albero risposte pronte (sezione sopra)
 - Se silenzio a 7 giorni: Day 3 soft (da definire con founder)
 - Se silenzio a 14 giorni: break-up message

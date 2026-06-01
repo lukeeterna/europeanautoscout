@@ -1,40 +1,42 @@
-# S219 — Fossato-servizio import: verifica Gemini + wording materiali
+# Prompt ripartenza — generato automaticamente
 
-## STATO (chiuso S218 a context 61%)
-Research-first su S218 step2 ("rendere visibile handling import"). 3 sub-agent WebSearch a buon
-fine (legal/operativo/competitivo), fonti citate. Sintesi in memory `s218_fossato_servizio_import_research.md`.
+**Generato**: `2026-06-01T17:41:35Z`
+**Sessione**: `faaf04c5-452e-4e04-9fc3-a314ddf03101`
+**Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
+**Commit auto**: committed: cd25f0b
+**Last commit**: `cd25f0b auto-close session faaf04c5-452e-4e04-9fc3-a314ddf03101 @ 2026-06-01T17:41:35Z`
 
-## SCOPERTA CHIAVE (convergenza 3/3)
-**Soggetto IVA intracomunitaria = SEMPRE e SOLO il dealer (acquirente).** F24 Elide esce dalla sua P.IVA.
-→ Claim S218 "gestisco IVA intracomunitaria" è FALSO + rischio AGCM D.Lgs 145/2007 (caso Prima Ass. €250k).
-"gestisco" è FUORI. Per esserlo davvero ARGOS dovrebbe comprare lui l'auto (mandato senza rappresentanza
-→ capitale+VIES, incompat zero-capex).
+## Ultimi 5 commit
+```
+cd25f0b auto-close session faaf04c5-452e-4e04-9fc3-a314ddf03101 @ 2026-06-01T17:41:35Z
+1a132e3 auto-close session faaf04c5-452e-4e04-9fc3-a314ddf03101 @ 2026-06-01T17:37:54Z
+d635e6d chore(S219 close): handoff S220 — fisco verificato fonte primaria + dirty 2/3 committato, commit 3 blocca secret
+1bf984d chore(S219): rimuovi 64 prompts/ legacy + STATE/CURRENT_SPRINT → riorg .planning
+5bd5c63 chore(S219): gitignore hardening — dossiers/ 130MB + QR login + junk; untrack .pyc
+```
 
-## MODELLO RACCOMANDATO (non finale, gated su Gemini)
-ARGOS = "ufficio acquisti estero": coordina/orchestra, **il dealer compra e resta soggetto fiscale**.
-Vero fossato = "trovo + ti QUALIFICO FISCALMENTE l'auto (margine vs IVA → margine netto reale) +
-orchestro filiera assicurata; compri TU e tieni margine+regime IVA; paghi solo a deal chiuso".
-Anelli orchestrabili a costo zero: targa export €50-80 / trasporto broker €350-900 / CoC €120-300 /
-agenzia pratiche IT €300-600. Combo scouting-B2B-proattivo+success-fee+dealer-fiscale = territorio vuoto.
+## File modificati nell'ultimo commit
+```
+M	.claude/NEXT_SESSION_PROMPT.md
+D	.claude/SESSION_DIRTY.md
+```
 
-## PROSSIMI STEP S219
-1. **Luke incolla in Gemini Deep Research** i 3 prompt consegnati nel thread S218 (priorità PROMPT 1
-   FISCALE — è il kill-shot legale). Riporta gli output a CC.
-2. **CC**: incrocia output Gemini in matrix VERIFIED/DISPUTED/UNVERIFIABLE (come S217). Chiudi
-   raccomandazione finale sul wording esatto materiali.
-3. **Solo dopo fiscale blindato**: riconcilia landing/index.html (Step03 :523, FAQ :588, card :476,
-   fee :597 dicono OGGI l'opposto — "a parte/gestisci tu"). Poi PDF. Messaggi Day1 NO (rule vieta
-   import/Germania/estero + gated C-COMM-INTEL-001).
+## Ultimo prompt utente (estratto)
+```
+[{"tool_use_id":"toolu_01U6ZEbJyWUW2qsXUiLqhytR","type":"tool_result","content":"=== 1a132e3 include chrome_profile / DB? ===\nsrc/marketing/chroma_db/chroma.sqlite3\ntools/scrapers/.chrome_profile/AmountExtractionHeuristicRegexes/4/_metadata/verified_contents.json\ntools/scrapers/.chrome_profile/AmountExtractionHeuristicRegexes/4/heuristic_regexes.binarypb\ntools/scrapers/.chrome_profile/AmountExtractionHeuristicRegexes/4/manifest.json\ntools/scrapers/.chrome_profile/AutofillStates/2025.6.13.84
+```
 
-## 3 VINCOLI da blindare
-- L.264/1991: pratiche abituali per terzi = autorizzazione provinciale → ARGOS orchestra agenzia esistente.
-- Qualificazione fiscale = "verifica documentale" non "consulenza" (servirebbe commercialista convenzionato).
-- Trappola "auto nuova" IVA: <6 mesi O <6.000 km = IVA 22% sempre IT → colpisce premium km0/demo recenti.
+## Ultimi turni assistant
+```
+5. Commit selettivo del lavoro vero (src/tools/tests/landing/research/.planning/skills), **mai** `git add -A`.
+L'alternativa (lasciare così) significa 3 secret live + 140MB junk nella history locale, che al primo push diventano pubblici: strettamente peggio.
+Il punto 1 riscrive il tip del branch — locale e reversibile, ma è un'operazione di history rewrite. **Dammi un GO** e procedo con tutta la sequenza 1-5. La revoca dei 3 secret resta tua e urgente, indipendente da questo.
+```
 
-## NON toccare
-- image_sanitizer.py / codice produzione (S218 step1 TinEye manuale Luke su /tmp/s217_revtest/ ancora pending).
-- landing/PDF/messaggi finché fiscale NON blindato (= scrivere claim su terreno non verificato).
+## Come riprendere
 
-## Rif
-- memory: `s218_fossato_servizio_import_research.md`, `s217_anti_reverse_validation.md`
-- blocker Day1 PLAN.md: C-SAN-001, C-E2E-ZERO, C-COMM-INTEL-001, C-GATE-FONTE-001
+1. Apri Claude Code da `/Users/macbook/Documents/combaretrovamiauto-enterprise`
+2. Leggi questo file (auto-loaded? dipende da config progetto)
+3. Continua dal punto indicato negli ultimi turni assistant sopra
+
+Se `SESSION_DIRTY.md` esiste in questa stessa cartella, risolvi PRIMA i conflitti.

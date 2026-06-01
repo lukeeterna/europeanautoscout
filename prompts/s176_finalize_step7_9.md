@@ -11,7 +11,7 @@
 - PDF: `dossiers/ARGOS_BMW_X1_2022_TEST_FOUNDER_20260516_120546.pdf` (937KB, 3 pagine) — su iMac
 - WA send msg_id: `doc_1778941030143_bnstt` / wa_msg_id `true_141115562971357@lid_3EB0D5D49F3548AD2BAC66`
 - daemon online, daily_sent 3/20 al close S176
-- ARGOS_API_KEY: `h_65WFGPMtlgROInLfZtU5TM8hFlVLfYLrn8vSV6kko` (in `~/Documents/app-antigravity-auto/wa-intelligence/.env`)
+- ARGOS_API_KEY: `<vedi wa-intelligence/.env>` (in `~/Documents/app-antigravity-auto/wa-intelligence/.env`)
 - Cloudflare Worker `argos-proxy.gianlucanewtech.workers.dev` operativo (verified S164)
 - Dashboard:8080 online (PM2 argos-dashboard uptime 112m+ al close S176)
 - D-32 sanitizer regression NON blocca S176-finalize (TEST_FOUNDER è simulato D-11)

@@ -1,0 +1,25 @@
+{"ts": "2026-05-28T07:27:14Z", "action": "assess", "files_count": 99, "conflicts": 10, "dormant": 0, "suspected_maturity": "mature"}
+{"ts": "2026-05-28T07:27:36Z", "action": "create", "engagement": "create"}
+{"ts": "2026-05-28T07:28:33Z", "action": "gate", "result": "block", "open_ids": ["C-01"]}
+{"ts": "2026-05-28T07:28:33Z", "action": "critique_add", "id": "C-TEST", "text": "test gate blocking", "reason": null}
+{"ts": "2026-05-28T07:28:33Z", "action": "gate", "result": "block", "open_ids": ["C-01", "C-TEST"]}
+{"ts": "2026-05-28T07:28:33Z", "action": "critique_resolve", "id": "C-TEST", "text": null, "reason": null}
+{"ts": "2026-05-28T07:28:33Z", "action": "gate", "result": "block", "open_ids": ["C-01"]}
+{"ts": "2026-05-28T07:29:06Z", "action": "create", "engagement": "create"}
+{"ts": "2026-05-28T07:29:06Z", "action": "gate", "result": "pass", "open": 0}
+{"ts": "2026-05-28T07:29:06Z", "action": "critique_add", "id": "C-TEST", "text": "test gate blocking", "reason": null}
+{"ts": "2026-05-28T07:29:06Z", "action": "gate", "result": "block", "open_ids": ["C-TEST"]}
+{"ts": "2026-05-28T07:29:07Z", "action": "critique_resolve", "id": "C-TEST", "text": null, "reason": null}
+{"ts": "2026-05-28T07:29:07Z", "action": "gate", "result": "pass", "open": 0}
+{"ts": "2026-05-28T07:54:59Z", "action": "adopt", "files_imported": 99, "files_superseded": 0}
+{"ts": "2026-05-28T07:55:29Z", "action": "critique_add", "id": "C-SAN-001", "text": "sanitizer PoC dossier PDF non integrato — fix parser regex + test su 5 dossier reali", "reason": null}
+{"ts": "2026-05-28T07:55:37Z", "action": "maturity", "result": "ok", "distanza": 1, "open_blockers": 1, "questions": 1}
+{"ts": "2026-05-28T08:09:49Z", "action": "maturity", "result": "ok", "distanza": 1, "open_blockers": 1, "questions": 1}
+{"ts": "2026-05-28T08:16:21Z", "action": "critique_add", "id": "C-WA-DUP-001", "text": "WA daemon invia N messaggi identici per ogni outbound (memoria feedback_wa_daemon_duplicate_sends). Blocker test reali V5/D-26: nessuna metrica conversion valida finché non risolto. Verify fix PRIMA wave outreach S171+.", "reason": null}
+{"ts": "2026-05-28T08:16:21Z", "action": "maturity", "result": "ok", "distanza": 2, "open_blockers": 2, "questions": 1}
+{"ts": "2026-05-28T08:41:08Z", "action": "critique_migrate_bulk", "set_all": "LUKE", "count": 2}
+{"ts": "2026-05-28T11:53:07Z", "action": "maturity", "result": "ok", "distanza": 2, "open_blockers": 2, "questions": 1}
+{"ts": "2026-05-28T11:54:34Z", "action": "maturity", "result": "ok", "distanza": 2, "open_blockers": 2, "questions": 1}
+{"ts": "2026-05-28T11:55:40Z", "action": "maturity", "result": "ok", "distanza": 2, "open_blockers": 2, "questions": 1}
+{"ts": "2026-05-28T17:01:42Z", "action": "gate", "result": "block", "open_ids": ["C-SAN-001", "C-WA-DUP-001"]}
+{"ts": "2026-05-28T17:01:57Z", "action": "critique_resolve", "id": "C-WA-DUP-001", "origin": "LUKE", "motivation": ""}

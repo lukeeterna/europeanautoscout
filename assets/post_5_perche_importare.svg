@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0c0c12"/>
+      <stop offset="100%" stop-color="#06060a"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c8a446"/>
+      <stop offset="100%" stop-color="#e8c870"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="800" fill="url(#bg)"/>
+  <rect x="0" y="0" width="800" height="3" fill="url(#gold)" opacity="0.6"/>
+  <!-- Title -->
+  <text x="400" y="80" text-anchor="middle" font-family="Georgia,'Cormorant Garamond',serif" font-size="28" font-weight="300" fill="#e8e8f0">Perche' importare dalla Germania</text>
+  <text x="400" y="110" text-anchor="middle" font-family="Georgia,'Cormorant Garamond',serif" font-size="28" font-weight="300" fill="#c8a446" font-style="italic">conviene ai concessionari</text>
+  <rect x="350" y="128" width="100" height="1" fill="url(#gold)" opacity="0.4"/>
+  <!-- Stat 1: More supply -->
+  <g transform="translate(400, 220)">
+    <rect x="-280" y="-40" width="560" height="80" rx="4" fill="rgba(200,164,70,0.03)" stroke="rgba(200,164,70,0.1)" stroke-width="0.5"/>
+    <text x="-240" y="10" font-family="Georgia,serif" font-size="36" fill="#c8a446">3.2M</text>
+    <text x="-100" y="2" font-family="'Courier New',monospace" font-size="10" fill="#a0a0b4" letter-spacing="1">auto usate in vendita in Germania</text>
+    <text x="-100" y="20" font-family="'Courier New',monospace" font-size="10" fill="#68687a" letter-spacing="1">vs 1.1M in Italia — 3x piu' offerta</text>
+  </g>
+  <!-- Stat 2: Price gap -->
+  <g transform="translate(400, 340)">
+    <rect x="-280" y="-40" width="560" height="80" rx="4" fill="rgba(200,164,70,0.03)" stroke="rgba(200,164,70,0.1)" stroke-width="0.5"/>
+    <text x="-240" y="10" font-family="Georgia,serif" font-size="36" fill="#c8a446">-15%</text>
+    <text x="-100" y="2" font-family="'Courier New',monospace" font-size="10" fill="#a0a0b4" letter-spacing="1">differenziale medio di prezzo DE vs IT</text>
+    <text x="-100" y="20" font-family="'Courier New',monospace" font-size="10" fill="#68687a" letter-spacing="1">su BMW, Mercedes, Audi fascia €30-60k</text>
+  </g>
+  <!-- Stat 3: Fleet cars -->
+  <g transform="translate(400, 460)">
+    <rect x="-280" y="-40" width="560" height="80" rx="4" fill="rgba(200,164,70,0.03)" stroke="rgba(200,164,70,0.1)" stroke-width="0.5"/>
+    <text x="-240" y="10" font-family="Georgia,serif" font-size="36" fill="#c8a446">63%</text>
+    <text x="-100" y="2" font-family="'Courier New',monospace" font-size="10" fill="#a0a0b4" letter-spacing="1">auto aziendali sul mercato tedesco premium</text>
+    <text x="-100" y="20" font-family="'Courier New',monospace" font-size="10" fill="#68687a" letter-spacing="1">basso km, manutenzione regolare, storico completo</text>
+  </g>
+  <!-- Stat 4: Your margin -->
+  <g transform="translate(400, 580)">
+    <rect x="-280" y="-40" width="560" height="80" rx="4" fill="rgba(200,164,70,0.05)" stroke="rgba(200,164,70,0.2)" stroke-width="0.8"/>
+    <text x="-240" y="12" font-family="Georgia,serif" font-size="36" fill="#c8a446">€4.500</text>
+    <text x="-60" y="2" font-family="'Courier New',monospace" font-size="10" fill="#e8e8f0" letter-spacing="1">margine netto medio per veicolo importato</text>
+    <text x="-60" y="20" font-family="'Courier New',monospace" font-size="10" fill="#68687a" letter-spacing="1">al netto di trasporto, fee e pratiche</text>
+  </g>
+  <!-- Bottom -->
+  <g transform="translate(400, 710)">
+    <text x="0" y="0" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#e8e8f0" font-style="italic">Il conto si fa da solo.</text>
+    <text x="0" y="28" text-anchor="middle" font-family="'Courier New',monospace" font-size="9" fill="#c8a446" letter-spacing="2">LUCA FERRETTI · VEHICLE SOURCING · MERCATI EU</text>
+  </g>
+  <!-- Bottom gold line -->
+  <rect x="0" y="797" width="800" height="3" fill="url(#gold)" opacity="0.4"/>
+</svg>

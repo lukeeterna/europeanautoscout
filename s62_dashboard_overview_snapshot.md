@@ -1,0 +1,44 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - button [ref=e5] [cursor=pointer]
+      - heading "ARGOS" [level=1] [ref=e7]:
+        - link "ARGOS" [ref=e8] [cursor=pointer]:
+          - /url: /
+  - generic [ref=e9]:
+    - generic [ref=e11]:
+      - generic [ref=e12]: ARGOS Automotive
+      - heading "Overview" [level=2] [ref=e13]
+    - generic [ref=e15]:
+      - generic [ref=e74]:
+        - generic [ref=e76]:
+          - generic [ref=e77]: "8"
+          - generic [ref=e78]: Dealer Totali
+        - generic [ref=e80]:
+          - generic [ref=e81]: "0"
+          - generic [ref=e82]: Dealer Attivi
+        - generic [ref=e84]:
+          - generic [ref=e85]: "2"
+          - generic [ref=e86]: Risposte Pending
+        - generic [ref=e88]:
+          - generic [ref=e89]: $0.002
+          - generic [ref=e90]: Costi LLM
+      - generic [ref=e34]:
+        - heading "Pipeline Funnel" [level=3] [ref=e38]
+        - heading "Archetipi" [level=3] [ref=e46]
+      - generic [ref=e53]:
+        - generic [ref=e54]:
+          - heading "Ultimi Messaggi" [level=3] [ref=e55]: Ultimi Messaggi
+          - generic [ref=e57]: auto-refresh 30s
+        - table [ref=e92]:
+          - rowgroup [ref=e93]:
+            - row "Orario Dealer Dir Messaggio" [ref=e94]:
+              - columnheader "Orario" [ref=e95]
+              - columnheader "Dealer" [ref=e96]
+              - columnheader "Dir" [ref=e97]
+              - columnheader "Messaggio" [ref=e98]
+          - rowgroup [ref=e99]:
+            - row "Nessun messaggio ancora. Il feed si aggiornera' automaticamente." [ref=e100]:
+              - cell "Nessun messaggio ancora. Il feed si aggiornera' automaticamente." [ref=e101]
+    - contentinfo [ref=e70]:
+      - generic [ref=e72]: ARGOS CoVe 2026 | Enterprise Grade

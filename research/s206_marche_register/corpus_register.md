@@ -1,14 +1,14 @@
 # Corpus Register Micro-Dealer Premium — Marche
-_Generato: 2026-05-30 22:59 | ARGOS S206_
+_Generato: 2026-06-01 10:31 | ARGOS S206_
 
 Frasi verbatim da annunci reali. No sintesi, no parafrasi. Letterali.
 Fonte: AutoScout24.it + Subito.it + Automobile.it
 
-**Totale frasi estratte: 171**
+**Totale frasi estratte: 223**
 
 ---
 ## Descrizione auto
-_120 frasi_
+_172 frasi_
 
 - "Services [6AE] (DI SERIE)<br />- BMW Widescreen [6WC] (DI SERIE)<br />- Bracciolo centrale anteriore con vano portaoggetti (DI"
   `[fonte: autoscout24 | AN | as24_it_6b6fcd4a-725e-4b5f-8723-01fe10cb8b4e]`
@@ -52,8 +52,230 @@ _120 frasi_
 - "[508] (DI SERIE)<br />- Shadow Line esterna lucida"
   `[fonte: autoscout24 | AN | as24_it_6b6fcd4a-725e-4b5f-8723-01fe10cb8b4e]`
 
-- "<br /><br />Per quanto cerchiamo di essere il più precisi possibile nella compilazione delle schede vetture, la dotazione tecnica e gli optional potrebbero in alcuni casi differire dal reale equipaggiamento de"
-  `[fonte: autoscout24 | AN | as24_it_9eaaaa0b-06bd-43b9-8075-3d21be723d79]`
+- "propone BMW X1 xDrive20d M Sport, SUV premium dal desi"
+  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
+
+- "propone BMW X1 xDrive20d M Sport, SUV premium dal design sportivo ed elegante, ideale per chi cerca comfort, tecnologia e prestazioni elevate"
+  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
+
+- "<br /><br />Grazie al motore diesel brillante ed efficiente, alla trazione integrale xDrive e all’allestimento M Sport, questa BMW X1 garantisce una guida dinamica, sicura e confortevole in ogni situazione"
+  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
+
+- "Motore 20d efficiente e performante<br />* Trazione integrale xDrive<br />* Allestimento M Sport<br />* Cambio automatico<br /"
+  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
+
+- "Pacchetto M Sport<br />* Cerchi in lega sportivi BMW<br />* Assetto sportivo M<br />* Volante sportivo multifunzione M<br />* Sed"
+  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
+
+- "LED<br />* BMW Live Cockpit Professional<br />* Navigatore integrato<br />* Apple CarPlay e Android Auto<br />* Bluetooth<b"
+  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
+
+- "Sensori di parcheggio<br />* Cruise Control<br />* Vetri oscurati<br /><br />TECNOLOGIA E INFOTAINMENT<br /><br />* BMW Live Co"
+  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
+
+- "Navigatore integrato<br />* Apple CarPlay e Android Auto<br />* Bluetooth<br />* USB<br />* Connettività avanzata BMW<br /><br />C"
+  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
+
+- "INTERNI<br /><br />* Sedili sportivi M<br />* Volante M multifunzione<br />* Climatizzatore automatico<br />* Interni premium s"
+  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
+
+- "emergenza<br />* Sistemi avanzati di assistenza alla guida<"
+  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
+
+- "<br /><br />Una realtà giovane con oltre 15 anni di esp"
+  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
+
+- "<br /><br />Offerta Business riservata ai possessori di Partita IVA<br /><br /><strong> Equipaggiamenti del veicolo: </strong> <br /> <ul><li>A - Dune Grey</li></ul> <ul><li>AA - Interni Veganza espresso Brow"
+  `[fonte: autoscout24 | AN | as24_it_56ac9144-d87f-413e-9fab-d7043c1c4995]`
+
+- "Interni Veganza espresso Brown</li></ul> <ul><li>Cerchi in lega da 20</li></ul> <ul><li>Premium package</li></ul> <ul><li>Vetri"
+  `[fonte: autoscout24 | AN | as24_it_56ac9144-d87f-413e-9fab-d7043c1c4995]`
+
+- "effettivo equipaggiamento della vettura, a causa della non"
+  `[fonte: autoscout24 | AN | as24_it_56ac9144-d87f-413e-9fab-d7043c1c4995]`
+
+- "M DOPPIA RAZZA 791M<br />CAMBIO AUTOMATICO SPORTIVO<br />C"
+  `[fonte: autoscout24 | AN | as24_it_690ffdc6-982f-43c5-89d0-4e1d2437c70b]`
+
+- "M DOPPIA RAZZA 791M<br />CAMBIO AUTOMATICO SPORTIVO<br />COMFORT ACCESS<br />PACCHETTO M SPORT PRO<br />MODELLO M SPORT<br />PACCHETTO AERODINAMICO M<br />ASSETTO SPORTIVO M<br />IMPIANTO FRENANTE M SPORT ROSSO<br />VOLANT"
+  `[fonte: autoscout24 | AN | as24_it_690ffdc6-982f-43c5-89d0-4e1d2437c70b]`
+
+- "PELLE M<br />SEDILI CON VENTILAZIONE ATTIVA<br />SEDILI RISCALDATI ANTERIORI<br />CLIMATIZZATORE AUTOMATICO<br />APPLE CARPLA"
+  `[fonte: autoscout24 | AN | as24_it_690ffdc6-982f-43c5-89d0-4e1d2437c70b]`
+
+- "CRUISE CONTROL CON FUNZIONE FRENANTE<br />ACTIVE GUARD PLUS<br />ILLUMINAZIONE AMBIENTALE<br />FARI BMW INDIVIDUAL SHADOW LINE<br />AI"
+  `[fonte: autoscout24 | AN | as24_it_690ffdc6-982f-43c5-89d0-4e1d2437c70b]`
+
+- "<br />Ti invitiamo a verificare con i nostri consulenti le"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "<br /><br />EQUIPAGGIAMENTI OPTIONAL :<br />Navigatore satellitare - Telecamera<br /><br />EQUIPAGGIAMENTI DI SERIE :<br />Accensione senza inserimento chiave - Airbag laterali per guidatore - Airbag laterali per la"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "sedili - Airbag laterali per la testa per seconda fila di sedili - Airbag laterali per passeggero - Airbag per guidatore - Air"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "services - BMW Connected Package Professional - BMW Iconic Glow Exterior Package - BMW Live Cockpit Plus - BMW Teleservices - B"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "colore nero opaco - Batteria con morsetto di sicurezza - Bracciolo centrale per sedili anteriori con vano portaoggetti - Bracc"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "sedili posteriori con portabevande - Brake Assist System - Brake energy regeneration (BMW efficient dynamics) - Bulloni antifu"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "cerchi in lega - Calandra doppio rene con flap attivi (Active Air Stream) e listelli nero opaco - Cambio Automatico Steptronic"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "Cruise Control con funzione freno - Digital Key Plus - Dischi Freno Anteriori E Posteriori Autoventilanti - Driving Assistant - Elemen"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "LED - Fari fendinebbia posteriori - Filtro Antiparticolato - Fissaggio Isofix per sedili posteriori esterni e ancoraggio po"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "LED Adaptive Lights - Funzione Follow-me-home regolabile tramite iDrive Controller - Ganci e anelli multifunzione nel vano"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "esterni - Luci interne - Luci interne e area maniglie illuminata con apertura telecomando - Luci posteriori con tecnologia a LE"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "esterni in tinta carrozzeria - Mild Hybrid - 48V - Modanatura Dark Silver combinato con vernice effetto opaco Dark Graphite - P"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "telecamera posteriore e linee guida di manovra - Personal eSIM - Pinze freno sportive rosse - Poggiatesta regolabili per prima e s"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "sedili - Portabevande consolle centrale e posteriore - Porte posteriori con sistema di chiusura meccanica di sicurezza per bam"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "altezza, dell&#x27"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "Sedili standard con regolazione manuale dello scorrimento longitudinale e dei poggiatesta - Segnalatore acustico cinture di si"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "Sensori di collisione attivi - Servotronic - Sistema Active Guard - Sistema Immobiliser - Sistema anti bloccaggio di sicurezza"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "automatica della profondità dei fari - Sistema di sicurezza passiva per pedoni - Sistema di start / stop automatico - Speaker ster"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "esterni con calotta verniciata in tinta carrozzeria e base nero opaca - Specchietti retrovisori esterni regolabili e ripiegabil"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "esterni regolabili elettricamente, riscaldati e asferici - Specchietto retrovisore interno con funzione anabbagliante automatic"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "sedili anteriori - Tecnologia my modes - Telecomando ad onde radio per chiusura centralizzata, chiave fisica di sicurezza e ac"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "emergenza - Ugelli tergicristalli riscaldati - Vano portaog"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "doppia razza 838M<br />0230 Paquet supplem"
+  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+
+- "Cambio automatico con leve di comando<br />02TM Gestione tipo cambio<br />02VB Indicazione pressione pneumatici<br />02VD Kit riparazione"
+  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+
+- "e borsa pronto soccorso<br />0430 Specchietto retr"
+  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+
+- "sedile per sedili posteriori<br />04NW PLANCIA STRUMENTI LUXURY<br />0548 Tachimetro chilometrico<br />0552 Faro a LED adattativo<br />05AC Assistente abbaglianti<br />05AS Driving Assistant<br />0"
+  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+
+- "services<br />06AF Chiamata di emergenza obbligatoria<br />06NX Storage tray wireless charging<br />06PA Personal eSIM<br />071"
+  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+
+- "pelle<br />0760 Lucido shadow line<br />0775 Cielo antracite<br />07EV Pacchetto optional<br />07FH BMW Service inclusive<br"
+  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+
+- "allestimento interno<br />09TA Dotazioni supplementari specifiche pacchetto sportivo M<br />A060 batteria AGM da 60 Ah<br /><br /><b"
+  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+
+- "Scrivici marca, modello, allestimento, motorizzazione, km percorsi, data immatricolazione e condizioni generali dell’auto"
+  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+
+- "allestimento di serie e possono essere suscettibili di variazioni a seconda del tipo di trasmissione (automatica o manuale), della m"
+  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+
+- "Ulteriori informazioni su consumi ed emissioni sono reperi"
+  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+
+- "Cambio automatico con leve di comando<br /> 02VB Indicazione pressione pneumatici<br /> 02VD Kit riparazione pneumatici Plus<br /> 02VF T"
+  `[fonte: autoscout24 | AN | as24_it_4d79292f-3ae3-4ed5-9a6c-f91cec362831]`
+
+- "FRENANTE MAGGIORATO M, ROSSO LUCIDO<br /> 03MC Barre tetto"
+  `[fonte: autoscout24 | AN | as24_it_4d79292f-3ae3-4ed5-9a6c-f91cec362831]`
+
+- "LED adattativo<br /> 05AC Assistente abbaglianti<br /> 05AU Driving Assistant Professional<br /> 05AV Active Guard<br /> 05"
+  `[fonte: autoscout24 | AN | as24_it_4d79292f-3ae3-4ed5-9a6c-f91cec362831]`
+
+- "pelle<br /> 0754 Spoiler posteriore M<br /> 0760 Lucido shadow line<br /> 0775 Cielo antracite<br /> 07EW Pacchetto optional"
+  `[fonte: autoscout24 | AN | as24_it_4d79292f-3ae3-4ed5-9a6c-f91cec362831]`
+
+- "<br /> <br /> Hai un’auto usata da rientrare"
+  `[fonte: autoscout24 | AN | as24_it_4d79292f-3ae3-4ed5-9a6c-f91cec362831]`
+
+- "IMMATRICOLAZIONE (QUESTA AGEVOLAZIONE E&#x27"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "COLORE ESTERNO SOPHISTO GREY METALLIZZATO</strong><br /><br /><strong>MONITOR/DVD POSTERIORI</strong><br /><br /><strong>VISOR"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "xDrive Touring Msport Pro ANNO 2025 CON SOLI 14693 KM VETTURA IN ECCELLENTI CONDIZIONI FULL OPTIONAL:<br /><br />1CE<br />Tecn"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "Cambio automatico con leve al volante<br />2VB<br />Indicatore pressione pneumatici<br />302<br />Antifurto con telecomando<br />322<br /"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "Pacchetto sportivo M<br />33B<br />Pacchetto M Sport Pro<br />33B<br />Pacchetto M Sport Pro (4GQ, 3DP, 3GV, 33B, 7M9, 9TA, 9TB"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "Comfort System<br />4GQ<br />Cinture di sicurezza M"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "sedili anteriori e posteriori<br />4NB<br />Climatizzatore automatico a 4 zone<br />4NR<br />Telecamera interna<br />548<br />"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "LED adattivi<br />5AU<br />Driving Assistant Professional<br />5AV<br />Active Guard<br />5DW<br />Parking Assistant Profes"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "Services<br />6AF<br />Chiamata di emergenza<br />6AK<br />ConnectedDrive Services<br />6C4<br />BMW Connected Package Professi"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "pelle a tre razze<br />760<br />Shadow line esterna lucida<br />775<br />Rivestimento padiglione interno antracite<br />7EW<b"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "esterni MSport<br />9T2<br />Dettagli interni MSport<br />9TA<br />Specific additional contents in M Sport package<br />9TB<br"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "DI FINANZIAMENTO/LEASING A TASSO AGEVOLATO"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "<br />ALLESTIMENTO M-SPORT pro + optional <br />GARANZIA BMW BEST SINO AL 05/2029<br />MOTORIZZAZIONE IBRIDO MHEV DIESEL/ELETTRICO <br />ESENTE DA BOLLO PER ALCUNE REGIONI DI ITALIA COME LA PUGLIA S"
+  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+
+- "BMW razza Y 728M grigio cerio<br />02PA – Sicurez"
+  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+
+- "Pacchetto Sportivo M Pro<br />03M3 – Impianto frenante maggiorato M Sport, nero lucido<br /> 03MF – Fari Shadow Line M<br />0415"
+  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+
+- "Sedili anteriori multifunzione<br /> 04GQ – Cinture di sicurezza M<br /> 04HA – Riscaldamento sedili anteriori e posteriori<br"
+  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+
+- "interni alluminio Trace scuro<br /> 04NB – Climatizzazione automatica con 4 zone<br />0548 – Tachimetro chilometrico<br />05AC"
+  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+
+- "services<br /> 06AF – Chiamata di emergenza obbligatoria<br /> 06AK – Connected Drive Services<br /> 06CP – Integrazione smartp"
+  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+
+- "pelle<br /> 0715 – Kit aerodinamico M<br /> 0760 – Shadow Line lucido<br /> 0775 – Cielo antracite<br />07M9 – M Shadow Line"
+  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+
+- "Pelle Merino nera con profili M neri"
+  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
 
 - "000 KM<br /><br />BMW SERVICE INCLUSIVE FINO A 07/2030<br /><br />POSSIBILITA&#x27"
   `[fonte: autoscout24 | AN | as24_it_1c9e4d79-ff84-49f0-bf58-0f7922b5259a]`
@@ -112,239 +334,191 @@ _120 frasi_
 - "</strong><br /><br /><br /><strong>ULTERIORI DETTAGLI:</str"
   `[fonte: autoscout24 | AN | as24_it_6996fb6e-bdb2-4c1b-ae7a-44275736371f]`
 
-- "doppia razza 838M<br />0230 Paquet supplem"
-  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+- "995M RSC SO MB<br /> 0230 Funzioni supplementari sp"
+  `[fonte: autoscout24 | AN | as24_it_7f2d7177-a287-4255-ab02-ac0413c69eb1]`
 
-- "Cambio automatico con leve di comando<br />02TM Gestione tipo cambio<br />02VB Indicazione pressione pneumatici<br />02VD Kit riparazione"
-  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+- "Cambio automatico Sport<br /> 02VB Indicazione pressione pneumatici<br /> 02VF Telaio M adattativo<br /> 02VL Volante sportivo variabile<"
+  `[fonte: autoscout24 | AN | as24_it_7f2d7177-a287-4255-ab02-ac0413c69eb1]`
 
-- "e borsa pronto soccorso<br />0430 Specchietto retr"
-  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+- "<br /> 0493 Pacchetto portaoggetti<br /> 0494 Riscaldamento"
+  `[fonte: autoscout24 | AN | as24_it_7f2d7177-a287-4255-ab02-ac0413c69eb1]`
 
-- "sedile per sedili posteriori<br />04NW PLANCIA STRUMENTI LUXURY<br />0548 Tachimetro chilometrico<br />0552 Faro a LED adattativo<br />05AC Assistente abbaglianti<br />05AS Driving Assistant<br />0"
-  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+- "<br /> 0493 Pacchetto portaoggetti<br /> 0494 Riscaldamento sedile guid"
+  `[fonte: autoscout24 | AN | as24_it_7f2d7177-a287-4255-ab02-ac0413c69eb1]`
 
-- "services<br />06AF Chiamata di emergenza obbligatoria<br />06NX Storage tray wireless charging<br />06PA Personal eSIM<br />071"
-  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+- "<br /> 0534 Climatizzazione automatica<br /> 0548 Tachimetro chilometrico<br /> 0552 Faro a LED adattativo<br /> 05AC Assistente abbaglianti<br /> 05AL Active Protection<br /> 05AQ Active Guard Plus<br /> 05AU Driving"
+  `[fonte: autoscout24 | AN | as24_it_7f2d7177-a287-4255-ab02-ac0413c69eb1]`
 
-- "pelle<br />0760 Lucido shadow line<br />0775 Cielo antracite<br />07EV Pacchetto optional<br />07FH BMW Service inclusive<br"
-  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+- "pelle<br /> 0715 Kit aerodinamico M<br /> 0760 Lucido shadow line<br /> 0775 Cielo antracite<br /> 07A2 Pacchetto innovazione"
+  `[fonte: autoscout24 | AN | as24_it_7f2d7177-a287-4255-ab02-ac0413c69eb1]`
 
-- "allestimento interno<br />09TA Dotazioni supplementari specifiche pacchetto sportivo M<br />A060 batteria AGM da 60 Ah<br /><br /><b"
-  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+- "xDrive 20d Msport Pro CAMBIO AUTOMATICO ANNO 06/2025 CON SOLI 24425 KM CERTIFICATI BMW VETTURA IN ECCELLENTI CONDIZIONI:<br />"
+  `[fonte: autoscout24 | AN | as24_it_b631d5d8-c975-436e-9e41-0b1f95a7b7e0]`
 
-- "Scrivici marca, modello, allestimento, motorizzazione, km percorsi, data immatricolazione e condizioni generali dell’auto"
-  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+- "ITALIA)</strong><br /><br />Verniciatura esterna: Black Sapphire metallizzato<br />Rivestimento interni: M Alcantara/Veganza combination | Black/contrast stitching Blueic&#x27"
+  `[fonte: autoscout24 | AN | as24_it_b631d5d8-c975-436e-9e41-0b1f95a7b7e0]`
 
-- "allestimento di serie e possono essere suscettibili di variazioni a seconda del tipo di trasmissione (automatica o manuale), della m"
-  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+- "<br /><br />Optional:<br />01EK Cerchi da 19 M<br />02TE Trasmissione Steptronic con paddle del cambio<br />02VB Monitor della pressione dei pneumatici<br />02VF Sospensioni adattive M<br />0322 Siste"
+  `[fonte: autoscout24 | AN | as24_it_b631d5d8-c975-436e-9e41-0b1f95a7b7e0]`
 
-- "Ulteriori informazioni su consumi ed emissioni sono reperi"
-  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+- "Ombra<br />0420 Vetri di protezione solare<br"
+  `[fonte: autoscout24 | AN | as24_it_b631d5d8-c975-436e-9e41-0b1f95a7b7e0]`
 
-- "Cambio automatico Sport<br /> 02VB Indicazione pressione pneumatici<br /> 02VF Telaio M adattativo<br /> 0302 Impianto antifurto<br /> 03"
-  `[fonte: autoscout24 | AN | as24_it_bef6f781-70d6-4325-a1f4-c7be5e2f8d73]`
+- "automatica<br />0459 Regolazione del sedile, elettrica con memoria<br />0481 Sedili sportivi per guidatore e passeggero anteriore<"
+  `[fonte: autoscout24 | AN | as24_it_b631d5d8-c975-436e-9e41-0b1f95a7b7e0]`
 
-- "Pacchetto sport<br /> 033B PACCHETTO SPORTIVO M PRO<br /> 03DN BMW griglia iconic glow<br /> 03MC Barre tetto M, Shadow Line<br /"
-  `[fonte: autoscout24 | AN | as24_it_bef6f781-70d6-4325-a1f4-c7be5e2f8d73]`
+- "LED<br />05AC Assistente abbaglianti<br />05AU Assistente alla guida professionale<br />05DN Assistente al parcheggio Plus<"
+  `[fonte: autoscout24 | AN | as24_it_b631d5d8-c975-436e-9e41-0b1f95a7b7e0]`
 
-- "<br /> 04GQ M cinture di sicurezza<br /> 04ML Modanat"
-  `[fonte: autoscout24 | AN | as24_it_bef6f781-70d6-4325-a1f4-c7be5e2f8d73]`
+- "pelle M<br />0754 M Spoiler posteriore<br />0760 M Shadowline<br />0775 M cielo antracite<br />07EW Pacchetto di equipaggiame"
+  `[fonte: autoscout24 | AN | as24_it_b631d5d8-c975-436e-9e41-0b1f95a7b7e0]`
 
-- "Pacchetto specchietti ampliato<br /> 04UR Luce abitacolo<br /> 0548 Tachimetro chilometrico<br /> 0552 Faro a LED adattativo<br /"
-  `[fonte: autoscout24 | AN | as24_it_bef6f781-70d6-4325-a1f4-c7be5e2f8d73]`
+- "DI FINANZIAMENTO A TASSO AGEVOLATO SENZA ANTICIPO CON PRIM"
+  `[fonte: autoscout24 | AN | as24_it_b631d5d8-c975-436e-9e41-0b1f95a7b7e0]`
 
-- "services<br /> 06AF Chiamata di emergenza obbligatoria<br /> 06AK Connected Drive Services<br /> 06C4 Connected Package Profess"
-  `[fonte: autoscout24 | AN | as24_it_bef6f781-70d6-4325-a1f4-c7be5e2f8d73]`
+- "acustico<br />03M2 IMP"
+  `[fonte: autoscout24 | AN | as24_it_4f70bf2e-02a0-4239-99a8-54fa1a661e65]`
 
-- "pelle<br /> 0715 Kit aerodinamico M<br /> 0760 Lucido shadow line<br /> 0775 Cielo antracite<br /> 07M9 M Shadow Line con con"
-  `[fonte: autoscout24 | AN | as24_it_bef6f781-70d6-4325-a1f4-c7be5e2f8d73]`
+- "<br />04A2 Listello pe"
+  `[fonte: autoscout24 | AN | as24_it_4f70bf2e-02a0-4239-99a8-54fa1a661e65]`
 
-- "<br /> <br /> Hai un’auto usata da rientrare"
-  `[fonte: autoscout24 | AN | as24_it_bef6f781-70d6-4325-a1f4-c7be5e2f8d73]`
+- "rivestito pelle<br />04MA Sedile multifunzione M<br />04MC Listelli interni Carbon Fibre<br />04T8 Pacchetto specchietti ampliato<br />04UR Luce abitacolo<br />0548 Tachimetro chilometrico<br />0"
+  `[fonte: autoscout24 | AN | as24_it_4f70bf2e-02a0-4239-99a8-54fa1a661e65]`
 
-- "0 340 CV X DRIVE M SPORT 2021</strong><strong>Vettura italiana</strong>, in condizioni <strong>impeccabili</strong>, con <strong>chilometraggio certificato dalla Casa Madre</strong>"
-  `[fonte: autoscout24 | AN | as24_it_7ba2e5b1-68f5-4c61-a1dd-a8063bf75cab]`
+- "Remote Software Upgrade<br />06U3"
+  `[fonte: autoscout24 | AN | as24_it_4f70bf2e-02a0-4239-99a8-54fa1a661e65]`
 
-- "0 da <strong>245 CV</strong>, allestimento M SPORT <br /><ul><li><strong>Chilometri certificati</strong></li></ul><br /><ul><li><strong>Perfette condizioni, pronta consegna</strong></li></ul><br /><s"
-  `[fonte: autoscout24 | AN | as24_it_7ba2e5b1-68f5-4c61-a1dd-a8063bf75cab]`
+- "per elementi interni</li></ul> <ul><li>Assistente al parcheggio</li></ul> <ul><li>BMW Gesture Control</li></ul> <ul><li>BMW Laserlight</li></ul> <ul><li>Blocco differenziale</li></ul> <ul><li>Cerchi i"
+  `[fonte: autoscout24 | AN | as24_it_4f70bf2e-02a0-4239-99a8-54fa1a661e65]`
 
-- "<br /><br />Disponibile per qualsiasi verifica e prova pres"
-  `[fonte: autoscout24 | AN | as24_it_7ba2e5b1-68f5-4c61-a1dd-a8063bf75cab]`
+- "Cerchi in lega da 22</li></ul> <ul><li>Controllo della stabilità e della trazione</li></ul> <ul><li>Display Key</li></ul> <ul>"
+  `[fonte: autoscout24 | AN | as24_it_4f70bf2e-02a0-4239-99a8-54fa1a661e65]`
 
-- "services</li></ul> <ul><li>BMW Teleservices</li></ul> <ul><li>Badge esterno identificativo</li></ul> <ul><li>Batteria agli Ioni"
-  `[fonte: autoscout24 | AN | as24_it_f4879422-c0cc-4082-9677-ca5709075388]`
+- "Interni in pelle</li></ul> <ul><li>Interni personalizzazione colori</li></ul> <ul><li>Personalizzazioni linea e stile</li></ul>"
+  `[fonte: autoscout24 | AN | as24_it_4f70bf2e-02a0-4239-99a8-54fa1a661e65]`
 
-- "Cambio automatico a 8 marce</li></ul> <ul><li>Cerchi in lega</li></ul> <ul><li>Chiavi e telecomandi</li></ul> <ul><li>Chiusura centralizz"
-  `[fonte: autoscout24 | AN | as24_it_f4879422-c0cc-4082-9677-ca5709075388]`
+- "elettrico</li></ul> <ul><li>Programmi di manutenzione</li></ul> <ul><li>Ruotino di scorta</li></ul> <ul><li>Sedili anteriori mult"
+  `[fonte: autoscout24 | AN | as24_it_4f70bf2e-02a0-4239-99a8-54fa1a661e65]`
 
-- "Led</li></ul> <ul><li>Fari automatici e sensore pioggia</li></ul> <ul><li>Fari posteriori a Led</li></ul> <ul><li>Fissaggi"
-  `[fonte: autoscout24 | AN | as24_it_f4879422-c0cc-4082-9677-ca5709075388]`
+- "Sedili anteriori riscaldabili</li></ul> <ul><li>Sistema di altoparlanti HIFI</li></ul> <ul><li>Sistema di guida assistita</li>"
+  `[fonte: autoscout24 | AN | as24_it_4f70bf2e-02a0-4239-99a8-54fa1a661e65]`
 
-- "elettrico</li></ul> <ul><li>Guida uso e manutenzione integrata e accessibile via Control Display</li></ul> <ul><li>Illuminazione"
-  `[fonte: autoscout24 | AN | as24_it_f4879422-c0cc-4082-9677-ca5709075388]`
+- "<br />ACTIVE GUARD PLUS<br />ADAPTIVE LED HEADLIGHTS<br />A"
+  `[fonte: autoscout24 | AN | as24_it_28a18d11-b41c-4c35-ac01-a0bdc07a3443]`
 
-- "Interni in alcantara e pelle</li></ul> <ul><li>Interni personalizzazione colori</li></ul> <ul><li>Keyless system</li></ul> <ul>"
-  `[fonte: autoscout24 | AN | as24_it_f4879422-c0cc-4082-9677-ca5709075388]`
+- "<br />ACTIVE GUARD PLUS<br />ADAPTIVE LED HEADLIGHTS<br />AMBIENT LIGHT<br />ANDROID AUTO<br />APPLE CARPLAY<br />ASSETTO SPORTIVO M<br />AUTOMATIC HIGH-BEAM ASSISTANT<br />BMW LIVE COCKPIT PLUS<br />CAMBIO AUTOMATICO"
+  `[fonte: autoscout24 | AN | as24_it_28a18d11-b41c-4c35-ac01-a0bdc07a3443]`
 
-- "Motore BMW Twin Power Turbo 6 cilindri benzina e High Precision Injection</li></ul> <ul><li>Pacchetto</li></ul> <ul><li>Paraur"
-  `[fonte: autoscout24 | AN | as24_it_f4879422-c0cc-4082-9677-ca5709075388]`
+- "BICOLORE<br />CLIMATIZZATORE AUTOMATICO<br />CONNECTED PAC"
+  `[fonte: autoscout24 | AN | as24_it_28a18d11-b41c-4c35-ac01-a0bdc07a3443]`
 
-- "cruise control</li></ul> <ul><li>Retrovisore interno auto-anabbagliante</li></ul> <ul><li>Sedili abbattibili</li></ul> <ul><li>Sedili"
-  `[fonte: autoscout24 | AN | as24_it_f4879422-c0cc-4082-9677-ca5709075388]`
+- "BICOLORE<br />CLIMATIZZATORE AUTOMATICO<br />CONNECTED PACKAGE PROFESSIONAL<br />CRUISE CONTROL CON FUNZIONE FRENANTE<br />DAB TUNER<br />DIFFERENZIALE SPORTIVO M<br />DISPLAY WIDESCREEN<b"
+  `[fonte: autoscout24 | AN | as24_it_28a18d11-b41c-4c35-ac01-a0bdc07a3443]`
 
-- "emergenza</li></ul> <ul><li>Sistema di monitor"
-  `[fonte: autoscout24 | AN | as24_it_f4879422-c0cc-4082-9677-ca5709075388]`
+- "NAVIGATORE BMW PROFESSIONAL<br />PACCHETTO AERODINAMICO M<br />PACCHETTO PORTAOGGETTI<br />PACCHETTO SPECCHI INTERNO/ESTERNO<br />"
+  `[fonte: autoscout24 | AN | as24_it_28a18d11-b41c-4c35-ac01-a0bdc07a3443]`
 
-- "pelle</li></ul> <ul><li>Volante regolabile</li></ul><br />[Cod: 1067956-100] [Veicolo: U25197]<br />"
-  `[fonte: autoscout24 | AN | as24_it_f4879422-c0cc-4082-9677-ca5709075388]`
+- "SEDILI POSTERIORI ABBATTIBILI<br />SENSORI DI PARCHEGGIO ANTERIORI E POSTERIORI<br />SHADOW LINE BMW INDIVIDUAL ESTESA<br />SP"
+  `[fonte: autoscout24 | AN | as24_it_28a18d11-b41c-4c35-ac01-a0bdc07a3443]`
 
-- "EMV AUTO declina ogni responsabilità per eventuali incongr"
-  `[fonte: autoscout24 | AN | as24_it_4cb70e2b-5c5b-40bd-914e-1c7f9a7ba602]`
+- "ELETTRICO<br />VETRI OSCURATI<br />VOLANTE M IN PELLE<br /><br /><br />Offriamo un’estensione di garanzia fino a 60 mesi e tutta"
+  `[fonte: autoscout24 | AN | as24_it_28a18d11-b41c-4c35-ac01-a0bdc07a3443]`
 
-- "<br />ALLESTIMENTO M-SPORT pro + optional <br />GARANZIA BMW BEST SINO AL 05/2029<br />MOTORIZZAZIONE IBRIDO MHEV DIESEL/ELETTRICO <br />ESENTE DA BOLLO PER ALCUNE REGIONI DI ITALIA COME LA PUGLIA S"
-  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+- "Ti invitiamo a verificare con i nostri consulenti le spcif"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
-- "BMW razza Y 728M grigio cerio<br />02PA – Sicurez"
-  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+- "<br /><br />EQUIPAGGIAMENTI OPTIONAL :<br />BMW SENZA PENSIERI 5ANNI / 100 - BULLONE ANTIFURTO - CAMBIO AUTOMATICO CON LEVE AL - CERCHI IN LEGA LEGGERA DA 19`S - DRIVING ASSISTANT PLUS - PACCHETTO M SPORT PRO - PACCH"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
-- "Pacchetto Sportivo M Pro<br />03M3 – Impianto frenante maggiorato M Sport, nero lucido<br /> 03MF – Fari Shadow Line M<br />0415"
-  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+- "PACCHETTO M SPORT PRO - PACCHETTO SPORTIVO M - PREMIUM PACKAGE - VETRI POSTERIORI E LUNOTTO OSC<br /><br />EQUIPAGGIAMENTI DI SER"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
-- "Sedili anteriori multifunzione<br /> 04GQ – Cinture di sicurezza M<br /> 04HA – Riscaldamento sedili anteriori e posteriori<br"
-  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+- "services - BMW Intellingent Emergecy Call - BMW Live Cockpit Plus - BMW Teleservice - BMW iDrive - Badge con nome modello sul p"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
-- "interni alluminio Trace scuro<br /> 04NB – Climatizzazione automatica con 4 zone<br />0548 – Tachimetro chilometrico<br />05AC"
-  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+- "style 875 Star Spoke Light Grey con pneumatici 205/65 R17"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
-- "pelle<br /> 0715 – Kit aerodinamico M<br /> 0760 – Shadow Line lucido<br /> 0775 – Cielo antracite<br />07M9 – M Shadow Line"
-  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+- "Cruise Control (non adattivo) - Fari Bi-led - Finestrini apribili elettricamente - Freno a mano elettrico - Garanzia aggiuntiva BEST4"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
-- "Pelle Merino nera con profili M neri"
-  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+- "Pacchetto luci interne - Paraurti in tinta carrozzeria - Parking Assistant - Performance control - Personal e-SIM - Portellone po"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
-- "M DOPPIA RAZZA 791M<br />CAMBIO AUTOMATICO SPORTIVO<br />C"
-  `[fonte: autoscout24 | AN | as24_it_690ffdc6-982f-43c5-89d0-4e1d2437c70b]`
+- "Sedili anteriori del guidatore e del passeggero regolabili manualmente in altezza - Sedili anteriori riscaldabili - Selective"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
-- "M DOPPIA RAZZA 791M<br />CAMBIO AUTOMATICO SPORTIVO<br />COMFORT ACCESS<br />PACCHETTO M SPORT PRO<br />MODELLO M SPORT<br />PACCHETTO AERODINAMICO M<br />ASSETTO SPORTIVO M<br />IMPIANTO FRENANTE M SPORT ROSSO<br />VOLANT"
-  `[fonte: autoscout24 | AN | as24_it_690ffdc6-982f-43c5-89d0-4e1d2437c70b]`
+- "accensione automatica delle luci e dei tergicristalli - Serbatoio maggiorato - Servotronic servosterzo elettrico ad assistenza variabile - Shadowline nero lucido M - Sistema anti bloccaggio di sicurezz"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
-- "PELLE M<br />SEDILI CON VENTILAZIONE ATTIVA<br />SEDILI RISCALDATI ANTERIORI<br />CLIMATIZZATORE AUTOMATICO<br />APPLE CARPLA"
-  `[fonte: autoscout24 | AN | as24_it_690ffdc6-982f-43c5-89d0-4e1d2437c70b]`
+- "esterni reclinabili - Tappettini in velluto - Terminale di scarico nascosto - Trazione integrale BMW xDrive - Tyre repair kit p"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
-- "CRUISE CONTROL CON FUNZIONE FRENANTE<br />ACTIVE GUARD PLUS<br />ILLUMINAZIONE AMBIENTALE<br />FARI BMW INDIVIDUAL SHADOW LINE<br />AI"
-  `[fonte: autoscout24 | AN | as24_it_690ffdc6-982f-43c5-89d0-4e1d2437c70b]`
-
-- "<br />- ASSISTENZA STRADALE H24 7/7"
-  `[fonte: autoscout24 | AN | as24_it_12412a7d-76ef-4f71-b86e-a5ff5fd43ab7]`
-
-- "<br /><br />Colorazione: Donington Grey<br"
-  `[fonte: autoscout24 | AN | as24_it_12412a7d-76ef-4f71-b86e-a5ff5fd43ab7]`
-
-- "<br />0493 PACCHETTO PORTAOGGETTI<br />04FH SEDILE"
-  `[fonte: autoscout24 | AN | as24_it_12412a7d-76ef-4f71-b86e-a5ff5fd43ab7]`
-
-- "<br />0493 PACCHETTO PORTAOGGETTI<br />04FH SEDILE CON VENTILAZIONE ATTIVA<br />04CQ CINTURE DI SICUREZZA M<br />04HA RISCALDAMENTO SEDILE ANT"
-  `[fonte: autoscout24 | AN | as24_it_12412a7d-76ef-4f71-b86e-a5ff5fd43ab7]`
-
-- "<br />04MC LISTELLI INTERNI CARBON FIBRE<br />04NE RISCLADATORE BLOW-BY<br />0548 TACHIMETRO CHILOMETRIVO<br />0552 FARO A LED ADATTIVO<br />05AL Active Protection<br />05AT Driving Assistant Plus<br />05DA"
-  `[fonte: autoscout24 | AN | as24_it_12412a7d-76ef-4f71-b86e-a5ff5fd43ab7]`
-
-- "Services<br />06AP Remote Services<br />06CP Predisposizione Apple CarPlay<br />06NW Telefonia con caricamento wireless<br />06"
-  `[fonte: autoscout24 | AN | as24_it_12412a7d-76ef-4f71-b86e-a5ff5fd43ab7]`
-
-- "Pacchetto Competition<br />07ME M Drivers Package<br />07MN Pacchetto M Competition<br />07S9 Connected Drive Services Paket<br /"
-  `[fonte: autoscout24 | AN | as24_it_12412a7d-76ef-4f71-b86e-a5ff5fd43ab7]`
-
-- "IMMATRICOLAZIONE (QUESTA AGEVOLAZIONE E&#x27"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "COLORE ESTERNO SOPHISTO GREY METALLIZZATO</strong><br /><br /><strong>MONITOR/DVD POSTERIORI</strong><br /><br /><strong>VISOR"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "xDrive Touring Msport Pro ANNO 2025 CON SOLI 14693 KM VETTURA IN ECCELLENTI CONDIZIONI FULL OPTIONAL:<br /><br />1CE<br />Tecn"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "Cambio automatico con leve al volante<br />2VB<br />Indicatore pressione pneumatici<br />302<br />Antifurto con telecomando<br />322<br /"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "Pacchetto sportivo M<br />33B<br />Pacchetto M Sport Pro<br />33B<br />Pacchetto M Sport Pro (4GQ, 3DP, 3GV, 33B, 7M9, 9TA, 9TB"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "Comfort System<br />4GQ<br />Cinture di sicurezza M"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "sedili anteriori e posteriori<br />4NB<br />Climatizzatore automatico a 4 zone<br />4NR<br />Telecamera interna<br />548<br />"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "LED adattivi<br />5AU<br />Driving Assistant Professional<br />5AV<br />Active Guard<br />5DW<br />Parking Assistant Profes"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "Services<br />6AF<br />Chiamata di emergenza<br />6AK<br />ConnectedDrive Services<br />6C4<br />BMW Connected Package Professi"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "pelle a tre razze<br />760<br />Shadow line esterna lucida<br />775<br />Rivestimento padiglione interno antracite<br />7EW<b"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "esterni MSport<br />9T2<br />Dettagli interni MSport<br />9TA<br />Specific additional contents in M Sport package<br />9TB<br"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "DI FINANZIAMENTO/LEASING A TASSO AGEVOLATO"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "propone BMW X1 xDrive20d M Sport, SUV premium dal desi"
-  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
-
-- "propone BMW X1 xDrive20d M Sport, SUV premium dal design sportivo ed elegante, ideale per chi cerca comfort, tecnologia e prestazioni elevate"
-  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
-
-- "<br /><br />Grazie al motore diesel brillante ed efficiente, alla trazione integrale xDrive e all’allestimento M Sport, questa BMW X1 garantisce una guida dinamica, sicura e confortevole in ogni situazione"
-  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
-
-- "Motore 20d efficiente e performante<br />* Trazione integrale xDrive<br />* Allestimento M Sport<br />* Cambio automatico<br /"
-  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
-
-- "Pacchetto M Sport<br />* Cerchi in lega sportivi BMW<br />* Assetto sportivo M<br />* Volante sportivo multifunzione M<br />* Sed"
-  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
-
-- "LED<br />* BMW Live Cockpit Professional<br />* Navigatore integrato<br />* Apple CarPlay e Android Auto<br />* Bluetooth<b"
-  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
-
-- "Sensori di parcheggio<br />* Cruise Control<br />* Vetri oscurati<br /><br />TECNOLOGIA E INFOTAINMENT<br /><br />* BMW Live Co"
-  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
-
-- "Navigatore integrato<br />* Apple CarPlay e Android Auto<br />* Bluetooth<br />* USB<br />* Connettività avanzata BMW<br /><br />C"
-  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
-
-- "INTERNI<br /><br />* Sedili sportivi M<br />* Volante M multifunzione<br />* Climatizzatore automatico<br />* Interni premium s"
-  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
-
-- "emergenza<br />* Sistemi avanzati di assistenza alla guida<"
-  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
-
-- "<br /><br />Una realtà giovane con oltre 15 anni di esp"
-  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
-
-- "esperienza di guida unica, dove il lusso incontra la tecnol"
-  `[fonte: autoscout24 | AN | as24_it_a926b6b0-6014-4db5-8751-ecbe55fcb2ee]`
-
-- "Telecamera panoramica a 360 gradi<br />• Illuminazione laser anteriore<br /><br />🛋️ <strong>Comfort e Interni</strong><br /><br /"
-  `[fonte: autoscout24 | AN | as24_it_a926b6b0-6014-4db5-8751-ecbe55fcb2ee]`
-
-- "Sedili in pelle pregiata Merino<br />• Sedili anteriori riscaldati e ventilati<br />• Riscaldamento del volante<br />• Prerisc"
-  `[fonte: autoscout24 | AN | as24_it_a926b6b0-6014-4db5-8751-ecbe55fcb2ee]`
-
-- "Esterni e Design</strong><br /><br />• Allestimento M Sport Pro<br />• Tetto panoramico apribile<br />• Fari laser ad alta effi"
-  `[fonte: autoscout24 | AN | as24_it_a926b6b0-6014-4db5-8751-ecbe55fcb2ee]`
-
-- "Il carico degli accessori e allestimento dei veicoli potrebbe non essere conforme alla realta&#x27"
-  `[fonte: autoscout24 | AN | as24_it_a926b6b0-6014-4db5-8751-ecbe55fcb2ee]`
-
-- "cambio automatico</li><li>Cornice esterna in Alluminio satinato BMW Individual</li><li>High Beam assistant</li><li>Indicatore pressione p"
-  `[fonte: autoscout24 | AN | as24_it_967347fb-7165-49b1-8eca-557b43228692]`
+- "pelle sportivo a tre razze - Volante regolabile in altezza e profondità - Widescreen display"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
 - "<br /><br />E&#x27"
   `[fonte: autoscout24 | AN | as24_it_dd7542d7-e245-44e6-8ff4-1fa257868cc8]`
+
+- "<br />In più, con il programma <strong>Valore Vero"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "<br /><hr /><br /><strong>OPTIONAL VALORIZZANTI:</strong><br /><br /><ul><li>Pacchetto M Sport<br /></li><li>Vernice metallizzata M Portimao Blue<br /></li><li>Cerchi in lega M da 19” styling 1038 bicolor<br /></li"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "Cerchi in lega M da 19” styling 1038 bicolor<br /></li><li>Cambio automatico sportivo Steptronic 8 rapporti<br /></li><li>Asse"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "Tetto apribile elettrico<br /></li><li>Sedili sportivi anteriori<br /></li><li>Sedili anteriori riscaldabili<br /></li><li>Telecamera"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "Sensori parcheggio anteriori e posteriori<br /></li><li>BMW Live Cockpit Plus con Curved Display<br /></li><li>Illuminazione am"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "pelle<br /></li><li>Clima automatico bi-zona<br /></li><li>Cruise control<br /></li><li>Active Guard Plus<br /></li><li>Keyle"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "Services<br /></li><li>Connected Package Professional<br /></li><li>Specchi interni ed esterni autoanabbaglianti<br /></li><li>"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "Interni Sensatec neri<br /></li><li>Headliner antracite M<br /></li><li>Pacchetto aerodinamico M<br /></li><li>Allarme antifurt"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "<br /><br />Vettura Ufficiale BMW Italia, immatricolata il"
+  `[fonte: autoscout24 | AN | as24_it_008046e6-fb51-4be1-b3f3-cce8d80d6919]`
+
+- "2025, con Garanzia BMW Best fino al 30"
+  `[fonte: autoscout24 | AN | as24_it_008046e6-fb51-4be1-b3f3-cce8d80d6919]`
+
+- "<br /><br />Colore Saphirschwarz Metallizzato, Interni in Pelle Nera"
+  `[fonte: autoscout24 | AN | as24_it_008046e6-fb51-4be1-b3f3-cce8d80d6919]`
+
+- "razza 935M STD SO<br />0420 Cristalli oscurati<br />043R Al"
+  `[fonte: autoscout24 | AN | as24_it_008046e6-fb51-4be1-b3f3-cce8d80d6919]`
+
+- "Telecamera abitacolo<br />0548 Tachimetro chilometrico<br />0552 Faro a LED adattativo<br />05AS Driving Assistant<br />05AV Activ"
+  `[fonte: autoscout24 | AN | as24_it_008046e6-fb51-4be1-b3f3-cce8d80d6919]`
+
+- "pelle<br />0760 Lucido shadow line<br />0775 Cielo antracite<br />07EW Pacchetto optional Professional<br />07LK Travel Paket"
+  `[fonte: autoscout24 | AN | as24_it_008046e6-fb51-4be1-b3f3-cce8d80d6919]`
+
+- "<br /><br /><br />La dotazione tecnica e gli optional potre"
+  `[fonte: autoscout24 | AN | as24_it_008046e6-fb51-4be1-b3f3-cce8d80d6919]`
+
+- "effettivo equipaggiamento della vettura"
+  `[fonte: autoscout24 | AN | as24_it_008046e6-fb51-4be1-b3f3-cce8d80d6919]`
+
+- "acustico<br /> 03MC Barre tetto M, Shadow Line<br /> 0420"
+  `[fonte: autoscout24 | AN | as24_it_cc6c4d42-4e28-4b30-afe8-58142854b0cc]`
+
+- "sedili con memory<br /> 0481 Sedile sportivo<br /> 04AW Plancia portastrumenti Sensatec<br /> 04KK Modanature in alluminio Tet"
+  `[fonte: autoscout24 | AN | as24_it_cc6c4d42-4e28-4b30-afe8-58142854b0cc]`
+
+- "Pacchetto specchietti ampliato<br /> 04U9 Protezione pedoni acustica<br /> 04UR Luce abitacolo<br /> 0548 Tachimetro chilometrico"
+  `[fonte: autoscout24 | AN | as24_it_cc6c4d42-4e28-4b30-afe8-58142854b0cc]`
+
+- "LED adattativo<br /> 05A1 Fendinebbia a LED<br /> 05AC Assistente abbaglianti<br /> 05AQ Active Guard Plus<br /> 05AU Drivi"
+  `[fonte: autoscout24 | AN | as24_it_cc6c4d42-4e28-4b30-afe8-58142854b0cc]`
 
 - "LED<br />SEDILI SPORTIVI M SPORT<br />VETRI PRIVACY<br />RETROCAMERA<br />SENSORI PARK 360<br />CAR PLAY<br />NAVIGATORE<br"
   `[fonte: autoscout24 | AN | as24_it_a024857e-a2e0-4288-8bf3-c31a4c2cccf7]`
@@ -352,30 +526,21 @@ _120 frasi_
 - "PACCHETTO LUXURY<br />PREMIUM PACKAGE<br />SEDILI E VOLANTE RISCALDATI<br /><br />GARANZIA UFFICIALE BMW 2+2 ANNI<br />PACCHETTO"
   `[fonte: autoscout24 | AN | as24_it_a024857e-a2e0-4288-8bf3-c31a4c2cccf7]`
 
-- "FRENANTE MAGGIORATO M, ROSSO LUCIDO<br /> 03MF Fari Shadow"
-  `[fonte: autoscout24 | AN | as24_it_1f0511ec-8083-4447-8b24-29a034f8a71d]`
-
-- "<br /> 0493 Pacchetto portaoggetti<br /> 0494 Riscaldamento sedile guid"
-  `[fonte: autoscout24 | AN | as24_it_1f0511ec-8083-4447-8b24-29a034f8a71d]`
-
-- "automatica<br /> 0548 Tachimetro chilometrico<br /> 0552 Faro a LED adattativo<br /> 05AC Assistente abbaglianti<br /> 05AL Active"
-  `[fonte: autoscout24 | AN | as24_it_1f0511ec-8083-4447-8b24-29a034f8a71d]`
-
-- "pelle<br /> 0715 Kit aerodinamico M<br /> 0754 Spoiler posteriore M<br /> 0760 Lucido shadow line<br /> 0775 Cielo antracite<"
-  `[fonte: autoscout24 | AN | as24_it_1f0511ec-8083-4447-8b24-29a034f8a71d]`
-
-- "<br /> <br /> Hai un’auto usa"
-  `[fonte: autoscout24 | AN | as24_it_1f0511ec-8083-4447-8b24-29a034f8a71d]`
-
-- "effettivo equipaggiamento della vettura, a causa della non"
-  `[fonte: autoscout24 | AN | as24_it_1375738c-feae-4cf5-aa07-a598bfc511ae]`
-
 ---
 ## Garanzia offerta
-_18 frasi_
+_20 frasi_
 
-- "Garanzia Legale di conformità come previsto dalle leggi vigenti, approvate dall&#x27"
-  `[fonte: autoscout24 | AN | as24_it_9eaaaa0b-06bd-43b9-8075-3d21be723d79]`
+- "garanzia fino a 60 mesi e tutta l’assistenza di cui hai bisogno in ogni momento, ovunque"
+  `[fonte: autoscout24 | AN | as24_it_690ffdc6-982f-43c5-89d0-4e1d2437c70b]`
+
+- "GARANZIA certificata, controlli tecnici attestati, offerte finanziarie personalizzate, a"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "GARANZIA UFFICIALE BMW FINO A FEBBRAIO 2029</strong><br /><br /><strong>ALIMENTAZIONE IB"
+  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
+
+- "GARANZIA BMW BEST SINO AL 05/2029<br />MOTORIZZAZIONE IBRIDO MHEV DIESEL/ELETTRICO <br /"
+  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
 
 - "GARANZIA UFFICIALE BMW BEST4 FIN A 07/2029 OPPURE 150"
   `[fonte: autoscout24 | AN | as24_it_1c9e4d79-ff84-49f0-bf58-0f7922b5259a]`
@@ -386,32 +551,20 @@ _18 frasi_
 - "garanzia casa madre PREMIUM SELECTION<br />-auto finanziabile e leasingabile a tasso age"
   `[fonte: autoscout24 | AN | as24_it_6996fb6e-bdb2-4c1b-ae7a-44275736371f]`
 
-- "garanzia</strong> inclusa</li></ul><br /><ul><li><strong>Possibilità di finanziamento pe"
-  `[fonte: autoscout24 | AN | as24_it_7ba2e5b1-68f5-4c61-a1dd-a8063bf75cab]`
+- "GARANZIA UFFICIALE BMW BEST4 FINO A GIUGNO 2029<br /><br />BMW X1 xDrive 20d Msport Pro"
+  `[fonte: autoscout24 | AN | as24_it_b631d5d8-c975-436e-9e41-0b1f95a7b7e0]`
 
-- "GARANZIA BMW BEST SINO AL 05/2029<br />MOTORIZZAZIONE IBRIDO MHEV DIESEL/ELETTRICO <br /"
-  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+- "garanzia e la possibilità di finanziamenti a tasso agevolato"
+  `[fonte: autoscout24 | AN | as24_it_b12e40c8-d6c9-463a-992f-103ccbc4c50e]`
 
-- "Garanzia inclusa e trasparente</strong><br />Nel prezzo è compresa la garanzia legale di"
-  `[fonte: autoscout24 | AN | as24_it_b768f584-17ba-461f-a10a-60a61f3042d0]`
+- "Garanzia 12 mesi <br /> <br /> - Possibilità di estendere la garanzia fino a 5 anni con"
+  `[fonte: autoscout24 | AN | as24_it_5abd2adb-529e-43ef-8ade-b12b944caa9d]`
 
-- "garanzia estesa e manutenzione programmata"
-  `[fonte: autoscout24 | AN | as24_it_b768f584-17ba-461f-a10a-60a61f3042d0]`
+- "GARANZIA UFFICIALE BMW o MINI con durata di 24 mesi"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
-- "garanzia fino a 60 mesi e tutta l’assistenza di cui hai bisogno in ogni momento, ovunque"
-  `[fonte: autoscout24 | AN | as24_it_690ffdc6-982f-43c5-89d0-4e1d2437c70b]`
-
-- "GARANZIA 12 MESI VALIDA IN TUTTI I SERVICE BMW IN EUROPA"
-  `[fonte: autoscout24 | AN | as24_it_12412a7d-76ef-4f71-b86e-a5ff5fd43ab7]`
-
-- "GARANZIA UFFICIALE BMW FINO A FEBBRAIO 2029</strong><br /><br /><strong>ALIMENTAZIONE IB"
-  `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
-
-- "GARANZIA 12/24 MESI<br />- QUALSIASI PROVA<br /><br /><br /><strong>*PREZZO PROMO CONDIZ"
-  `[fonte: autoscout24 | AN | as24_it_38d11c69-5457-402c-a867-29ff3a26b92c]`
-
-- "garanzia guasti meccanici e&#x27"
-  `[fonte: autoscout24 | AN | as24_it_a926b6b0-6014-4db5-8751-ecbe55fcb2ee]`
+- "Garanzia aggiuntiva BEST4 - Griglia BMW con listelli neri in Black High Gloss e cornice"
+  `[fonte: autoscout24 | AN | as24_it_c27db04e-a3a5-4b11-8f76-0fe6fc4cd23c]`
 
 - "GARANZIA BMW FINO 2029<br /><br />Prezzo <strong>reale</strong> e non vincolato da finan"
   `[fonte: autoscout24 | AN | as24_it_dd7542d7-e245-44e6-8ff4-1fa257868cc8]`
@@ -419,48 +572,27 @@ _18 frasi_
 - "GARANZIA FINO A 48 MESI<br /><br />* VALUTIAMO EVENTUALI PERMUTE<br /><br />* CHILOMETRA"
   `[fonte: autoscout24 | AN | as24_it_dd7542d7-e245-44e6-8ff4-1fa257868cc8]`
 
+- "garanzia totale Conformgest <br />✔ consulente dedicato durante tutto il processo di acq"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "garanzia</strong> per una protezione globale a 360° che ti permetta di dormire sonni tra"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "garanzia</strong> per chi non vuole rinunciare alla protezione dell sua auto con un occh"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "Garanzia BMW Best fino al 30"
+  `[fonte: autoscout24 | AN | as24_it_008046e6-fb51-4be1-b3f3-cce8d80d6919]`
+
 - "GARANZIA UFFICIALE BMW 2+2 ANNI<br />PACCHETTO MANUTENZIONE 5 ANNI/100MILA KM<br /><br /"
   `[fonte: autoscout24 | AN | as24_it_a024857e-a2e0-4288-8bf3-c31a4c2cccf7]`
 
 - "garanzia fino a 60 mesi e tutta l"
   `[fonte: autoscout24 | AN | as24_it_a024857e-a2e0-4288-8bf3-c31a4c2cccf7]`
 
-- "garanzia studiata appositamente per autovetture"
-  `[fonte: autoscout24 | AN | as24_it_1375738c-feae-4cf5-aa07-a598bfc511ae]`
-
 ---
 ## Trattativa / contatto
-_20 frasi_
-
-- "pagamento e Passaggio di Proprietà immediato, senza vincolo di acquisto di un altro veicolo"
-  `[fonte: autoscout24 | AN | as24_it_9eaaaa0b-06bd-43b9-8075-3d21be723d79]`
-
-- "permuta, esclusa IPT e MSS"
-  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
-
-- "finanziamento personalizzato</strong></li></ul><br /><ul><li><strong>Gestione completa della vendita anche a dist"
-  `[fonte: autoscout24 | AN | as24_it_7ba2e5b1-68f5-4c61-a1dd-a8063bf75cab]`
-
-- "PERMUTARE LA TUA AUTO"
-  `[fonte: autoscout24 | AN | as24_it_7ba2e5b1-68f5-4c61-a1dd-a8063bf75cab]`
-
-- "WHATSAPP ) <br /><br />Giuseppe: 3 8 8 4 0 3 6 2 2 7 <br /><br />Toty: 3 4 9 4 6 5 4 0 4 8<br /><br />Siamo"
-  `[fonte: autoscout24 | AN | as24_it_7ba2e5b1-68f5-4c61-a1dd-a8063bf75cab]`
-
-- "appuntamento con uno dei nostri venditori per la visione dei veicoli"
-  `[fonte: autoscout24 | AN | as24_it_4cb70e2b-5c5b-40bd-914e-1c7f9a7ba602]`
-
-- "contattare il numero: 329 107 96 45"
-  `[fonte: autoscout24 | AN | as24_it_4cb70e2b-5c5b-40bd-914e-1c7f9a7ba602]`
-
-- "FINANZIAMENTO IN SEDE A TASSO AGEVOLATO CON POSSIBILITA&#x27"
-  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
-
-- "tagliando completo e interventi di manutenzione necessari, per una partenza perfetta"
-  `[fonte: autoscout24 | AN | as24_it_b768f584-17ba-461f-a10a-60a61f3042d0]`
-
-- "finanziamento dedicato, protezione totale furto e incendio, garanzia estesa e manutenzione programmata"
-  `[fonte: autoscout24 | AN | as24_it_b768f584-17ba-461f-a10a-60a61f3042d0]`
+_22 frasi_
 
 - "VISIONABILE PRESSO LO SHOW ROOM DI VIA BICE CREMAGNANI 54, VIMERCATE (MB)<br /><br />CERCHI IN LEGA 19&quot"
   `[fonte: autoscout24 | AN | as24_it_690ffdc6-982f-43c5-89d0-4e1d2437c70b]`
@@ -468,14 +600,41 @@ _20 frasi_
 - "finanziamento e leasing personalizzate, piani assicurativi adatti ad ogni specifica esigenza, per privati e azien"
   `[fonte: autoscout24 | AN | as24_it_690ffdc6-982f-43c5-89d0-4e1d2437c70b]`
 
-- "permuta indica nella richiesta: marca, modello, colore, data di immatricolazione, chilometri, allestimento"
-  `[fonte: autoscout24 | AN | as24_it_12412a7d-76ef-4f71-b86e-a5ff5fd43ab7]`
+- "Finanziamento calibrate secondo le TUE esigenze"
+  `[fonte: autoscout24 | AN | as24_it_d3b77c78-94f6-471e-a29e-231556fd8985]`
+
+- "permuta, esclusa IPT e MSS"
+  `[fonte: autoscout24 | AN | as24_it_3512d288-069e-4db6-b2e3-d32c2edc7ac2]`
+
+- "Finanziamento/Leasing)"
+  `[fonte: autoscout24 | AN | as24_it_fdce2062-05b8-4b7b-baf5-503ae6969920]`
+
+- "appuntamento e per assicurarsi della disponibilità del veicolo"
+  `[fonte: autoscout24 | AN | as24_it_fdce2062-05b8-4b7b-baf5-503ae6969920]`
 
 - "FINANZIAMENTO/LEASING A TASSO AGEVOLATO"
   `[fonte: autoscout24 | AN | as24_it_cbf97f45-c154-43de-9c43-6fc4f3292a65]`
 
-- "KM CERTIFICATI<br />- UNICO PROPRIETARIO<br />- MANUTENZIONE CERTIFICATA<br />- GARANZIA 12/24 MESI<br />- QU"
-  `[fonte: autoscout24 | AN | as24_it_38d11c69-5457-402c-a867-29ff3a26b92c]`
+- "FINANZIAMENTO IN SEDE A TASSO AGEVOLATO CON POSSIBILITA&#x27"
+  `[fonte: autoscout24 | AN | as24_it_eeff8f8b-5d67-4ea1-8b45-5ca854a7065d]`
+
+- "FINANZIAMENTO</strong><br /><br /><strong>&#x27"
+  `[fonte: autoscout24 | AN | as24_it_b631d5d8-c975-436e-9e41-0b1f95a7b7e0]`
+
+- "KM CERTIFICATI BMW VETTURA IN ECCELLENTI CONDIZIONI:<br /><br /><strong>ALIMENTAZIONE IBRIDA ELETTRICA/DIESEL"
+  `[fonte: autoscout24 | AN | as24_it_b631d5d8-c975-436e-9e41-0b1f95a7b7e0]`
+
+- "FINANZIAMENTO A TASSO AGEVOLATO SENZA ANTICIPO CON PRIMA RATA A LUGLIO 2026"
+  `[fonte: autoscout24 | AN | as24_it_b631d5d8-c975-436e-9e41-0b1f95a7b7e0]`
+
+- "Permuta del tuo usato: valutiamo il tuo veicolo anche senza obbligo di acquisto"
+  `[fonte: autoscout24 | AN | as24_it_b12e40c8-d6c9-463a-992f-103ccbc4c50e]`
+
+- "Finanziamento personalizzato: possiamo adattare l’importo e la durata della rata in base alle tue esigenze, con i"
+  `[fonte: autoscout24 | AN | as24_it_b12e40c8-d6c9-463a-992f-103ccbc4c50e]`
+
+- "UNICO PROPRIETARIO CON TRAZIONE X DRIVE"
+  `[fonte: autoscout24 | AN | as24_it_28a18d11-b41c-4c35-ac01-a0bdc07a3443]`
 
 - "visionabile presso la nostra sede"
   `[fonte: autoscout24 | AN | as24_it_dd7542d7-e245-44e6-8ff4-1fa257868cc8]`
@@ -486,18 +645,27 @@ _20 frasi_
 - "APPUNTAMENTO<br /><hr /><br />I nostri servizi comprendono:<br /><br />* POSSIBILITÀ DI FINANZIAMENTI IN SEDE<br"
   `[fonte: autoscout24 | AN | as24_it_dd7542d7-e245-44e6-8ff4-1fa257868cc8]`
 
+- "permuta del tuo usato con la esclusiva formula <strong>VALORE VERO</strong><br /><br />Da oltre <strong>70"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "appuntamento in sede si prega di contattare il nostro numero diretto 334 6464547 (anche via WhatsApp) - crm@ghir"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`
+
+- "finanziamento/leasing a tassi agevolati, anche con maxirata finale"
+  `[fonte: autoscout24 | AN | as24_it_008046e6-fb51-4be1-b3f3-cce8d80d6919]`
+
+- "permuta con quotazione personalizzata Quattroruote"
+  `[fonte: autoscout24 | AN | as24_it_008046e6-fb51-4be1-b3f3-cce8d80d6919]`
+
 - "UNICO PROPRIETARIO<br />GANCIO TRAINO<br />HARMAN KARDON<br />FULL LED<br />SEDILI SPORTIVI M SPORT<br />VETRI PRIVACY"
   `[fonte: autoscout24 | AN | as24_it_a024857e-a2e0-4288-8bf3-c31a4c2cccf7]`
 
-- "Finanziamento diretto)"
-  `[fonte: autoscout24 | AN | as24_it_1375738c-feae-4cf5-aa07-a598bfc511ae]`
-
 ---
 ## Pattern contatto
-_13 frasi_
+_9 frasi_
 
-- "disponibile e fissare un appuntamento"
-  `[fonte: autoscout24 | AN | as24_it_9eaaaa0b-06bd-43b9-8075-3d21be723d79]`
+- "ore 20d efficiente e performante<br />* Trazione integrale xDrive<br />* Allestimento M Sport<br />* Cambi"
+  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
 
 - "DISPONIBILE IN PRONTA CONSEGNA<br /><br />IVA ESPOSTA<br /><br />GARANZIA UFFICIALE BMW BEST4 FIN A 07/2029 OPP"
   `[fonte: autoscout24 | AN | as24_it_1c9e4d79-ff84-49f0-bf58-0f7922b5259a]`
@@ -508,23 +676,8 @@ _13 frasi_
 - "Sabato: dalle ore 9:30-alle 13:00</strong><br /><strong>------------------------------------------------</"
   `[fonte: autoscout24 | AN | as24_it_6996fb6e-bdb2-4c1b-ae7a-44275736371f]`
 
-- "Disponibile per qualsiasi verifica e prova presso la nostra sede o tramite servizio di perizia a distanza"
-  `[fonte: autoscout24 | AN | as24_it_7ba2e5b1-68f5-4c61-a1dd-a8063bf75cab]`
-
-- "WHATSAPP ) <br /><br />Giuseppe: 3 8 8 4 0 3 6 2 2 7 <br /><br />Toty: 3 4 9 4 6 5 4 0 4 8<br /><br />Siamo"
-  `[fonte: autoscout24 | AN | as24_it_7ba2e5b1-68f5-4c61-a1dd-a8063bf75cab]`
-
-- "contattare il numero: 329 107 96 45"
-  `[fonte: autoscout24 | AN | as24_it_4cb70e2b-5c5b-40bd-914e-1c7f9a7ba602]`
-
-- "Domenica: 10:00 - 13:00<br /><br /><br /></li><li><strong>AUTO PER TUTTI CARRARA</strong> – Via Bertoloni, 5"
-  `[fonte: autoscout24 | AN | as24_it_b768f584-17ba-461f-a10a-60a61f3042d0]`
-
-- "Sabato: 8:30 - 12:30<br /><br /><strong>AUTOPERTUTTI FORMULA FULL CARE<br />Perché possedere un&#x27"
-  `[fonte: autoscout24 | AN | as24_it_b768f584-17ba-461f-a10a-60a61f3042d0]`
-
-- "ore 20d efficiente e performante<br />* Trazione integrale xDrive<br />* Allestimento M Sport<br />* Cambi"
-  `[fonte: autoscout24 | AN | as24_it_c3fc3ca9-d376-4930-8fd4-05c19cf8322f]`
+- "disponibile presso la nostra sede"
+  `[fonte: autoscout24 | AN | as24_it_b12e40c8-d6c9-463a-992f-103ccbc4c50e]`
 
 - "disponibile visionabile presso la nostra sede"
   `[fonte: autoscout24 | AN | as24_it_dd7542d7-e245-44e6-8ff4-1fa257868cc8]`
@@ -534,3 +687,6 @@ _13 frasi_
 
 - "Tel. +39 0424 1571609<br />Cell"
   `[fonte: autoscout24 | AN | as24_it_dd7542d7-e245-44e6-8ff4-1fa257868cc8]`
+
+- "contattare il nostro numero diretto 334 6464547 (anche via WhatsApp) - crm@ghiraldo-autoin"
+  `[fonte: autoscout24 | AN | as24_it_371a09c6-3faf-4b76-9d26-3223c9983283]`

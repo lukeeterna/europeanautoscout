@@ -1,0 +1,63 @@
+{
+  "project": "combaretrovamiauto-enterprise",
+  "project_path": "/Users/macbook/Documents/combaretrovamiauto-enterprise",
+  "generated_at": "2026-05-28T11:55:40Z",
+  "plan_complete": true,
+  "missing_sections": [],
+  "obiettivo": "scouting on-demand auto per micro-dealer commissione P.IVA forfettaria Italia, commissione su consegna posizione",
+  "funziona_e2e": [
+    [
+      "STACK: Python 3.13",
+      "INFERRED"
+    ],
+    [
+      "STACK: SQLite (`dealer_network.sqlite` — 18 dealers, 41 market_listings al 2026-05-28)",
+      "INFERRED"
+    ],
+    [
+      "STACK: CoVe Engine v4 (production stage)",
+      "INFERRED"
+    ],
+    [
+      "STACK: WA daemon (con bug C-WA-DUP-001 noto)",
+      "INFERRED"
+    ],
+    [
+      "STACK: argos-proxy (proxies per scraping geo-distribuito)",
+      "INFERRED"
+    ],
+    [
+      "(cosa gira E2E oggi davvero? — risposta in questions.md)",
+      "ASSUMPTION"
+    ]
+  ],
+  "bloccato_da": [
+    [
+      "C-SAN-001: sanitizer PoC dossier PDF non integrato — fix parser regex + test su 5 dossier reali",
+      "VERIFIED:PLAN.md"
+    ],
+    [
+      "C-WA-DUP-001: WA daemon invia N messaggi identici per ogni outbound (memoria feedback_wa_daemon_duplicate_sends). Blocker test reali V5/D-26: nessuna metrica conversion valida finché non risolto. Verify fix PRIMA wave outreach S171+.",
+      "VERIFIED:PLAN.md"
+    ]
+  ],
+  "prossimo_passo": [
+    "Verificare fix bug WA daemon duplicate sends (C-WA-DUP-001) PRIMA di lanciare test reali V5/D-26: daemon invia N messaggi identici per ogni outbound, bloccando ogni metrica conversion.",
+    "VERIFIED:PLAN.md"
+  ],
+  "chi_deve_agire": [
+    [
+      "C-SAN-001",
+      "CC"
+    ],
+    [
+      "C-WA-DUP-001",
+      "CC"
+    ]
+  ],
+  "distanza_passi": 2,
+  "distanza_confidence": "INFERRED",
+  "open_questions": [
+    "FUNZIONA E2E: cosa gira oggi davvero in produzione/staging? (non bug risolti — feature live)"
+  ]
+}

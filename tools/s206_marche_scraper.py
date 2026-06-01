@@ -272,6 +272,69 @@ def normalize_phone(raw: str) -> str:
     return ""
 
 
+def extract_phone_from_text(text: str) -> str:
+    """Estrae primo telefono mobile IT plausibile da testo libero (gestisce cifre offuscate/spaziate).
+
+    Strategia a due passate:
+    1. Passata con contesto: cerca sequenze precedute da prefisso esplicito
+       (tel/cell/whatsapp/chiama/contatta) — bassa soglia FP.
+    2. Passata generale: cerca sequenze di 10 cifre (eventualmente separate da
+       spazi/punti/trattini/slash) che iniziano con 3 (mobile IT).
+
+    Ritorna +39XXXXXXXXXX o '' se non trovato.
+    """
+    if not text:
+        return ""
+
+    # Prefissi espliciti che introducono un numero
+    EXPLICIT_PREFIX = re.compile(
+        r'(?:tel(?:efono)?|cell(?:ulare)?|whatsapp|chiama|contatta|chiamare|contattare|'
+        r'numero|cell\.?|tel\.?)\s*[:\-\./]?\s*'
+        r'((?:\+39\s*)?(?:\d[\s.\-/]?){9,11})',
+        re.IGNORECASE,
+    )
+
+    # Sequenza generica: cifre eventualmente separate da separatori, 10-11 totali
+    # Non matcha sequenze >13 cifre senza separatori (VIN, codici lunghi)
+    GENERIC_SEQ = re.compile(
+        r'(?<!\d)'           # non preceduto da cifra (evita di spezzare numeri lunghi)
+        r'(\+39\s*)?'        # opzionale prefisso paese
+        r'(3'                # prima cifra = 3 (mobile IT)
+        r'(?:\d[\s.\-/]?){8,10}'  # 8-10 cifre aggiuntive con separatori opzionali
+        r'\d)'               # cifra finale senza separatore
+        r'(?!\d)'            # non seguita da cifra
+    )
+
+    def _validate(candidate: str) -> str:
+        """Valida: after normalize deve essere +39 + 9-10 cifre con primo digit = 3."""
+        norm = normalize_phone(candidate)
+        if not norm:
+            return ""
+        # Rimuovi +39 e controlla mobile (3xx)
+        body = norm[3:]  # dopo '+39'
+        if not body or body[0] != '3':
+            return ""
+        if len(body) < 9 or len(body) > 10:
+            return ""
+        return norm
+
+    # Passata 1: prefisso esplicito (priorità alta, anche fissi con prefisso vanno bene)
+    for m in EXPLICIT_PREFIX.finditer(text):
+        result = _validate(m.group(1))
+        if result:
+            return result
+
+    # Passata 2: sequenza generica mobile
+    for m in GENERIC_SEQ.finditer(text):
+        # Ricostruisci candidato (gruppo 1 = +39 opzionale, gruppo 2 = numero)
+        candidate = (m.group(1) or "") + m.group(2)
+        result = _validate(candidate)
+        if result:
+            return result
+
+    return ""
+
+
 # ---------------------------------------------------------------------------
 # AutoScout24 IT Scraper
 # ---------------------------------------------------------------------------
@@ -1138,6 +1201,19 @@ def build_prospects(listings: List[RawListing]) -> List[Prospect]:
         else:
             flag_micro = "deprioritizzato"
 
+        # Seller profile URL
+        seller_url = ""
+        for l in seller_listings:
+            if l.seller_url:
+                seller_url = l.seller_url
+                break
+        if not seller_url and seller_listings:
+            seller_url = seller_listings[0].listing_url
+
+        # S209 — no-SPOF telefono: fallback estrazione da descrizione
+        if not phone:
+            phone = extract_phone_from_text(desc_combined)
+
         # Note
         note_parts = []
         if makes_in_stock:
@@ -1150,20 +1226,12 @@ def build_prospects(listings: List[RawListing]) -> List[Prospect]:
             note_parts.append("segnali_qualita: si")
         if flag_res == "si":
             note_parts.append("indirizzo_residenziale: si")
+        if not phone:
+            note_parts.append("tel_da_recuperare_manuale")
         note = " | ".join(note_parts)
 
-        # Seller profile URL
-        seller_url = ""
-        for l in seller_listings:
-            if l.seller_url:
-                seller_url = l.seller_url
-                break
-        if not seller_url and seller_listings:
-            seller_url = seller_listings[0].listing_url
-
-        # S207 D4 — telefono = chiave canale + dedup. Riga senza telefono = inutile per Luke.
-        # Hard-skip indipendentemente dal flag (no "salvataggi" su segnali deboli).
-        if not phone:
+        # S209 — Hard-skip SOLO se non c'è né telefono né url di contatto (impossibile raggiungere)
+        if not phone and not seller_url:
             continue
 
         prospects.append(Prospect(
@@ -1183,12 +1251,14 @@ def build_prospects(listings: List[RawListing]) -> List[Prospect]:
             url_profilo_venditore=seller_url,
         ))
 
-    # Dedup by telefono (canonical key — S207 ogni prospect ha telefono per costruzione)
-    seen_phones: set = set()
+    # S209 — Dedup: chiave = telefono se presente, altrimenti url_profilo_venditore.
+    # Evita collasso di tutti i prospect senza telefono su chiave "".
+    seen_keys: set = set()
     deduped = []
     for p in prospects:
-        if p.telefono not in seen_phones:
-            seen_phones.add(p.telefono)
+        key = p.telefono if p.telefono else p.url_profilo_venditore
+        if key not in seen_keys:
+            seen_keys.add(key)
             deduped.append(p)
 
     # Sort: plausibile > borderline > deprioritizzato > escluso, poi provincia/citta
@@ -1715,15 +1785,19 @@ def main() -> None:
     elapsed = time.time() - start
     write_execution_report(all_listings, prospects, corpus, portali_reached, elapsed, blockers)
 
-    # S207 — gate onesto 4 metriche
+    # S209 — gate onesto 4 metriche (conteggi separati per telefono vs da-recuperare)
+    n_total = len(prospects)
+    n_with_phone = sum(1 for p in prospects if p.telefono)
+    n_da_recuperare = n_total - n_with_phone
     n_plaus = sum(1 for p in prospects if p.flag_micro_operatore_plausibile == "plausibile")
-    n_with_phone = len(prospects)  # per costruzione = total
-    log.info("=== GATE CHECK S207 (4 metriche onestà) ===")
+    log.info("=== GATE CHECK S209 (4 metriche onestà) ===")
     log.info("portali_reached: %d (gate >=2): %s", len(portali_reached), "PASS" if len(portali_reached) >= 2 else "FAIL")
+    log.info("prospects totali: %d", n_total)
     log.info("prospects con telefono: %d (gate >=10): %s", n_with_phone, "PASS" if n_with_phone >= 10 else "FAIL")
+    log.info("prospects senza telefono (da recuperare manuale): %d", n_da_recuperare)
     log.info("plausibili (1-8 auto): %d (gate >=3): %s", n_plaus, "PASS" if n_plaus >= 3 else "FAIL")
     log.info("elapsed: %.0fs", elapsed)
-    log.info("=== S207 Marche Register Scraper (ri-target) DONE — vedi EXECUTION_REPORT per tabella onesta' ===")
+    log.info("=== S209 Marche no-SPOF DONE — vedi EXECUTION_REPORT per tabella onesta' ===")
 
 
 if __name__ == "__main__":

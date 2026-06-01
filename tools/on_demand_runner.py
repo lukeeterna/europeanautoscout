@@ -80,7 +80,22 @@ def scrape_portal(portal_name, params):
 
 
 def listing_to_dict(lst) -> dict:
-    """Converte un Listing object in dict per CoVe/PDF."""
+    """Converte un Listing object in dict per CoVe/PDF.
+    Usa Listing.to_dict() se disponibile, altrimenti estrae manualmente
+    con .value per gli Enum (mai str(Enum) che produce 'FuelType.DIESEL')."""
+    if hasattr(lst, 'to_dict'):
+        d = lst.to_dict()
+        # Normalize image_urls from comma-string to list for downstream
+        if isinstance(d.get('image_urls'), str) and d['image_urls']:
+            d['image_urls'] = d['image_urls'].split(',')
+        elif not d.get('image_urls'):
+            d['image_urls'] = []
+        return d
+
+    # Fallback manuale (non dovrebbe servire)
+    def _enum_val(v):
+        return v.value if hasattr(v, 'value') else str(v)
+
     return {
         'listing_id': getattr(lst, 'listing_id', ''),
         'portal': getattr(lst, 'portal', ''),
@@ -89,38 +104,80 @@ def listing_to_dict(lst) -> dict:
         'price_eur': getattr(lst, 'price_eur', 0),
         'year': getattr(lst, 'year', 0),
         'km': getattr(lst, 'km', 0),
-        'fuel': str(getattr(lst, 'fuel', '')),
-        'transmission': str(getattr(lst, 'transmission', '')),
-        'color': getattr(lst, 'color', ''),
+        'fuel_type': _enum_val(getattr(lst, 'fuel_type', 'unknown')),
+        'transmission': _enum_val(getattr(lst, 'transmission', 'unknown')),
+        'seller_type': _enum_val(getattr(lst, 'seller_type', 'unknown')),
+        'variant': getattr(lst, 'variant', ''),
+        'power_hp': getattr(lst, 'power_hp', 0),
         'vin': getattr(lst, 'vin', ''),
         'listing_url': getattr(lst, 'listing_url', ''),
-        'image_url': getattr(lst, 'image_url', ''),
+        'image_urls': list(getattr(lst, 'image_urls', [])),
         'country': getattr(lst, 'country', ''),
-        'seller_type': str(getattr(lst, 'seller_type', '')),
-        'title': getattr(lst, 'title', ''),
+        'seller_name': getattr(lst, 'seller_name', ''),
+        'seller_location': getattr(lst, 'seller_location', ''),
     }
 
 
 def enrich_listings(listing_dicts, max_enrich=30):
     """Enrich listing dicts with missing data via detail page fetching.
-    Converts dicts to Listing objects, runs enricher, converts back."""
+    Converts dicts to Listing objects, runs enricher, merges ALL enriched fields back."""
     try:
-        from tools.scrapers.models import Listing as ScraperListing
+        from tools.scrapers.models import Listing as ScraperListing, FuelType, Transmission, SellerType
         from tools.scrapers.detail_enricher import DetailEnricher
 
-        # Convert dicts to Listing objects for the enricher
+        # Convert dicts to full Listing objects (preserve all fields)
         listings = []
         for d in listing_dicts:
+            # Parse fuel_type from string value
+            ft = FuelType.UNKNOWN
+            fuel_raw = d.get('fuel_type', d.get('fuel', 'unknown'))
+            if isinstance(fuel_raw, str):
+                try:
+                    ft = FuelType(fuel_raw.lower().strip())
+                except ValueError:
+                    ft = FuelType.UNKNOWN
+
+            # Parse transmission
+            tr = Transmission.UNKNOWN
+            tr_raw = d.get('transmission', 'unknown')
+            if isinstance(tr_raw, str):
+                try:
+                    tr = Transmission(tr_raw.lower().strip())
+                except ValueError:
+                    tr = Transmission.UNKNOWN
+
+            # Parse seller_type
+            st = SellerType.UNKNOWN
+            st_raw = d.get('seller_type', 'unknown')
+            if isinstance(st_raw, str):
+                try:
+                    st = SellerType(st_raw.lower().strip())
+                except ValueError:
+                    st = SellerType.UNKNOWN
+
+            # Parse image_urls
+            img_urls = d.get('image_urls', [])
+            if isinstance(img_urls, str):
+                img_urls = [u.strip() for u in img_urls.split(',') if u.strip()]
+
             lst = ScraperListing(
                 listing_id=d.get('listing_id', ''),
                 portal=d.get('portal', ''),
                 country=d.get('country', 'DE'),
                 make=d.get('make', ''),
                 model=d.get('model', ''),
+                variant=d.get('variant', ''),
                 year=d.get('year', 0),
                 km=d.get('km', 0),
                 price_eur=d.get('price_eur', 0),
+                fuel_type=ft,
+                transmission=tr,
+                power_hp=d.get('power_hp', 0),
+                seller_type=st,
+                seller_name=d.get('seller_name', ''),
+                seller_location=d.get('seller_location', ''),
                 listing_url=d.get('listing_url', ''),
+                image_urls=img_urls,
                 vin=d.get('vin', ''),
             )
             listings.append(lst)
@@ -130,7 +187,7 @@ def enrich_listings(listing_dicts, max_enrich=30):
         enriched, attempted = enricher.enrich(listings[:max_enrich])
         logger.info(f'Enrichment: {enriched}/{attempted} listing arricchiti')
 
-        # Convert back to dicts, merging enriched data
+        # Merge ALL enriched data back to dicts
         for i, lst in enumerate(listings):
             if i < len(listing_dicts):
                 if lst.year > 0:
@@ -139,6 +196,23 @@ def enrich_listings(listing_dicts, max_enrich=30):
                     listing_dicts[i]['km'] = lst.km
                 if lst.price_eur > 0:
                     listing_dicts[i]['price_eur'] = lst.price_eur
+                if lst.fuel_type != FuelType.UNKNOWN:
+                    listing_dicts[i]['fuel_type'] = lst.fuel_type.value
+                if lst.transmission != Transmission.UNKNOWN:
+                    listing_dicts[i]['transmission'] = lst.transmission.value
+                if lst.image_urls:
+                    listing_dicts[i]['image_urls'] = list(lst.image_urls)
+                if lst.seller_name:
+                    listing_dicts[i]['seller_name'] = lst.seller_name
+                if lst.seller_location:
+                    listing_dicts[i]['seller_location'] = lst.seller_location
+                if lst.power_hp > 0:
+                    listing_dicts[i]['power_hp'] = lst.power_hp
+                if lst.variant:
+                    listing_dicts[i]['variant'] = lst.variant
+                # Color from extra_data (enricher stores it there)
+                if lst.extra_data.get('color'):
+                    listing_dicts[i]['color'] = lst.extra_data['color']
 
         return listing_dicts
     except Exception as e:
@@ -212,10 +286,50 @@ def generate_dossier(top_vehicles, params, dealer_name=None):
     gen_script = PROJECT_ROOT / 'tools' / 'scripts' / 'pdf_generator_enterprise.py'
     if gen_script.exists() and top_vehicles:
         import subprocess
+
+        # Strategy 1 (PRIMARY): --data mode with enriched JSON (has ALL fields)
+        # This is the primary strategy because the enriched dict has price, fuel,
+        # color, images — DuckDB only has CoVe scoring fields.
+        try:
+            data_dict = {
+                'vehicles': top_vehicles[:5],
+                'search_params': params,
+                'generated_at': datetime.now().isoformat(),
+            }
+            data = json.dumps(data_dict, default=str)
+            # Save JSON alongside PDF for evidence/audit
+            json_path = DOSSIER_DIR / f"ARGOS_{params.get('make','X')}_{params.get('model','X')}_{dealer_name or 'Dealer'}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            with open(json_path, 'w') as jf:
+                json.dump(data_dict, jf, indent=2, default=str)
+            logger.info(f'JSON saved: {json_path}')
+            result = subprocess.run(
+                [sys.executable, str(gen_script),
+                 '--data', data,
+                 '--dealer', dealer_name or 'Dealer',
+                 '--output', str(DOSSIER_DIR)],
+                capture_output=True, text=True, timeout=360
+            )
+            # Log full subprocess output for debugging image pipeline
+            for line in result.stdout.strip().split('\n'):
+                if line.strip():
+                    logger.info(f'PDF> {line}')
+            if result.stderr:
+                logger.info(f'PDF subprocess stderr: {result.stderr[-200:]}')
+            if result.returncode == 0:
+                out_line = result.stdout.strip().split('\n')[-1]
+                if 'PDF at:' in out_line:
+                    out_path = out_line.split('PDF at:')[-1].strip()
+                    if os.path.exists(out_path):
+                        pdf_size = os.path.getsize(out_path)
+                        logger.info(f'PDF generated: {out_path} ({pdf_size:,} bytes)')
+                        return out_path
+            logger.warning(f'PDF --data mode fallback: {result.stderr[:300]}')
+        except Exception as e:
+            logger.warning(f'PDF --data mode errore: {e}')
+
+        # Strategy 2 (FALLBACK): --listing mode from DuckDB
         best = top_vehicles[0]
         listing_id = best.get('listing_id', '')
-
-        # Strategy 1: Try --listing mode (listing in DuckDB after CoVe scoring)
         if listing_id and dealer_name:
             try:
                 result = subprocess.run(
@@ -234,30 +348,6 @@ def generate_dossier(top_vehicles, params, dealer_name=None):
                 logger.info(f'PDF --listing mode fallback: {result.stderr[:200]}')
             except Exception as e:
                 logger.info(f'PDF --listing mode errore: {e}')
-
-        # Strategy 2: Try --data mode (inline JSON, no DB needed)
-        try:
-            data = json.dumps({
-                'vehicles': top_vehicles[:5],
-                'search_params': params,
-                'generated_at': datetime.now().isoformat(),
-            })
-            result = subprocess.run(
-                [sys.executable, str(gen_script),
-                 '--data', data,
-                 '--dealer', dealer_name or 'Dealer',
-                 '--output', str(DOSSIER_DIR)],
-                capture_output=True, text=True, timeout=60
-            )
-            if result.returncode == 0:
-                out_line = result.stdout.strip().split('\n')[-1]
-                if 'PDF at:' in out_line:
-                    out_path = out_line.split('PDF at:')[-1].strip()
-                    if os.path.exists(out_path):
-                        return out_path
-            logger.warning(f'PDF --data mode: {result.stderr[:300]}')
-        except Exception as e:
-            logger.warning(f'PDF --data mode errore: {e}')
 
     # Fallback: generate standalone dossier JSON (for manual PDF later)
     json_path = pdf_path.with_suffix('.json')
@@ -311,6 +401,24 @@ def run(marca, budget, modello=None, anno_min=None, km_max=None, dealer_name=Non
         logger.info(f'{zero_data}/{len(all_results)} listing con dati mancanti — avvio enrichment')
         all_results = enrich_listings(all_results, max_enrich=30)
 
+    # Step 1c: A0 — Data completeness gate (SKIP_INCOMPLETE before CoVe)
+    complete = []
+    skipped = 0
+    for r in all_results:
+        price = r.get('price_eur', 0) or 0
+        km = r.get('km', 0) or 0
+        year = r.get('year', 0) or 0
+        if price <= 0 or km <= 0 or year < 2015:
+            skipped += 1
+            continue
+        complete.append(r)
+    if skipped > 0:
+        logger.info(f'A0 completeness gate: {skipped} SKIP_INCOMPLETE (price=0/km=0/year<2015), {len(complete)} passano')
+    if not complete:
+        logger.warning('Zero listing completi dopo A0 gate — pipeline terminata')
+        return None
+    all_results = complete
+
     # Step 2: CoVe scoring
     scored = score_vehicles(all_results)
 
@@ -327,6 +435,33 @@ def run(marca, budget, modello=None, anno_min=None, km_max=None, dealer_name=Non
             top = sorted(scored, key=lambda x: x.get('price_eur', 0))[:5]
 
     logger.info(f'Top {len(top)} veicoli selezionati')
+
+    # Step 2b: A4 — Quality gate (GRADE >= C, images >= 3)
+    MIN_CONFIDENCE = 0.60  # GRADE C threshold
+    MIN_IMAGES = 3
+    qualified = []
+    for v in top:
+        conf = v.get('_cove_confidence', 0)
+        imgs = len(v.get('image_urls', []))
+        if conf < MIN_CONFIDENCE:
+            logger.info(f'A4 quality gate: SKIP {v.get("listing_id", "?")} — confidence {conf:.2f} < {MIN_CONFIDENCE}')
+            continue
+        if imgs < MIN_IMAGES:
+            logger.info(f'A4 quality gate: SKIP {v.get("listing_id", "?")} — images {imgs} < {MIN_IMAGES}')
+            continue
+        qualified.append(v)
+
+    if qualified:
+        top = qualified
+        logger.info(f'A4 quality gate: {len(top)} veicoli qualificati (GRADE >= C, images >= {MIN_IMAGES})')
+    else:
+        # Relax image requirement if no vehicles qualify — confidence is hard gate
+        conf_only = [v for v in top if v.get('_cove_confidence', 0) >= MIN_CONFIDENCE]
+        if conf_only:
+            top = conf_only
+            logger.warning(f'A4 quality gate: relaxed image requirement — {len(top)} veicoli con GRADE >= C ma < {MIN_IMAGES} foto')
+        else:
+            logger.warning(f'A4 quality gate: zero veicoli con GRADE >= C — usando top {len(top)} comunque')
 
     # Step 3: PDF
     pdf_path = generate_dossier(top, params, dealer_name)

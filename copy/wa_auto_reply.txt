@@ -1,0 +1,47 @@
+WHATSAPP BUSINESS — RISPOSTE AUTOMATICHE
+==========================================
+Ultimo aggiornamento: 2026-03-22
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MESSAGGIO DI ASSENZA (fuori orario lavorativo)
+Attivazione: lun-ven 18:30 → 8:30 | sab-dom tutto il giorno
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Buongiorno, sono Luca Ferretti.
+
+Ho ricevuto il suo messaggio — le rispondo domani mattina entro le 9:30.
+
+Se ha un modello specifico in mente, me lo lasci scritto qui — lo cerco subito appena riprendo.
+
+---
+
+VARIANTE WEEKEND:
+
+Buongiorno, sono Luca Ferretti.
+
+Ho ricevuto il suo messaggio — le rispondo lunedì mattina entro le 9:30.
+
+Se ha un modello specifico, me lo lasci qui — lo attivo appena riprendo.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MESSAGGIO DI BENVENUTO (primo contatto inbound)
+Attivazione: solo per nuovi contatti che scrivono per la prima volta
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Buongiorno, sono Luca Ferretti — scouting veicoli premium dai mercati europei per concessionari italiani.
+
+Rispondo entro 2 ore in orario lavorativo (lun-ven 8:30-18:30).
+
+Se ha già un modello in mente, me lo scriva — attivo la ricerca subito.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NOTE OPERATIVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- WA Business > Strumenti attività > Messaggio di assenza: inserire testo assenza
+- WA Business > Strumenti attività > Messaggio di benvenuto: inserire testo benvenuto
+- Il messaggio di assenza si attiva automaticamente fuori dalle ore configurate
+- NON usare emoji (tono professionale B2B)
+- NON mettere link nella risposta automatica
+- Aggiornare gli orari in WA Business se cambiano le disponibilità
+- La promessa "entro 9:30" / "entro 2 ore" DEVE essere rispettata — altrimenti
+  è peggio che non averla: credibilità persa al secondo contatto
