@@ -5,6 +5,12 @@ Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEX
 
 ---
 
+## ▶ APERTURA S227 — leggi, poi ESEGUI (non descrivere)
+Sei CC che apre S227 su ARGOS. Internalizza R1–R4 + budget-rule (più sotto) e applicali. Stato: P0 deploy `f63a1ee` GIÀ LIVE su iMac; anello #9 = PENDING-GATE **BLOCKED-ON C-DB-ENV-001** (NON Luke fisico). VERIFIED 2/9. Il gate #9 è irraggiungibile finché lo stack gira sul DB sbagliato.
+**Questa sessione fa UNA cosa: la fondamenta C-DB-ENV-001/C-DB-SPLIT-001 (R3, time-boxed 1 sessione), poi se avanza budget rieseguи il GATE PACKET #9 v2.** Delega a `devops-automator`. Esegui i 5 step del blocco "NEXT (S227)" qui sotto, in ordine, fermandoti se uno non passa. NON flippare l'env senza riconciliare i dati (R4 — è ciò che ha bloccato S226). Verità #9 = msg fisico sulla SIM (sent TAINTED). Chiusura: #9→VERIFIED 3/9 o handoff PENDING-GATE; mai chiusura silenziosa al budget.
+
+---
+
 ## ⏹ S226 — ESITO (2026-06-02, chiusura ordinata al 59% budget)
 
 **FATTO (runtime-verified, R1):**
