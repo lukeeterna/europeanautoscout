@@ -1,51 +1,41 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-02T22:11:00Z`
-**Sessione**: `gate9-confirmed-chiuso`
+**Generato**: `2026-06-02T20:15:28Z`
+**Sessione**: `4433f74b-3cd0-45a2-9ba2-b149cad9ca8c`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
+**Commit auto**: committed: a1556b1
+**Last commit**: `a1556b1 auto-close session 4433f74b-3cd0-45a2-9ba2-b149cad9ca8c @ 2026-06-02T20:15:28Z`
 
 ## Ultimi 5 commit
 ```
+a1556b1 auto-close session 4433f74b-3cd0-45a2-9ba2-b149cad9ca8c @ 2026-06-02T20:15:28Z
+6024095 docs(S230): gate #9 Scenario A VERIFIED runtime + fix multi-msg /send-multi
+8271943 auto-close session gate9-confirmed-chiuso @ 2026-06-02T22:11:00Z
+af42d26 auto-close session monitoring-gate9-preok @ 2026-06-02T20:00:00Z
 0af3bd2 fix(S230): /approva invia envelope AMBRA via /send-multi, non JSON grezzo
-f71205b docs(S229): BACKLOG #S229-1 — bottoni inline /approva /rifiuta su TG (richiesta Luke)
-2587d63 fix(S229): C-WA-SEND-SPLIT — invio path-TG via daemon connesso, non node standalone
-401b1e7 auto-close session c09ab6cf-76fa-4e29-aff4-8065e04c6f9a @ 2026-06-02T18:50:34Z
-4b30030 chore(S229 close): prompt apertura — fix C-WA-SEND-SPLIT poi gate #9
 ```
 
-## STATO GATE #9 — CHIUSO-OK (confermato 2026-06-02 22:11)
+## File modificati nell'ultimo commit
+```
+M	vos-out/decisions.jsonl
+```
 
-### Evidenze runtime iMac
+## Ultimo prompt utente (estratto)
+```
+[{"tool_use_id":"toolu_01BUTBX9MNA7RYv2cURY7Ajy","type":"tool_result","content":"🔍 ARGOS Pre-Commit Checks...\n✅ Pre-commit checks passed\n[s210/audit-master-plan 6024095] docs(S230): gate #9 Scenario A VERIFIED runtime + fix multi-msg /send-multi\n 1 file changed, 15 insertions(+)\nTo https://github.com/lukeeterna/europeanautoscout\n   4b30030..6024095  s210/audit-master-plan -> s210/audit-master-plan","is_error":false}]
+```
 
-1. **Log TG send** — riga finale:
-   ```
-   [SENT] Reply reply_26e8c243 inviata via daemon /send-multi ref=['multi_1780430572978_dk01m', 'multi_1780430577296_411vp']
-   ```
-
-2. **DB pending_replies** — `reply_26e8c243|approved=1|sent=1` ✓
-
-3. **WA daemon /status**:
-   - `wa_status: connected`
-   - `daily_sent: 3` (salito rispetto a prima — /send-multi conta 2 msg)
-   - `uptime_sec: 9565` (~2h 39m, nessun crash)
-
-4. **PM2 argos-wa-daemon** — `↺ 50` invariato, `status: online`, `uptime: 2h`
-
-### Verdetto: CHIUSO-OK
-
-Tutti e 4 i criteri soddisfatti:
-- [SENT] /send-multi in log
-- sent=1 nel DB
-- daily_sent salito (da 1 a 3, +2 = 2 msg separati inviati)
-- restart_time = 50 invariato (daemon stabile, nessun VOID)
-
-## Prossimo step
-
-Gate #9 chiuso. Aggiornare PLAN.md VERIFIED da 2/9 a 3/9 (o verificare conteggio aggiornato).
-Leggere CURRENT_SPRINT.md per prossimo task sprint attivo.
+## Ultimi turni assistant
+```
+- Memory aggiornata (`s230_gate9_scenarioA_verified.md` + index)
+- Handoff ricco in `.claude/NEXT_SESSION_PROMPT.manual.md` con NEXT S231 = Scenario B
+**Backlog vivo:** `reply_d18d7dc6` resta `approved=1, sent=0` (S224-1, reconcile path TG).
+```
 
 ## Come riprendere
 
 1. Apri Claude Code da `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-2. Leggi CURRENT_SPRINT.md
-3. Gate #9 non richiede ulteriore lavoro — è confermato verde
+2. Leggi questo file (auto-loaded? dipende da config progetto)
+3. Continua dal punto indicato negli ultimi turni assistant sopra
+
+Se `SESSION_DIRTY.md` esiste in questa stessa cartella, risolvi PRIMA i conflitti.
