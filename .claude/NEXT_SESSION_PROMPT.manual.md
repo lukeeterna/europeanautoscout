@@ -1,40 +1,97 @@
-# S225 — Re-review temp-file rewrite + E2E TEST_FOUNDER fisico → deploy iMac
+# S226 — Ripartenza (riscritto a mano da CC, supersede stub auto-gen + handoff S225)
 
-## STATO CHIUSO S224 (commit f63a1ee, locale, NON deployato)
-Fix anello #9 guard atomico HITL su 2 path legacy. 3 modifiche:
-1. **`response-analyzer.py` send_script**: re-check `approved` dopo sleep → abort PRIMA del POST se non approvato (`sys.exit(0)` + `[ABORT]`). `UPDATE sent=1 ... AND approved=1` + rowcount (log ERROR se 0). [path già temp-file, quoting OK]
-2. **`telegram-handler.py` cmd_approva**: RISCRITTO da bash-chain a **temp-file Python** (`send_script` + Popen `sys.executable`). Re-check `approved` dopo sleep → abort prima di `node sender`; poi `subprocess.run(['node', WA_SENDER, wa_id, reply_text])`; poi `UPDATE sent=1 ... AND approved=1` + rowcount. Aggiunto `import tempfile`.
-3. **`telegram-handler.py` cmd_rifiuta**: guard `AND sent=0` (consente revoca durante sleep, blocca revoca post-invio) + early-return se già `sent=1`. NON `approved IS NULL` (rompeva lo scenario approva→rifiuta).
+**Branch**: `s210/audit-master-plan` · **Generato**: 2026-06-02 · **Last commit**: `f63a1ee` (locale, NON deployato)
+Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEXT_SESSION_PROMPT.manual.md` (S225) — qui consolidata e corretta con la governance decisa il 2026-06-02.
 
-### Scoperte S224 (vincolo #4/#11 — root cause)
-- **Il guard prescritto dal handoff S224 era logicamente tardivo**: l'invio WA avveniva PRIMA della `UPDATE sent=1` → registrava `sent=0` ma il msg era già partito. Fix corretto = re-check PRIMA dell'invio.
-- **`approved IS NULL` su cmd_rifiuta avrebbe rotto il gate E2E** (lo scenario richiede reject DOPO approve). Usato `sent=0`.
-- **LATENT BUG STORICO confermato empiricamente**: il vecchio `python3 -c "..."` in cmd_approva aveva quoting bash rotto (bash chiude le `"` su `os.environ["X"]` → python riceve bareword → SyntaxError). Quindi la `UPDATE sent=1` via path Telegram **non è MAI stata eseguita**: le reply approvate via TG venivano inviate (`node` ok) ma `sent` restava 0. → vedi BACKLOG.
+---
 
-### Verifica fatta (codice, NON E2E reale)
-- `py_compile` OK su entrambi i file.
-- Simulazione approva-vs-rifiuta-durante-sleep: node invocato SOLO per l'approvato, `sent=1`; per il rifiutato node NON invocato + `sent=0` → **NESSUN invio**. (E2E_GUARD_PASS)
-- code-reviewer 1° giro: FAIL su HIGH quoting bash (corretto via rewrite temp-file). **Il rewrite NON è stato ri-revisionato** (chiusura budget).
+## ▶ PROMPT DI APERTURA S226 — incolla/leggi questo, poi ESEGUI (non descrivere)
 
-## PROSSIMI STEP S225 (ordine)
-1. **Re-review delegato (code-reviewer)** del NUOVO cmd_approva temp-file rewrite (commit f63a1ee) — sanity su: import tempfile, sys.executable in contesto PM2 python3.13, `node` su PATH dentro subprocess.run, gestione returncode, idempotenza. (1° review era su versione precedente.)
-2. **E2E su TEST_FOUNDER 393314928901 — Luke FISICO** (feedback memory `test_founder_means_real_interactive`): 
-   - Scenario A: `/approva` → lascia partire → verifica msg ricevuto + `sent=1`.
-   - Scenario B: `/approva` → `/rifiuta` DURANTE lo sleep (SLEEP_MIN=90s, ampia finestra) → **NESSUN msg ricevuto** + `sent=0`.
-   - Gate qualitativo: Luke dichiara "soddisfatto".
-3. **Solo dopo E2E verde** → deploy iMac (rsync atomico + healthcheck, security.md). Pre-deploy: `lsof`/pm2 check. NB: il codice è su MacBook, l'iMac gira la versione vecchia → il fix NON è attivo finché non deployi.
+Sei CC che apre S226 su ARGOS. **Internalizza il contratto operativo R1–R4 + budget-rule (sotto) e applicalo**, non riassumerlo. Questa sessione fa **UNA cosa** sul percorso canonico `scrape→CoVe→PDF→WA→reply→sign→paid`; finché **C-E2E-ZERO è OPEN, VIETATO aprire file/feature fuori dal percorso** (R2).
 
-## BACKLOG (non scope S225)
-- **[S224-1] Latent bug storico**: reply approvate via Telegram avevano `sent=0` (UPDATE mai eseguita per quoting rotto). Verificare quante righe `pending_replies` iMac hanno `approved=1 AND sent=0` ma msg realmente inviato → reconcile. Non è regressione del fix (il fix lo risolve d'ora in poi), ma i dati storici `sent` del path TG sono inaffidabili.
-- Migrare i path legacy multi-msg + Telegram al **bridge canonico** (single-writer S173) → elimina la classe di bug. Coerente `feedback_single_writer_principle_bridge`.
+Lo stato: anello #9 (HITL guard, commit `f63a1ee`) è **PENDING-GATE non DONE** — code-verified, MAI eseguito a runtime; il fix è su MacBook, **iMac gira la versione vecchia**. VERIFIED 2/9.
+
+**Formato gate (vincolo #1b):** #9 → `TERMINAL_FACT = "msg fisicamente arrivato (o NON arrivato) sulla SIM TEST_FOUNDER nello scenario corretto"` · `BLOCKED-ON = Luke fisico sul gate`. È irraggiungibile-in-sessione → **NON ri-validarlo staticamente** (py_compile/simulazione = vietato come prova di chiusura). L'unico lavoro lecito = **renderlo raggiungibile** (P0 deploy + P1 runtime + packet pronto) o escalare. Stessa firma di C-SAN-001/C-E2E-ZERO che si avvitavano: non ricaderci.
+
+**Esegui in quest'ordine, una cosa alla volta, fermandoti se un gate non passa:**
+1. **C-WA-RESTART-001, time-boxed 1 sessione** (delega `devops-automator`). Criterio misurabile: "stabile" = 0 restart non-pianificati in 6h. Se la root-cause non emerge nel time-box → **fallback = window-integrity check** (leggi `restart_time` da `pm2 jlist` PRE/POST finestra test; se cambia → VOID+retry). NON inseguire la root-cause a oltranza (anti S159/S166).
+2. **P0 — deploy `f63a1ee` su iMac** (`devops-automator`, rsync atomico + healthcheck). Senza, testi il bug non la fix.
+3. **P1 — verifica runtime su iMac**: quale DB ospita `pending_replies` · un inbound da TEST_FOUNDER genera davvero riga `approved=NULL` · `/approva` accettato come testo. (R1: esecuzione reale, non py_compile.)
+4. **Consegna il GATE PACKET v2 a Luke** (sotto) ed esegui il gate fisico su TEST_FOUNDER 393314928901.
+
+**Verità di PASS (R4): `sent` è TAINTED** → la verità primaria dello Scenario A è "msg fisicamente arrivato sulla SIM" + log `[SENT]`; `sent=1` è solo conferma attesa. Divergenza (msg arrivato ma sent=0) = **finding** (latent bug storico vivo, aggancia S224-1), NON fail del guard.
+
+**Condizione di chiusura S226 (budget-rule):** o #9 → **VERIFIED 3/9** (gate fisico passato + Luke "soddisfatto"), o handoff `PENDING-GATE` con packet già pronto + tag `UNVERIFIED-RUNTIME` su ciò che non hai provato a runtime. **Mai chiusura silenziosa al budget come `f63a1ee`.** Aggiorna QUESTO file (`.manual.md`, il hook auto-close NON lo clobbera) a fine sessione.
+
+---
+
+## DIAGNOSI (condivisa, ancorata ai dati) — il meta-bug è la CONDIZIONE DI CHIUSURA
+~130 sessioni (S94→S225), superficie enorme, **E2E integrato = 0**, **VERIFIED 2/9** anelli, e un campo
+di stato auto-riportato (`sent` sul path Telegram) si è rivelato **falso**. Pattern reale: ottimismo in
+build-mode → audit reattivo che bonifica. La bonifica è ottima ma è governance, non prevenzione.
+Tre problemi: (1) costruisce componenti, non chiude la catena; (2) chiude al limite di budget non di
+verifica (es. `f63a1ee`: fix di un path verificato-rotto, committato senza ri-review per "chiusura budget");
+(3) verifica lo strato sbagliato (py_compile/simulazione, non runtime) → il bug quoting `cmd_approva`
+ha tenuto `UPDATE sent=1` MAI eseguita per tempo ignoto, runtime silenziosamente rotto.
+
+## 5 REGOLE OPERATIVE (estensione, NON sostituzione dei meccanismi che già funzionano)
+Tieni: evidence path:riga su ogni claim · separazione code-verified vs E2E reale · scope-fence per sessione · self-audit con de-idratazione overclaim.
+
+- **R1 — Chiusura a due binari.**
+  • *Runtime-verificabile* (lo provi da solo): DONE solo dopo **esecuzione reale del path** (output reale, non "compila"/simulazione).
+  • *Human-gated* (HITL / E2E founder / dealer reale): **MAI VERIFIED**. Commit `PENDING-GATE` + produci **GATE PACKET** pronto (comando esatto, scenario A/B, durata, cosa osservare, criterio pass) così Luke chiude in <10 min. La latenza del gate umano è il vero collo di C-E2E-ZERO: riducila preparando il packet, non aspettando.
+- **R2 — Catena prima della superficie.** Percorso canonico unico: `scrape → CoVe → PDF → WA → reply → sign → paid`. Finché C-E2E-ZERO è OPEN: VIETATO aprire file/feature fuori dal percorso. Ogni sessione muove UN anello verso VERIFIED o consolida una fondamenta che lo blocca (R3). Niente espansione laterale (anti S159/S166).
+- **R3 — Fondamenta = prerequisito, non feature.** Prima dell'E2E reale: (a) DB autoritativo unico (C-DB-SPLIT-001 + C-DB-ENV-001); (b) daemon stabile (C-WA-RESTART-001). **Time-box obbligatorio** (vedi sotto) o R3 diventa il buco-senza-fondo che vuole prevenire.
+- **R4 — Niente stato su dato non riconciliato.** Dopo un bug che corrompe un campo, quel campo è **TAINTED** finché non riconcili. Concreto: `sent` su path TG inaffidabile → NON usarlo come verità. Reconcile = backlog **S224-1**.
+- **Budget-rule (il meta-bug).** Se il context finisce PRIMA della verifica runtime R1: NON committare come DONE. Commit su branch + tag `UNVERIFIED-RUNTIME` + handoff dichiara "manca verifica runtime: <cosa>". Mai più una chiusura silenziosa al budget come `f63a1ee`.
+
+## STATO ANELLO #9 (HITL guard) — riclassificato R1
+**PENDING-GATE, non DONE.** `f63a1ee` è *code-verified only* (py_compile + simulazione). **VERIFIED resta 2/9** (#1, #6). Sale a 3/9 solo a gate fisico passato. Il fix è su MacBook; **l'iMac gira la versione vecchia** → senza deploy (P0) testi il bug, non la fix.
+
+Comando reale (`wa-intelligence/telegram-handler.py:10-12,171-347`): `/approva <reply_id>`, `/rifiuta <reply_id>`.
+Sleep anti-ban **random 90–720s** (`SLEEP_MIN,SLEEP_MAX = 90,720`, riga 52 — NON 90s fisso). Segnale indipendente da `sent`: log `[SENT]`/`[ERROR] rc=`/`[ABORT]` dal send_script (righe 262-277).
+
+## GATE PACKET #9 — v2 (corretto: sent TAINTED + window-integrity)
+```
+PRE (CC): P0 deploy f63a1ee su iMac (rsync atomico + healthcheck — via devops-automator)
+          P1 verifica runtime su iMac: DB di pending_replies · inbound TEST_FOUNDER genera
+             riga approved=NULL · /approva accettato come testo (non solo inline button)
+
+SEED (Luke ~1min): WA da SIM TEST_FOUNDER 393314928901 → numero ARGOS Business → annota reply_id da notifica TG
+
+SCENARIO A — invio consentito:
+  pm2 jlist → annota restart_time PRE
+  /approva <reply_id> · attendi 90–720s
+  PASS A (verità primaria) = msg ARRIVATO sulla SIM (osservazione Luke) + log [SENT]
+  CONFERMA attesa (tertiaria, TAINTED, non decide) = sent=1
+  DIVERGENZA (msg arrivato MA sent=0) = NON FAIL del guard → prova viva del latent bug storico → FINDING, aggancia S224-1
+  pm2 jlist → restart_time POST; se ≠ PRE → VOID, retry
+
+SCENARIO B — revoca durante sleep (nuovo reply_id2):
+  pm2 jlist → restart_time PRE
+  /approva <reply_id2> · SUBITO (<60s) /rifiuta <reply_id2>
+  PASS B = NESSUN msg sulla SIM + log [ABORT] + sent=0 + approved=0
+  pm2 jlist → restart_time POST; se ≠ PRE → VOID, retry (NON interpretare "no msg" come PASS)
+
+EVIDENCE: osservazione fisica Luke (A+B) | log daemon [SENT]/[ABORT]/[ERROR] |
+          SELECT id,approved,sent FROM pending_replies WHERE id IN (r1,r2) | restart_time PRE/POST
+CHIUSURA: Luke "soddisfatto" → #9 DONE, VERIFIED 3/9.
+```
+Nota window-integrity: il gate **non** richiede C-WA-RESTART chiuso, richiede di SAPERE se il daemon è ripartito nei ~12 min del test. Il check `restart_time` PRE/POST (`pm2 jlist` → confermare nome campo sulla versione iMac) rende lo Scenario B interpretabile senza prima stabilizzare del tutto il daemon.
+
+## ORDINE ESECUZIONE S226 (una cosa alla volta, sul percorso canonico)
+1. **C-WA-RESTART-001 — time-boxed**: "daemon stabile" = 0 restart non-pianificati in finestra 6h (criterio misurabile, NON "root-cause trovata"). Root-cause time-box = 1 sessione; se non emerge → fallback = window-integrity check nel packet (sufficiente a rendere B interpretabile). Foundation completa resta task R3, **fuori dal critical-path del gate**.
+2. **P0 deploy `f63a1ee`** su iMac (devops-automator). NB: codice solo su MacBook ora.
+3. **P1 verifica runtime** su iMac (i 3 punti del PRE).
+4. **Consegna GATE PACKET v2 a Luke** ed esegui il gate.
+
+## VINCOLI / NON TOCCARE
+- TEST_FOUNDER 393314928901 prima di qualsiasi dealer reale. **Domenica = OFF Luke** (no scadenze domenicali).
+- `image_sanitizer.py` + scope partner-unico (landing/Gemini/trasporto) **CONGELATO**. No deploy landing/PDF.
+- Day 1 Stile Car blocker invarianti: C-SAN-001, **C-E2E-ZERO**, C-COMM-INTEL-001, C-GATE-FONTE-001.
+- Fondi di verità: `PLAN.md` (carte C-DB-SPLIT:178, C-WA-RESTART:179, C-E2E-ZERO:182). DB iMac autoritativo = `~/Documents/app-antigravity-auto/dealer_network.sqlite`.
+
+## BACKLOG (non scope S226 salvo R4)
+- **[S224-1]** Reconcile path TG: quante righe `pending_replies` con `approved=1 AND sent=0` ma msg realmente inviato (dati `sent` storici inaffidabili). Prerequisito R4 per fidarsi di metriche di invio su path TG.
+- Migrare path legacy multi-msg + Telegram al **bridge canonico** (single-writer S173) → elimina la classe di bug.
 - Verifica anelli #2..#5, #7, #8 per salire VERIFIED oltre 3/9.
-
-## Gate / VERIFIED
-- VERIFIED resta 2/9 (#1, #6). #9 = fix scritto+code-verified ma **non chiuso** finché E2E fisico Luke non passa → poi sale a 3/9.
-
-## NON toccare
-image_sanitizer.py / scope partner-unico (landing/Gemini/trasporto) CONGELATO. NO deploy landing/PDF.
-
-## Vincoli sessione
-- TEST_FOUNDER prima di qualsiasi dealer reale. Domenica = OFF Luke.
-- Day 1 Stile Car blocker invariati: C-SAN-001, C-E2E-ZERO, C-COMM-INTEL-001, C-GATE-FONTE-001.
