@@ -1,37 +1,35 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-02T16:47:09Z`
+**Generato**: `2026-06-02T16:52:01Z`
 **Sessione**: `d54c7ef5-ae17-4d41-a25d-f6e39854a9f5`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
-**Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
-**Last commit**: `775bf92 auto-close session f693f174-c863-41b2-a571-42b445ab015a @ 2026-06-02T16:22:40Z`
+**Commit auto**: committed: 3f76743
+**Last commit**: `3f76743 auto-close session d54c7ef5-ae17-4d41-a25d-f6e39854a9f5 @ 2026-06-02T16:52:01Z`
 
 ## Ultimi 5 commit
 ```
+3f76743 auto-close session d54c7ef5-ae17-4d41-a25d-f6e39854a9f5 @ 2026-06-02T16:52:01Z
+968c84b chore(S226): P0 deploy f63a1ee LIVE + root-cause C-DB-ENV-001 → #9 PENDING-GATE
 775bf92 auto-close session f693f174-c863-41b2-a571-42b445ab015a @ 2026-06-02T16:22:40Z
 244b234 chore(S226): prompt apertura imperativo + allineamento vincolo #1b (TERMINAL_FACT/BLOCKED-ON)
 7d8fd61 auto-close session f693f174-c863-41b2-a571-42b445ab015a @ 2026-06-02T15:00:41Z
-f6ffc48 chore(S225 close): riscrivo handoff S226 — governance 2-binari + GATE PACKET v2
-156e244 auto-close session 1e7d1d85-c9cd-4cbe-9e97-16f0b17eed6a @ 2026-06-02T14:33:44Z
 ```
 
 ## File modificati nell'ultimo commit
 ```
-M	.claude/NEXT_SESSION_PROMPT.md
-M	PLAN.md
 M	vos-out/decisions.jsonl
 ```
 
 ## Ultimo prompt utente (estratto)
 ```
-[{"tool_use_id":"toolu_018JKJtxuphjDMJy7Vyqoddn","type":"tool_result","content":"=== auth path config in wa-daemon.js ===\n23:const { Client, LocalAuth }     = require('whatsapp-web.js');\n963:        authStrategy: new LocalAuth({\n964:            clientId: CONFIG.SESSION_ID,\n965:            dataPath: path.join(__dirname, '..', 'wa-sender'),\n=== dove sta ARGOS_DB_PATH in PM2 (ecosystem) ===\nzsh:1: no matches found: /Users/gianlucadistasi/Documents/app-antigravity-auto/ecosystem*.js\n=== sessi
+[{"tool_use_id":"toolu_01LVXf8DQJsgSu3qwG4a2nTb","type":"tool_result","content":"🔍 ARGOS Pre-Commit Checks...\n✅ Pre-commit checks passed\n[s210/audit-master-plan 968c84b] chore(S226): P0 deploy f63a1ee LIVE + root-cause C-DB-ENV-001 → #9 PENDING-GATE\n 2 files changed, 36 insertions(+), 10 deletions(-)\nTo https://github.com/lukeeterna/europeanautoscout\n   244b234..968c84b  s210/audit-master-plan -> s210/audit-master-plan\n968c84b chore(S226): P0 deploy f63a1ee LIVE + root-cause C-DB-EN
 ```
 
 ## Ultimi turni assistant
 ```
-2. Serve rendere il fix **persistente** (trovo dove l'env è settato — non è in `ecosystem*.js`, probabile `~/.pm2/dump.pm2`), altrimenti un `pm2 resurrect` lo ripristina.
-3. **Context al 54%** (chiusura #7 a 60%): se mi dai il go faccio repoint+gate ora nella finestra calda; se qualcosa esce dai binari → rollback 10s + handoff `PENDING-GATE`, mai chiusura silenziosa.
-Dammi il **go** e procedo con repoint + gate. P0 deploy resta comunque acquisito e runtime-verificato (md5 match + healthcheck).
+**Tu mi hai fermato giusto:** la tua sfida ha evitato un errore. Il flip dell'env non era data-verified — né ROOT (dati fermi al 16/05) né RELEASE (schema base) è pulito, e flipparlo a freddo violava R4. Riclassificato onestamente: **#9 PENDING-GATE, BLOCKED-ON C-DB-ENV-001. VERIFIED resta 2/9** — nessuna chiusura silenziosa, nessun overclaim.
+**S227 (in `.manual.md`):** sessione-fondamenta time-boxed → DB canonico ROOT, riconcilia dati/schema, correggi `ARGOS_DB_PATH` dei 4 processi in `dump.pm2`, poi rieseguи il GATE PACKET #9 → 3/9. Il setup WA non perde il QR (sessione fuori da `releases/`).
+Una nota: l'inbound che hai mandato è finito nel DB RELEASE — al netto del fix in S227 non serve altro da parte tua ora.
 ```
 
 ## Come riprendere
