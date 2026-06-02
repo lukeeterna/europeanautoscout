@@ -4,6 +4,21 @@
      Tag confidence TARGET_VALIDATO: VERIFIED:<fonte> | INFERRED | ASSUMPTION
      Non rimuovere le intestazioni `## SECTION` — il motore le usa per il parsing.
 
+     Convenzione GATE (done-condition anti-avvitamento, disciplina 2026-06-02 — validata storico n=5):
+       (a) ogni gate dichiara TERMINAL_FACT = un fatto la cui risoluzione lo porta a DONE o DEAD,
+           decidibile da FUORI il codice che protegge (URL doc | exit code | si/no umano | esito
+           reale), mai validazione statica. Non nominabile -> non e' un gate: domanda aperta ->
+           research/escalation.
+       (b) se TERMINAL_FACT NON e' raggiungibile-in-sessione (test: dipende da Luke o terzo nel
+           mondo reale — UAT, dealer, credenziali, pagamento — invece che da web/filesystem/exit-code
+           che la sessione controlla) -> gate parcheggiato BLOCKED-ON:<fatto>; unico lavoro lecito =
+           renderlo raggiungibile o escalare; vietato re-validarlo staticamente.
+       Firma audit DUALE (dalle tool-call delle sessioni): (1) gate ATTIVO con TERMINAL_FACT non
+       decidibile-dall'esterno = violazione (a) [caso R-01]; (2) gate BLOCKED-ON con anche una
+       tool-call di lettura/validazione sul codice protetto = violazione (b) [caso sanitizer/E2E].
+       Perche': re-litigation e' cio' che una sessione fa di DEFAULT quando il fatto e' fuori portata.
+       Enforcement hook differito a n>=2 (costo: LLM-judge o mappa gate->file, non regex).
+
      NOTA modalità `adopt`: importa SOLO riferimenti ai file planning esistenti in METODO
      (filesystem mente — vedi Sez. 2.0 spec). OBIETTIVO, GUARDRAIL, METRICHE_SOGLIE,
      TARGET_VALIDATO restano da compilare A MANO dopo adopt: il motore non assorbe
