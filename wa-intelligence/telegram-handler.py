@@ -29,6 +29,7 @@ import os
 import random
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 import urllib.parse
@@ -230,23 +231,57 @@ def cmd_approva(reply_id: str, force: bool = False) -> str:
     # Cleanup stato FORCE pendente se presente
     _PENDING_FORCE.pop(reply_id, None)
 
-    env = os.environ.copy()
-    env['CLIENT_ID'] = WA_CLIENT_ID
-    env['REPLY_ID'] = reply_id
-    env['REPLY_TEXT'] = r["reply_text"]
-    env['WA_ID'] = wa_id
-    env['SLEEP_S'] = str(sleep_s)
-    env['DB_PATH_SEND'] = DB_PATH
-    subprocess.Popen(
-        ['bash', '-c',
-         'sleep "$SLEEP_S" && node ' + WA_SENDER + ' "$WA_ID" "$REPLY_TEXT" '
-         '&& python3 -c "'
-         'import sqlite3, os; '
-         'c=sqlite3.connect(os.environ[\"DB_PATH_SEND\"]); '
-         'c.execute(\"UPDATE pending_replies SET sent=1 WHERE id=?\", [os.environ[\"REPLY_ID\"]]); '
-         'c.commit(); c.close()"'],
-        env=env, close_fds=True
+    # S224 #9: orchestrazione invio via temp-file Python (NO bash-quoting pitfalls).
+    # Ri-controlla `approved` DOPO lo sleep e PRIMA di node sender → reject durante
+    # sleep = NESSUN invio. Stesso pattern provato di response-analyzer.send_script.
+    task = {
+        'db_path':    DB_PATH,
+        'reply_id':   reply_id,
+        'wa_id':      wa_id,
+        'reply_text': r["reply_text"],
+        'sleep_s':    sleep_s,
+        'wa_sender':  WA_SENDER,
+        'client_id':  WA_CLIENT_ID,
+    }
+    with tempfile.NamedTemporaryFile('w', suffix='.json', prefix='argos_tg_send_',
+                                     delete=False, dir='/tmp') as _f:
+        json.dump(task, _f)
+        task_file = _f.name
+
+    send_script = (
+        "import time, json, sqlite3, subprocess, sys, os\n"
+        "t = json.load(open(sys.argv[1]))\n"
+        "os.unlink(sys.argv[1])\n"
+        "time.sleep(t['sleep_s'])\n"
+        # re-check approval — reject durante sleep deve abortire PRIMA di node sender
+        "ck = sqlite3.connect(t['db_path'], timeout=10)\n"
+        "ck.execute('PRAGMA busy_timeout=10000')\n"
+        "ap = ck.execute('SELECT approved FROM pending_replies WHERE id=?', [t['reply_id']]).fetchone()\n"
+        "ck.close()\n"
+        "if not ap or ap[0] != 1:\n"
+        "    print(f'[ABORT] Reply {t[\"reply_id\"]} non piu approvata (rifiutata durante sleep) — invio annullato')\n"
+        "    sys.exit(0)\n"
+        "env = os.environ.copy(); env['CLIENT_ID'] = t['client_id']\n"
+        "res = subprocess.run(['node', t['wa_sender'], t['wa_id'], t['reply_text']], env=env)\n"
+        "if res.returncode != 0:\n"
+        "    print(f'[ERROR] Reply {t[\"reply_id\"]} node sender rc={res.returncode} — sent NON marcato')\n"
+        "    sys.exit(1)\n"
+        "c = sqlite3.connect(t['db_path'], timeout=10)\n"
+        "c.execute('PRAGMA busy_timeout=10000')\n"
+        "cur = c.execute('UPDATE pending_replies SET sent=1 WHERE id=? AND approved=1', [t['reply_id']])\n"
+        "rc = cur.rowcount\n"
+        "c.commit(); c.close()\n"
+        "if rc == 0:\n"
+        "    print(f'[ERROR] Reply {t[\"reply_id\"]} inviata ma sent NON aggiornato (approved!=1 race) — verifica manuale')\n"
+        "else:\n"
+        "    print(f'[SENT] Reply {t[\"reply_id\"]} inviata')\n"
     )
+    _log_fd = open('/tmp/argos-tg-send.log', 'a')
+    subprocess.Popen(
+        [sys.executable, '-c', send_script, task_file],
+        close_fds=True, stdout=_log_fd, stderr=_log_fd,
+    )
+    _log_fd.close()
 
     force_note = ' *(force=true, audit logged)*' if force else ''
     return (
@@ -298,8 +333,15 @@ def cmd_modifica(reply_id: str, new_text: str) -> str:
 
 
 def cmd_rifiuta(reply_id: str) -> str:
+    rows = db_query('SELECT sent FROM pending_replies WHERE id = ?', [reply_id])
+    if not rows:
+        return f'❌ Reply ID non trovato: `{reply_id}`'
+    if rows[0].get('sent') == 1:
+        return f'⚠️ Reply `{reply_id}` già inviata — impossibile revocare.'
+    # S224 #9: revoca consentita finché non spedito (sent=0), anche se già approvato
+    # (finestra di sleep anti-ban). Il send subprocess ri-controlla approved prima dell'invio.
     db_exec(
-        'UPDATE pending_replies SET approved = 0 WHERE id = ?',
+        'UPDATE pending_replies SET approved = 0 WHERE id = ? AND sent = 0',
         [reply_id]
     )
     return f'🚫 Reply `{reply_id}` rifiutata. Nessun messaggio inviato.'
