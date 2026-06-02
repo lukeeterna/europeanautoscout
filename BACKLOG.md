@@ -2,6 +2,20 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
+## S229 2026-06-02 — BACKLOG #S229-1 [MED, UX, richiesta Luke]
+
+### 🟡 Bottoni inline tappabili /approva /rifiuta sotto la reply auto-generata su Telegram
+
+**Cosa vuole Luke**: quando arriva una risposta auto-generata (pending_reply), su TG mostrare il testo proposto + due bottoni cliccabili (`✅ Approva` / `🚫 Rifiuta`) invece di dover digitare `/approva <id>` a mano.
+
+**Spec implementazione** (2 file):
+1. **Dove parte l'alert pending_reply** (`wa-intelligence/response-analyzer.py` — la funzione che fa `sendTelegramAlert`/POST sendMessage con la reply proposta): aggiungere `reply_markup` = `inline_keyboard` con due bottoni `callback_data` = `approva:<reply_id>` e `rifiuta:<reply_id>`. (Telegram `sendMessage` accetta `reply_markup` JSON.)
+2. **`telegram-handler.py` polling loop** (`run_daemon`, riga 759): cambiare `allowed_updates` da `'message'` a `'message,callback_query'`; nel loop, se `upd` ha `callback_query` → estrarre `callback_data`, splittare `azione:reply_id`, chiamare `cmd_approva(reply_id)` / `cmd_rifiuta(reply_id)`, poi `answerCallbackQuery` (obbligatorio per togliere lo spinner) + `send()` del risultato. Auth: verificare `callback_query.from.id == TELEGRAM_CHAT_ID`.
+
+**Verifica fattuale pre-impl**: confermare formato `reply_markup` su doc Telegram Bot API (`inline_keyboard` array di array) + che `answerCallbackQuery` richieda `callback_query_id`.
+**Gating**: non blocca gate #9 (Luke può già digitare `/approva <id>`). UX, non operativo.
+**Owner**: ai-engineer o backend-architect.
+
 ## S196 2026-05-26 — BACKLOG #S196-1 [MED, observability]
 
 ### 🟡 audit BRIDGE_INSERTED può perdersi silent
