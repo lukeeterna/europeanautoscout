@@ -1,9 +1,8 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-02T20:00:00Z`
-**Sessione**: monitoring-only (nessun commit in questa sessione)
+**Generato**: `2026-06-02T22:11:00Z`
+**Sessione**: `gate9-confirmed-chiuso`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
-**Last commit**: `0af3bd2 fix(S230): /approva invia envelope AMBRA via /send-multi, non JSON grezzo`
 
 ## Ultimi 5 commit
 ```
@@ -14,24 +13,39 @@ f71205b docs(S229): BACKLOG #S229-1 — bottoni inline /approva /rifiuta su TG (
 4b30030 chore(S229 close): prompt apertura — fix C-WA-SEND-SPLIT poi gate #9
 ```
 
-## Stato gate #9 al momento della chiusura
+## STATO GATE #9 — CHIUSO-OK (confermato 2026-06-02 22:11)
 
-**PRE-OK verificato** (2026-06-02 ~20:00):
+### Evidenze runtime iMac
 
-| Parametro | Valore |
-|---|---|
-| `reply_26e8c243` approved | NULL |
-| `reply_26e8c243` sent | 0 |
-| `argos-wa-daemon` restarts | 50 |
-| `wa_status` | connected |
-| `daily_sent` | 1 |
+1. **Log TG send** — riga finale:
+   ```
+   [SENT] Reply reply_26e8c243 inviata via daemon /send-multi ref=['multi_1780430572978_dk01m', 'multi_1780430577296_411vp']
+   ```
 
-Luke stava per eseguire `/approva` su Telegram con questo reply_id.
+2. **DB pending_replies** — `reply_26e8c243|approved=1|sent=1` ✓
+
+3. **WA daemon /status**:
+   - `wa_status: connected`
+   - `daily_sent: 3` (salito rispetto a prima — /send-multi conta 2 msg)
+   - `uptime_sec: 9565` (~2h 39m, nessun crash)
+
+4. **PM2 argos-wa-daemon** — `↺ 50` invariato, `status: online`, `uptime: 2h`
+
+### Verdetto: CHIUSO-OK
+
+Tutti e 4 i criteri soddisfatti:
+- [SENT] /send-multi in log
+- sent=1 nel DB
+- daily_sent salito (da 1 a 3, +2 = 2 msg separati inviati)
+- restart_time = 50 invariato (daemon stabile, nessun VOID)
+
+## Prossimo step
+
+Gate #9 chiuso. Aggiornare PLAN.md VERIFIED da 2/9 a 3/9 (o verificare conteggio aggiornato).
+Leggere CURRENT_SPRINT.md per prossimo task sprint attivo.
 
 ## Come riprendere
 
-1. Chiedi a Luke: "/approva è stato eseguito? Arrivati 2 messaggi separati leggibili sulla SIM?"
-2. Se SI: gate #9 VERIFIED → aggiorna PLAN.md VERIFIED=3/9, commit, push
-3. Se NO: diagnostica log iMac `pm2 logs argos-tg-bot --lines 50` e `pm2 logs argos-wa-daemon --lines 50`
-
-Gate #9 PASS = 2 messaggi WA separati in italiano leggibile (non JSON grezzo) arrivati su TEST_FOUNDER 393314928901.
+1. Apri Claude Code da `/Users/macbook/Documents/combaretrovamiauto-enterprise`
+2. Leggi CURRENT_SPRINT.md
+3. Gate #9 non richiede ulteriore lavoro — è confermato verde
