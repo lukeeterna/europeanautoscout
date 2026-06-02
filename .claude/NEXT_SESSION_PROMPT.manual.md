@@ -5,6 +5,21 @@ Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEX
 
 ---
 
+## ⏹ S228 — ESITO (2026-06-02): GATE #9 ESEGUITO → guard OK, E2E send BLOCCATO da split sessione WA (NUOVO: C-WA-SEND-SPLIT)
+**Gate fisico eseguito con Luke.** SEED reale dalla SIM TEST_FOUNDER `393314928901` → `reply_d18d7dc6` (`approved=NULL` PRE = P1 runtime confermato). Luke `/approva reply_d18d7dc6` da TG (niente precheck-block).
+- **Guard HITL CORRETTO:** `approved=NULL→1`, tentato invio post-sleep, invio fallito (`node sender rc=1`), `sent` **giustamente NON marcato** (`sent=0` onesto, niente latent bug su questo path/evento).
+- **Window-integrity OK (non-VOID):** `uptime_sec` PRE=2719 → POST=4370, nessun restart daemon nei ~12 min.
+- **❌ NUOVO BLOCKER — C-WA-SEND-SPLIT:** log daemon `/tmp/argos-tg-send.log` → `❌ Sessione non trovata: ~/.wwebjs_auth/session-argos-business`. Il path `/approva` NON invia via daemon connesso: spawna standalone `~/Documents/app-antigravity-auto/wa-sender/send_message.js` (CLIENT_ID `argos-business`, `telegram-handler.py:45-47`) che cerca auth in `~/.wwebjs_auth/session-argos-business` (INESISTENTE). Daemon connesso usa auth dir diversa (`wa-intelligence/.wwebjs_auth`). Due client whatsapp-web.js → uno solo autenticato → invio path-TG fallisce SEMPRE.
+- **NO business-hours gate** sul send path (`cmd_approva` non controlla orario — verificato): il fallimento è solo la sessione mancante, non l'orario.
+
+**#9 RICLASSIFICATO:** resta **PENDING-GATE**, ora **BLOCKED-ON fix codice C-WA-SEND-SPLIT** (NON più Luke fisico: il SEED fisico è stato dato e ha funzionato). **VERIFIED resta 2/9.**
+
+**NEXT (S229) — fix C-WA-SEND-SPLIT (delega devops-automator, time-boxed):** instradare l'invio del path Telegram attraverso il **daemon connesso** (single-writer già autenticato, principio bridge S173) invece di spawnare `send_message.js` standalone. Aggancia backlog "migrare path legacy TG al bridge canonico". Opzioni da valutare in apertura: (a) POST al daemon `:9191/send` con X-API-Key; (b) far puntare `send_message.js` alla stessa auth dir del daemon — SCARTATA a priori se i due client girano simultaneamente (LocalAuth lock whatsapp-web.js). Dopo il fix: ri-eseguire GATE PACKET #9 v2 (SEED già provato raggiungibile) → Scenario A msg ARRIVA sulla SIM + `[SENT]` → #9 VERIFIED 3/9. Scenario B (rifiuta durante sleep → `[ABORT]`) resta da provare.
+
+**Scenario B NON eseguito** (bloccato a monte dal send split): da fare in S229 dopo il fix.
+
+---
+
 ## ⏹ S227 — ESITO (2026-06-02): FONDAMENTA C-DB-SPLIT-001/C-DB-ENV-001 CHIUSA VERDE
 **FATTO (runtime-verified via devops-automator, R1):** stack iMac ora gira sul DB CANONICO ROOT.
 - **Root cause vera ≠ diagnosi S226.** Non era `dump.pm2` (già=ROOT). Era: `wa-intelligence/ecosystem.config.js` calcola `ARGOS_DB_PATH=path.join(BASE,'dealer_network.sqlite')` con BASE=`dirname(__dirname)` → dentro una release punta al DB della release; e **`deploy/sync.sh` linkava `.env` ma NON il DB** (rsync esclude `*.sqlite`) → ogni release nasceva senza DB e SQLite ne auto-creava uno VUOTO → split.
