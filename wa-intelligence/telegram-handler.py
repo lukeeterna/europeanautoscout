@@ -237,11 +237,12 @@ def cmd_approva(reply_id: str, force: bool = False) -> str:
     task = {
         'db_path':    DB_PATH,
         'reply_id':   reply_id,
-        'wa_id':      wa_id,
+        'phone':      phone,
         'reply_text': r["reply_text"],
         'sleep_s':    sleep_s,
-        'wa_sender':  WA_SENDER,
-        'client_id':  WA_CLIENT_ID,
+        'daemon_url': os.environ.get('ARGOS_DAEMON_URL', 'http://127.0.0.1:9191/send'),
+        'api_key':    os.environ.get('ARGOS_API_KEY', ''),
+        'force':      bool(force),
     }
     with tempfile.NamedTemporaryFile('w', suffix='.json', prefix='argos_tg_send_',
                                      delete=False, dir='/tmp') as _f:
@@ -249,11 +250,11 @@ def cmd_approva(reply_id: str, force: bool = False) -> str:
         task_file = _f.name
 
     send_script = (
-        "import time, json, sqlite3, subprocess, sys, os\n"
+        "import time, json, sqlite3, sys, os, urllib.request, urllib.error\n"
         "t = json.load(open(sys.argv[1]))\n"
         "os.unlink(sys.argv[1])\n"
         "time.sleep(t['sleep_s'])\n"
-        # re-check approval — reject durante sleep deve abortire PRIMA di node sender
+        # re-check approval — reject durante sleep deve abortire PRIMA dell'invio
         "ck = sqlite3.connect(t['db_path'], timeout=10)\n"
         "ck.execute('PRAGMA busy_timeout=10000')\n"
         "ap = ck.execute('SELECT approved FROM pending_replies WHERE id=?', [t['reply_id']]).fetchone()\n"
@@ -261,10 +262,20 @@ def cmd_approva(reply_id: str, force: bool = False) -> str:
         "if not ap or ap[0] != 1:\n"
         "    print(f'[ABORT] Reply {t[\"reply_id\"]} non piu approvata (rifiutata durante sleep) — invio annullato')\n"
         "    sys.exit(0)\n"
-        "env = os.environ.copy(); env['CLIENT_ID'] = t['client_id']\n"
-        "res = subprocess.run(['node', t['wa_sender'], t['wa_id'], t['reply_text']], env=env)\n"
-        "if res.returncode != 0:\n"
-        "    print(f'[ERROR] Reply {t[\"reply_id\"]} node sender rc={res.returncode} — sent NON marcato')\n"
+        # S229: invio via daemon connesso (single-writer S173), NON node standalone
+        "payload = json.dumps({'phone': t['phone'], 'message': t['reply_text'], 'force': t['force']}).encode()\n"
+        "req = urllib.request.Request(t['daemon_url'], data=payload, method='POST', headers={'Content-Type': 'application/json', 'X-API-Key': t['api_key']})\n"
+        "try:\n"
+        "    resp = urllib.request.urlopen(req, timeout=60)\n"
+        "    rbody = json.loads(resp.read())\n"
+        "except urllib.error.HTTPError as e:\n"
+        "    print(f'[ERROR] Reply {t[\"reply_id\"]} daemon /send HTTP {e.code}: {e.read().decode()[:200]} — sent NON marcato')\n"
+        "    sys.exit(1)\n"
+        "except Exception as e:\n"
+        "    print(f'[ERROR] Reply {t[\"reply_id\"]} daemon /send fallito: {e} — sent NON marcato')\n"
+        "    sys.exit(1)\n"
+        "if rbody.get('status') != 'sent':\n"
+        "    print(f'[ERROR] Reply {t[\"reply_id\"]} daemon /send risposta inattesa: {rbody} — sent NON marcato')\n"
         "    sys.exit(1)\n"
         "c = sqlite3.connect(t['db_path'], timeout=10)\n"
         "c.execute('PRAGMA busy_timeout=10000')\n"
@@ -274,7 +285,7 @@ def cmd_approva(reply_id: str, force: bool = False) -> str:
         "if rc == 0:\n"
         "    print(f'[ERROR] Reply {t[\"reply_id\"]} inviata ma sent NON aggiornato (approved!=1 race) — verifica manuale')\n"
         "else:\n"
-        "    print(f'[SENT] Reply {t[\"reply_id\"]} inviata')\n"
+        "    print(f'[SENT] Reply {t[\"reply_id\"]} inviata via daemon msg_id={rbody.get(\"msg_id\")}')\n"
     )
     _log_fd = open('/tmp/argos-tg-send.log', 'a')
     subprocess.Popen(

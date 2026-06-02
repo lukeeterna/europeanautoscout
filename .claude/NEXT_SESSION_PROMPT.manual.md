@@ -5,6 +5,20 @@ Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEX
 
 ---
 
+## ⏹ S229 — ESITO (2026-06-02): C-WA-SEND-SPLIT FIXATO + DEPLOYATO → #9 ora BLOCKED-ON Luke fisico
+**Fix applicato (delega devops-automator, code-verified):** il path `/approva` non spawna più `send_message.js` standalone (auth dir inesistente). Ora `cmd_approva` invia via **daemon connesso** POST `http://127.0.0.1:9191/send` + `X-API-Key` (single-writer S173). Edit chirurgico in `telegram-handler.py`:
+- `task` dict (righe 237-246): `wa_id`/`wa_sender`/`client_id` → `phone`+`daemon_url`+`api_key`+`force`.
+- `send_script` (righe 252-289): **guard HITL re-check `approved` post-sleep INTATTO** (anello #9 verificato); sostituito SOLO il blocco invio `node` con POST urllib; `[ABORT]/[ERROR]/[SENT]` preservati; `UPDATE sent=1` preservato. `py_compile` OK.
+- **3 decisioni design:** (1) NON passo `dealer_id`/`template_id` → evito `runOutboundGuard` S106 (bloccherebbe la reply) + bump `current_step`; reply va come send "manual", tracking autoritativo = `pending_replies.sent=1`; (2) `force=true` (Luke approva esplicitamente, annulla precheck24h duplicato daemon); (3) business-hours gate introdotto da `/send` ma TEST_FOUNDER 393314928901 lo bypassa (`wa-daemon.js:799-805`).
+
+**Deploy iMac (devops-automator):** file → `releases/20260527_083951/wa-intelligence/telegram-handler.py` (backup `.bak-pre-s229`). Restart SOLO `argos-tg-bot` (PID 91112 online); `argos-wa-daemon` NON toccato, `wa_status: connected`. **Preconditions verificate:** `ARGOS_API_KEY` presente su tg-bot (no 401), `TEST_FOUNDER_PHONE=393314928901` presente sul daemon (no business-hours block).
+
+**#9 RICLASSIFICATO:** resta **PENDING-GATE**, ora **BLOCKED-ON Luke fisico** (NON più fix codice — C-WA-SEND-SPLIT chiuso code+deploy). **VERIFIED resta 2/9** → sale a 3/9 SOLO a gate fisico passato. La fix è ora RAGGIUNGIBILE (deployata) — vietato re-validarla staticamente (vincolo #1b).
+
+**GATE PACKET #9 v2 — pronto per Luke (esegui il blocco "GATE PACKET #9 — v2" più sotto):** SEED dalla SIM 393314928901 → `/approva <reply_id>` → atteso log iMac `/tmp/argos-tg-send.log`: `[SENT] Reply <id> inviata via daemon msg_id=<id>` + msg ARRIVA sulla SIM (Scenario A). Scenario B: `/approva` poi subito `/rifiuta` → `[ABORT]` + nessun msg + `approved=0`.
+
+---
+
 ## ⏹ S228 — ESITO (2026-06-02): GATE #9 ESEGUITO → guard OK, E2E send BLOCCATO da split sessione WA (NUOVO: C-WA-SEND-SPLIT)
 **Gate fisico eseguito con Luke.** SEED reale dalla SIM TEST_FOUNDER `393314928901` → `reply_d18d7dc6` (`approved=NULL` PRE = P1 runtime confermato). Luke `/approva reply_d18d7dc6` da TG (niente precheck-block).
 - **Guard HITL CORRETTO:** `approved=NULL→1`, tentato invio post-sleep, invio fallito (`node sender rc=1`), `sent` **giustamente NON marcato** (`sent=0` onesto, niente latent bug su questo path/evento).
