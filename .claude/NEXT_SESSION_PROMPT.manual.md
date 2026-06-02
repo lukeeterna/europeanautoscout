@@ -5,7 +5,22 @@ Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEX
 
 ---
 
-## ▶ APERTURA S227 — leggi, poi ESEGUI (non descrivere)
+## ⏹ S227 — ESITO (2026-06-02): FONDAMENTA C-DB-SPLIT-001/C-DB-ENV-001 CHIUSA VERDE
+**FATTO (runtime-verified via devops-automator, R1):** stack iMac ora gira sul DB CANONICO ROOT.
+- **Root cause vera ≠ diagnosi S226.** Non era `dump.pm2` (già=ROOT). Era: `wa-intelligence/ecosystem.config.js` calcola `ARGOS_DB_PATH=path.join(BASE,'dealer_network.sqlite')` con BASE=`dirname(__dirname)` → dentro una release punta al DB della release; e **`deploy/sync.sh` linkava `.env` ma NON il DB** (rsync esclude `*.sqlite`) → ogni release nasceva senza DB e SQLite ne auto-creava uno VUOTO → split.
+- **Fix permanente (repo):** `deploy/sync.sh` step [4/6] ora linka il DB canonico nella release (`ln -sfn $REMOTE_BASE/dealer_network.sqlite $RELEASE_DIR/dealer_network.sqlite`, pattern Capistrano linked-file). Previene la ricaduta.
+- **Fix one-time (iMac):** `releases/20260527_083951/dealer_network.sqlite` (vuoto) → backup `.empty-bak-20260602_193153` + symlink `→ ../../dealer_network.sqlite` (ROOT). I 4 processi condividono quella stringa env → un solo symlink li redirige tutti su ROOT. Restart 4 proc + `pm2 save`.
+- **Verifica runtime:** wa_status `connected` PRE/POST (sessione WA INTATTA), lsof daemon→ROOT, stack legge `pending_replies=21` + TEST_FOUNDER `DOSSIER_SENT`.
+- **Step 5 "WA session fuori da releases" GIÀ soddisfatto:** auth a `wa-intelligence/.wwebjs_auth` (livello BASE).
+- **Rollback manuale (se servisse):** `ssh imac 'cd ~/Documents/app-antigravity-auto/releases/20260527_083951 && pm2 stop argos-wa-daemon argos-tg-bot argos-cf-monitor argos-dashboard && rm dealer_network.sqlite && mv dealer_network.sqlite.empty-bak-20260602_193153 dealer_network.sqlite && pm2 start argos-wa-daemon argos-tg-bot argos-cf-monitor argos-dashboard'`
+
+**#9 RICLASSIFICATO:** non più `BLOCKED-ON C-DB-ENV-001` (risolto). Ora **BLOCKED-ON Luke fisico** (SEED inbound dalla SIM TEST_FOUNDER). VERIFIED resta 2/9 → sale a 3/9 al gate fisico.
+
+**NEXT (S228):** eseguire GATE PACKET #9 v2 (sotto, invariato) con Luke. PRE già fatto (deploy f63a1ee LIVE + stack su ROOT). Serve solo: Luke manda WA dalla SIM → reply_id → Scenario A/B. Verità di PASS = msg fisico sulla SIM (sent è TAINTED). Chiusura: #9→VERIFIED 3/9 o handoff.
+
+---
+
+## ▶ APERTURA (storico S227 — fondamenta ora CHIUSA, vedi ESITO sopra)
 Sei CC che apre S227 su ARGOS. Internalizza R1–R4 + budget-rule (più sotto) e applicali. Stato: P0 deploy `f63a1ee` GIÀ LIVE su iMac; anello #9 = PENDING-GATE **BLOCKED-ON C-DB-ENV-001** (NON Luke fisico). VERIFIED 2/9. Il gate #9 è irraggiungibile finché lo stack gira sul DB sbagliato.
 **Questa sessione fa UNA cosa: la fondamenta C-DB-ENV-001/C-DB-SPLIT-001 (R3, time-boxed 1 sessione), poi se avanza budget rieseguи il GATE PACKET #9 v2.** Delega a `devops-automator`. Esegui i 5 step del blocco "NEXT (S227)" qui sotto, in ordine, fermandoti se uno non passa. NON flippare l'env senza riconciliare i dati (R4 — è ciò che ha bloccato S226). Verità #9 = msg fisico sulla SIM (sent TAINTED). Chiusura: #9→VERIFIED 3/9 o handoff PENDING-GATE; mai chiusura silenziosa al budget.
 

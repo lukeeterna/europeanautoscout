@@ -49,12 +49,18 @@ rsync -az --delete \
     --exclude='landing_full_page.png' \
     ./ "$IMAC:$RELEASE_DIR/"
 
-# 4. Symlink .env from persistent location
-echo "[4/6] Linking .env..."
+# 4. Symlink persistent shared state (.env + canonical DB) into release
+#    C-DB-SPLIT-001 fix (S227): the canonical DB is SHARED across releases
+#    (Capistrano linked-file pattern). Without this symlink each release's
+#    __dirname-relative ARGOS_DB_PATH makes SQLite auto-create an empty
+#    per-release DB → data/schema split. The DB lives ONLY at REMOTE_BASE.
+echo "[4/6] Linking .env + canonical DB..."
 ssh "$IMAC" "
     # Ensure persistent .env exists
     [ -f $REMOTE_BASE/wa-intelligence/.env ] || touch $REMOTE_BASE/wa-intelligence/.env
     ln -sf $REMOTE_BASE/wa-intelligence/.env $RELEASE_DIR/wa-intelligence/.env
+    # Canonical DB shared into release (never a per-release copy)
+    ln -sfn $REMOTE_BASE/dealer_network.sqlite $RELEASE_DIR/dealer_network.sqlite
 "
 
 # 5. Rebuild node_modules only if package.json changed
