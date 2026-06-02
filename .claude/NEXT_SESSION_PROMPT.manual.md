@@ -5,6 +5,21 @@ Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEX
 
 ---
 
+## ✅ S230 — ESITO (2026-06-02): GATE #9 SCENARIO A VERIFIED RUNTIME (multi-msg) → resta SOLO Scenario B
+**Gate fisico eseguito con Luke, DUE cicli.** SEED reali dalla SIM TEST_FOUNDER `393314928901`.
+- **Ciclo 1 (`reply_eff8cfb3`):** `/approva` → msg ARRIVATO sulla SIM + log `[SENT] ... via daemon msg_id=out_1780428918468_qel9v` + `sent=1` + `daily_sent` 0→1 + `restart_time=50` invariato. **MA payload = envelope JSON grezzo** `{"messages":[...]}` (NUOVO bug C-WA-SEND-MULTIMSG). Trasporto OK, formato rotto.
+- **Root cause C-WA-SEND-MULTIMSG:** `telegram-handler.py:266` inviava `reply_text` (envelope AMBRA multi-msg) come singolo `message` a `/send`. Il branch mono/multi canonico esisteva solo in `response-analyzer.py:1677-1693`, non nel path `/approva`.
+- **FIX S230 (delega devops-automator, code+diff verificato da CC):** send_script di `telegram-handler.py` (righe 265-303) ora fa `json.loads(reply_text)` → se `messages[]` non vuoto POST a **`/send-multi`** (`{phone, messages}`, NO force), altrimenti `/send` testo+force. URL derivato da `daemon_url.rsplit('/',1)[0]+'/send-multi'`. **Guard #9 re-check `approved` post-sleep (righe 256-264) INTATTO.** `[SENT]` ora stampa `ref=<msg_ids>`. py_compile OK. Deploy iMac release `20260527_083951` (backup `.bak-pre-s230`, md5 match `b08ef3e6...`), restart SOLO `argos-tg-bot`, daemon non toccato (`connected`).
+- **Contratto `/send-multi` (wa-daemon.js:1332) chiuso:** risposta successo `{status:'sent', msg_ids:[...], count, daily_sent}`; **non** accetta `force`; bypassa business-hours per TEST_FOUNDER via `isAllowedToSend` (`wa-daemon.js:799-804`) → gate eseguibile fuori orario per la SIM. NB: dealer REALI fuori 09-18 → 403, da fare in orario.
+- **Ciclo 2 (`reply_26e8c243`) POST-FIX:** `/approva` → sulla SIM **2 messaggi separati, italiano leggibile stile AMBRA** (Luke confermato) + log `[SENT] ... /send-multi ref=[2× multi_*]` + `approved=1,sent=1` + `daily_sent` 1→3 + `restart_time=50` invariato (non-VOID).
+
+**#9 RICLASSIFICATO:** **Scenario A (invio consentito) = VERIFIED RUNTIME** end-to-end (consegna corretta multi-msg via single-writer). **Scenario B (revoca durante sleep → `[ABORT]` + nessun msg) NON ancora runtime-testato** — code-verified, condivide il re-check provato in A. **VERIFIED resta 2/9 finché B non passa** (gate #9 = A+B per chiusura piena, contratto packet v2). NON è 3/9 con la sola A: onestà R1.
+
+**NEXT (S231) — chiudere #9 con Scenario B (apertura ~10 min, delega devops per monitor):** SEED nuovo dalla SIM → `reply_idB` → `/approva reply_idB` poi **subito (<60s) `/rifiuta reply_idB`** → attendi fine sleep (max ~12 min) → PASS B = NESSUN msg sulla SIM + log `[ABORT]` + `approved=0` + `sent=0` + `restart_time` invariato. Se PASS → **#9 VERIFIED 3/9**. PRE già pronto (fix LIVE su iMac). Vietato re-validare staticamente (#1b).
+**Backlog confermato S224-1:** `reply_d18d7dc6` resta `approved=1,sent=0` (fallimento PRE-fix S228, non si auto-risolve) — reconcile path TG.
+
+---
+
 ## ⏹ S229 — ESITO (2026-06-02): C-WA-SEND-SPLIT FIXATO + DEPLOYATO → #9 ora BLOCKED-ON Luke fisico
 **Fix applicato (delega devops-automator, code-verified):** il path `/approva` non spawna più `send_message.js` standalone (auth dir inesistente). Ora `cmd_approva` invia via **daemon connesso** POST `http://127.0.0.1:9191/send` + `X-API-Key` (single-writer S173). Edit chirurgico in `telegram-handler.py`:
 - `task` dict (righe 237-246): `wa_id`/`wa_sender`/`client_id` → `phone`+`daemon_url`+`api_key`+`force`.
