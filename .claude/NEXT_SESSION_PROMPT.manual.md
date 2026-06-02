@@ -5,6 +5,30 @@ Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEX
 
 ---
 
+## ⏹ S226 — ESITO (2026-06-02, chiusura ordinata al 59% budget)
+
+**FATTO (runtime-verified, R1):**
+- **P0 deploy `f63a1ee` su iMac = LIVE.** md5 locale==iMac sui 2 file in entrambi i path (root daemon + release tg-bot), healthcheck `:9191` HTTP 200, `wa_status: connected`. Backup `.bak-pre-f63a1ee` su 4 file → rollback 10s.
+- **C-WA-RESTART window-integrity = PRONTO.** Campo PRE/POST = `pm2_env.restart_time` (valore 50 su `argos-wa-daemon`). Meccanismo gate disponibile.
+
+**ROOT-CAUSE SCOPERTA (vero deliverable S226):** il gate #9 NON era raggiungibile, e NON per "Luke fisico". Inbound reale TEST_FOUNDER `393314928901` → daemon lo SCARTA "non in pipeline" (`wa-daemon.js:577-588` `lookupDealer` SELECT su `conversations`). Causa: **tutti e 4 i processi PM2 girano sul DB RELEASE sbagliato** (`releases/20260527_083951/dealer_network.sqlite`, 28KB, schema base 15 col, 0 `pending_replies`), via `ARGOS_DB_PATH` settato in **`~/.pm2/dump.pm2`** (NON in `sync.sh`). Il DB ROOT autoritativo (`~/Documents/app-antigravity-auto/dealer_network.sqlite`, 389KB, schema 30 col post-S201/S202, riga TEST_FOUNDER `current_step=DOSSIER_SENT opt_out=0`) è scavalcato. → **C-DB-ENV-001 + C-DB-SPLIT-001 VIVI = root cause strutturale di C-E2E-ZERO.**
+
+**PERCHÉ NON HO FLIPPATO L'ENV (R4, challenge Luke corretto):** né ROOT né RELEASE è "il buono" pulito.
+- ROOT: schema mantenuto + TEST_FOUNDER, MA dati congelati al 2026-05-16 (`conversations` max `state_updated_at`=16/05, 7 righe).
+- RELEASE: DB runtime live, MA schema base (manca col `state_updated_at` ⇒ ALTER S201/S202 mai applicati) + quasi vuoto.
+Env-flip secco = abbandona scritture RELEASE + schemi disallineati = violazione R4 (stato su dato non riconciliato). Serve sessione-fondamenta, non coda a 59%.
+
+**#9 RICLASSIFICATO:** PENDING-GATE, `BLOCKED-ON: C-DB-ENV-001` (non più "Luke fisico"). **VERIFIED resta 2/9.** `UNVERIFIED-RUNTIME`: inbound→pending_reply · `/approva` runtime · Scenari A/B (tutti bloccati a monte dal DB sbagliato — non testabili finché lo stack gira su RELEASE).
+
+**NEXT (S227) — fondamenta C-DB-ENV-001/C-DB-SPLIT-001, TIME-BOXED 1 sessione (delega devops-automator):**
+1. DB canonico = **ROOT** (contratto riga 92 + default codice `telegram-handler.py:42` + schema mantenuto).
+2. Riconciliare: verificare se RELEASE ha inbound/conversations post-16/05 da salvare → migrare su ROOT. Confermare schema ROOT completo per daemon Node (better-sqlite3 SELECT *).
+3. Correggere `ARGOS_DB_PATH` dei 4 processi in `~/.pm2/dump.pm2` → ROOT · `pm2 save` · restart · verificare `pm2 jlist` DB=ROOT su tutti e 4.
+4. Confermare `deploy/sync.sh` non re-introduca lo split (non setta ARGOS_DB_PATH — verificato; controllare che non copi un DB dentro release/).
+5. SOLO DOPO: rieseguire GATE PACKET #9 v2 (invariato, sotto) → #9 VERIFIED 3/9. Setup WA session in `wa-intelligence/../wa-sender` + `.wwebjs_auth` (NON sotto releases → restart non perde QR).
+
+---
+
 ## ▶ PROMPT DI APERTURA S226 — incolla/leggi questo, poi ESEGUI (non descrivere)
 
 Sei CC che apre S226 su ARGOS. **Internalizza il contratto operativo R1–R4 + budget-rule (sotto) e applicalo**, non riassumerlo. Questa sessione fa **UNA cosa** sul percorso canonico `scrape→CoVe→PDF→WA→reply→sign→paid`; finché **C-E2E-ZERO è OPEN, VIETATO aprire file/feature fuori dal percorso** (R2).
