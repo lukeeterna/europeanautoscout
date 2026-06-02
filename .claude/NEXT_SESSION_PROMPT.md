@@ -1,36 +1,35 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-01T20:34:13Z`
-**Sessione**: `4283de4e-c669-4351-8839-a3546b85a876`
+**Generato**: `2026-06-02T14:12:01Z`
+**Sessione**: `1e7d1d85-c9cd-4cbe-9e97-16f0b17eed6a`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
 **Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
-**Last commit**: `3ceea07 auto-close session f097900b-821a-45ab-af19-c60827efa091 @ 2026-06-01T20:17:09Z`
+**Last commit**: `0b00421 auto-close session 4283de4e-c669-4351-8839-a3546b85a876 @ 2026-06-01T20:42:05Z`
 
 ## Ultimi 5 commit
 ```
+0b00421 auto-close session 4283de4e-c669-4351-8839-a3546b85a876 @ 2026-06-01T20:42:05Z
+3119934 chore(S223 close): verifica #6+#9 su codice reale → handoff S224
 3ceea07 auto-close session f097900b-821a-45ab-af19-c60827efa091 @ 2026-06-01T20:17:09Z
 82a5881 chore(S222 close): merge master consolidato + handoff S223 verifica #6/#9
 17f8727 auto-close session f097900b-821a-45ab-af19-c60827efa091 @ 2026-06-01T20:13:54Z
-999a755 chore(S222): regen session prompt pre-merge
-5b2e744 chore(S221): auto-regen prompt + vos decision log
 ```
 
 ## File modificati nell'ultimo commit
 ```
-M	.claude/NEXT_SESSION_PROMPT.md
 M	vos-out/decisions.jsonl
 ```
 
 ## Ultimo prompt utente (estratto)
 ```
-[{"tool_use_id":"toolu_016RV9vucP4a15Av2UBtnQLE","type":"tool_result","content":"===daemon bridge poll SELECT===\nwa-intelligence/wa-daemon.js:197:// D-22 F1 (bridge SQLite) + D-07 HITL strict (no auto-send senza approved_ts)\nwa-intelligence/wa-daemon.js:273:        const cols = bdb.prepare(\"PRAGMA table_info(bridge_outbound)\").all().map(c => c.name);\nwa-intelligence/wa-daemon.js:275:            bdb.exec('ALTER TABLE bridge_outbound ADD COLUMN processing_ts INTEGER');\nwa-intelligence/wa-dae
+[{"tool_use_id":"toolu_018Xs3YkQaMycLFU1g9z4pLf","type":"tool_result","content":"1\t# S224 — Fix #9 guard atomico (legacy) + E2E TEST_FOUNDER → VERIFIED verso 3/9\n2\t\n3\t## STATO CHIUSO S223\n4\t### Verifica anelli su CODICE/DB REALE (no fix, solo verifica)\n5\t- **#6 inbox `messages` → VERIFIED EXISTS.** Conflitto S222 risolto: il gate \"MISSING\" guardava il DB SBAGLIATO.\n6\t  - DB iMac AUTORITATIVO `~/Documents/app-antigravity-auto/dealer_network.sqlite`: `messages` esiste, 14 col (1
 ```
 
 ## Ultimi turni assistant
 ```
-## Gate aggiornato
-**VERIFIED = 2/9** (#1 scrape + #6 inbox). #9 = bug safety reale ma **già mitigato sul path di produzione (bridge)**; residuo solo sui path legacy multi-msg e Telegram diretto.
-Questo cambia la priorità: #9 non blocca il flusso bridge attuale. Vuoi che (a) implementi il guard atomico minimo sui path legacy adesso (locale, no deploy), oppure (b) apra un BACKLOG per migrare i path legacy al bridge e teniamo lo scope su altri anelli VERIFIED? Da CTO raccomando **(a) guard minimo subito** — 3 righe, chiude la falla safety senza il refactor migrazione, che va in BACKLOG.
+3. Solo dopo E2E verde → deploy iMac (rsync atomico + healthcheck, lsof/pm2 check pre-deploy).
+**Non toccare**: image_sanitizer.py, scope partner-unico (landing/Gemini/trasporto) congelato.
+Procedo con lo Step 1 (fix #9 guard atomico)? Prima leggo i 3 punti reali nel codice per confermare lo stato attuale before di editare.
 ```
 
 ## Come riprendere
