@@ -5,21 +5,59 @@ Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEX
 
 ---
 
-## ⏸ S234 — ESITO (2026-06-03, chiusura @ budget 62%): BOTTONI INLINE VERIFIED RUNTIME — GATE #9-B ABORT-RACE ANCORA NON CONCLUSO (log [ABORT] non recuperato)
+## ✅ S234 — ESITO (2026-06-03): GATE #9-B SCENARIO B = PASS RUNTIME → anello #9 VERIFIED 3/9 (Luke soddisfatto)
 
 ### ✅ FATTO (runtime-verified, R1):
 1. **VERIFICA BOTTONI = PASS (punto 1 S234).** La notifica TG mostra i bottoni inline **✅Accetta / 🚫Rifiuta** (non più testo `/rifiuta`). Prova: screenshot Luke ore 16:39 (clock sessione) — bottoni renderizzati + ack bot `🚫 Reply reply_ec6bdb52 rifiutata. Nessun messaggio inviato` + DB `reply_ec6bdb52 approved=0,sent=0`. **Il fix path-split ROOT (S233) è confermato a runtime.**
 2. **Real-case reject VERIFIED.** Tap diretto 🚫Rifiuta (senza accetta) → `cmd_rifiuta` porta `approved` NULL→0, `sent=0`, nessun msg, ack consegnato. Path rifiuta sano a runtime.
 
-### ❌ GATE #9-B ABORT-RACE: NON CONCLUSO (VERIFIED resta 2/9)
-- **Problema epistemico irrisolto:** `approved=0` nel DB è identico per *solo-rifiuta* (non testa il guard) e *accetta-poi-rifiuta* (gate vero). Il DB da solo NON distingue. Serve il log **`[ABORT]`** del tg-bot come prova machine-side + conferma fisica Luke "nessun msg sulla SIM a fine sleep".
-- **2 seed eseguiti da Luke.** Ultime reply DB: `reply_8c0934fb` (16:46 sessione, approved=0,sent=0) + `reply_03c0386a` (16:46, approved=NULL = mai toccata). Su entrambi i tentativi NON ho potuto leggere `[ABORT]`.
-- **BLOCKER S234 = log tg-bot non localizzato.** Il 2° devops-agent NON ha trovato `argos-tg-bot-out.log` in `~/.pm2/logs/` e `pm2 jlist` ha restituito vuoto — lettura **INAFFIDABILE/CONTRADDITTORIA**: il 1° agent stesso giro vedeva `argos-tg-bot` online (restart_time=25) e `argos-wa-daemon` online restart_time=50. Il 2° agent ha probabilmente sbagliato path/env SSH (e ha letto un daemon-log fermo al 14/05 = file stale, NON lo stato reale). **Scartare la sua diagnosi infra.**
-- **NOTA CLOCK:** l'iMac è **+2h** rispetto al clock di sessione (reply create alle 16:46 sessione compaiono come ~18:49 su `date` iMac). Riconcilia i timestamp "18:41/18:49" visti nei log = erano gli eventi RECENTI, non vecchi.
+### ✅ GATE #9-B ABORT-RACE = PASS RUNTIME → anello #9 VERIFIED 3/9
+Sequenza completa provata su `reply_8c0934fb` (log `/tmp/argos-tg-bot-out.log` + `/tmp/argos-tg-send.log`):
+- ✅ `approva:reply_8c0934fb` + **`sleep 415s`** (18:46:11 iMac/+2h)
+- 🚫 `rifiuta:reply_8c0934fb` 2s dopo, **DURANTE lo sleep** (18:46:13)
+- guard a fine sleep: **`[ABORT] Reply reply_8c0934fb non piu approvata (rifiutata durante sleep) — invio annullato`**
+- DB `approved=0, sent=0` · `argos-wa-daemon` online `restart_time=50` invariato (non-VOID, window-integrity OK) · Luke conferma NESSUN msg sulla SIM + **"soddisfatto"**.
+- Prova indipendente = `[ABORT]` (NON dipende da `sent` TAINTED). **#9 chiuso VERIFIED 3/9** (era 2/9 da ~130 sessioni).
+- **PATH LOG TG-BOT corretto = `/tmp/argos-tg-bot-out.log`** (NON `~/.pm2/logs/` — memorizzare per debug futuri). iMac clock **+2h**.
+- `reply_dd01fa73` (16:54) stessa sequenza corretta, `[ABORT]` atteso ~17:03 (sleep 523s ancora in corso a fine sessione) — ridondante, non serve verificarla.
 
-### NEXT (S235) — chiudere #9-B in 2 mosse:
-1. **Localizza il log reale del tg-bot** (delega devops, full path PM2 `/Users/gianlucadistasi/.npm-global/bin/pm2`): `pm2 describe argos-tg-bot` → campo `pm2_env.pm_out_log_path`; oppure `ps aux | grep -i telegram-handler`. Il tg-bot gira dal **release path** `releases/20260527_083951/wa-intelligence/` (path-split noto S233).
-2. **DOMANDA DECISIVA a Luke (terminal fact, sent TAINTED):** "Hai tappato il VERDE ✅Accetta PRIMA — vedendo una conferma tipo *approvata, invio tra N min* — e POI il rosso 🚫Rifiuta? E dopo qualche minuto è arrivato QUALCHE messaggio sulla SIM?" Se SÌ-accetta-prima + NESSUN-msg + log mostra `approva→sleep→[ABORT]` su `reply_8c0934fb` → **#9 VERIFIED 3/9** + Luke "soddisfatto". Altrimenti re-seed con sequenza corretta. Vietato re-validare staticamente (#1b).
+### NEXT (S235) — implementare tasto "🔄 Rigenera" (BACKLOG S233-1, sbloccato perché #9 è verde). ORDINE: (1) portare il PROMPT CLAUDE AI qui sotto a Claude.ai per second-opinion design, (2) incrociare con autocritica CC, (3) implementare con `ai-engineer`/`backend-architect`, (4) deploy ENTRAMBI i path (tg-bot release + daemon ROOT), (5) gate fisico TEST_FOUNDER.
+
+### 📋 PROMPT CLAUDE AI — design tasto "🔄 Rigenera" (incolla a Claude.ai web, S235 STEP 0):
+```
+Sei un architetto software. ARGOS è un sistema Python di outreach B2B auto. Un bot Telegram
+notifica all'operatore umano (HITL) le reply generate da LLM; l'operatore le approva/rifiuta con
+bottoni inline (✅Accetta / 🚫Rifiuta, appena verificati a runtime). Le reply sono generate da
+`src/llm_cascade.py`: cascade 5 livelli che prova provider in ordine FISSO hardcoded per
+DISPONIBILITÀ, non qualità: Gemini Flash → Groq llama-3.3-70b → OpenRouter llama-3.3-70b:free →
+Gemini Lite → Ollama qwen2.5:3b. La cascade DEGRADA (ogni livello ≤ del precedente, l'ultimo è il
+più debole). Circuit breaker per provider (3 fail/5min → OPEN 10min → skip). Tutti FREE-tier.
+
+OBIETTIVO: aggiungere un 3° bottone inline "🔄 Rigenera" che, quando l'operatore NON è soddisfatto
+di una reply, la rigeneri con un modello PIÙ FORTE (non uguale/peggiore come darebbe la cascade).
+
+VINCOLI HARD: zero-cost assoluto (solo free-tier o già pagato, €0 capex); macOS 11 Big Sur +
+Python 3.13 (iMac) / 3.9 (path tg-bot, no PEP 604 `str|None`); solo libreria `requests`, no SDK AI;
+catalogo OpenRouter free-tier VOLATILE (modelli `:free` appaiono/spariscono, rate-limit cambiano —
+verificato giugno 2026), quindi NO model-id hardcodato fragile; mantenere cascade + circuit breaker.
+
+VOGLIO UNA RACCOMANDAZIONE SINGOLA MOTIVATA (no liste A/B/C) su:
+Q1 — con quale meccanismo il "rigenera" sceglie un modello PIÙ COMPETENTE? Oggi nessuno: serve un
+     "provider premium" dedicato invocato SOLO dal callback `genera:<id>`. Come definire "più forte"
+     in modo robusto e zero-cost? (NB: il collo di bottiglia di una reply dealer-grade potrebbe
+     essere il PROMPT/contesto-persona, non la potenza del modello — valuta questa ipotesi).
+Q2 — come gestire PROATTIVAMENTE la volatilità free-tier OpenRouter? Oggi ARGOS ha solo il
+     circuit-breaker reattivo, nessun refresh catalogo (se un `:free` sparisce, resta skippato finché
+     qualcuno tocca il codice). Valuta discovery periodico `GET /api/v1/models`, healthcheck, catena
+     premium con fallback.
+Extra — il rigenera dovrebbe loggare il MOTIVO del rifiuto (segnale per migliorare il prompt, non
+     solo cambiare modello)?
+
+OUTPUT: (a) come selezionare il modello premium; (b) come gestire la volatilità; (c) pseudo-codice del
+provider premium + handler callback `genera:<id>`; (d) autocritica 4 punti (assunzioni nascoste, cosa
+rompe a 30/60/90gg, pattern errori noti su sistemi simili, dove sovradimensioni).
+```
+**Findings CC già verificati su `src/llm_cascade.py` (input per il giudizio):** cascade DEGRADA non escala · model-id OpenRouter hardcoded riga 172 · volatilità gestita SOLO da circuit-breaker reattivo (righe 64-141) · `routing.yaml`/`routing-refresh` sono VOS, NON ARGOS (non riusabili).
 
 ### 🆕 BACKLOG S233-1 aggiornato (tasto "🔄 Rigenera") — chiarito su codice reale (`src/llm_cascade.py`):
 - **La cascade ARGOS NON escala verso l'alto, DEGRADA verso il basso.** Lista fissa hardcoded 5 provider per *disponibilità non qualità*: Gemini Flash → Groq llama-3.3-70b → OpenRouter free llama-3.3-70b:free → Gemini Lite → Ollama qwen2.5:3b (il più debole, ultimo). Riusare la cascade per "rigenera migliore" darebbe modello uguale/peggiore.
