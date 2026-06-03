@@ -5,6 +5,31 @@ Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEX
 
 ---
 
+## ⏸ S234 — ESITO (2026-06-03, chiusura @ budget 62%): BOTTONI INLINE VERIFIED RUNTIME — GATE #9-B ABORT-RACE ANCORA NON CONCLUSO (log [ABORT] non recuperato)
+
+### ✅ FATTO (runtime-verified, R1):
+1. **VERIFICA BOTTONI = PASS (punto 1 S234).** La notifica TG mostra i bottoni inline **✅Accetta / 🚫Rifiuta** (non più testo `/rifiuta`). Prova: screenshot Luke ore 16:39 (clock sessione) — bottoni renderizzati + ack bot `🚫 Reply reply_ec6bdb52 rifiutata. Nessun messaggio inviato` + DB `reply_ec6bdb52 approved=0,sent=0`. **Il fix path-split ROOT (S233) è confermato a runtime.**
+2. **Real-case reject VERIFIED.** Tap diretto 🚫Rifiuta (senza accetta) → `cmd_rifiuta` porta `approved` NULL→0, `sent=0`, nessun msg, ack consegnato. Path rifiuta sano a runtime.
+
+### ❌ GATE #9-B ABORT-RACE: NON CONCLUSO (VERIFIED resta 2/9)
+- **Problema epistemico irrisolto:** `approved=0` nel DB è identico per *solo-rifiuta* (non testa il guard) e *accetta-poi-rifiuta* (gate vero). Il DB da solo NON distingue. Serve il log **`[ABORT]`** del tg-bot come prova machine-side + conferma fisica Luke "nessun msg sulla SIM a fine sleep".
+- **2 seed eseguiti da Luke.** Ultime reply DB: `reply_8c0934fb` (16:46 sessione, approved=0,sent=0) + `reply_03c0386a` (16:46, approved=NULL = mai toccata). Su entrambi i tentativi NON ho potuto leggere `[ABORT]`.
+- **BLOCKER S234 = log tg-bot non localizzato.** Il 2° devops-agent NON ha trovato `argos-tg-bot-out.log` in `~/.pm2/logs/` e `pm2 jlist` ha restituito vuoto — lettura **INAFFIDABILE/CONTRADDITTORIA**: il 1° agent stesso giro vedeva `argos-tg-bot` online (restart_time=25) e `argos-wa-daemon` online restart_time=50. Il 2° agent ha probabilmente sbagliato path/env SSH (e ha letto un daemon-log fermo al 14/05 = file stale, NON lo stato reale). **Scartare la sua diagnosi infra.**
+- **NOTA CLOCK:** l'iMac è **+2h** rispetto al clock di sessione (reply create alle 16:46 sessione compaiono come ~18:49 su `date` iMac). Riconcilia i timestamp "18:41/18:49" visti nei log = erano gli eventi RECENTI, non vecchi.
+
+### NEXT (S235) — chiudere #9-B in 2 mosse:
+1. **Localizza il log reale del tg-bot** (delega devops, full path PM2 `/Users/gianlucadistasi/.npm-global/bin/pm2`): `pm2 describe argos-tg-bot` → campo `pm2_env.pm_out_log_path`; oppure `ps aux | grep -i telegram-handler`. Il tg-bot gira dal **release path** `releases/20260527_083951/wa-intelligence/` (path-split noto S233).
+2. **DOMANDA DECISIVA a Luke (terminal fact, sent TAINTED):** "Hai tappato il VERDE ✅Accetta PRIMA — vedendo una conferma tipo *approvata, invio tra N min* — e POI il rosso 🚫Rifiuta? E dopo qualche minuto è arrivato QUALCHE messaggio sulla SIM?" Se SÌ-accetta-prima + NESSUN-msg + log mostra `approva→sleep→[ABORT]` su `reply_8c0934fb` → **#9 VERIFIED 3/9** + Luke "soddisfatto". Altrimenti re-seed con sequenza corretta. Vietato re-validare staticamente (#1b).
+
+### 🆕 BACKLOG S233-1 aggiornato (tasto "🔄 Rigenera") — chiarito su codice reale (`src/llm_cascade.py`):
+- **La cascade ARGOS NON escala verso l'alto, DEGRADA verso il basso.** Lista fissa hardcoded 5 provider per *disponibilità non qualità*: Gemini Flash → Groq llama-3.3-70b → OpenRouter free llama-3.3-70b:free → Gemini Lite → Ollama qwen2.5:3b (il più debole, ultimo). Riusare la cascade per "rigenera migliore" darebbe modello uguale/peggiore.
+- **Volatilità free-tier OpenRouter NON gestita proattivamente.** Model-id hardcoded (`llm_cascade.py:172`). Solo circuit-breaker reattivo (3 fail/5min → OPEN 10min → skip). NESSUN auto-discovery catalogo. **CORREZIONE:** `routing.yaml`+`routing-refresh` sono meccanismi **VOS, NON ARGOS** (claim mio S234 ritirato, era unverified).
+- **Design rigenera (post #9-B):** provider "premium" DEDICATO in cima invocato solo da callback `genera:<id>` (candidato zero-cost forte = DeepSeek V3 free, id esatto da verificare al momento = volatile) + fallback su cascade normale se 404/rate-limit + log del motivo-rifiuto. NON hardcodare l'id senza un check catalogo.
+
+### Vincoli S235: TEST_FOUNDER prima di dealer reali · `image_sanitizer`/landing CONGELATI · baseline `restart_time argos-wa-daemon=50` · iMac clock +2h da tenere a mente sui log.
+
+---
+
 ## ⏸ S233 — ESITO (2026-06-03, chiusura @ budget 60%): DEPLOY FIXATO SUL PATH GIUSTO (path-split ROOT scoperto) — GATE #9-B NON ESEGUITO, ORA SBLOCCATO
 **Due finding strutturali risolti, gate B non ancora eseguito. VERIFIED resta 2/9.**
 
