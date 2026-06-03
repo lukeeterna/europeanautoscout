@@ -140,7 +140,7 @@ def send(text: str, chat_id: str = TELEGRAM_CHAT_ID, reply_markup: str = None):
     return tg_post('sendMessage', payload)
 
 
-def make_inline_keyboard(reply_id: str) -> str | None:
+def make_inline_keyboard(reply_id: str):
     """Ritorna JSON reply_markup con bottoni Accetta/Rifiuta, o None se reply_id troppo lungo."""
     cb_approva = f'approva:{reply_id}'
     cb_rifiuta = f'rifiuta:{reply_id}'
