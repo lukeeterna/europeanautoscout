@@ -1,91 +1,54 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-03T18:49:37Z`
-**Sessione**: `60f27d69-55c2-4198-88c0-785c6b6c1017`
+**Generato**: `2026-06-03T19:00:00Z`
+**Sessione**: ispezione READ-ONLY gate #9-B abort-race
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
-**Contesto chiuso**: 61% (soglia 60% — chiusura obbligatoria vincolo #7)
+
+## Risultato ispezione gate #9-B (ABORT race) — VERIFIED
+
+### DB pending_replies (iMac, autoritativo)
+| id | approved | sent | created_at |
+|----|----------|------|------------|
+| reply_dd01fa73 | 0 | 0 | 2026-06-03 16:54:33 |
+| reply_8c0934fb | 0 | 0 | 2026-06-03 16:46:09 |
+| reply_03c0386a | NULL | 0 | 2026-06-03 16:46:03 |
+
+### Log tg-bot: `/tmp/argos-tg-bot-out.log`
+Sequenza per `reply_8c0934fb` (scenario B):
+- `03/06/2026 18:46:11` → `Callback ricevuto: approva:reply_8c0934fb`
+- `03/06/2026 18:46:11` → `Approvata reply reply_8c0934fb — sleep 415s prima dell'invio`
+- `03/06/2026 18:46:13` → `Callback ricevuto: rifiuta:reply_8c0934fb`
+
+Sequenza per `reply_dd01fa73` (altro scenario B):
+- `03/06/2026 18:54:36` → `Callback ricevuto: approva:reply_dd01fa73`
+- `03/06/2026 18:54:36` → `Approvata reply reply_dd01fa73 — sleep 523s`
+- `03/06/2026 18:54:39` → `Callback ricevuto: rifiuta:reply_dd01fa73`
+
+### `/tmp/argos-tg-send.log` ultime righe rilevanti
+```
+[ABORT] Reply reply_8c0934fb non piu approvata (rifiutata durante sleep) — invio annullato
+```
+(reply_dd01fa73: sleep 523s da 18:54:36 iMac = fine ~19:03 iMac, log non ancora presente al momento dell'ispezione — still in-flight o sleep già concluso senza [ABORT]/[SENT] loggato)
+
+### Verdetto gate #9-B
+**VERIFIED parziale:**
+- `reply_8c0934fb`: guard funziona — `[ABORT]` presente, `sent=0`, `approved=0` nel DB. SCENARIO B PASS.
+- `reply_dd01fa73`: sleep 523s + rifiuta arrivato 3s dopo approva → guard ATTESO ma log `[ABORT]` non ancora visibile al momento dell'ispezione (sleep ancora in corso o appena scaduto). Da verificare nella prossima sessione.
+
+### wa-daemon
+- status: `online` | restart_time: `50`
+
+## Prossima sessione
+1. Verificare `reply_dd01fa73` su `/tmp/argos-tg-send.log`: cercare `[ABORT]` o `[SENT]`.
+2. Se `[ABORT]` presente → gate #9 VERIFIED 3/9 (o più, contare da PLAN.md).
+3. Se `[SENT]` → bug residuo: guard non rilegge `approved` dopo sleep per path bottoni inline.
+4. Aggiornare MEMORY.md con stato gate #9-B.
 
 ## Ultimi 5 commit
 ```
+df35ed5 docs(S234): bottoni inline VERIFIED runtime — gate #9-B abort-race NON concluso (log [ABORT] non recuperato)
+dbf9856 auto-close session 60f27d69-55c2-4198-88c0-785c6b6c1017 @ 2026-06-03T18:49:37Z
 5ec82fa auto-close session 2915cc48-3617-4a1e-a5b8-da639966fe8d @ 2026-06-03T14:32:30Z
 e94c1a8 docs(S233): handoff — fix Python 3.9 compat (0132f92) + path-split ROOT scoperto
 0132f92 fix(S233): rimuovi annotation union str|None per compat Python 3.9 (iMac tg-bot)
-9014729 feat(S232): bottoni inline accetta/rifiuta su notifiche reply TG (code-verified, UNVERIFIED-RUNTIME)
-bd9a431 auto-close session 77f93c8a-3274-4030-8226-dc4dee2a67ce @ 2026-06-03T13:59:44Z
 ```
-
-## STATO GATE #9-B (anello abort/rifiuta) — ISPEZIONE READ-ONLY COMPLETATA
-
-### 1. pending_replies (iMac — DB autoritativo ROOT)
-Ultime 3 righe:
-| id | approved | sent | created_at |
-|----|----------|------|------------|
-| reply_8c0934fb | 0 | 0 | 2026-06-03 16:46:09 |
-| reply_03c0386a | NULL | 0 | 2026-06-03 16:46:03 |
-| reply_cb06da28 | 0 | 0 | 2026-06-03 14:47:34 |
-
-**id piu' recente**: `reply_8c0934fb` — approved=0, sent=0
-
-### 2. Log tg-bot
-**PROBLEMA STRUTTURALE**: il processo `argos-tg-bot` NON esiste in PM2.
-- `~/.pm2/logs/argos-tg-bot-out.log` — file NON TROVATO
-- `~/.pm2/logs/` contiene solo: `argos-dashboard`, `argos-wa-daemon`, `n8n-main`
-- Il tg-bot gira altrove oppure non e' registrato in PM2
-
-Quindi: nessuna riga `Approvata`, `rifiuta`, `[ABORT]` verificabile da log PM2.
-
-Il tg-bot usa path alternativo. Dalle sessioni precedenti (S232/S233) il tg-bot e' in:
-`releases/20260527_083951/wa-intelligence/` su iMac — verifica il suo log diretto.
-
-### 3. /tmp/argos-tg-send.log ultime righe
-L'ID piu' recente presente e' `reply_b785f97b` (sessioni precedenti).
-**NESSUN [SENT] ne' [ABORT]** per `reply_8c0934fb` o `reply_03c0386a`.
-
-### 4. wa-daemon PM2
-- Status: log fermo a `2026-05-14 19:14 SIGINT ricevuto — shutdown graceful`
-- Il wa-daemon sembra spento o riavviato. Serve verifica `pm2 list` fresca.
-- Nota: `pm2 jlist` ha restituito output vuoto (JSON parse error = output vuoto = pm2 potrebbe girare via path diverso).
-
-### 5. Orario iMac al momento ispezione: 18:49:37
-
-## DIAGNOSI GATE #9-B
-
-**Stato**: INCONCLUSIVE — stesso pattern di S231.
-
-Root cause probabile: il tg-bot NON e' in PM2 con nome `argos-tg-bot`.
-I click ✅Accetta e 🚫Rifiuta di Luke sono stati recevuti dal bot (altrimenti
-`reply_8c0934fb` con approved=0 non sarebbe comparsa alle 16:46), MA:
-- Non c'e' log PM2 per il tg-bot
-- Non c'e' [ABORT] in /tmp/argos-tg-send.log
-- Il wa-daemon era in SIGINT shutdown (log 14/05 = dati vecchi, instanza riavviata senza scrivere)
-
-**approved=0 su reply_8c0934fb e reply_cb06da28**: il tap ✅Accetta NON ha settato approved=1.
-Possibile che il bottone ✅Accetta abbia scritto approved=0 (bug), oppure che il tap ✅
-seguito immediatamente da 🚫 abbia processato solo il rifiuto (approved=0 = rifiutato).
-
-**Schema DB**: `approved INTEGER DEFAULT NULL` — NULL = non processato, 0 = rifiutato, 1 = approvato.
-
-## PROSSIMI STEP (nuova sessione)
-
-1. **Trovare il log reale del tg-bot** su iMac:
-   ```bash
-   ssh imac "find ~/Documents -name '*.log' -newer ~/Documents/app-antigravity-auto/dealer_network.sqlite 2>/dev/null | head -20"
-   ssh imac "ps aux | grep -i tg"
-   ssh imac "cat ~/Documents/combaretrovamiauto-enterprise/releases/20260527_083951/wa-intelligence/logs/*.log 2>/dev/null | tail -30"
-   ```
-
-2. **Verificare approved=0 = rifiuto** (gate PASS se confermato):
-   Il fatto che `reply_8c0934fb` abbia approved=0 e sent=0 potrebbe gia' essere il gate PASS —
-   tap ✅ poi immediato 🚫 ha terminato con approved=0 (abort), nessun invio.
-   Questo e' il comportamento corretto per scenario B.
-   MA serve conferma dal log del bot che l'abort sia stato deliberato.
-
-3. Se tg-bot log conferma `[ABORT]` su `reply_8c0934fb` → **gate #9-B PASS → VERIFIED = 3/9**.
-
-4. Se non trovabile: **re-run fisico** con log visibile prima del test.
-
-## Come riprendere
-
-1. Apri Claude Code da `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-2. Leggi questo file
-3. Esegui step 1 (trova log tg-bot su iMac) poi valuta se approved=0 = gate PASS
