@@ -5,6 +5,34 @@ Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEX
 
 ---
 
+## ⏹ S231 — ESITO (2026-06-03): GATE #9 SCENARIO B **INCONCLUSIVE** (non FAIL guard) → re-run armato + nuova richiesta Luke (bottoni inline)
+**Gate fisico eseguito con Luke** su SIM TEST_FOUNDER `393314928901`, `reply_b785f97b`. Window-integrity OK (`restart_time argos-wa-daemon=50` PRE/POST → **NON-VOID, test valido**).
+- **Esito:** Scenario B **NON passato MA NON è un FAIL del guard** — il guard non è mai stato esercitato.
+- **Dati (delega devops-automator, read-only):** log tg-bot `13:09:16 Comando ricevuto: /approva reply_b785f97b` + `Approvata ... sleep 229s`; **NESSUNA riga `Comando ricevuto: /rifiuta`** in 120 righe. Log send: `[SENT] ... /send-multi ref=[3× multi_*]`, NO `[ABORT]`. DB ROOT: `reply_b785f97b | approved=1 | sent=1`, daily_sent 0→3. Luke conferma: 3 msg ARRIVATI sulla SIM; il bot mostrò `📤 Multi-msg INVIATO` (conferma invio daemon, NON `🚫 Reply rifiutata`).
+- **Diagnosi:** `/rifiuta` non è mai arrivato a `cmd_rifiuta` → `approved` mai 0 → guard post-sleep ha riletto `approved=1` e ha (correttamente per la sua logica) inviato.
+- **Guard sano (code-verified, NON prova di chiusura #1b):** `cmd_approva` lancia sleep in `subprocess.Popen` non-bloccante + re-check `approved` post-sleep (`telegram-handler.py:256-264` → `[ABORT]`); `cmd_rifiuta:369-372` = `UPDATE ... SET approved=0 WHERE id=? AND sent=0` (corretto); `run_daemon:782-806` polling NON bloccato dal subprocess → bot POTEVA ricevere /rifiuta.
+- **Root cause /rifiuta sparito: NON determinata [UNVERIFIED]** (non inviato / consegna Telegram persa).
+- **Fix harness (procedura): ack-gate** — al re-run, dopo `/rifiuta` ATTENDERE risposta bot `🚫 Reply rifiutata` (prova che revoca eseguita) PRIMA di committere all'attesa sleep; se entro ~20s niente ack → rimandare /rifiuta. Self-correcting a prescindere dalla root cause.
+
+**#9 RESTA: Scenario A VERIFIED (S230) · Scenario B PENDING-GATE re-run armato. VERIFIED resta 2/9** (onestà R1, no re-validazione statica #1b).
+
+### 🆕 RICHIESTA FOUNDER S231 (scope prossima sessione, NON implementata — context budget): bottoni INLINE `/accetta`-`/rifiuta` su TUTTI i msg generati
+Luke: *"bisogna inserire /accetta /rifiuta per tutti i messaggi generati come abbiamo definito"*. Oggi la notifica TG mostra `/approva {id} | /rifiuta {id}` come **testo** (`telegram-handler.py:557`) → richiede typing manuale = fragilità che ha rotto il gate B. **Fix proposto:** inline keyboard (Telegram `reply_markup` + `callback_query`, `allowed_updates` da estendere a `callback_query` nel polling riga 788) su ogni notifica reply generata → tap garantisce consegna con `reply_id` esatto, niente typing. **Risolve sia la richiesta founder sia la root-cause harness del gate B.** Valutare in apertura S232 come PRE del re-run (un solo lavoro che chiude due cose).
+
+### GATE PACKET #9 — Scenario B v3 (ARMATO con ack-gate) — pronto per S232
+```
+PRE (CC): baseline iMac read-only (devops): wa_status=connected · restart_time argos-wa-daemon (era 50) · ultima riga /tmp/argos-tg-send.log
+SEED (Luke): WA da SIM 393314928901 → reply_id (verifica DB: approved=NULL, sent=0)
+ESEGUI: /approva <id> → bot risponde "✅ approvata — invio tra ~Nmin" (annota N)
+        SUBITO /rifiuta <id> → **ATTENDI bot "🚫 Reply rifiutata"** (ack-gate). Se entro ~20s niente → rimanda /rifiuta.
+        Solo a ack ricevuto → attendi fine sleep (max ~12min)
+PASS B = NESSUN msg sulla SIM + log [ABORT] + approved=0 + sent=0 + restart_time invariato (se ≠ → VOID, retry)
+CHIUSURA: Luke "soddisfatto" → #9 VERIFIED 3/9.
+```
+**Backlog confermato S224-1:** `reply_d18d7dc6` resta `approved=1,sent=0` — reconcile path TG. (NB `reply_b785f97b` sent=1 = invio reale a TEST_FOUNDER, legittimo, non backlog.)
+
+---
+
 ## ✅ S230 — ESITO (2026-06-02): GATE #9 SCENARIO A VERIFIED RUNTIME (multi-msg) → resta SOLO Scenario B
 **Gate fisico eseguito con Luke, DUE cicli.** SEED reali dalla SIM TEST_FOUNDER `393314928901`.
 - **Ciclo 1 (`reply_eff8cfb3`):** `/approva` → msg ARRIVATO sulla SIM + log `[SENT] ... via daemon msg_id=out_1780428918468_qel9v` + `sent=1` + `daily_sent` 0→1 + `restart_time=50` invariato. **MA payload = envelope JSON grezzo** `{"messages":[...]}` (NUOVO bug C-WA-SEND-MULTIMSG). Trasporto OK, formato rotto.
