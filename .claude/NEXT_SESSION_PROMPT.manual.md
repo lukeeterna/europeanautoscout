@@ -30,7 +30,7 @@ Output Claude AI sul design rigenera ricevuto + fact-check delegato (`research-f
 - **Floor guard** (se premium non disponibile → NON spacciare cascade per premium) = da tenere.
 
 ### GATE IMPLEMENTAZIONE S236 — l'UNICO dato non verificato
-**Quale modello Gemini reasoning è free su API Google a giugno 2026 + quota** (cascade usa `gemini-2.0-flash`; verificare se `gemini-2.5-pro`/`flash` free più forte esiste). WebSearch mirato (NON memoria, vincolo #1). QUI ha senso Gemini Deep Research (ranking-qualità modello, non fatti API già chiusi). Verificato questo → implementare (`ai-engineer`/`backend-architect`), deploy **ENTRAMBI i path** (tg-bot release + daemon ROOT, path-split S233), gate fisico TEST_FOUNDER.
+**Quale modello Gemini reasoning è free su API Google a giugno 2026 + quota** (cascade usa `gemini-2.0-flash`; verificare se `gemini-2.5-pro`/`flash` free più forte esiste). METODO (Luke S235): i FATTI-API si chiudono interrogando endpoint LIVE, NON Deep Research: (1) `GET generativelanguage.googleapis.com/v1beta/models?key=` → id Gemini reali; (2) `GET openrouter.ai/api/v1/models` → id `:free` vivi + `expiration_date`; (3) quote free Gemini = WebFetch doc `ai.google.dev/rate-limits` (non in ListModels). Deep Research SOLO per ranking-qualità copy B2B italiano tra i candidati risultati vivi (no endpoint per "quale è più bravo"). Verificato questo → implementare (`ai-engineer`/`backend-architect`), deploy **ENTRAMBI i path** (tg-bot release + daemon ROOT, path-split S233), gate fisico TEST_FOUNDER.
 
 ### Vincoli S236: TEST_FOUNDER prima di dealer reali · `image_sanitizer`/landing CONGELATI · baseline `restart_time argos-wa-daemon=50` · iMac clock +2h · path log tg-bot `/tmp/argos-tg-bot-out.log` · deploy SEMPRE su 2 path.
 
