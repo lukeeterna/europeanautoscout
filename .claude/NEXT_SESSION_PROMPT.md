@@ -1,54 +1,41 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-03T19:00:00Z`
-**Sessione**: ispezione READ-ONLY gate #9-B abort-race
+**Generato**: `2026-06-03T20:05:13Z`
+**Sessione**: `c16c6636-f649-4e28-9e83-0484cfe8f869`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
-
-## Risultato ispezione gate #9-B (ABORT race) — VERIFIED
-
-### DB pending_replies (iMac, autoritativo)
-| id | approved | sent | created_at |
-|----|----------|------|------------|
-| reply_dd01fa73 | 0 | 0 | 2026-06-03 16:54:33 |
-| reply_8c0934fb | 0 | 0 | 2026-06-03 16:46:09 |
-| reply_03c0386a | NULL | 0 | 2026-06-03 16:46:03 |
-
-### Log tg-bot: `/tmp/argos-tg-bot-out.log`
-Sequenza per `reply_8c0934fb` (scenario B):
-- `03/06/2026 18:46:11` → `Callback ricevuto: approva:reply_8c0934fb`
-- `03/06/2026 18:46:11` → `Approvata reply reply_8c0934fb — sleep 415s prima dell'invio`
-- `03/06/2026 18:46:13` → `Callback ricevuto: rifiuta:reply_8c0934fb`
-
-Sequenza per `reply_dd01fa73` (altro scenario B):
-- `03/06/2026 18:54:36` → `Callback ricevuto: approva:reply_dd01fa73`
-- `03/06/2026 18:54:36` → `Approvata reply reply_dd01fa73 — sleep 523s`
-- `03/06/2026 18:54:39` → `Callback ricevuto: rifiuta:reply_dd01fa73`
-
-### `/tmp/argos-tg-send.log` ultime righe rilevanti
-```
-[ABORT] Reply reply_8c0934fb non piu approvata (rifiutata durante sleep) — invio annullato
-```
-(reply_dd01fa73: sleep 523s da 18:54:36 iMac = fine ~19:03 iMac, log non ancora presente al momento dell'ispezione — still in-flight o sleep già concluso senza [ABORT]/[SENT] loggato)
-
-### Verdetto gate #9-B
-**VERIFIED parziale:**
-- `reply_8c0934fb`: guard funziona — `[ABORT]` presente, `sent=0`, `approved=0` nel DB. SCENARIO B PASS.
-- `reply_dd01fa73`: sleep 523s + rifiuta arrivato 3s dopo approva → guard ATTESO ma log `[ABORT]` non ancora visibile al momento dell'ispezione (sleep ancora in corso o appena scaduto). Da verificare nella prossima sessione.
-
-### wa-daemon
-- status: `online` | restart_time: `50`
-
-## Prossima sessione
-1. Verificare `reply_dd01fa73` su `/tmp/argos-tg-send.log`: cercare `[ABORT]` o `[SENT]`.
-2. Se `[ABORT]` presente → gate #9 VERIFIED 3/9 (o più, contare da PLAN.md).
-3. Se `[SENT]` → bug residuo: guard non rilegge `approved` dopo sleep per path bottoni inline.
-4. Aggiornare MEMORY.md con stato gate #9-B.
+**Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
+**Last commit**: `ed20716 docs(S234): GATE #9-B PASS runtime → anello #9 VERIFIED 3/9 + prompt Claude AI tasto Rigenera (S235)`
 
 ## Ultimi 5 commit
 ```
+ed20716 docs(S234): GATE #9-B PASS runtime → anello #9 VERIFIED 3/9 + prompt Claude AI tasto Rigenera (S235)
+f363f55 auto-close session — gate #9-B VERIFIED (reply_8c0934fb [ABORT] confermato, reply_dd01fa73 pending)
 df35ed5 docs(S234): bottoni inline VERIFIED runtime — gate #9-B abort-race NON concluso (log [ABORT] non recuperato)
 dbf9856 auto-close session 60f27d69-55c2-4198-88c0-785c6b6c1017 @ 2026-06-03T18:49:37Z
 5ec82fa auto-close session 2915cc48-3617-4a1e-a5b8-da639966fe8d @ 2026-06-03T14:32:30Z
-e94c1a8 docs(S233): handoff — fix Python 3.9 compat (0132f92) + path-split ROOT scoperto
-0132f92 fix(S233): rimuovi annotation union str|None per compat Python 3.9 (iMac tg-bot)
 ```
+
+## File modificati nell'ultimo commit
+```
+M	.claude/NEXT_SESSION_PROMPT.manual.md
+```
+
+## Ultimo prompt utente (estratto)
+```
+[{"tool_use_id":"toolu_01FGiXWc6iKTavBpAgrgbTYT","type":"tool_result","content":[{"type":"text","text":"Ho abbastanza dati per produrre i verdetti. Ecco il JSON richiesto per tutti e 6 i claim:\n\n```json\n[\n  {\n    \"claim\": \"Rate limit free-tier: 50 req/giorno senza crediti, 20 req/min, 1000 req/giorno con ≥$10 crediti\",\n    \"primary_source\": \"claim architetturale interno\",\n    \"secondary_sources\": [\n      {\n        \"url\": \"https://openrouter.zendesk.com/hc/en-us/articles/3
+```
+
+## Ultimi turni assistant
+```
+**Concordo a metà.** I 6 claim API erano verificabili in 5 min su doc ufficiale (fatto) → lì Deep Research sarebbe stato spreco. Ma resta **UN buco genuino** che Claude AI stesso ha ammesso non poggiare su dato ufficiale: *quale modello free è davvero "più forte" per copy di vendita B2B in italiano* — nessuna fonte certifica il ranking, `PREMIUM_PREFERENCE` è giudizio editoriale.
+**Raccomandazione singola**: prima di Gemini Deep Research, chiudi la domanda #1 dell'autocritica (leggo `src/llm_cascade.py`: Gemini usa API Google diretta o OpenRouter?). Se Gemini ha quota propria → il "premium" diventa Gemini 2.5 Pro sulla quota Google e la questione del ranking free OpenRouter **si rimpicciolisce molto**. Solo *dopo*, se serve ancora scegliere tra free generici, Gemini Deep Research sul ranking-qualità giugno 2026 ha senso.
+Procedo a leggere `src/llm_cascade.py` per chiudere il punto #1, o preferisci prima portare questa validazione a Claude.ai per un secondo giro?
+```
+
+## Come riprendere
+
+1. Apri Claude Code da `/Users/macbook/Documents/combaretrovamiauto-enterprise`
+2. Leggi questo file (auto-loaded? dipende da config progetto)
+3. Continua dal punto indicato negli ultimi turni assistant sopra
+
+Se `SESSION_DIRTY.md` esiste in questa stessa cartella, risolvi PRIMA i conflitti.
