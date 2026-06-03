@@ -5,6 +5,37 @@ Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEX
 
 ---
 
+## ✅ S235 — ESITO (2026-06-03): DESIGN "🔄 Rigenera" VALIDATO DATA-DRIVEN → premium = Gemini su API Google (NON OpenRouter). Implementazione = S236.
+
+### Cosa è stato fatto (no codice, solo validazione)
+Output Claude AI sul design rigenera ricevuto + fact-check delegato (`research-fact-checker`, 2+ fonti) sui 6 claim OpenRouter + lettura `src/llm_cascade.py`. Nessuna modifica codice (chiusura @ budget 55%).
+
+### Matrix validazione 6 claim OpenRouter (fonti ufficiali, giugno 2026)
+1. Rate-limit free 50/giorno · 20/min · 1000/giorno con ≥$10 → **CONFIRMED**
+2. Richieste fallite contano verso quota → **UNVERIFIABLE** (1 sola fonte Zendesk) — testare con 1 call
+3. `pricing.prompt == "0"` indica free → **DISPUTED**: `expiration_date` ESISTE, ma `pricing.prompt` è **float non stringa** → `=="0"` sempre False (bug nel codice Claude AI). Fix: `float(price)==0.0`
+4. array `models` = fallback nativo → **CONFIRMED** ma **bug noto**: un 404 FERMA la chain invece di proseguire (proprio il caso `:free` deprecato)
+5. response `model` = modello reale usato → **CONFIRMED**
+6. modello deprecato → 404 "no endpoints found" → **CONFIRMED** (stesso 404 per feature-incompat → parsare body)
+
+### Finding decisivo da `src/llm_cascade.py` (verificato a codice)
+- **Gemini gira su API Google DIRETTA** (`generativelanguage.googleapis.com`): liv.1 `gemini-2.0-flash` (250/giorno), liv.4 `gemini-2.0-flash-lite` (1000/giorno), via `GOOGLE_AI_API_KEY`. **Quota SEPARATA dalle 50/giorno OpenRouter** (liv.3 = `meta-llama/llama-3.3-70b-instruct:free` hardcoded riga 172).
+- **Bug stale scoperto**: docstring riga 9 dichiara OpenRouter free "1000 req/day" → REALTÀ 50/giorno (sovrastima 20×). Non è blocker rigenera ma è un debito-doc.
+- `_call_gemini()` (riga 202) esiste, `requests`-only, no SDK → aggiungere provider premium Gemini = riuso path testato.
+
+### RACCOMANDAZIONE CTO (single, data-grounded) per S236
+**Premium del rigenera = modello reasoning Gemini su API Google diretta, NON un `:free` OpenRouter.** Perché: (1) quota Google separata → no collisione con 50/giorno OpenRouter; (2) infra `_call_gemini` già pronta; (3) cancella i 3 bug verificati OpenRouter (float `=="0"`, 404-ferma-chain, deprecation) + tutta la sezione (b) volatilità del design Claude AI diventa inutile.
+- **TENGO di Claude AI**: tesi "il prompt è la leva ~70%, modello ~30%" (combacia con regola business `communication.md`: conversione da competenza-mercato non persuasione) + re-prompt che inietta motivo-rifiuto+persona+dati reali + log JSONL append-only `{ts,reply_id,archetype,reason,model_used,original}`.
+- **SCARTO**: `refresh_free_catalog()`, `PREMIUM_PREFERENCE` editoriale, discovery OpenRouter.
+- **Floor guard** (se premium non disponibile → NON spacciare cascade per premium) = da tenere.
+
+### GATE IMPLEMENTAZIONE S236 — l'UNICO dato non verificato
+**Quale modello Gemini reasoning è free su API Google a giugno 2026 + quota** (cascade usa `gemini-2.0-flash`; verificare se `gemini-2.5-pro`/`flash` free più forte esiste). WebSearch mirato (NON memoria, vincolo #1). QUI ha senso Gemini Deep Research (ranking-qualità modello, non fatti API già chiusi). Verificato questo → implementare (`ai-engineer`/`backend-architect`), deploy **ENTRAMBI i path** (tg-bot release + daemon ROOT, path-split S233), gate fisico TEST_FOUNDER.
+
+### Vincoli S236: TEST_FOUNDER prima di dealer reali · `image_sanitizer`/landing CONGELATI · baseline `restart_time argos-wa-daemon=50` · iMac clock +2h · path log tg-bot `/tmp/argos-tg-bot-out.log` · deploy SEMPRE su 2 path.
+
+---
+
 ## ✅ S234 — ESITO (2026-06-03): GATE #9-B SCENARIO B = PASS RUNTIME → anello #9 VERIFIED 3/9 (Luke soddisfatto)
 
 ### ✅ FATTO (runtime-verified, R1):
