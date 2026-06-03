@@ -1886,6 +1886,17 @@ def send_telegram_notification(dealer, msg_body, classification,
 
     text = '\n'.join(lines)
 
+    # Bottoni inline accetta/rifiuta
+    _cb_a = f'approva:{reply_id}'
+    _cb_r = f'rifiuta:{reply_id}'
+    if len(_cb_a) <= 64 and len(_cb_r) <= 64:
+        _inline_kb = json.dumps({'inline_keyboard': [[
+            {'text': '✅ Accetta', 'callback_data': _cb_a},
+            {'text': '🚫 Rifiuta', 'callback_data': _cb_r},
+        ]]})
+    else:
+        _inline_kb = None
+
     # Fallback: se Markdown fallisce, invia senza parse_mode
     import urllib.request, urllib.parse as uparse
     url = f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'
@@ -1893,6 +1904,8 @@ def send_telegram_notification(dealer, msg_body, classification,
         payload = {'chat_id': TELEGRAM_CHAT_ID, 'text': text}
         if parse_mode:
             payload['parse_mode'] = parse_mode
+        if _inline_kb:
+            payload['reply_markup'] = _inline_kb
         data = uparse.urlencode(payload).encode()
         try:
             req = urllib.request.Request(url, data=data, method='POST')
@@ -1945,12 +1958,26 @@ def send_telegram_hold(dealer, msg_body, classification,
 
     text = '\n'.join(lines)
 
+    # Bottoni inline per ogni candidato (una riga per reply)
+    kb_rows = []
+    for rid in reply_ids:
+        _cb_a = f'approva:{rid}'
+        _cb_r = f'rifiuta:{rid}'
+        if len(_cb_a) <= 64 and len(_cb_r) <= 64:
+            kb_rows.append([
+                {'text': f'✅ Accetta {rid[:8]}', 'callback_data': _cb_a},
+                {'text': f'🚫 Rifiuta {rid[:8]}', 'callback_data': _cb_r},
+            ])
+    _hold_kb = json.dumps({'inline_keyboard': kb_rows}) if kb_rows else None
+
     import urllib.request, urllib.parse as uparse
     url = f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'
     for parse_mode in ['Markdown', '']:
         payload = {'chat_id': TELEGRAM_CHAT_ID, 'text': text}
         if parse_mode:
             payload['parse_mode'] = parse_mode
+        if _hold_kb:
+            payload['reply_markup'] = _hold_kb
         data = uparse.urlencode(payload).encode()
         try:
             req = urllib.request.Request(url, data=data, method='POST')

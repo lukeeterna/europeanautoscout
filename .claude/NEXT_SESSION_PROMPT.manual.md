@@ -5,6 +5,25 @@ Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEX
 
 ---
 
+## ⏸ S232 — ESITO (2026-06-03, chiusura ordinata @ budget 60%): BOTTONI INLINE IMPLEMENTATI (code-verified) — DEPLOY + GATE #9-B NON ESEGUITI
+**Deliverable 1 (bottoni inline accetta/rifiuta) = IMPLEMENTATO nel repo, `UNVERIFIED-RUNTIME`** (delega rapid-prototyper + verifica CC sui path critici). NON deployato su iMac, NON runtime-testato.
+- **File modificati (repo, NON deployati):** `wa-intelligence/telegram-handler.py` + `wa-intelligence/response-analyzer.py`. `python3 -m py_compile` OK su entrambi.
+- **Cosa fa:**
+  - `telegram-handler.py:143` nuovo helper `make_inline_keyboard(reply_id)` → JSON `{inline_keyboard:[[✅ Accetta `approva:<id>`, 🚫 Rifiuta `rifiuta:<id>`]]}` (guard 64-byte callback_data). `send()` (riga 132) esteso con param `reply_markup`.
+  - `telegram-handler.py:805` polling `allowed_updates` ora `json.dumps(['message','callback_query'])`. `run_daemon` (812-834) nuovo branch `callback_query`: auth chat_id identica al path testo → `answerCallbackQuery` (toglie spinner) → split `data` su `:` → chiama **cmd_approva/cmd_rifiuta esistenti** (no logica duplicata, riusa guard #9) → `send(reply)` conferma. Offset avanza per OGNI update. Branch `message` legacy INTATTO.
+  - `response-analyzer.py:1889` (`send_telegram_notification`, notifica PUSH del gate) + `:1946` (`send_telegram_hold` multi-candidato) → `reply_markup` aggiunto al payload sendMessage, mantenuto in ENTRAMBI i tentativi Markdown/plain. Path PENDING (best_id) eredita i bottoni via `send_telegram_notification`.
+  - `cmd_pending` NON modificato (keyboard è message-level; i bottoni live arrivano sulle notifiche PUSH = quelle del gate). Scelta a basso rischio.
+- **Guard #9 NON toccato** (re-check approved post-sleep `telegram-handler.py:256-264` intatto). `argos-wa-daemon` NON toccato.
+- **Verità #9 invariata: VERIFIED resta 2/9** (#1b: code-verified ≠ chiusura).
+
+### NEXT (S233) — 2 cose in sequenza, gate-packet già armato:
+1. **DEPLOY (delega devops-automator, rsync atomico):** copia i 2 file → `releases/20260527_083951/wa-intelligence/` con backup `.bak-pre-s232`. **Restart SOLO `argos-tg-bot`. NON toccare `argos-wa-daemon`** (deve restare `connected`, baseline `restart_time=50`). Verifica runtime: tg-bot online + daemon connected. NB: i 2 file girano sotto Python 3.13 su iMac (`str | None` annotation OK, confermato S197).
+2. **GATE #9 Scenario B v3 ARMATO (ack-gate + bottoni):** SEED da SIM TEST_FOUNDER `393314928901` → reply_id (verifica DB `approved=NULL,sent=0`) → **tap ✅ Accetta** (bot risponde "✅ approvata — invio tra ~Nmin") → **SUBITO tap 🚫 Rifiuta** → **ATTENDI ack bot "🚫 Reply rifiutata"** (prova revoca eseguita; il tap garantisce consegna col reply_id esatto = fix root-cause harness S231) → attendi fine sleep (max ~12min). **PASS B = NESSUN msg sulla SIM + log `[ABORT]` + `approved=0` + `sent=0` + `restart_time argos-wa-daemon`=50 invariato** (se ≠ → VOID, retry). PASS → **#9 VERIFIED 3/9** + Luke "soddisfatto". Verità = msg fisico sulla SIM (`sent` TAINTED). Vietato re-validare staticamente (#1b).
+
+**Vincoli S233:** TEST_FOUNDER prima di dealer reali · domenica OFF Luke · `image_sanitizer`/landing CONGELATI · baseline `restart_time argos-wa-daemon=50`.
+
+---
+
 ## ⏹ S231 — ESITO (2026-06-03): GATE #9 SCENARIO B **INCONCLUSIVE** (non FAIL guard) → re-run armato + nuova richiesta Luke (bottoni inline)
 **Gate fisico eseguito con Luke** su SIM TEST_FOUNDER `393314928901`, `reply_b785f97b`. Window-integrity OK (`restart_time argos-wa-daemon=50` PRE/POST → **NON-VOID, test valido**).
 - **Esito:** Scenario B **NON passato MA NON è un FAIL del guard** — il guard non è mai stato esercitato.

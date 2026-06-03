@@ -129,11 +129,28 @@ def tg_post(method: str, payload: dict) -> dict:
         return {}
 
 
-def send(text: str, chat_id: str = TELEGRAM_CHAT_ID):
-    return tg_post('sendMessage', {
+def send(text: str, chat_id: str = TELEGRAM_CHAT_ID, reply_markup: str = None):
+    payload = {
         'chat_id':    chat_id,
         'text':       text,
         'parse_mode': 'Markdown',
+    }
+    if reply_markup is not None:
+        payload['reply_markup'] = reply_markup
+    return tg_post('sendMessage', payload)
+
+
+def make_inline_keyboard(reply_id: str) -> str | None:
+    """Ritorna JSON reply_markup con bottoni Accetta/Rifiuta, o None se reply_id troppo lungo."""
+    cb_approva = f'approva:{reply_id}'
+    cb_rifiuta = f'rifiuta:{reply_id}'
+    if len(cb_approva) > 64 or len(cb_rifiuta) > 64:
+        return None
+    return json.dumps({
+        'inline_keyboard': [[
+            {'text': '✅ Accetta', 'callback_data': cb_approva},
+            {'text': '🚫 Rifiuta', 'callback_data': cb_rifiuta},
+        ]]
     })
 
 
@@ -785,12 +802,38 @@ def run_daemon():
             result = tg_post('getUpdates', {
                 'offset':          offset,
                 'timeout':         30,
-                'allowed_updates': 'message',
+                'allowed_updates': json.dumps(['message', 'callback_query']),
             })
             updates = result.get('result', [])
             for upd in updates:
                 offset = upd['update_id'] + 1
                 save_offset(offset)
+
+                # ── branch callback_query (bottoni inline) ──────────
+                cq = upd.get('callback_query')
+                if cq:
+                    cq_id   = cq['id']
+                    data    = cq.get('data', '')
+                    chat_id = str(cq.get('message', {}).get('chat', {}).get('id', TELEGRAM_CHAT_ID))
+                    if chat_id != TELEGRAM_CHAT_ID:
+                        log(f'WARN: callback da chat non autorizzato {chat_id}')
+                        tg_post('answerCallbackQuery', {'callback_query_id': cq_id})
+                        continue
+                    log(f'Callback ricevuto: {data}')
+                    parts  = data.split(':', 1)
+                    action = parts[0] if parts else ''
+                    rid    = parts[1] if len(parts) > 1 else ''
+                    if action == 'approva' and rid:
+                        reply = cmd_approva(rid)
+                    elif action == 'rifiuta' and rid:
+                        reply = cmd_rifiuta(rid)
+                    else:
+                        reply = f'❌ Callback non riconosciuto: `{data}`'
+                    tg_post('answerCallbackQuery', {'callback_query_id': cq_id, 'text': action.capitalize()})
+                    send(reply, chat_id)
+                    continue
+
+                # ── branch message (path testo esistente) ───────────
                 msg = upd.get('message', {})
                 if not msg:
                     continue
