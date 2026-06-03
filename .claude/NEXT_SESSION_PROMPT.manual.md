@@ -1,3 +1,36 @@
+# S236 — Ripartenza
+
+## ✅ S236 — ESITO (2026-06-03): GROUND-TRUTH MODEL-ID CHIUSO (`gemini-2.5-flash`) · IMPLEMENTAZIONE INTERROTTA (agent crash) → spec completo per S237
+
+### Cosa è VERIFICATO A RUNTIME (fatti chiusi da chiamate live, NON da memoria/Deep Research)
+- **Premium del rigenera = `gemini-2.5-flash`** su Google API diretta (`generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$GOOGLE_AI_API_KEY`). Test `generateContent` REALE → risposta OK, `modelVersion: gemini-2.5-flash`. Quota SEPARATA dalle 50/giorno OpenRouter. Upgrade genuino sul liv.1 cascade `gemini-2.0-flash` (`src/llm_cascade.py:158`).
+- **`gemini-2.5-pro` ESCLUSO** — test REALE → `429 RESOURCE_EXHAUSTED` su free key. Listato in ListModels ma NON usabile free. Fatto, non speculazione.
+- **Deep Research NON necessario**: candidato dominante unico per quota+infra → nessun pareggio-qualità da spezzare. (Il blocco "[INCOLLA QUI OUTPUT]" nel prompt S236 era rimasto VUOTO — non blocca per design S235: i FATTI-API vengono dagli endpoint live, il Deep Research serviva solo a rankare ≥2 candidati equivalenti che non esistono.)
+- **OpenRouter live**: nessun `deepseek:free` vivo (candidato S233-1 MORTO, volatilità confermata). 21 `:free` totali; `pricing.prompt` è **stringa `'0'`** sul live (la claim S235 #3 "è float" era ERRATA) — irrilevante perché premium = Gemini.
+- **Quota free 2.5-flash**: `ai.google.dev/rate-limits` NON espone più i numeri free (spostati su dashboard AI Studio auth). NON binding: il rigenera è human-triggered a bassa frequenza; l'esaurimento (429) è coperto dal floor guard. `[UNVERIFIED-NUMERO]` quota esatta — non serve per procedere.
+
+### Scoperta architetturale (input per l'implementazione)
+`pending_replies` (INSERT `response-analyzer.py:1503`) salva SOLO `(id, dealer_id, dealer_name, reply_text, reply_label, approved, sent)` — **NON** archetype né inbound originale. → `cmd_genera` DEVE ri-recuperare inbound+archetype dal DB (`messages`/`conversations`) e ricostruire il prompt via `build_system_prompt` (`response-analyzer.py:448`). Questo è il pezzo da delegare a backend.
+
+### Stato IMPLEMENTAZIONE (delega ai-engineer CRASHATA mid-work, API error dopo 14 tool-use)
+Sul disco c'è SOLO scaffolding (additivo, compila, ripulito da CC della doppia-assegnazione lasciata a metà): `telegram-handler.py:51-62` = costanti `GOOGLE_AI_API_KEY`, `REGEN_GEMINI_URL`, `REGEN_GEMINI_MODEL='gemini-2.5-flash'`, `REGEN_LOG_PATH`. **NULLA d'altro**: niente `cmd_genera`, niente 3° bottone, niente branch callback `genera`, niente JSONL, niente caller. **VERIFIED #9 invariato (no impatto). NON deployato.**
+
+### NEXT (S237) — implementare con spec COMPLETO qui sotto (delega ai-engineer/backend-architect, edit-only no deploy), POI deploy 2 path + gate fisico
+SPEC `cmd_genera(reply_id)` (Python **3.9** compat su path tg-bot — VIETATO `str|None` PEP 604, usa `Optional`; solo `requests`):
+1. Legge riga `pending_replies` (dealer_id, dealer_name, reply_text orig, reply_label).
+2. Re-recupera inbound dealer + archetype dal DB (`messages`/`conversations` in `dealer_network.sqlite`; archetype via classifier/`build_system_prompt`). Ricostruisce system+user prompt; inietta "reply precedente respinta dall'operatore → produci versione più forte/diversa, NON identica".
+3. Chiama premium `gemini-2.5-flash` (riusa pattern `src/llm_cascade.py:_call_gemini` riga 202, requests-only).
+4. **Floor guard**: premium fallisce (429/404/timeout) → NON spacciare fallback debole per premium; avvisa operatore "rigenera premium non disponibile (motivo)" + LASCIA reply invariata. 404 esplicito.
+5. Successo: `UPDATE pending_replies SET reply_text=<nuova>, approved=NULL, sent=0 WHERE id=?` + ri-notifica con keyboard COMPLETA (✅/🚫/🔄).
+6. **JSONL append-only** `wa-intelligence/regenerate_log.jsonl` (path già in `REGEN_LOG_PATH`): `{"ts":iso8601,"reply_id":...,"archetype":...,"reason":"operator_rejected_no_reason","model_used":"gemini-2.5-flash","original":<reply precedente>}`. (Cattura testuale del `reason` via force_reply = enhancement futuro, NON ora.)
+7. Aggiungere 3° bottone `genera:<id>` in `make_inline_keyboard` (`telegram-handler.py:143`) + branch `action=='genera'` nel callback handler (`telegram-handler.py:826-834`) che chiama `cmd_genera`.
+- **Deploy ENTRAMBI i path (path-split S233)**: `telegram-handler.py` → release path `releases/.../wa-intelligence/` (tg-bot gira da lì); se tocchi `response-analyzer.py` → anche ROOT `~/Documents/app-antigravity-auto/wa-intelligence/` (daemon spawna da ROOT). Restart SOLO `argos-tg-bot`, NON `argos-wa-daemon` (baseline `restart_time=50`).
+- **Gate fisico TEST_FOUNDER 393314928901** (human-gated, MAI auto-VERIFIED): SEED da SIM → notifica con 🔄 → tap Rigenera → nuova reply premium arriva nel bot con keyboard → approva → arriva sulla SIM. iMac clock +2h · log tg-bot `/tmp/argos-tg-bot-out.log`.
+
+### Vincoli S237: TEST_FOUNDER prima di dealer reali · `image_sanitizer`/landing CONGELATI · `restart_time argos-wa-daemon`=50 · iMac clock +2h · deploy 2 path.
+
+---
+
 # S226 — Ripartenza (riscritto a mano da CC, supersede stub auto-gen + handoff S225)
 
 **Branch**: `s210/audit-master-plan` · **Generato**: 2026-06-02 · **Last commit**: `f63a1ee` (locale, NON deployato)

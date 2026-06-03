@@ -48,6 +48,14 @@ WA_CLIENT_ID     = os.environ.get('WA_CLIENT_ID', 'argos-business')
 LOG_FILE         = '/tmp/argos-tg-handler.log'
 POLL_OFFSET_FILE = '/tmp/argos-tg-offset.txt'
 
+# S235: Rigenera premium — Google Gemini 2.5-flash su API diretta
+GOOGLE_AI_API_KEY   = os.environ.get('GOOGLE_AI_API_KEY', '')
+REGEN_GEMINI_URL    = 'https://generativelanguage.googleapis.com/v1beta/models'
+REGEN_GEMINI_MODEL  = 'gemini-2.5-flash'
+REGEN_LOG_PATH = os.path.normpath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'regenerate_log.jsonl'
+))
+
 # Anti-ban sleep range (secondi)
 SLEEP_MIN, SLEEP_MAX = 90, 720
 
