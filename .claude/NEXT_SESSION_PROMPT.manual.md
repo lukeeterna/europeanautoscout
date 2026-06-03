@@ -5,6 +5,29 @@ Questo file riscrive lo stub auto-generato. Fonte ricca precedente: `.claude/NEX
 
 ---
 
+## ⏸ S233 — ESITO (2026-06-03, chiusura @ budget 60%): DEPLOY FIXATO SUL PATH GIUSTO (path-split ROOT scoperto) — GATE #9-B NON ESEGUITO, ORA SBLOCCATO
+**Due finding strutturali risolti, gate B non ancora eseguito. VERIFIED resta 2/9.**
+
+### FATTO (runtime-verified, R1):
+1. **Fix compat Python 3.9 (commit `0132f92`).** Assunto handoff S233 "tg-bot gira su 3.13" SMENTITO a runtime: `argos-tg-bot` gira con `--interpreter python3` → **Python 3.9** (CommandLineTools, doc linea 23 telegram-handler.py). La syntax `str | None` (PEP 604, 3.10+) di S232 crashava all'import = **crash loop osservato**. Fix: rimossa annotation di ritorno cosmetica su `make_inline_keyboard` (telegram-handler.py:143). Deploy release `20260527_083951` verificato: tg-bot online STABILE (uptime cresce, no crash loop), no traceback, `argos-wa-daemon` ↺=50 invariato + connected.
+2. **PATH-SPLIT CODICE scoperto (stessa classe di C-DB-SPLIT S226/S228, ora su file .py).** La notifica reply NON mostrava i bottoni anche DOPO deploy. Root cause: `wa-daemon.js:40` `ANALYZER_SCRIPT = path.join(__dirname,'response-analyzer.py')` + cwd daemon (PID 78295) = **`~/Documents/app-antigravity-auto/wa-intelligence/` (ROOT)**, NON il release path dove avevo deployato. Il daemon spawna la copia ROOT (per-inbound, no restart). **Fix:** `response-analyzer.py` copiato su ROOT (`md5 1a0243ec` match, backup `.bak-pre-s233` 114700B verificato). I bottoni inline ESISTONO già nel codice (response-analyzer.py:1889-1908, `send_telegram_notification`) → ora sul path giusto.
+   - **DISALLINEAMENTO PATH da sapere:** `argos-tg-bot` gira dal **release path** `releases/20260527_083951/wa-intelligence/` (callback_query handler lì = OK). `argos-wa-daemon` gira da **ROOT** e spawna response-analyzer da ROOT. Due root diverse → un deploy completo deve toccare ENTRAMBI i path per i file rilevanti.
+
+### `UNVERIFIED-RUNTIME` (NON ho potuto verificare a runtime — budget):
+- I bottoni NON sono ancora stati VISTI da Luke su una notifica reale (il fix ROOT è arrivato dopo l'ultima notifica delle 16:23, che era ancora la copia vecchia). **Prossimo inbound dovrebbe renderli.**
+- Gate #9 Scenario B NON eseguito.
+
+### NEXT (S234) — verifica bottoni + GATE #9-B (apertura ~15 min):
+1. **VERIFICA BOTTONI (30s):** Luke manda WA dalla SIM `393314928901` → ARGOS Business `3281536308` → la notifica TG deve ora mostrare **✅ Accetta / 🚫 Rifiuta** (bottoni, non testo `/rifiuta`). Se SÌ → fix path confermato runtime.
+2. **GATE #9-B v3 (ack-gate + bottoni):** SEED → reply_id (DB ROOT: `approved=NULL,sent=0`) → tap **✅ Accetta** (bot: "approvata, invio tra ~Nmin") → SUBITO tap **🚫 Rifiuta** → ATTENDI ack bot `🚫 Reply rifiutata` → attendi fine sleep (~12min). **PASS B = NESSUN msg sulla SIM + log `[ABORT]` + `approved=0` + `sent=0` + `restart_time argos-wa-daemon`=50 invariato** → **#9 VERIFIED 3/9** + Luke "soddisfatto". Verità = msg fisico sulla SIM (`sent` TAINTED). Vietato re-validare staticamente (#1b).
+
+### 🆕 BACKLOG S233-1 (richiesta founder, NUOVO SCOPE — non implementato): terzo bottone "🔄 Genera nuova reply"
+Luke: vuole un terzo bottone inline che **rigeneri la reply usando un altro LLM** (potenzialmente migliore) invece di solo accetta/rifiuta. Richiede: nuovo `callback_data` `genera:<id>` + handler in telegram-handler.py run_daemon che ri-invoca la generazione reply (response-analyzer / cascade LLM) e ri-notifica. Scope > gate B → valutare dopo che #9-B è VERIFIED.
+
+### Vincoli S234: TEST_FOUNDER prima di dealer reali · `image_sanitizer`/landing CONGELATI · baseline `restart_time argos-wa-daemon=50` · rollback response-analyzer ROOT = `cp response-analyzer.py.bak-pre-s233 response-analyzer.py` (no restart).
+
+---
+
 ## ⏸ S232 — ESITO (2026-06-03, chiusura ordinata @ budget 60%): BOTTONI INLINE IMPLEMENTATI (code-verified) — DEPLOY + GATE #9-B NON ESEGUITI
 **Deliverable 1 (bottoni inline accetta/rifiuta) = IMPLEMENTATO nel repo, `UNVERIFIED-RUNTIME`** (delega rapid-prototyper + verifica CC sui path critici). NON deployato su iMac, NON runtime-testato.
 - **File modificati (repo, NON deployati):** `wa-intelligence/telegram-handler.py` + `wa-intelligence/response-analyzer.py`. `python3 -m py_compile` OK su entrambi.
