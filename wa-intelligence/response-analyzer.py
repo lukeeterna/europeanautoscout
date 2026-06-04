@@ -1886,14 +1886,20 @@ def send_telegram_notification(dealer, msg_body, classification,
 
     text = '\n'.join(lines)
 
-    # Bottoni inline accetta/rifiuta
+    # Bottoni inline accetta/rifiuta/rigenera
     _cb_a = f'approva:{reply_id}'
     _cb_r = f'rifiuta:{reply_id}'
-    if len(_cb_a) <= 64 and len(_cb_r) <= 64:
-        _inline_kb = json.dumps({'inline_keyboard': [[
-            {'text': '✅ Accetta', 'callback_data': _cb_a},
-            {'text': '🚫 Rifiuta', 'callback_data': _cb_r},
-        ]]})
+    _cb_g = f'genera:{reply_id}'
+    if len(_cb_a) <= 64 and len(_cb_r) <= 64 and len(_cb_g) <= 64:
+        _inline_kb = json.dumps({'inline_keyboard': [
+            [
+                {'text': '✅ Accetta', 'callback_data': _cb_a},
+                {'text': '🚫 Rifiuta', 'callback_data': _cb_r},
+            ],
+            [
+                {'text': '🔄 Rigenera', 'callback_data': _cb_g},
+            ],
+        ]})
     else:
         _inline_kb = None
 
@@ -1963,10 +1969,14 @@ def send_telegram_hold(dealer, msg_body, classification,
     for rid in reply_ids:
         _cb_a = f'approva:{rid}'
         _cb_r = f'rifiuta:{rid}'
-        if len(_cb_a) <= 64 and len(_cb_r) <= 64:
+        _cb_g = f'genera:{rid}'
+        if len(_cb_a) <= 64 and len(_cb_r) <= 64 and len(_cb_g) <= 64:
             kb_rows.append([
                 {'text': f'✅ Accetta {rid[:8]}', 'callback_data': _cb_a},
                 {'text': f'🚫 Rifiuta {rid[:8]}', 'callback_data': _cb_r},
+            ])
+            kb_rows.append([
+                {'text': f'🔄 Rigenera {rid[:8]}', 'callback_data': _cb_g},
             ])
     _hold_kb = json.dumps({'inline_keyboard': kb_rows}) if kb_rows else None
 
