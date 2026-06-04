@@ -23,6 +23,8 @@ NB iMac clock +2h · log tg-bot /tmp/argos-tg-bot-out.log · rollback = cp teleg
 ```
 - **Pre-req runtime da verificare nel gate**: `GOOGLE_AI_API_KEY` deve essere nell'env di `argos-tg-bot` su iMac (se manca → cmd_genera ritorna "GOOGLE_AI_API_KEY mancante" senza chiamare). Se il gate mostra quel messaggio → aggiungere la chiave all'env PM2 del tg-bot e restart.
 
+### S237b FIX (2026-06-04, gate-discovered): notifica PUSH mostrava solo 2 bottoni — il 3° 🔄 va aggiunto in response-analyzer.py (che costruisce la SUA keyboard, NON usa make_inline_keyboard). FATTO: response-analyzer.py:1889-1902 (send_telegram_notification) + 1969-1981 (send_telegram_hold) ora emettono [[Accetta,Rifiuta],[Rigenera]] con guard 64b. Deploy ROOT+release (md5 10620c26), NO restart (daemon respawna per-inbound). reply_d752cfb5 seedato PRE-fix NON ha il bottone — serve SEED NUOVO dalla SIM per la notifica a 3 bottoni.
+
 ### Vincoli S238: TEST_FOUNDER prima di dealer reali · `image_sanitizer`/landing CONGELATI · `restart_time argos-wa-daemon`=50 · iMac clock +2h.
 
 ---
