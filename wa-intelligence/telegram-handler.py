@@ -149,16 +149,22 @@ def send(text: str, chat_id: str = TELEGRAM_CHAT_ID, reply_markup: str = None):
 
 
 def make_inline_keyboard(reply_id: str):
-    """Ritorna JSON reply_markup con bottoni Accetta/Rifiuta, o None se reply_id troppo lungo."""
+    """Ritorna JSON reply_markup con bottoni Accetta/Rifiuta/Rigenera, o None se reply_id troppo lungo."""
     cb_approva = f'approva:{reply_id}'
     cb_rifiuta = f'rifiuta:{reply_id}'
-    if len(cb_approva) > 64 or len(cb_rifiuta) > 64:
+    cb_genera  = f'genera:{reply_id}'
+    if len(cb_approva) > 64 or len(cb_rifiuta) > 64 or len(cb_genera) > 64:
         return None
     return json.dumps({
-        'inline_keyboard': [[
-            {'text': '✅ Accetta', 'callback_data': cb_approva},
-            {'text': '🚫 Rifiuta', 'callback_data': cb_rifiuta},
-        ]]
+        'inline_keyboard': [
+            [
+                {'text': '✅ Accetta', 'callback_data': cb_approva},
+                {'text': '🚫 Rifiuta', 'callback_data': cb_rifiuta},
+            ],
+            [
+                {'text': '🔄 Rigenera', 'callback_data': cb_genera},
+            ],
+        ]
     })
 
 
@@ -396,6 +402,151 @@ def cmd_rifiuta(reply_id: str) -> str:
         [reply_id]
     )
     return f'🚫 Reply `{reply_id}` rifiutata. Nessun messaggio inviato.'
+
+
+def cmd_genera(reply_id: str) -> str:
+    """Rigenera la reply con Gemini 2.5-flash (modello premium diretto Google).
+
+    S236: terzo bottone HITL. Sostituisce reply_text in pending_replies,
+    re-notifica operatore con keyboard completa. Floor guard: se premium
+    fallisce lascia riga INVARIATA e restituisce errore operatore.
+    """
+    import re as _re
+    import importlib.util as _ilu
+
+    if not _re.match(r'^[a-zA-Z0-9_\-]+$', reply_id):
+        return f'❌ Formato reply_id non valido: `{reply_id}`'
+
+    # 1. Leggi pending_replies
+    rows = db_query('SELECT * FROM pending_replies WHERE id = ?', [reply_id])
+    if not rows:
+        return f'❌ Reply ID non trovato: `{reply_id}`'
+    r = rows[0]
+    if r.get('sent') == 1:
+        return f'⚠️ Reply `{reply_id}` già inviata — impossibile rigenerare.'
+
+    dealer_id    = r.get('dealer_id', '')
+    dealer_name  = r.get('dealer_name', '')
+    prev_reply   = r.get('reply_text', '')
+    reply_label  = r.get('reply_label', 'UNKNOWN')
+
+    # 2. Recupera inbound più recente e archetipo dal DB
+    archetype   = 'DEFAULT'
+    inbound_msg = ''
+    conv_rows = db_query(
+        'SELECT persona_type FROM conversations WHERE dealer_id = ? LIMIT 1',
+        [dealer_id]
+    )
+    if conv_rows:
+        archetype = conv_rows[0].get('persona_type') or 'DEFAULT'
+
+    msg_rows = db_query(
+        "SELECT body FROM messages WHERE dealer_id = ? AND direction = 'INBOUND' ORDER BY timestamp_it DESC LIMIT 1",
+        [dealer_id]
+    )
+    if msg_rows:
+        inbound_msg = msg_rows[0].get('body', '')
+
+    # 3. Costruisci system + user prompt.
+    # Riuso build_system_prompt via importlib: più sicuro che duplicare 30+ righe PROMPT_MODULES.
+    # Il file ha trattino → non importabile direttamente.
+    system_prompt = ''
+    try:
+        _ra_path = os.path.normpath(os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), 'response-analyzer.py'
+        ))
+        _spec = _ilu.spec_from_file_location('response_analyzer', _ra_path)
+        _mod  = _ilu.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+        system_prompt = _mod.build_system_prompt(archetype=archetype)
+    except Exception as _e:
+        log(f'[cmd_genera] importlib build_system_prompt fallito: {_e} — uso fallback inline')
+        system_prompt = (
+            'Sei Luca Ferretti, scout auto B2B. Rispondi in italiano, max 5 righe, '
+            'tono diretto professionale, MAI menzionare ARGOS/AI/piattaforma.'
+        )
+
+    regen_instruction = (
+        '\n\n<regen_instruction>\n'
+        'La risposta precedente è stata RIFIUTATA dall\'operatore. '
+        'Produci una versione DIVERSA, più FORTE e persuasiva. '
+        'NON ripetere il testo precedente. Sii più specifico e diretto.\n'
+        f'Testo precedente (da NON ripetere): {prev_reply}\n'
+        '</regen_instruction>'
+    )
+    system_prompt_full = system_prompt + regen_instruction
+
+    user_message = inbound_msg if inbound_msg else f'Dealer {dealer_name} — genera reply step {reply_label}'
+
+    # 4. Chiamata Gemini 2.5-flash — urllib (già importato, zero nuove dipendenze)
+    if not GOOGLE_AI_API_KEY:
+        return '⚠️ Rigenera premium non disponibile (GOOGLE_AI_API_KEY mancante)'
+
+    url = f'{REGEN_GEMINI_URL}/{REGEN_GEMINI_MODEL}:generateContent?key={GOOGLE_AI_API_KEY}'
+    payload_bytes = json.dumps({
+        'systemInstruction': {'parts': [{'text': system_prompt_full}]},
+        'contents': [{'role': 'user', 'parts': [{'text': user_message}]}],
+        'generationConfig': {'maxOutputTokens': 512, 'temperature': 0.85},
+    }).encode('utf-8')
+
+    new_text = ''
+    try:
+        req = urllib.request.Request(
+            url,
+            data=payload_bytes,
+            headers={'Content-Type': 'application/json'},
+            method='POST',
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+        new_text = data['candidates'][0]['content']['parts'][0]['text'].strip()
+    except urllib.error.HTTPError as _he:
+        body_snip = ''
+        try:
+            body_snip = _he.read(200).decode('utf-8', errors='replace')
+        except Exception:
+            pass
+        if _he.code == 429:
+            return '⚠️ Rigenera premium non disponibile (quota Gemini esaurita — riprova più tardi)'
+        if _he.code == 404:
+            return f'⚠️ Rigenera premium non disponibile (modello {REGEN_GEMINI_MODEL} non trovato — 404)'
+        return f'⚠️ Rigenera premium non disponibile (HTTP {_he.code}: {body_snip[:120]})'
+    except Exception as _e:
+        return f'⚠️ Rigenera premium non disponibile ({type(_e).__name__}: {_e})'
+
+    if not new_text:
+        return '⚠️ Rigenera premium non disponibile (risposta vuota dal modello)'
+
+    # 5. Aggiorna DB e re-notifica operatore
+    db_exec(
+        'UPDATE pending_replies SET reply_text = ?, approved = NULL, sent = 0 WHERE id = ?',
+        [new_text, reply_id]
+    )
+    keyboard = make_inline_keyboard(reply_id)
+    send(
+        f'🔄 *Reply rigenerata* (premium Gemini) per `{reply_id}`\n\n'
+        f'_{dealer_name}_\n\n'
+        f'{new_text[:400]}{"…" if len(new_text) > 400 else ""}',
+        reply_markup=keyboard,
+    )
+
+    # 6. JSONL append-only audit log
+    log_entry = json.dumps({
+        'ts':          datetime.now(TIMEZONE).isoformat(),
+        'reply_id':    reply_id,
+        'archetype':   archetype,
+        'reason':      'operator_rejected_no_reason',
+        'model_used':  REGEN_GEMINI_MODEL,
+        'original':    prev_reply,
+    }, ensure_ascii=False)
+    try:
+        with open(REGEN_LOG_PATH, 'a', encoding='utf-8') as _lf:
+            _lf.write(log_entry + '\n')
+    except Exception as _le:
+        log(f'[cmd_genera] JSONL log FAILED: {_le}')
+
+    snippet = new_text[:80].replace('\n', ' ')
+    return f'✅ Rigenera OK — reply `{reply_id}` aggiornata.\n_Snippet_: {snippet}…'
 
 
 def cmd_status() -> str:
@@ -835,6 +986,8 @@ def run_daemon():
                         reply = cmd_approva(rid)
                     elif action == 'rifiuta' and rid:
                         reply = cmd_rifiuta(rid)
+                    elif action == 'genera' and rid:
+                        reply = cmd_genera(rid)
                     else:
                         reply = f'❌ Callback non riconosciuto: `{data}`'
                     tg_post('answerCallbackQuery', {'callback_query_id': cq_id, 'text': action.capitalize()})

@@ -1,3 +1,32 @@
+# S237 — Ripartenza
+
+## ✅ S237 — ESITO (2026-06-04): "🔄 Rigenera" IMPLEMENTATO + DEPLOYATO (code-verified, daemon-safe) → resta SOLO il GATE FISICO human-gated
+
+### FATTO (delega ai-engineer impl + devops-automator deploy)
+- **`cmd_genera(reply_id)` implementato** in `wa-intelligence/telegram-handler.py:407-549` (Python 3.9 compat — niente PEP 604, `py_compile` OK locale+remoto). Spec 7-punti rispettato:
+  1. Legge `pending_replies` (rifiuta se `sent==1`). 2. Re-recupera inbound da `messages` (`direction='INBOUND' ORDER BY timestamp_it DESC LIMIT 1`, cols verificate vs response-analyzer.py:1152) + archetipo da `conversations.persona_type`. 3. Ricostruisce system prompt via `build_system_prompt(archetype=...)` (riuso importlib `spec_from_file_location` su response-analyzer.py; fallback inline 3 righe se import fallisce) + inietta `<regen_instruction>` "precedente RIFIUTATA → versione diversa/più forte, NON ripetere". 4. Chiama `gemini-2.5-flash` via `urllib` (zero nuove dep), `maxOutputTokens=512 temp=0.85`. 5. **Floor guard**: 429→"quota esaurita", 404→"modello non trovato", altro HTTP/timeout/vuoto → messaggio operatore + **riga DB INVARIATA** (no fallback spacciato per premium). 6. Successo: `UPDATE reply_text=?, approved=NULL, sent=0` + re-notifica con keyboard COMPLETA. 7. JSONL append-only `wa-intelligence/regenerate_log.jsonl` (`{ts,reply_id,archetype,reason:'operator_rejected_no_reason',model_used,original}`).
+- **3° bottone** `🔄 Rigenera`→`genera:<id>` aggiunto in `make_inline_keyboard` (riga 155/165, guard 64-byte) + branch `elif action=='genera'` nel callback handler (riga ~989).
+- **HITL guard #9 NON toccato** (cmd_approva/cmd_rifiuta intatti). VERIFIED #9 invariato.
+- **DEPLOY (devops-automator, daemon-safe):** telegram-handler.py → release `releases/20260527_083951/wa-intelligence/` + ROOT (md5 `81c48ab8b3d9461a35dc44988fa942ce` identico su entrambi+locale), backup `.bak-pre-s237` su entrambi i path. Remote py_compile OK (3.9). **Restart SOLO `argos-tg-bot`** (online, no crash-loop, no traceback). **`argos-wa-daemon` restart_time 50→50 INVARIATO + connected** (window-integrity OK, non-VOID).
+
+### NEXT (S238) — UNICO lavoro residuo = GATE FISICO human-gated (R1: MAI auto-VERIFIED). PACKET pronto:
+```
+PRE (CC, read-only devops): pm2 jlist → restart_time argos-wa-daemon (atteso 50) · tail /tmp/argos-tg-bot-out.log
+SEED (Luke ~1min): WA dalla SIM TEST_FOUNDER 393314928901 → ARGOS Business 3281536308 → annota reply_id dalla notifica TG (deve mostrare 3 bottoni: ✅ 🚫 🔄)
+ESEGUI: tap 🔄 Rigenera
+  PASS = arriva nel bot una NUOVA reply (testo diverso dal precedente) con keyboard COMPLETA (✅/🚫/🔄)
+         + riga in wa-intelligence/regenerate_log.jsonl (model_used=gemini-2.5-flash)
+         + DB pending_replies: reply_text cambiato, approved=NULL, sent=0
+  FAIL-soft atteso se quota Gemini esaurita = msg "⚠️ Rigenera premium non disponibile (quota Gemini esaurita)" + riga DB INVARIATA (questo è CORRETTO, non un bug — è il floor guard)
+POI (chiude il ciclo): tap ✅ Accetta sulla reply rigenerata → arriva sulla SIM
+NB iMac clock +2h · log tg-bot /tmp/argos-tg-bot-out.log · rollback = cp telegram-handler.py.bak-pre-s237 su ENTRAMBI i path + pm2 restart argos-tg-bot
+```
+- **Pre-req runtime da verificare nel gate**: `GOOGLE_AI_API_KEY` deve essere nell'env di `argos-tg-bot` su iMac (se manca → cmd_genera ritorna "GOOGLE_AI_API_KEY mancante" senza chiamare). Se il gate mostra quel messaggio → aggiungere la chiave all'env PM2 del tg-bot e restart.
+
+### Vincoli S238: TEST_FOUNDER prima di dealer reali · `image_sanitizer`/landing CONGELATI · `restart_time argos-wa-daemon`=50 · iMac clock +2h.
+
+---
+
 # S236 — Ripartenza
 
 ## ✅ S236 — ESITO (2026-06-03): GROUND-TRUTH MODEL-ID CHIUSO (`gemini-2.5-flash`) · IMPLEMENTAZIONE INTERROTTA (agent crash) → spec completo per S237
