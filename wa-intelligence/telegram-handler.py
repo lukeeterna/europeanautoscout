@@ -145,7 +145,37 @@ def send(text: str, chat_id: str = TELEGRAM_CHAT_ID, reply_markup: str = None):
     }
     if reply_markup is not None:
         payload['reply_markup'] = reply_markup
-    return tg_post('sendMessage', payload)
+    # S237c: fallback Markdown→plain se HTTP 400 (caratteri speciali tipo { [ " _)
+    # Stesso pattern di response-analyzer.py. reply_markup preservato in entrambi i tentativi.
+    import urllib.error as _ue
+    data = urllib.parse.urlencode(payload).encode()
+    url  = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
+    try:
+        req  = urllib.request.Request(url, data=data, method='POST')
+        resp = urllib.request.urlopen(req, timeout=40)
+        return json.loads(resp.read())
+    except _ue.HTTPError as _he:
+        if _he.code == 400:
+            log(f'[send] Markdown fallito HTTP 400 — retry plain text')
+            payload_plain = {
+                'chat_id': chat_id,
+                'text':    text,
+            }
+            if reply_markup is not None:
+                payload_plain['reply_markup'] = reply_markup
+            try:
+                data2 = urllib.parse.urlencode(payload_plain).encode()
+                req2  = urllib.request.Request(url, data=data2, method='POST')
+                resp2 = urllib.request.urlopen(req2, timeout=40)
+                return json.loads(resp2.read())
+            except Exception as _e2:
+                log(f'[send] retry plain fallito: {_e2}')
+                return {}
+        log(f'[send] HTTP error {_he.code}: {_he}')
+        return {}
+    except Exception as _e:
+        log(f'[send] error: {_e}')
+        return {}
 
 
 def make_inline_keyboard(reply_id: str):
@@ -486,7 +516,11 @@ def cmd_genera(reply_id: str) -> str:
     payload_bytes = json.dumps({
         'systemInstruction': {'parts': [{'text': system_prompt_full}]},
         'contents': [{'role': 'user', 'parts': [{'text': user_message}]}],
-        'generationConfig': {'maxOutputTokens': 512, 'temperature': 0.85},
+        'generationConfig': {
+            'maxOutputTokens': 800,
+            'temperature': 0.85,
+            'thinkingConfig': {'thinkingBudget': 0},
+        },
     }).encode('utf-8')
 
     new_text = ''
