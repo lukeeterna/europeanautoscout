@@ -25,6 +25,20 @@ NB iMac clock +2h · log tg-bot /tmp/argos-tg-bot-out.log · rollback = cp teleg
 
 ### S237b FIX (2026-06-04, gate-discovered): notifica PUSH mostrava solo 2 bottoni — il 3° 🔄 va aggiunto in response-analyzer.py (che costruisce la SUA keyboard, NON usa make_inline_keyboard). FATTO: response-analyzer.py:1889-1902 (send_telegram_notification) + 1969-1981 (send_telegram_hold) ora emettono [[Accetta,Rifiuta],[Rigenera]] con guard 64b. Deploy ROOT+release (md5 10620c26), NO restart (daemon respawna per-inbound). reply_d752cfb5 seedato PRE-fix NON ha il bottone — serve SEED NUOVO dalla SIM per la notifica a 3 bottoni.
 
+### ⚠️ S237c BLOCKER (2026-06-04, gate-discovered RUNTIME) — il 🔄 callback FUNZIONA ma il send fallisce HTTP 400 Markdown. FIX = primo lavoro S238.
+**Gate fisico eseguito.** Notifica HOLD (`send_telegram_hold`) ha mostrato i 3 bottoni su `reply_820392ee` ✓. Luke tap 🔄 → spinner sparito, **nessuna nuova reply visibile**.
+**ROOT CAUSE (log `/tmp/argos-tg-bot-out.log`, iMac time):**
+```
+13:18:36 Callback ricevuto: genera:reply_820392ee   ← branch genera OK, cmd_genera invocato
+13:18:39 TG error [sendMessage]: HTTP Error 400: Bad Request
+13:18:40 TG error [sendMessage]: HTTP Error 400: Bad Request
+```
+- Il callback `genera` e `cmd_genera` PARTONO (branch deployato OK). I 2 `send()` (la re-notifica con keyboard DENTRO cmd_genera:526 + il return-confirmation `send(reply,chat_id)` nel callback handler) falliscono entrambi **HTTP 400**.
+- **Causa**: `send()` (telegram-handler.py:140) usa SEMPRE `parse_mode:'Markdown'`. Il testo rigenerato AMBRA (`{"messages":[...]}` con `{` `[` `"` `_`) e lo `_Snippet_` rompono il parser Markdown legacy → Telegram 400. `response-analyzer.py` ha GIÀ il fallback Markdown→plain (S232); `send()` di telegram-handler NO.
+- **`cmd_genera` PROBABILMENTE è arrivato a buon fine sul DB** (UPDATE+JSONL avvengono PRIMA del send fallito): **verificare in apertura S238** `SELECT reply_text,approved,sent FROM pending_replies WHERE id='reply_820392ee'` (iMac ROOT DB) + `tail wa-intelligence/regenerate_log.jsonl`. Se reply_text è cambiato + c'è la riga JSONL con `model_used=gemini-2.5-flash` → **Gemini premium FUNZIONA, fallisce SOLO la consegna/render**. Sarebbe un partial-VERIFIED forte (chiamata premium provata viva).
+**FIX SPEC S238 (piccolo, ~15 min, edit-only poi deploy 2 path):** aggiungere a `send()` (telegram-handler.py:140) un fallback Markdown→plain: su risposta non-ok / 400, ri-tentare lo stesso payload SENZA `parse_mode` (mirror del pattern già in response-analyzer.py). Beneficia anche le conferme di cmd_approva che incorporano `_{reply_text}_`. NON cambiare la logica callback/guard #9. Poi deploy telegram-handler.py su release+ROOT (path-split), restart SOLO argos-tg-bot, ri-eseguire il gate (SEED nuovo → 🔄 → la nuova reply DEVE arrivare).
+**GOOGLE_AI_API_KEY**: NON è emerso il messaggio "API_KEY mancante" → la chiave È nell'env del tg-bot (altrimenti cmd_genera sarebbe uscito prima del send). Pre-req risolto implicitamente.
+
 ### Vincoli S238: TEST_FOUNDER prima di dealer reali · `image_sanitizer`/landing CONGELATI · `restart_time argos-wa-daemon`=50 · iMac clock +2h.
 
 ---
