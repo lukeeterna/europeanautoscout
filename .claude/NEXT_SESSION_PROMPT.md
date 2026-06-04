@@ -1,31 +1,41 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-04T12:00:00Z`
-**Sessione**: `s237b-rigenera-button`
+**Generato**: `2026-06-04T11:12:05Z`
+**Sessione**: `dc7ed4f7-fb71-440a-95c7-bdaf66bfb1d3`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
+**Commit auto**: committed: aae273a
+**Last commit**: `aae273a auto-close session dc7ed4f7-fb71-440a-95c7-bdaf66bfb1d3 @ 2026-06-04T11:12:05Z`
 
-## Fix applicato questa sessione (S237b)
+## Ultimi 5 commit
+```
+aae273a auto-close session dc7ed4f7-fb71-440a-95c7-bdaf66bfb1d3 @ 2026-06-04T11:12:05Z
+bc9e76c fix(S237b): 3° bottone 🔄 Rigenera nelle notifiche PUSH (response-analyzer.py)
+93ef283 fix(S237b): add Rigenera button to response-analyzer.py HITL keyboard
+d0c9f6a auto-close session dc7ed4f7-fb71-440a-95c7-bdaf66bfb1d3 @ 2026-06-04T11:02:50Z
+fe4ef18 feat(S237): cmd_genera 🔄 Rigenera premium (gemini-2.5-flash) + deploy daemon-safe
+```
 
-Aggiunto bottone 🔄 Rigenera (`genera:<id>`) alla notifica Telegram HITL in `response-analyzer.py`.
+## File modificati nell'ultimo commit
+```
+M	vos-out/decisions.jsonl
+```
 
-**File modificato**: `wa-intelligence/response-analyzer.py`
-- Riga ~1889 (`send_telegram_notification`): inline_keyboard ora [[Accetta, Rifiuta],[Rigenera]] — 2 righe
-- Riga ~1961 (`send_telegram_hold`): per ogni `rid` nel loop, aggiunge riga [Rigenera rid[:8]] dopo riga [Accetta, Rifiuta]
+## Ultimo prompt utente (estratto)
+```
+[{"tool_use_id":"toolu_01R5JYwVfooyq5nLK9pvz5KP","type":"tool_result","content":" M vos-out/decisions.jsonl\n---LAST 2 COMMITS---\nbc9e76c fix(S237b): 3° bottone 🔄 Rigenera nelle notifiche PUSH (response-analyzer.py)\n .claude/NEXT_SESSION_PROMPT.manual.md | 2 ++\n 1 file changed, 2 insertions(+)\n93ef283 fix(S237b): add Rigenera button to response-analyzer.py HITL keyboard\n .claude/NEXT_SESSION_PROMPT.md       | 67 +++++++++++++++---------------------\n wa-intelligence/response-analyzer.py
+```
 
-**Deploy**: ROOT + REL su iMac, md5 `10620c26925af998f082f44d436deae4` match entrambi.
-**Compile**: LOCAL_OK + REMOTE_COMPILE_OK
-**Daemon**: argos-wa-daemon online, restart_time=50 (untouched), uptime 41h
+## Ultimi turni assistant
+```
+- ✅ atteso: arriva una reply **diversa** col keyboard a 3 bottoni + riga in `regenerate_log.jsonl`
+- ⚠️ se appare *"GOOGLE_AI_API_KEY mancante"* → la chiave non è nell'env PM2 del tg-bot, va aggiunta + restart (lo facciamo prossima sessione)
+Packet completo nell'handoff. Mandami screenshot del risultato.
+```
 
-## Stato ARGOS al momento della chiusura
+## Come riprendere
 
-- argos-wa-daemon: online, pid 78295, restarts=50
-- argos-tg-bot: online, pid 32191, restarts=26
-- argos-dashboard: online, pid 78364, restarts=20
-- VERIFIED gate: 2/9 (da S231)
-- Prossimo test fisico: inviare messaggio WhatsApp dealer finto su TEST_FOUNDER 393314928901 e verificare che la notifica TG mostri 3 bottoni (Accetta / Rifiuta / Rigenera)
+1. Apri Claude Code da `/Users/macbook/Documents/combaretrovamiauto-enterprise`
+2. Leggi questo file (auto-loaded? dipende da config progetto)
+3. Continua dal punto indicato negli ultimi turni assistant sopra
 
-## Prossimi step
-
-1. TEST_FOUNDER: trigger inbound reply → verifica 3 bottoni su TG
-2. Verificare callback `genera:<id>` in telegram-handler.py funziona end-to-end (branch già live per S236/S237)
-3. Gate VERIFIED S231 Scenario B (abort /rifiuta) — ancora INCONCLUSIVE
+Se `SESSION_DIRTY.md` esiste in questa stessa cartella, risolvi PRIMA i conflitti.
