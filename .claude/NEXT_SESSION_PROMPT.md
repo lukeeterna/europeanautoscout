@@ -1,10 +1,74 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-04T14:53:54Z`
-**Sessione**: `7a83c5fe-71ea-49ac-85f0-6b8d5ec693ac`
+**Generato**: `2026-06-04T16:00:00Z`
+**Sessione**: S238-deploy-tg-bot
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
-**Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
-**Last commit**: `d05b950 auto-close session dc7ed4f7-fb71-440a-95c7-bdaf66bfb1d3 @ 2026-06-04T11:30:51Z`
+
+## Task interrotto: deploy telegram-handler.py su iMac
+
+Sessione chiusa a 60% context PRIMA di eseguire il deploy. Il task è completamente definito.
+
+### File da deployare (già fixato + py_compile PASS locale)
+`/Users/macbook/Documents/combaretrovamiauto-enterprise/wa-intelligence/telegram-handler.py`
+MD5 locale: `aa1716b8eff984704923e3893e8754fb`
+
+### Procedura da eseguire nella prossima sessione
+
+Connessione iMac: `ssh gianlucadistasi@192.168.1.2`
+
+PATH-SPLIT su iMac (aggiornare ENTRAMBI):
+1. RELEASE: `~/Documents/app-antigravity-auto/releases/20260527_083951/wa-intelligence/telegram-handler.py`
+2. ROOT: `~/Documents/app-antigravity-auto/wa-intelligence/telegram-handler.py`
+
+**STEP 1 — PRE-baseline (read-only):**
+```bash
+ssh gianlucadistasi@192.168.1.2 "~/.npm-global/bin/pm2 jlist" | python3 -c "import json,sys; procs=[p for p in json.load(sys.stdin) if p['name'] in ['argos-wa-daemon','argos-tg-bot']]; [print(p['name'], p['pm2_env']['restart_time'], p['pm2_env']['status']) for p in procs]"
+```
+Atteso: argos-wa-daemon restart_time=50, argos-tg-bot online.
+
+**STEP 2 — BACKUP su iMac:**
+```bash
+RELEASE="~/Documents/app-antigravity-auto/releases/20260527_083951/wa-intelligence"
+ROOT="~/Documents/app-antigravity-auto/wa-intelligence"
+ssh gianlucadistasi@192.168.1.2 "cp ${RELEASE}/telegram-handler.py ${RELEASE}/telegram-handler.py.bak-pre-s238 && cp ${ROOT}/telegram-handler.py ${ROOT}/telegram-handler.py.bak-pre-s238 && ls -la ${RELEASE}/telegram-handler.py.bak-pre-s238 ${ROOT}/telegram-handler.py.bak-pre-s238"
+```
+
+**STEP 3 — COPIA file su entrambi i path:**
+```bash
+scp /Users/macbook/Documents/combaretrovamiauto-enterprise/wa-intelligence/telegram-handler.py gianlucadistasi@192.168.1.2:~/Documents/app-antigravity-auto/releases/20260527_083951/wa-intelligence/telegram-handler.py
+scp /Users/macbook/Documents/combaretrovamiauto-enterprise/wa-intelligence/telegram-handler.py gianlucadistasi@192.168.1.2:~/Documents/app-antigravity-auto/wa-intelligence/telegram-handler.py
+```
+
+**STEP 4 — VERIFICA MD5 (i 3 hash devono essere identici):**
+```bash
+echo "LOCAL: aa1716b8eff984704923e3893e8754fb"
+ssh gianlucadistasi@192.168.1.2 "md5 ~/Documents/app-antigravity-auto/releases/20260527_083951/wa-intelligence/telegram-handler.py && md5 ~/Documents/app-antigravity-auto/wa-intelligence/telegram-handler.py"
+```
+
+**STEP 5 — PY_COMPILE REMOTO (Python 3.9):**
+```bash
+ssh gianlucadistasi@192.168.1.2 "python3 -m py_compile ~/Documents/app-antigravity-auto/releases/20260527_083951/wa-intelligence/telegram-handler.py && python3 -m py_compile ~/Documents/app-antigravity-auto/wa-intelligence/telegram-handler.py && echo OK"
+```
+Deve stampare solo `OK`. Se fallisce → STOP, ripristina dai .bak.
+
+**STEP 6 — RESTART SOLO argos-tg-bot (NON toccare argos-wa-daemon):**
+```bash
+ssh gianlucadistasi@192.168.1.2 "~/.npm-global/bin/pm2 restart argos-tg-bot"
+```
+
+**STEP 7 — POST-VERIFICA (attendi ~5s):**
+```bash
+sleep 5 && ssh gianlucadistasi@192.168.1.2 "~/.npm-global/bin/pm2 jlist" | python3 -c "import json,sys; procs=[p for p in json.load(sys.stdin) if p['name'] in ['argos-wa-daemon','argos-tg-bot']]; [print(p['name'], p['pm2_env']['restart_time'], p['pm2_env']['status']) for p in procs]"
+```
+```bash
+ssh gianlucadistasi@192.168.1.2 "tail -30 /tmp/argos-tg-bot-out.log"
+```
+Verificare: tg-bot online+stabile, nessun traceback/ImportError, wa-daemon restart_time ancora 50.
+
+### Rollback se serve
+```bash
+ssh gianlucadistasi@192.168.1.2 "cp ~/Documents/app-antigravity-auto/releases/20260527_083951/wa-intelligence/telegram-handler.py.bak-pre-s238 ~/Documents/app-antigravity-auto/releases/20260527_083951/wa-intelligence/telegram-handler.py && cp ~/Documents/app-antigravity-auto/wa-intelligence/telegram-handler.py.bak-pre-s238 ~/Documents/app-antigravity-auto/wa-intelligence/telegram-handler.py && ~/.npm-global/bin/pm2 restart argos-tg-bot"
+```
 
 ## Ultimi 5 commit
 ```
@@ -14,29 +78,3 @@ aae273a auto-close session dc7ed4f7-fb71-440a-95c7-bdaf66bfb1d3 @ 2026-06-04T11:
 bc9e76c fix(S237b): 3° bottone 🔄 Rigenera nelle notifiche PUSH (response-analyzer.py)
 93ef283 fix(S237b): add Rigenera button to response-analyzer.py HITL keyboard
 ```
-
-## File modificati nell'ultimo commit
-```
-M	.claude/NEXT_SESSION_PROMPT.md
-M	vos-out/decisions.jsonl
-```
-
-## Ultimo prompt utente (estratto)
-```
-[{"tool_use_id":"toolu_01FXcNNia6Dkgr3R9TpUnwUd","type":"tool_result","content":[{"type":"text","text":"I dati sono chiari e completi. Ecco il report.\n\n---\n\n## REPORT DIAGNOSTICO ARGOS — Gemini 2.5 Flash troncamento\n\n### FATTO 1 — CONFERMATO con numeri\n\nL'ipotesi è verificata al 100%.\n\n**TEST 1** — `maxOutputTokens: 512`, nessun thinkingConfig:\n- `finishReason: MAX_TOKENS` (troncato)\n- `thoughtsTokenCount: 487` — i thinking-token consumano 487/512 del budget\n- `candidatesTo
-```
-
-## Ultimi turni assistant
-```
-## Mossa CTO ora
-Context ~50% (vincolo #7: warning). Il fix è piccolo e ben specificato. **Delego l'implementazione edit-only ad `ai-engineer`** (no deploy), poi **rivedo io il diff** prima di toccare iMac (il deploy ha blast radius — lo confermo con te dopo aver visto le modifiche).
-Procedo con l'implementazione edit-only?
-```
-
-## Come riprendere
-
-1. Apri Claude Code da `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-2. Leggi questo file (auto-loaded? dipende da config progetto)
-3. Continua dal punto indicato negli ultimi turni assistant sopra
-
-Se `SESSION_DIRTY.md` esiste in questa stessa cartella, risolvi PRIMA i conflitti.
