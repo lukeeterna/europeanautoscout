@@ -9,9 +9,17 @@
 - **Codice reject SANO**: confermato S239 + funzionava il 03-04/06 (log `Callback ricevuto: rifiuta:reply_ec6bdb52` ecc.). Guard `cmd_rifiuta` :422-434 + branch :1021-1022 verificati.
 
 ### NEXT (S241) — DIAGNOSI-FIRST del transport polling, NIENTE patch speculativa
+
+> **⚠️ PRIMA AZIONE OBBLIGATORIA (REGOLA #0 — lezione S240)**: l'intera diagnosi che segue va DELEGATA a `Task(subagent_type=agent-ops)` in context dedicato — NON eseguita inline con Bash/Read nel main context. Motivo: S240 ha bruciato il budget (chiusura forzata al 60%) facendo la diagnosi inline; i ~10 round-trip ssh + output verboso (pm2/log/lsof) vanno nel context del subagent, che ritorna solo il verdetto (~200 parole: root cause + fix proposto + evidenze). Il main context si riserva alla DECISIONE sul fix, non all'esecuzione della diagnosi.
 **Ipotesi "bug logico timeout" REFUTATA con dati (S240)**: `tg_post` riga 133 = `urlopen(timeout=40)`; long-poll riga 997 = `timeout:30`. Client 40s > long-poll 30s → config CORRETTA, nessun mismatch. Un poll sano ritorna ≤30s. Quindi `timeout:30→10` NON è un fix di logica, è una pezza di rete speculativa → NON applicarla a freddo.
 
-**Cosa dicono i dati**: `read timed out` a 40s = la connessione tenuta aperta stalla davvero >40s a livello rete (GET veloci passano in 0.16s). Sintomo di transport (NAT/wifi iMac 2012 droppa held-connections), non logica. **Root cause NON verificata.** Errori radi nel log (uno ogni 30min-2h, non ogni 40s) → sospetto backoff lungo nel loop, **codice dopo riga 1026 NON letto** (except/sleep del while polling).
+**Cosa dicono i dati**: `read timed out` a 40s = la connessione tenuta aperta stalla >40s a livello rete (GET veloci passano in 0.16s). MA il loop polling è stato letto (`:993-1047`) e refuta il backoff:
+
+**Ipotesi "backoff lungo" REFUTATA (S240, lettura :1026-1047)**: `tg_post` (:125-137) inghiotte la propria eccezione e ritorna `{}` sul timeout. Quindi nel loop il timeout dà `result.get('result',[])=[]`, nessuna eccezione propagata, retry IMMEDIATO. `time.sleep(5)` (:1047) scatta SOLO su eccezione nel branch processing, NON sul timeout getUpdates. → nessun backoff.
+
+**CONTRADDIZIONE APERTA = vero punto S241**: se ci fosse retry immediato su timeout vedremmo "TG error" ogni ~40s; invece sono radi (1 ogni 30min-2h) → la maggior parte dei poll RIESCE. Ma allora perché il tap su `reply_f4a419e8` non è MAI loggato `Callback ricevuto`? Polling per-lo-più-vivo + tap mai ricevuto NON torna col solo timeout di rete.
+
+**SOSPETTO PRIMARIO spostato da rete → OFFSET**: `/tmp/argos-tg-offset.txt` potrebbe essere AVANTI rispetto all'`update_id` del tap (offset persistito oltre il tap, o update perso in un long-poll scaduto e mai ri-richiesto correttamente) → Telegram non ri-consegna mai quell'update. **Diagnostico decisivo S241**: leggere valore `/tmp/argos-tg-offset.txt` su iMac e confrontarlo con gli update_id pendenti (`getUpdates` con offset basso/negativo per ispezione). Root cause ANCORA NON provata: scegliere tra (a) offset ahead, (b) update perso in stall, (c) transport — DAI dati, non a priori.
 
 **Procedura S241 (delega ad `agent-ops`, context isolato — REGOLA #0)**:
 1. **Leggi** `telegram-handler.py` da riga 1026 in poi: come gestisce l'eccezione getUpdates (sleep/backoff?). Questo spiega gli errori radi e se il loop si auto-strozza.
