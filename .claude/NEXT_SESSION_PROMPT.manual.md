@@ -8,12 +8,19 @@
 - **Root cause = INFRA, non logica HITL**: il polling del tg-bot (`telegram-handler.py:993-999`) usa long-poll `getUpdates {timeout:30}`. Da ~05/06 ogni chiamata fallisce `read operation timed out` (log `argos-tg-bot`). `curl https://api.telegram.org` riesce in 0.16s → rete OK, ma la connessione tenuta aperta 30s droppa (sospetto wifi/NAT idle iMac 2012). `getUpdates` non ritorna mai → callback bottoni MAI processati → `approved` resta NULL. Restart bot (↺27→28) NON risolve. Offset (`:1002`, `/tmp/argos-tg-offset.txt`) non avanza → tap in coda ma irraggiungibile.
 - **Codice reject SANO**: confermato S239 + funzionava il 03-04/06 (log `Callback ricevuto: rifiuta:reply_ec6bdb52` ecc.). Guard `cmd_rifiuta` :422-434 + branch :1021-1022 verificati.
 
-### NEXT (S241) — PRIMO E UNICO: ripristinare polling tg-bot, poi chiudere #9B
-1. **Fix candidato (1 riga, da testare)**: `telegram-handler.py:997` long-poll `timeout:30` → `timeout:10` (o `0` short-poll + sleep nel loop), più robusto su connessione flaky iMac. Verifica anche read-timeout di `tg_post` (urlopen).
-2. **Deploy 2-path SEMPRE**: ROOT + `current/` (consulta `reference_imac_deploy_paths.md`). Restart `argos-tg-bot`.
-3. **Prova polling vivo**: log mostra `Callback ricevuto:` su un tap di test (il tap di `f4a419e8` potrebbe ancora essere in coda < 24h e venir pescato al primo getUpdates riuscito → controlla DB).
-4. **Ri-test fisico #9B** (BLOCKED-ON Luke al telefono): SIM TEST_FOUNDER → WA POSITIVE → tap 🚫 → PROVA = DB `pending_replies.approved=0 AND sent=0`. Window-integrity: `argos-wa-daemon` ↺50 invariato.
-5. PASS → anello #9 chiuso (A già VERIFIED S230). VERIFIED → 4/9.
+### NEXT (S241) — DIAGNOSI-FIRST del transport polling, NIENTE patch speculativa
+**Ipotesi "bug logico timeout" REFUTATA con dati (S240)**: `tg_post` riga 133 = `urlopen(timeout=40)`; long-poll riga 997 = `timeout:30`. Client 40s > long-poll 30s → config CORRETTA, nessun mismatch. Un poll sano ritorna ≤30s. Quindi `timeout:30→10` NON è un fix di logica, è una pezza di rete speculativa → NON applicarla a freddo.
+
+**Cosa dicono i dati**: `read timed out` a 40s = la connessione tenuta aperta stalla davvero >40s a livello rete (GET veloci passano in 0.16s). Sintomo di transport (NAT/wifi iMac 2012 droppa held-connections), non logica. **Root cause NON verificata.** Errori radi nel log (uno ogni 30min-2h, non ogni 40s) → sospetto backoff lungo nel loop, **codice dopo riga 1026 NON letto** (except/sleep del while polling).
+
+**Procedura S241 (delega ad `agent-ops`, context isolato — REGOLA #0)**:
+1. **Leggi** `telegram-handler.py` da riga 1026 in poi: come gestisce l'eccezione getUpdates (sleep/backoff?). Questo spiega gli errori radi e se il loop si auto-strozza.
+2. **Probe live**: `agent-ops` esegue su iMac un `getUpdates {timeout:30}` cronometrato, ripetuto 3-4 volte. Misura: stalla sistematicamente? a quale soglia (10/20/30s)? Solo QUI si decide il fix con dati — non prima.
+3. **Verifica anti-conflitto**: `getWebhookInfo` (se webhook impostato → getUpdates 409, ma vediamo timeout non 409) + nessun secondo poller sullo stesso token.
+4. Fix deciso DAI dati della probe (potrebbe essere: ridurre held-connection SE la probe mostra soglia di drop; oppure retry/keepalive; oppure altro). Deploy 2-path (`reference_imac_deploy_paths.md`) + restart.
+5. **Liveness check** anti silent-death: pm2 diceva "online" con polling morto 24h+ → aggiungere assert che getUpdates ritorni entro timeout, altrimenti alert.
+
+**Chiusura #9B a costo zero per Luke**: il tap di oggi su `reply_f4a419e8` è in coda Telegram (<24h, offset non avanzato riga 1002). Appena il polling torna vivo → pescato → `cmd_rifiuta` → DB `approved=0` → #9B VERIFIED 4/9 SENZA nuovo tap fisico. Verifica: log `Callback ricevuto: rifiuta:reply_f4a419e8` + DB. (Se >24h scaduto: ri-test fisico SIM TEST_FOUNDER → WA POSITIVE → tap 🚫.) Window-integrity: `argos-wa-daemon` ↺50 invariato.
 
 ### STATO PULITO LASCIATO
 - `reply_f4a419e8`: `approved=NULL, sent=0` = **SAFE** (HOLD path, nessun Popen schedulato, guard `WHERE approved=1` impedisce invio accidentale). Non toccare.
