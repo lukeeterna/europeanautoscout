@@ -1,5 +1,16 @@
 # S242 — Ripartenza
 
+## 🔴 PRIORITÀ #0 S242 (decisa da Luke S241, NON ri-discutere) — CONSOLIDARE I FILE DI STATO
+**Problema root (quantificato S241)**: 7+ file rispondono a "stato + cosa faccio dopo" e si contraddicono → ogni sessione riparte da zero, riscrive un handoff (spesso sbagliato, vedi S240) e ne aggiunge un altro. #9B ha richiesto 7 sessioni.
+**Decisione presa**: UN solo source-of-truth = `STATE.md` a root con SOLO: (1) tabella anelli E2E + stato, (2) task corrente, (3) prossimi 3 step.
+**Azioni S242 (fai PRIMA di toccare gli anelli)**:
+1. Crea `STATE.md` a root (contenuto sotto: la mappa anelli + NEXT è già la roadmap).
+2. Archivia in `archive/` o elimina: `HANDOFF.md`, `AUDIT_E2E.md`, `.claude/NEXT_SESSION_PROMPT.manual.md`, i 58 file `prompts/`.
+3. **Disattiva l'hook auto-close** che rigenera `.claude/NEXT_SESSION_PROMPT.md` (usa skill `update-config`; è co-causa della proliferazione).
+4. `PLAN.md` + `BACKLOG.md` restano ma referenziati da STATE.md (non duplicare lo stato lì).
+5. MEMORY.md (cross-sessione) resta: scopo diverso. Ma valuta compattazione (2717 righe/256KB).
+Done-condition: esiste `STATE.md`, gli altri handoff sono spariti, l'hook non rigenera più. Solo DOPO → anelli 5/6/7.
+
 ## ✅ S241 — CHIUSA VERDE (2026-06-06): Anello #9B VERIFIED. Diagnosi S240 era FALSA. Bot tg sano.
 
 ### ESITO #9B (reject → abort) — VERIFIED 4/9
