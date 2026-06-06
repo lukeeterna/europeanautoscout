@@ -1,31 +1,31 @@
-# S239 — Ripartenza
+# S240 — Ripartenza
 
-## ✅ S238 — ESITO (2026-06-04): "🔄 Rigenera" VERIFIED a runtime — root cause thinking-token trovata, fix A+B deployato, GATE FISICO PASSATO
+## ✅ S239 — ESITO (2026-06-06): warm-up + 2 memorie + indagine #9-Scenario-B (codice SANO). Chiusa VERDE.
 
-### Gate fisico PASSATO (Luke "perfetto" 17:26)
-- SEED dalla SIM TEST_FOUNDER → notifica TG con 3 bottoni (✅ 🚫 🔄) → tap 🔄 → **nuova reply COMPLETA arrivata** con keyboard.
-- DB ROOT `pending_replies` `reply_3c270690`: `length(reply_text)=564`, finisce con `]}` + fence chiuso, firmata "Luca", `approved=NULL`, `sent=0`. **JSON COMPLETO** (vs il bug pre-fix a 65 char). 3 messaggi multi-bubble.
-- Path ✅→SIM (split `/send-multi`) già VERIFIED da S230 (Scenario A), non ri-testato.
+### FATTO
+1. **Warm-up CHIUSO**: `regenerate_log.jsonl` confermato a `current/wa-intelligence/regenerate_log.jsonl` su iMac — riga `reply_3c270690 model_used=gemini-2.5-flash`, JSON completo 3 bubble firmato Luca. (Path corretto: `app-antigravity-auto/releases/<ts>/wa-intelligence/`, NON `wa-intelligence/releases/`.)
+2. **Debito memoria S238 saldato**: scritta entry `s238_rigenera_verified_thinkingbudget.md` (rigenera VERIFIED + lezione `thinkingBudget:0` su Gemini 2.5) + indicizzata in MEMORY.md.
+3. **Reference memory path iMac creata** (richiesta Luke, pattern Karpathy indice-puntatori): `reference_imac_deploy_paths.md` — mappa canonica deploy/log/DB iMac. Root cause: avevo COSTRUITO un path invece di conoscerlo. Da ora si consulta, non si ricostruisce.
+4. **Indagine #9-Scenario-B (rifiuto/abort) — delegata, codice SANO**: bottone 🚫 cablato bene (`telegram-handler.py`: callback `rifiuta:<id>` → `cmd_rifiuta` :422-434 → `UPDATE approved=0` + guardia anti-invio; branch callback :1021-1022). **S231 "inconclusive" NON era un bug**: si cercava nei log `"Comando ricevuto: /rifiuta"` ma il bottone logga `"Callback ricevuto: rifiuta:<id>"` (:1015) — errore di MISURA, non di codice. Previsione FAIL ritrattata: PASS probabile.
 
-### Root cause CONFERMATA a runtime (chiamata live Gemini, NON assunta)
-`gemini-2.5-flash` è un modello **reasoning** → i thinking-token consumavano tutto `maxOutputTokens:512` (`thoughtsTokenCount:487` / `candidatesTokenCount:21` → 21 token output → `finishReason:MAX_TOKENS`). Fix = `thinkingConfig:{thinkingBudget:0}` → `STOP`, output completo. **Il fix del vecchio handoff (solo Markdown su send()) era SBAGLIATO** — avrebbe consegnato JSON troncato. Bug isolato al rigenera: generazione normale usa `gemini-2.0-flash` (non-reasoning), nessun rischio. **Lezione riusabile**: ogni chiamata a modello Gemini 2.5+ con `maxOutputTokens` basso → mettere `thinkingBudget:0` o il thinking mangia il budget.
+### NEXT (S240) — PRIMO E UNICO: chiudere anello #9 Scenario B (test fisico)
+- **BLOCKED-ON: Luke al telefono** (TERMINAL_FACT esterno, non re-validare staticamente).
+- Procedura: SEED da SIM TEST_FOUNDER `393314928901` → notifica TG con 3 bottoni → tap **🚫** → verificare in DB `pending_replies` che la reply abbia `approved=0` E `sent=0` (PROVA = stato DB, **NON** il grep del log — evita trappola S231). Window-integrity: `restart_time argos-wa-daemon` invariato pre/post.
+- PASS → anello #9 chiuso del tutto (Scenario A già VERIFIED S230). VERIFIED sale verso 4/9.
+- Niente fix/deploy pendenti: il codice è sano, si testa diretto.
 
-### FATTO (codice committato + deployato + verificato)
-- **FIX A** `telegram-handler.py:519-523` — `generationConfig` con `maxOutputTokens:800, thinkingConfig:{thinkingBudget:0}`.
-- **FIX B** `telegram-handler.py:140-178` — `send()` fallback Markdown→plain su HTTP 400 (preview con `{ [ "` rompeva Markdown). Firma invariata, `tg_post()` intatto.
-- **cmd_approva** parsa `json.loads(reply_text)['messages']` → `/send-multi` (telegram-handler.py:297-311). Con JSON completo splitta le bubble, no JSON grezzo al dealer.
-- **DEPLOY OK** su 2 path (release `releases/20260527_083951/wa-intelligence/` + ROOT), backup `.bak-pre-s238` (39255B), 3 md5 `aa1716b8eff984704923e3893e8754fb`, `PYCOMPILE_OK`, `argos-tg-bot` online, `argos-wa-daemon restart_time=50` invariato.
-- Commit: `ae57e29` (telegram-handler.py fix) + `fe4ef18` (cmd_genera S237).
+### Mappa anelli E2E (riconciliata S239, autoritativa = memorie recenti, NON i prompt pre-S230)
+| # | Anello | Stato |
+|---|---|---|
+| 1 | invio Day1 WA | VERIFIED |
+| 2 | classifier intent (AMBRA) | VERIFIED (S202) |
+| 9A | approve → send (`/send-multi`) | VERIFIED (S230) |
+| 9B | reject → abort | **codice sano (S239), test fisico pending** ← NEXT |
+| 5/6/7 | dossier gen → approve → invio PDF | parziali / non E2E |
+| 8 | contract request → sign_url | BLOCKED |
+- Dopo #9B: candidato autonomo lato codice = integrazione E2E #5→#7 (dossier→invio PDF) senza Luke fisico.
 
-### NEXT (S239) — scegliere scope con Luke. Rigenera è CHIUSO. Candidati:
-1. **Caveat minore da chiudere (~5 min)**: `regenerate_log.jsonl` non trovato su path ROOT (`~/Documents/app-antigravity-auto/wa-intelligence/`). Sta nel **release path** (dove gira il tg-bot, `REGEN_LOG_PATH` è relativo a `__file__`). Verificare `tail releases/20260527_083951/wa-intelligence/regenerate_log.jsonl` — la riga `reply_3c270690 model_used=gemini-2.5-flash` dovrebbe esserci. Se sì → audit log OK. Solo conferma.
-2. **Anelli E2E rimanenti** (VERIFIED ~3/9 storico) — vedi `.claude/NEXT_SESSION_PROMPT.manual.md` per la mappa anelli. Day 1 dealer reale ancora BLOCKED finché E2E completo + Luke "pienamente soddisfatto".
-3. **Scope congelati**: `image_sanitizer` (D-32 over-mask), landing page — NON riaprire senza decisione founder.
-
-### Vincoli S239: TEST_FOUNDER 393314928901 prima di dealer reali · `image_sanitizer`/landing CONGELATI · `restart_time argos-wa-daemon`=50 · iMac clock +2h · deploy SEMPRE su 2 path · rollback rigenera = `cp telegram-handler.py.bak-pre-s238 telegram-handler.py` su ENTRAMBI i path + `pm2 restart argos-tg-bot`.
-
-### TODO memoria (deferred per budget): aggiungere a MEMORY.md index entry progetto "S238 rigenera VERIFIED + lezione thinkingBudget:0 su Gemini 2.5".
+### Vincoli S240: TEST_FOUNDER 393314928901 prima di dealer reali · `image_sanitizer`(D-32)/landing CONGELATI founder · iMac clock +2h · deploy SEMPRE su 2 path (ROOT + `current/`) · consultare `reference_imac_deploy_paths.md` per OGNI path iMac.
 
 ---
-
-> Storico sessioni precedenti (S237 e prima): `.claude/NEXT_SESSION_PROMPT.manual.md`.
+> Storico S238 e precedenti: `.claude/NEXT_SESSION_PROMPT.manual.md`.
