@@ -1,37 +1,37 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-06T15:34:36Z`
-**Sessione**: `2e939036-d63c-4591-9c2b-07731fe03ccc`
+**Generato**: `2026-06-06T16:42:02Z`
+**Sessione**: `e04e5f14-347b-4931-b209-7aa08296e6a4`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
-**Commit auto**: committed: 879b171
-**Last commit**: `879b171 auto-close session 2e939036-d63c-4591-9c2b-07731fe03ccc @ 2026-06-06T15:34:36Z`
+**Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
+**Last commit**: `731fc22 auto-close session 2e939036-d63c-4591-9c2b-07731fe03ccc @ 2026-06-06T15:36:36Z`
 
 ## Ultimi 5 commit
 ```
+731fc22 auto-close session 2e939036-d63c-4591-9c2b-07731fe03ccc @ 2026-06-06T15:36:36Z
+25e22d6 docs(S240): handoff S241 — backoff REFUTATO, sospetto su OFFSET non rete; diagnosi delegata ad agent-ops (REGOLA #0)
 879b171 auto-close session 2e939036-d63c-4591-9c2b-07731fe03ccc @ 2026-06-06T15:34:36Z
 fd1750e docs(S240): correggo handoff — ipotesi fix timeout REFUTATA (tg_post 40>long-poll 30), S241 diagnosi-first no patch speculativa
 f4a9348 auto-close session 2e939036-d63c-4591-9c2b-07731fe03ccc @ 2026-06-06T15:19:03Z
-55ed236 docs(S240): #9B test fisico BLOCKED-ON infra — polling tg-bot getUpdates timeout (codice reject SANO)
-fed82ec auto-close session 2e939036-d63c-4591-9c2b-07731fe03ccc @ 2026-06-06T14:29:45Z
 ```
 
 ## File modificati nell'ultimo commit
 ```
 M	.claude/NEXT_SESSION_PROMPT.md
-A	.claude/SESSION_DIRTY.md
+D	.claude/SESSION_DIRTY.md
 M	vos-out/decisions.jsonl
 ```
 
 ## Ultimo prompt utente (estratto)
 ```
-leggi il codice dopo riga 1026 ora, MI HAI PROPOSTO QUESTO , NE SEI CONSAPEVOLE? SOLO SI O NO
+[{"tool_use_id":"toolu_01Ny2eSBXynimSHArxDW1C48","type":"tool_result","content":"=== pending_replies recenti ===\nid|approved|sent|reply_label|created_at\nreply_94678456||0|LLM_MULTI|2026-06-06 16:40:30\nreply_f4a419e8||0|LLM_MULTI|2026-06-06 15:12:02\nreply_3c270690||0|LLM_MULTI|2026-06-04 15:24:25\nreply_820392ee||0|LLM_MULTI|2026-06-04 11:18:26\n\n=== tg-bot log tail 8 (fresco) ===\n06/06/2026 10:25:08: [06/06/2026 10:25:08] TG error [getUpdates]: The read operation timed out\n06/06/2026 10:3
 ```
 
 ## Ultimi turni assistant
 ```
-**Bonus a costo zero**: il tuo tap di oggi su `reply_f4a419e8` è in coda Telegram (<24h, offset non avanzato). Appena il polling torna vivo viene pescato → `#9B` si chiude senza che tu rifaccia il tap.
-Memoria e indice corretti (rimossa l'ipotesi refutata). Stato lasciato pulito: `wa-daemon` ↺50 intatto, `reply_f4a419e8` SAFE.
-Sì.
+- Se **SÌ** → il tap si perde davvero nel transport (bug callback confermato) → handoff con fix mirato.
+- Se **NO** (nessuna notifica con bottoni arrivata) → il problema è a monte: l'analyzer non invia i bottoni HITL, non il polling → diverso fix.
+Dimmi quale dei due.
 ```
 
 ## Come riprendere
