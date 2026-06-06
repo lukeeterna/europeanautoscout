@@ -1,36 +1,35 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-06T14:38:41Z`
+**Generato**: `2026-06-06T15:33:49Z`
 **Sessione**: `2e939036-d63c-4591-9c2b-07731fe03ccc`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
-**Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
-**Last commit**: `fed82ec auto-close session 2e939036-d63c-4591-9c2b-07731fe03ccc @ 2026-06-06T14:29:45Z`
+**Commit auto**: DIRTY (vedi /Users/macbook/Documents/combaretrovamiauto-enterprise/.claude/SESSION_DIRTY.md)
+**Last commit**: `fd1750e docs(S240): correggo handoff — ipotesi fix timeout REFUTATA (tg_post 40>long-poll 30), S241 diagnosi-first no patch speculativa`
 
 ## Ultimi 5 commit
 ```
+fd1750e docs(S240): correggo handoff — ipotesi fix timeout REFUTATA (tg_post 40>long-poll 30), S241 diagnosi-first no patch speculativa
+f4a9348 auto-close session 2e939036-d63c-4591-9c2b-07731fe03ccc @ 2026-06-06T15:19:03Z
+55ed236 docs(S240): #9B test fisico BLOCKED-ON infra — polling tg-bot getUpdates timeout (codice reject SANO)
 fed82ec auto-close session 2e939036-d63c-4591-9c2b-07731fe03ccc @ 2026-06-06T14:29:45Z
 147cf8c auto-close session 10881109-fe44-4cb5-99b8-9a32a588ebdb @ 2026-06-06T14:27:09Z
-9a9acd6 docs(S239): chiusura VERDE — warm-up log OK, debito memoria S238 saldato, #9 Scenario-B codice SANO
-f4e1734 auto-close session 7a83c5fe-71ea-49ac-85f0-6b8d5ec693ac @ 2026-06-04T15:31:51Z
-1ade8ca auto-close session 7a83c5fe-71ea-49ac-85f0-6b8d5ec693ac @ 2026-06-04T15:30:55Z
 ```
 
 ## File modificati nell'ultimo commit
 ```
 M	.claude/NEXT_SESSION_PROMPT.manual.md
-M	.claude/NEXT_SESSION_PROMPT.md
 ```
 
 ## Ultimo prompt utente (estratto)
 ```
-[{"tool_use_id":"toolu_01PJMjbuS5BHHzg9vrUUkonj","type":"tool_result","content":"940\t    const buf = MESSAGE_BUFFER.get(dealerId);\n941\t    if (!buf) return;\n942\t    MESSAGE_BUFFER.delete(dealerId);\n943\t\n944\t    const bodies = buf.messages.map(m => m.body).filter(Boolean);\n945\t    const combinedBody = bodies.join('\\n---\\n');\n946\t    const firstMsgId = buf.messages[0].id;\n947\t\n948\t    log('INFO', `Buffer flush: ${dealer.dealer_name} — ${buf.messages.length} msg aggregati`);\n9
+[{"tool_use_id":"toolu_016Zb3zwSYiU5Y6Yzye2HTJx","type":"tool_result","content":"🔍 ARGOS Pre-Commit Checks...\n✅ Pre-commit checks passed\n[s210/audit-master-plan fd1750e] docs(S240): correggo handoff — ipotesi fix timeout REFUTATA (tg_post 40>long-poll 30), S241 diagnosi-first no patch speculativa\n 1 file changed, 13 insertions(+), 6 deletions(-)\nTo https://github.com/lukeeterna/europeanautoscout\n   55ed236..fd1750e  s210/audit-master-plan -> s210/audit-master-plan","is_error":false}]
 ```
 
 ## Ultimi turni assistant
 ```
-3. **Tappa `🚫 Rifiuta`**
-4. Scrivimi **"fatto"** → io verifico subito nel DB `approved=0 / sent=0` + che il daemon sia ancora a ↺50 (window-integrity).
-Quando hai mandato il WA e tappato 🚫, dimmi "fatto".
+**S241 corretto nel handoff**: diagnosi-first, delegata ad `agent-ops` in context isolato — leggere la gestione eccezione del loop (:1026+), probe live cronometrata di `getUpdates` per misurare la soglia di stallo, check anti-conflitto webhook/doppio-poller. Il fix si decide DAI dati della probe, non prima.
+**Bonus a costo zero**: il tuo tap di oggi su `reply_f4a419e8` è in coda Telegram (<24h, offset non avanzato). Appena il polling torna vivo viene pescato → `#9B` si chiude senza che tu rifaccia il tap.
+Memoria e indice corretti (rimossa l'ipotesi refutata). Stato lasciato pulito: `wa-daemon` ↺50 intatto, `reply_f4a419e8` SAFE.
 ```
 
 ## Come riprendere
