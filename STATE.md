@@ -5,7 +5,7 @@
 > "VERIFIED" = check passato in QUESTA sessione, non una frase digitata.
 > Stato cross-sessione (memorie) → `~/.claude/projects/.../memory/MEMORY.md` (scopo diverso).
 > Piano dettagliato → `PLAN.md` · Problemi parcheggiati → `BACKLOG.md`.
-> Aggiornato: **S243 · 2026-06-08**
+> Aggiornato: **S245 · 2026-06-08**
 
 ---
 
@@ -36,28 +36,31 @@ Pipeline core: `Scraper (28 portali) → CoVe Engine (scoring+fraud) → Opportu
 
 ---
 
-## 2. Task corrente (S244)
+## 2. Task corrente (S245)
 
 **Consolidamento substrato di stato** — sequenza verdetto Claude AI (`state/s242_claude_ai_verdict.md`).
-Step 4 CHIUSO: smoke `tools/tests/test_dossier_hitl_smoke.py` scritto + eseguito (1/1 PASS).
-Ring `5-6-7` SPLITTATO onestamente in **5** (PDF gen, smoke VERIFIED — `generate_dossier_from_data`
-produce PDF reale su disco) e **6-7** (gate HITL + invio PDF WA, tier full → E2E iMac/TEST_FOUNDER).
-Anello 6 (gate HITL `app.py`) è fastapi-coupled: gira solo su iMac/CI; su MacBook = SKIP non-gating.
+**Step 6 CHIUSO (commit d97d353)**: `.harness/state_guard.py` PreToolUse hook attivo dalla
+prossima sessione (gli hook si leggono a SessionStart). Gate A (STATE.md blocco GENERATED
+immutabile), Gate B (rings.json campi machine-owned non forgiabili), Gate D via B (anelli
+founder-frozen non sbloccabili da CC), Gate C (guard+generatori self-protetti, escape
+`ARGOS_HARNESS_UNLOCK=1`). Applica a Write/Edit/MultiEdit, NON Bash (romperebbe refresh.py —
+gap dichiarato). 11 test stdin PASS. `session_start.sh` ora esegue `bash state/refresh.sh`
+PRIMA di CC → stale VERIFIED downgradati ogni sessione.
 
-Restano (verdetto Claude AI): step 6 (gate A–C + `.harness/`), step 7 (redirect auto-close hook),
-step 8 (archivio doc legacy), step 9 (Gate E azioni high-stakes).
+Restano (verdetto Claude AI): step 7 (redirect auto-close hook), step 8 (archivio doc legacy),
+step 9 (Gate E azioni high-stakes), + 6-7 E2E (gate HITL iMac + invio PDF TEST_FOUNDER).
 
 ---
 
-## 3. Prossimi 3 step
+## 3. Prossimi step (S246)
 
-1. **Step 6** — Gate A–C + `.harness/`: PreToolUse hook che (a) rifiuta scrittura manuale dentro
-   `<!-- GENERATED:rings -->`, (b) rifiuta token VERIFIED in file stato per anello non-PASS,
-   (c) rifiuta edit a file-hook. SessionStart hook esegue `refresh.sh` prima di CC. Checkpoint git prima.
-2. **Step 7** — redirect `~/.claude/hooks/global_session_end.sh` → breadcrumb = pointer a STATE.md,
-   ZERO ri-asserzione status. NON disattivarlo (memoria `feedback_keep_autoclose_hook_context_control`).
-3. **Step 8** — archivio `prompts/` (58) + `HANDOFF*` + `.claude/NEXT_SESSION_PROMPT` (backup verificato
+1. **Step 7** — redirect `~/.claude/hooks/global_session_end.sh` → breadcrumb = pointer a STATE.md,
+   ZERO ri-asserzione status. **NON disattivarlo** (memoria `feedback_keep_autoclose_hook_context_control`).
+   È file GLOBALE fuori repo → backup verificato Rule 1d PRIMA (size>0, mtime precedente, citato).
+2. **Step 8** — archivio `prompts/` (58) + `HANDOFF*` + `.claude/NEXT_SESSION_PROMPT` (backup verificato
    Rule 1d) → 1 riga pointer in STATE.md → commit checkpoint reversibile.
+3. **6-7 E2E** — gate HITL su iMac (fastapi presente) + invio PDF su TEST_FOUNDER 393314928901
+   (mai dealer reale). Anello 6 fastapi-coupled: smoke-abile solo iMac/CI.
 
 ---
 
@@ -96,7 +99,9 @@ step 8 (archivio doc legacy), step 9 (Gate E azioni high-stakes).
 
 ## 7. Archivio storico
 
-> **STATO REALE (S243)**: archivio NON ancora creato (step 8 pendente). Handoff/prompt legacy
+> **STATO REALE (S245)**: archivio NON ancora creato (step 8 pendente). Handoff/prompt legacy
 > ancora in `prompts/` (58 file), `HANDOFF*.md`, `.claude/NEXT_SESSION_PROMPT.md`.
 > Auto-close hook `~/.claude/hooks/global_session_end.sh` **ATTIVO** (NON disattivato): da
 > reindirizzare a breadcrumb-pointer (step 7), non spegnere.
+> Gate A–C (`.harness/state_guard.py`) **ATTIVO dalla prossima sessione** (commit d97d353):
+> per modificare guard/generatori serve `ARGOS_HARNESS_UNLOCK=1`.
