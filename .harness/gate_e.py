@@ -16,18 +16,37 @@ e' euristico best-effort (Rule 1d: "matching euristico sui vettori nominati e'
 sufficiente"). La forcing-function load-bearing e' l'interruzione + il packet, non un
 lock crittografico.
 
+RAFFINAMENTO S248 (verdetto Claude AI S247): il gate scatta SOLO sugli OPERANDI reali
+di un'operazione lossy (target di una redirezione `>`/`>>` su file; argomenti di
+mv/cp/rm/sed -i/tee/truncate/chmod quando il verbo e' in posizione di comando), MAI
+sul testo incidentale (nome dello script ESEGUITO, body di un commit-message `-m "..."`,
+fd-dup `2>&1`). Il match sulla prosa era un errore di categoria (FP illimitati, zero
+veri-positivi extra): ha bloccato 2 volte il commit S247 e l'avvio di S248
+(`bash state/refresh.sh ... 2>&1`). Inoltre `*.db` e' ristretto al DB source-of-truth
+(non piu' "qualunque .db sotto ROOT", che becca i DB-spazzatura del profilo Chrome).
+Escape manutenzione: env ARGOS_HARNESS_UNLOCK=1 (come state_guard.gate_c).
+
+GAP NOTI over-narrow (accettati — threat=sbadataggine di CC, NON evasione attiva; Rule 1d):
+il "verbo in posizione di comando" NON intercetta `sudo rm X`, `dd of=X`, ne' un redirect
+con path da variabile (`> "$VAR"`). L'env-prefix (`A=1 rm X`) E' gestito (saltiamo le
+assegnazioni iniziali). Scritti qui come limite noto, non da scoprire in produzione.
+NB il narrowing e' SHELL-scoped: i path di scrittura non-shell (Write tool, `python -c`, MCP)
+restano fuori da classify_bash — invariato vs prima (tracciato in coverage-check #2).
+
 CLASSI rilevate:
   - outreach_real   : Bash che invia WA a un numero != TEST_FOUNDER (393314928901).
+                      Match volutamente BROAD (classe piu' critica: meglio un FP che
+                      chiede approvazione di un FN che lascia partire un invio reale).
   - archive_doc     : Bash che archivia/rimuove doc tracciati (git mv/mv -> archive/, git rm/rm .md).
   - overwrite_sot   : Write/Edit/Bash-lossy su un source-of-truth canonico (CLAUDE.md,
-                      MEMORY.md, DECISIONS.md, PLAN.md, *.db/*.sqlite) — Rule 1d strutturale.
-                      (STATE.md/rings.json fuori dal blocco GENERATED restano editabili:
-                      li copre state_guard; qui blocco solo i Bash-lossy sul loro path,
-                      che state_guard non vede = flip-VERIFIED-full via shell.)
-  - disable_hook    : Write/Edit/Bash che tocca settings.json (sezione hooks), gli hook
-                      globali (~/.claude/hooks/), o i file-harness (state_guard.py,
-                      gate_e.py, refresh.*). [flip-VERIFIED-full editando il blocco
-                      GENERATED via Write/Edit resta coperto da Gate A.]
+                      MEMORY.md, DECISIONS.md, PLAN.md, DB SoT) — Rule 1d strutturale.
+                      STATE.md/rings.json: il loro contenuto e' coperto da state_guard su
+                      Write/Edit; qui blocco solo i Bash-lossy sul loro path (gap shell di
+                      state_guard, es. `sed -i STATE.md` = flip-VERIFIED via shell).
+  - disable_hook    : Write/Edit/Bash-lossy che tocca settings.json (sezione hooks), gli
+                      hook globali (~/.claude/hooks/), o i file-harness (state_guard.py,
+                      gate_e.py, refresh.*). [flip-VERIFIED editando il blocco GENERATED
+                      via Write/Edit resta coperto da Gate A.]
 
 Contratto deny (come state_guard): payload permissionDecision=deny, exit 0.
 Allow = nessun payload, exit 0. Fail-open su bug INTERNI dell'hook.
@@ -41,6 +60,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import sys
 import time
 
@@ -59,9 +79,16 @@ SOT_REALPATHS = {
     os.path.realpath(os.path.join(ROOT, "CLAUDE.md")),
     os.path.realpath(os.path.join(ROOT, "PLAN.md")),
 }
-# Pattern path (glob/extension) valutati a parte
+# Pattern path (basename) valutati con vincolo di directory (memory/ o wiki/projects/)
 SOT_BASENAMES = {"CLAUDE.md", "MEMORY.md", "DECISIONS.md", "PLAN.md"}
-SOT_DB_EXT = (".db", ".sqlite")
+
+# --- DB source-of-truth (RISTRETTO, S248): solo i DB di stato operativo, NON i DB
+#     spazzatura/rigenerabili (profilo Chrome, argos.db scratch, nhtsa_wmi reference). --
+SOT_DB_REALPATHS = {
+    os.path.realpath(os.path.join(ROOT, "dealer_network.sqlite")),
+    os.path.realpath(os.path.join(ROOT, "comm-broker", "bridge.sqlite")),
+    os.path.realpath(os.path.join(ROOT, "src", "cove", "data", "cove_tracker.duckdb")),
+}
 
 # --- file la cui modifica = disable_hook ------------------------------------------
 PROJ_SETTINGS = os.path.realpath(os.path.join(ROOT, ".claude", "settings.json"))
@@ -75,15 +102,25 @@ HARNESS_FILES = {
 }
 HOOK_REALPATHS = {PROJ_SETTINGS, GLOBAL_SETTINGS} | HARNESS_FILES
 
-# --- substrato (gap Bash di state_guard) ------------------------------------------
+# --- substrato (gap Bash di state_guard): protetti SOLO su Bash-lossy --------------
 STATE_MD = os.path.realpath(os.path.join(ROOT, "STATE.md"))
 RINGS_JSON = os.path.realpath(os.path.join(ROOT, "state", "rings.json"))
+SOT_BASH_ONLY = {STATE_MD, RINGS_JSON}
 
-# token Bash (heuristica best-effort)
+# token Bash (heuristica best-effort, classe outreach broad by design)
 SEND_SIGNATURES = (":9191/send", "send_message.js", "/send-doc", "/send-multi",
                    "sendMessage(", "bridge_outbound")
-LOSSY_OPS = re.compile(r"(>>?|\bmv\b|\brm\b|\bsed\s+-i\b|\btruncate\b|\btee\b|\bcp\b|\bchmod\b)")
 PHONE_RE = re.compile(r"\b(?:39)?3\d{8,9}\b")
+
+# --- estrazione operandi lossy (S248) ---------------------------------------------
+# redirezione su FILE: `> path` / `>> path`. Esclude fd-dup (2>&1, >&1) col lookbehind
+# (?<![0-9&]) e scartando i target che iniziano con &. Esclude process-substitution
+# `>(...)` perche' '(' non e' nella char-class del target.
+REDIR_RE = re.compile(r"(?<![0-9&])>>?\s*(['\"]?)([^\s'\"|;&<>()]+)\1")
+# split del comando in segmenti: il verbo file-op conta solo se e' il PRIMO token del
+# segmento (cosi' "cp"/"mv"/"rm" dentro un -m "..." o una prosa non scattano).
+SEGSPLIT_RE = re.compile(r";|&&|\|\||\||\n")
+FILEOP_VERBS = ("mv", "cp", "rm", "truncate", "tee", "chmod")
 
 
 def emit_deny(reason):
@@ -206,7 +243,7 @@ def is_sot_file(rp):
     if base in SOT_BASENAMES and ("/memory/" in rp or "/wiki/projects/" in rp
                                   or rp in SOT_REALPATHS):
         return True
-    if rp.endswith(SOT_DB_EXT) and rp.startswith(ROOT):
+    if rp in SOT_DB_REALPATHS:
         return True
     return False
 
@@ -220,15 +257,49 @@ def classify_write_edit(rp):
     return None, None
 
 
-def mentions(cmd, token):
-    return token in cmd
+def _split_segment_tokens(seg):
+    try:
+        return shlex.split(seg, comments=False, posix=True)
+    except ValueError:
+        return seg.split()
+
+
+def lossy_operands(cmd):
+    """Path che sono OPERANDI reali di un'operazione lossy su file.
+    NON include: script ESEGUITI (arg di bash/python), testo dentro un commit-message
+    o un argomento quotato, fd-dup redirect (2>&1)."""
+    ops = []
+    # target di redirezione su file (esclude fd-dup e process-substitution)
+    for m in REDIR_RE.finditer(cmd):
+        tgt = m.group(2)
+        if tgt and not tgt.startswith("&"):
+            ops.append(tgt)
+    # operandi di un verbo file-op, SOLO se il verbo e' il primo token del segmento
+    for seg in SEGSPLIT_RE.split(cmd):
+        toks = _split_segment_tokens(seg)
+        i = 0
+        while i < len(toks) and re.match(r"^\w+=", toks[i]):
+            i += 1  # salta assegnazioni env iniziali (VAR=val cmd ...)
+        if i >= len(toks):
+            continue
+        verb = os.path.basename(toks[i])
+        rest = toks[i + 1:]
+        if verb in FILEOP_VERBS:
+            if verb == "chmod" and rest:
+                rest = rest[1:]  # salta il mode (000/+x/...)
+            ops += [t for t in rest if t and not t.startswith("-")]
+        elif verb == "sed" and any(t == "-i" or t.startswith("-i") for t in rest):
+            # in modalita' -i: scartate flag e suffisso-backup vuoto, il PRIMO positional
+            # e' lo script (s/.../, y/.../, p, d, ...), i RESTANTI sono i file editati.
+            # (NON usare "s/" in t: matcha substring in path tipo `.harness/...`)
+            positionals = [t for t in rest if t and not t.startswith("-")]
+            ops += positionals[1:]
+    return ops
 
 
 def classify_bash(cmd):
     """Ritorna (action_class, target, detail) o (None, None, None)."""
-    lossy = bool(LOSSY_OPS.search(cmd))
-
-    # --- outreach_real ---
+    # --- outreach_real (BROAD by design: classe piu' critica) ---
     if any(sig in cmd for sig in SEND_SIGNATURES):
         all_nums = set(PHONE_RE.findall(cmd))
         non_test = [n for n in all_nums if n not in TEST_FOUNDER]
@@ -249,25 +320,15 @@ def classify_bash(cmd):
         return ("archive_doc", "tracked-doc",
                 f"git rm di doc tracciato: {cmd[:300]}")
 
-    # --- disable_hook (Bash) ---
-    hook_tokens = ("settings.json", "global_session_end.sh", "state_guard.py",
-                   "gate_e.py", "refresh.py", "refresh.sh", ".claude/hooks/")
-    if lossy and any(mentions(cmd, t) for t in hook_tokens):
-        hit = next(t for t in hook_tokens if mentions(cmd, t))
-        return ("disable_hook", hit,
-                f"operazione lossy su file-hook/guardrail ({hit}): {cmd[:300]}")
-
-    # --- overwrite_sot / substrato (gap Bash di state_guard) ---
-    sot_tokens = ("CLAUDE.md", "MEMORY.md", "DECISIONS.md", "PLAN.md",
-                  "STATE.md", "rings.json")
-    if lossy and any(mentions(cmd, t) for t in sot_tokens):
-        hit = next(t for t in sot_tokens if mentions(cmd, t))
-        return ("overwrite_sot", hit,
-                f"operazione lossy su source-of-truth ({hit}) via shell: {cmd[:300]}")
-    if lossy and re.search(r"\S+\.(db|sqlite)\b", cmd) and not mentions(cmd, ".backup"):
-        m = re.search(r"\S+\.(?:db|sqlite)\b", cmd)
-        return ("overwrite_sot", m.group(0),
-                f"operazione lossy su DB ({m.group(0)}) via shell: {cmd[:300]}")
+    # --- disable_hook / overwrite_sot: SOLO su operandi reali di op lossy (S248) ---
+    for op in lossy_operands(cmd):
+        rp = real(op)
+        cls, tgt = classify_write_edit(rp)
+        if not cls and rp in SOT_BASH_ONLY:
+            cls, tgt = "overwrite_sot", os.path.relpath(rp, ROOT)
+        if cls:
+            return (cls, tgt,
+                    f"operazione lossy su {tgt} (operando `{op}`) via shell: {cmd[:300]}")
 
     return None, None, None
 
@@ -276,6 +337,10 @@ def classify_bash(cmd):
 # hook entrypoint
 # ---------------------------------------------------------------------------------
 def run_hook():
+    # Escape manutenzione deliberata (come state_guard.gate_c): Luke rilancia CC con
+    # ARGOS_HARNESS_UNLOCK=1 per editare/manutenere il harness stesso.
+    if os.environ.get("ARGOS_HARNESS_UNLOCK") == "1":
+        allow()
     try:
         data = json.load(sys.stdin)
     except (json.JSONDecodeError, EOFError):
@@ -349,18 +414,41 @@ def cli_list():
 def cli_selftest():
     """Smoke interno: simula payload e verifica deny/allow + packet."""
     import tempfile
+    # determinismo: la selftest non deve dipendere da un eventuale unlock di sessione
+    os.environ.pop("ARGOS_HARNESS_UNLOCK", None)
     fails = []
 
     cases = [
+        # --- baseline ---
         ({"tool_name": "Bash", "tool_input": {"command": "ls -la"}}, "allow"),
         ({"tool_name": "Bash", "tool_input": {"command": "bash state/refresh.sh S247"}}, "allow"),
+        # --- regressioni FP S247/S248 (devono ESSERE allow) ---
+        ({"tool_name": "Bash", "tool_input": {"command": "bash state/refresh.sh S248 2>&1"}}, "allow"),
+        ({"tool_name": "Bash", "tool_input": {"command": "git commit -m 'refactor gate_e.py + rigenero STATE.md'"}}, "allow"),
+        ({"tool_name": "Bash", "tool_input": {"command": "git commit -m 'nota: cp di STATE.md in backup'"}}, "allow"),
+        ({"tool_name": "Bash", "tool_input": {"command": "python3 .harness/gate_e.py selftest"}}, "allow"),
+        ({"tool_name": "Bash", "tool_input": {"command": "rm wa-intelligence/argos.db"}}, "allow"),
+        ({"tool_name": "Bash", "tool_input": {"command": "rm tools/scrapers/.chrome_profile/first_party_sets.db"}}, "allow"),
+        # --- veri positivi mantenuti (devono ESSERE deny) ---
         ({"tool_name": "Bash", "tool_input": {"command": "git mv prompts/x.md archive/"}}, "deny"),
         ({"tool_name": "Bash", "tool_input": {"command": "sed -i '' 's/x/y/' STATE.md"}}, "deny"),
+        ({"tool_name": "Bash", "tool_input": {"command": "echo x > STATE.md"}}, "deny"),
+        ({"tool_name": "Bash", "tool_input": {"command": "cp /tmp/x .harness/gate_e.py"}}, "deny"),
+        ({"tool_name": "Bash", "tool_input": {"command": "echo x > src/cove/data/cove_tracker.duckdb"}}, "deny"),
         ({"tool_name": "Bash", "tool_input": {"command": "curl :9191/send -d to=393998887766"}}, "deny"),
         ({"tool_name": "Bash", "tool_input": {"command": "curl :9191/send -d to=393314928901"}}, "allow"),
         ({"tool_name": "Write", "tool_input": {"file_path": "PLAN.md", "content": "x"}}, "deny"),
         ({"tool_name": "Write", "tool_input": {"file_path": "BACKLOG.md", "content": "x"}}, "allow"),
         ({"tool_name": "Edit", "tool_input": {"file_path": ".claude/settings.json"}}, "deny"),
+        ({"tool_name": "Edit", "tool_input": {"file_path": ".harness/gate_e.py"}}, "deny"),
+        # --- TP-SoT espliciti vs matcher NUOVO (condizione #1 S249, anti falsi-NEGATIVI) ---
+        ({"tool_name": "Write", "tool_input": {"file_path": "CLAUDE.md", "content": "x"}}, "deny"),
+        ({"tool_name": "Write", "tool_input": {"file_path": os.path.join(HOME, ".claude/projects/p/memory/MEMORY.md"), "content": "x"}}, "deny"),
+        ({"tool_name": "Write", "tool_input": {"file_path": os.path.join(HOME, "venture-os/wiki/projects/G/DECISIONS.md"), "content": "x"}}, "deny"),
+        ({"tool_name": "Bash", "tool_input": {"command": "rm dealer_network.sqlite"}}, "deny"),
+        ({"tool_name": "Bash", "tool_input": {"command": "truncate -s 0 comm-broker/bridge.sqlite"}}, "deny"),
+        ({"tool_name": "Bash", "tool_input": {"command": "sed -i '' 's/a/b/' .harness/state_guard.py"}}, "deny"),
+        ({"tool_name": "Bash", "tool_input": {"command": "rm src/cove/data/nhtsa_wmi.duckdb"}}, "allow"),
     ]
     # redirige PENDING_DIR su tmp per non sporcare
     global PENDING_DIR, AUDIT
