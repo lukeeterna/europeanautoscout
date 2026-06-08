@@ -1,36 +1,36 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-08T07:19:56Z`
-**Sessione**: `b979a8ea-ab2d-45b0-9c0a-2ac0a58e1799`
+**Generato**: `2026-06-08T07:36:48Z`
+**Sessione**: `22852c8e-5251-41d0-9674-5851d11af5a7`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
 **Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
-**Last commit**: `f2af94b docs(S243): piano+resume nel repo (reboot-safe) — state/s242_verdict + s244_resume`
+**Last commit**: `a9f1167 auto-close session 22852c8e-5251-41d0-9674-5851d11af5a7 @ 2026-06-08T07:34:58Z`
 
 ## Ultimi 5 commit
 ```
+a9f1167 auto-close session 22852c8e-5251-41d0-9674-5851d11af5a7 @ 2026-06-08T07:34:58Z
+2020966 feat(S244): Step 4 — smoke anello 5 (dossier PDF) VERIFIED + split ring 5-6-7
 f2af94b docs(S243): piano+resume nel repo (reboot-safe) — state/s242_verdict + s244_resume
 ec12ad6 auto-close session b979a8ea-ab2d-45b0-9c0a-2ac0a58e1799 @ 2026-06-08T07:05:00Z
 ccc3639 feat(S243): substrato stato generato (Gate A) — verita' calcolata non scritta
-e6a6435 auto-close session 963b00f0-65e3-4a49-b076-a416ce4bc7fc @ 2026-06-06T18:59:45Z
-43cd295 auto-close session 963b00f0-65e3-4a49-b076-a416ce4bc7fc @ 2026-06-06T18:58:26Z
 ```
 
 ## File modificati nell'ultimo commit
 ```
-A	state/s242_claude_ai_verdict.md
-A	state/s244_resume.md
+M	.claude/NEXT_SESSION_PROMPT.md
+M	vos-out/decisions.jsonl
 ```
 
 ## Ultimo prompt utente (estratto)
 ```
-[{"tool_use_id":"toolu_013akfcKEMfhzYJtAUWrVcMU","type":"tool_result","content":"🔍 ARGOS Pre-Commit Checks...\n✅ Pre-commit checks passed\nrc=0\nf2af94b docs(S243): piano+resume nel repo (reboot-safe) — state/s242_verdict + s244_resume\n M .claude/NEXT_SESSION_PROMPT.md","is_error":false}]
+CONTEXT 64% CHIUDI ORDINATAMENTE E DAMMI PROMPT NEXT
 ```
 
 ## Ultimi turni assistant
 ```
-```
-Questo basta. Io leggerò il resume, la prima azione sarà `bash state/refresh.sh S244` (lo stato si rigenera dal codice), e continuerò da **step 4**. Il piano completo è in `state/s242_claude_ai_verdict.md`, già referenziato dal resume.
-**Sessione chiusa verde.** Tutto nel repo, nessun file volatile. Context 59% → stop qui.
+4. **6-7 E2E** — gate HITL su iMac (fastapi presente) + invio PDF su **TEST_FOUNDER 393314928901** (mai dealer reale).
+**Nota onestà da ricordare:** anello 6 (gate HITL `app.py`) è fastapi-coupled → smoke-abile solo su iMac/CI, su MacBook fa SKIP non-gating (memoria `s244_ring_split_hitl_fastapi.md`).
+Sessione chiusa verde. Branch `s210/audit-master-plan` pushato.
 ```
 
 ## Come riprendere
