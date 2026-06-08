@@ -50,4 +50,18 @@ else
 fi
 
 echo ""
+
+# 5. Substrato stato (Gate A): rigenera la tabella anelli da check eseguibili PRIMA di CC.
+#    "VERIFIED" sopravvive solo se il check ripassa in questa sessione (refresh.py).
+#    SESSION_ID: env ARGOS_SESSION se settato, altrimenti label auto (cosmetico: il
+#    downgrade dello stale funziona comunque; Luke puo' rilanciare con S<N> reale).
+SESS="${ARGOS_SESSION:-auto-$(date +%Y%m%dT%H%M%SZ)}"
+if [ -f state/refresh.sh ]; then
+  echo "State refresh ($SESS):"
+  bash state/refresh.sh "$SESS" 2>&1 | sed 's/^/  /' || echo "  refresh FAILED (vedi STATE.md)"
+else
+  echo "State refresh: SKIP (state/refresh.sh assente)"
+fi
+
+echo ""
 echo "=== Ready ==="
