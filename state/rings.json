@@ -19,8 +19,8 @@
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "PASS",
-    "last_run_ts": "2026-06-08T07:02:19Z",
-    "last_run_session": "S243",
+    "last_run_ts": "2026-06-08T07:32:27Z",
+    "last_run_session": "S244",
     "note": "Smoke offline: 5 scenari intent su fixture DB, zero LLM zero msg reali."
   },
   {
@@ -31,8 +31,8 @@
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "PASS",
-    "last_run_ts": "2026-06-08T07:02:19Z",
-    "last_run_session": "S243",
+    "last_run_ts": "2026-06-08T07:32:27Z",
+    "last_run_session": "S244",
     "note": "Smoke offline: approve_reply runtime con SQLite fixtures schema produzione. Gate '5/5 PASS'."
   },
   {
@@ -48,16 +48,28 @@
     "note": "Tier full: verificato S241 via callback fisico Telegram. Nessuno smoke offline isolato -> UNVERIFIED finche' non re-eseguito in sessione."
   },
   {
-    "id": "5-6-7",
-    "name": "dossier -> approve HITL -> invio PDF",
-    "check_cmd": null,
+    "id": "5",
+    "name": "generazione dossier PDF",
+    "check_cmd": "python3 tools/tests/test_dossier_hitl_smoke.py",
     "tier": "smoke",
+    "blocked_on": null,
+    "revalidation_forbidden": false,
+    "last_status": "PASS",
+    "last_run_ts": "2026-06-08T07:32:27Z",
+    "last_run_session": "S244",
+    "note": "Smoke offline: generate_dossier_from_data produce PDF reale su disco (magic %PDF, no rete no immagini). Lo stesso check esercita anche il gate HITL dossier (anello 6) come best-effort SE fastapi presente (iMac/CI); su MacBook fastapi assente -> 6 SKIP non-gating."
+  },
+  {
+    "id": "6-7",
+    "name": "approve HITL dossier -> invio PDF al dealer",
+    "check_cmd": null,
+    "tier": "full",
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "UNVERIFIED",
     "last_run_ts": null,
     "last_run_session": null,
-    "note": "FOCUS. Smoke check da scrivere (step 4). Finche' assente -> UNVERIFIED."
+    "note": "Tier full. Gate HITL (app.py _update_dossier_status, fastapi-coupled) E2E via dashboard:8080; invio PDF (wa-daemon.js /send-doc) richiede client WA reale -> TEST_FOUNDER 393314928901, mai dealer reale. Lo smoke anello 5 esercita il gate HITL su iMac/CI ma la consegna WA resta full."
   },
   {
     "id": "8",

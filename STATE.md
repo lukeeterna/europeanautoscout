@@ -15,15 +15,16 @@ Rigenera con: `bash state/refresh.sh <SESSION_ID>` · sorgente: `state/rings.jso
 
 <!-- GENERATED:rings:start -->
 <!-- NON modificare a mano: rigenerato da `bash state/refresh.sh`. VERIFIED = check passato in QUESTA sessione. -->
-_Rigenerato 2026-06-08T07:02:19Z · sessione `S243`_
+_Rigenerato 2026-06-08T07:32:27Z · sessione `S244`_
 
 | # | Anello | Stato | Tier | Check | Ultima sessione |
 |---|--------|-------|------|-------|-----------------|
 | 1 | invio Day1 WA | UNVERIFIED | full | — | — |
-| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | S243 |
-| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | S243 |
+| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | S244 |
+| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | S244 |
 | 9B | reject -> abort | UNVERIFIED | full | — | — |
-| 5-6-7 | dossier -> approve HITL -> invio PDF | UNVERIFIED | smoke | — | — |
+| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | S244 |
+| 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED | full | — | — |
 | 8 | contract -> sign_url | BLOCKED | full | freeze: sign_url firmato dal dealer reale (HITL fisico Luke o terzo) — fatto esterno non raggiungibile in-sessione | — |
 <!-- GENERATED:rings:end -->
 
@@ -35,22 +36,28 @@ Pipeline core: `Scraper (28 portali) → CoVe Engine (scoring+fraud) → Opportu
 
 ---
 
-## 2. Task corrente (S243)
+## 2. Task corrente (S244)
 
-**Consolidamento substrato di stato** — sequenza verdetto Claude AI (`/tmp/s242_claude_ai_verdict.md`).
-Substrato (rings.json + refresh.sh + render) costruito. Restano: guadagnare VERIFIED su 5/6/7
-(step 4), gate A–C + .harness (step 6), redirect hook (step 7), archivio 7 doc (step 8), Gate E (step 9).
+**Consolidamento substrato di stato** — sequenza verdetto Claude AI (`state/s242_claude_ai_verdict.md`).
+Step 4 CHIUSO: smoke `tools/tests/test_dossier_hitl_smoke.py` scritto + eseguito (1/1 PASS).
+Ring `5-6-7` SPLITTATO onestamente in **5** (PDF gen, smoke VERIFIED — `generate_dossier_from_data`
+produce PDF reale su disco) e **6-7** (gate HITL + invio PDF WA, tier full → E2E iMac/TEST_FOUNDER).
+Anello 6 (gate HITL `app.py`) è fastapi-coupled: gira solo su iMac/CI; su MacBook = SKIP non-gating.
 
-Dopo il consolidamento → anelli **5/6/7** (dossier → approve HITL → invio PDF al dealer).
+Restano (verdetto Claude AI): step 6 (gate A–C + `.harness/`), step 7 (redirect auto-close hook),
+step 8 (archivio doc legacy), step 9 (Gate E azioni high-stakes).
 
 ---
 
 ## 3. Prossimi 3 step
 
-1. **Step 4** — scrivere lo smoke check per 5/6/7, eseguirlo via refresh, chiudere i rossi con E2E
-   su **TEST_FOUNDER 393314928901** (mai dealer reale prima).
-2. **Step 6–7** — gate A–C + protezione `.harness/` + redirect auto-close hook (checkpoint git prima).
-3. **Step 8** — archivio 7 doc legacy (backup verificato Rule 1d) + commit checkpoint reversibile.
+1. **Step 6** — Gate A–C + `.harness/`: PreToolUse hook che (a) rifiuta scrittura manuale dentro
+   `<!-- GENERATED:rings -->`, (b) rifiuta token VERIFIED in file stato per anello non-PASS,
+   (c) rifiuta edit a file-hook. SessionStart hook esegue `refresh.sh` prima di CC. Checkpoint git prima.
+2. **Step 7** — redirect `~/.claude/hooks/global_session_end.sh` → breadcrumb = pointer a STATE.md,
+   ZERO ri-asserzione status. NON disattivarlo (memoria `feedback_keep_autoclose_hook_context_control`).
+3. **Step 8** — archivio `prompts/` (58) + `HANDOFF*` + `.claude/NEXT_SESSION_PROMPT` (backup verificato
+   Rule 1d) → 1 riga pointer in STATE.md → commit checkpoint reversibile.
 
 ---
 
