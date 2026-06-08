@@ -36,7 +36,8 @@ RINGS_JSON = os.path.realpath(os.path.join(ROOT, "state", "rings.json"))
 SELF = os.path.realpath(os.path.join(HERE, "state_guard.py"))
 REFRESH_PY = os.path.realpath(os.path.join(ROOT, "state", "refresh.py"))
 REFRESH_SH = os.path.realpath(os.path.join(ROOT, "state", "refresh.sh"))
-PROTECTED_FILES = {SELF, REFRESH_PY, REFRESH_SH}
+GATE_E = os.path.realpath(os.path.join(HERE, "gate_e.py"))
+PROTECTED_FILES = {SELF, GATE_E, REFRESH_PY, REFRESH_SH}
 
 MARK_START = "<!-- GENERATED:rings:start -->"
 MARK_END = "<!-- GENERATED:rings:end -->"

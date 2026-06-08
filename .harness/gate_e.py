@@ -110,6 +110,10 @@ SOT_BASH_ONLY = {STATE_MD, RINGS_JSON}
 # token Bash (heuristica best-effort, classe outreach broad by design)
 SEND_SIGNATURES = (":9191/send", "send_message.js", "/send-doc", "/send-multi",
                    "sendMessage(", "bridge_outbound")
+# entrypoint outreach eseguiti per FILENAME (la signature di invio vive DENTRO il .py,
+# non nel cmd shell -> SEND_SIGNATURES non li vede). Classe outreach = meglio FP che FN.
+OUTREACH_SCRIPT_SIGNATURES = ("tools/outreach/", "send_day1", "outreach_scheduler",
+                              "wa-intelligence/scheduler.py")
 PHONE_RE = re.compile(r"\b(?:39)?3\d{8,9}\b")
 
 # --- estrazione operandi lossy (S248) ---------------------------------------------
@@ -300,7 +304,12 @@ def lossy_operands(cmd):
 def classify_bash(cmd):
     """Ritorna (action_class, target, detail) o (None, None, None)."""
     # --- outreach_real (BROAD by design: classe piu' critica) ---
-    if any(sig in cmd for sig in SEND_SIGNATURES):
+    hit_sig = any(sig in cmd for sig in SEND_SIGNATURES)
+    # entrypoint outreach per FILENAME: --dry-run escluso (non invia). Se lo script gira
+    # senza numero esplicito -> ramo "no-number" -> DENY (il numero e' hardcoded nel .py).
+    hit_script = (any(sig in cmd for sig in OUTREACH_SCRIPT_SIGNATURES)
+                  and "--dry-run" not in cmd)
+    if hit_sig or hit_script:
         all_nums = set(PHONE_RE.findall(cmd))
         non_test = [n for n in all_nums if n not in TEST_FOUNDER]
         if non_test:
@@ -437,6 +446,9 @@ def cli_selftest():
         ({"tool_name": "Bash", "tool_input": {"command": "echo x > src/cove/data/cove_tracker.duckdb"}}, "deny"),
         ({"tool_name": "Bash", "tool_input": {"command": "curl :9191/send -d to=393998887766"}}, "deny"),
         ({"tool_name": "Bash", "tool_input": {"command": "curl :9191/send -d to=393314928901"}}, "allow"),
+        # --- #2 fix S251: entrypoint outreach per FILENAME (signature dentro il .py) ---
+        ({"tool_name": "Bash", "tool_input": {"command": "python3 tools/outreach/send_day1_stile_car.py"}}, "deny"),
+        ({"tool_name": "Bash", "tool_input": {"command": "python3 tools/outreach/send_day1_stile_car.py --dry-run"}}, "allow"),
         ({"tool_name": "Write", "tool_input": {"file_path": "PLAN.md", "content": "x"}}, "deny"),
         ({"tool_name": "Write", "tool_input": {"file_path": "BACKLOG.md", "content": "x"}}, "allow"),
         ({"tool_name": "Edit", "tool_input": {"file_path": ".claude/settings.json"}}, "deny"),
