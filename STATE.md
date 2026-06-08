@@ -36,31 +36,32 @@ Pipeline core: `Scraper (28 portali) → CoVe Engine (scoring+fraud) → Opportu
 
 ---
 
-## 2. Task corrente (S245)
+## 2. Task corrente (S246)
 
 **Consolidamento substrato di stato** — sequenza verdetto Claude AI (`state/s242_claude_ai_verdict.md`).
-**Step 6 CHIUSO (commit d97d353)**: `.harness/state_guard.py` PreToolUse hook attivo dalla
-prossima sessione (gli hook si leggono a SessionStart). Gate A (STATE.md blocco GENERATED
-immutabile), Gate B (rings.json campi machine-owned non forgiabili), Gate D via B (anelli
-founder-frozen non sbloccabili da CC), Gate C (guard+generatori self-protetti, escape
-`ARGOS_HARNESS_UNLOCK=1`). Applica a Write/Edit/MultiEdit, NON Bash (romperebbe refresh.py —
-gap dichiarato). 11 test stdin PASS. `session_start.sh` ora esegue `bash state/refresh.sh`
-PRIMA di CC → stale VERIFIED downgradati ogni sessione.
+**Step 7 CHIUSO (commit d8f8018)**: auto-close hook `~/.claude/hooks/global_session_end.sh`
+REINDIRIZZATO — su repo con STATE.md genera breadcrumb zero-status (pointer a STATE.md), non più
+prosa di stato (doc #8). Auto-commit safety-net invariato; ramo legacy preservato per repo senza
+STATE.md (FLUXION/Guardian). Backup Rule 1d `global_session_end.sh.bak-S246-*`. Done-condition
+verificata: dry-run su repo ARGOS produce breadcrumb.
+**Step 8 CHIUSO (commit d8f8018)**: `git mv` 58 prompt + 2 HANDOFF → `archive/` (history preservata,
+reversibile, revert testato). STATE.md sez.7 = pointer archivio.
+**(S245) Step 6 CHIUSO (commit d97d353)**: `.harness/state_guard.py` Gate A–D attivo, 11 test PASS.
 
-Restano (verdetto Claude AI): step 7 (redirect auto-close hook), step 8 (archivio doc legacy),
-step 9 (Gate E azioni high-stakes), + 6-7 E2E (gate HITL iMac + invio PDF TEST_FOUNDER).
+Restano (verdetto Claude AI): step 9 (Gate E azioni high-stakes) + 6-7 E2E (gate HITL iMac +
+invio PDF TEST_FOUNDER 393314928901).
 
 ---
 
-## 3. Prossimi step (S246)
+## 3. Prossimi step (S247)
 
-1. **Step 7** — redirect `~/.claude/hooks/global_session_end.sh` → breadcrumb = pointer a STATE.md,
-   ZERO ri-asserzione status. **NON disattivarlo** (memoria `feedback_keep_autoclose_hook_context_control`).
-   È file GLOBALE fuori repo → backup verificato Rule 1d PRIMA (size>0, mtime precedente, citato).
-2. **Step 8** — archivio `prompts/` (58) + `HANDOFF*` + `.claude/NEXT_SESSION_PROMPT` (backup verificato
-   Rule 1d) → 1 riga pointer in STATE.md → commit checkpoint reversibile.
-3. **6-7 E2E** — gate HITL su iMac (fastapi presente) + invio PDF su TEST_FOUNDER 393314928901
-   (mai dealer reale). Anello 6 fastapi-coupled: smoke-abile solo iMac/CI.
+1. **Step 9** — definisci CLASSE azioni high-stakes (overwrite source-of-truth, archiviazione doc,
+   outreach reale, flip VERIFIED-full, disattivazione hook) + Gate E: PreToolUse hook in `.harness/`
+   che BLOCCA, scrive `pending_review/<azione>.md` (packet precompilato) ed esce non-zero. CC non
+   procede finché Luke non incolla verdetto esterno + comando registra l'approvazione (verdetto §4 Gate E).
+2. **6-7 E2E** — gate HITL su iMac (fastapi presente) + invio PDF su TEST_FOUNDER 393314928901
+   (mai dealer reale). Anello 6 fastapi-coupled: smoke-abile solo iMac/CI. Anello 6-7 è la prima
+   azione che dovrebbe innescare Gate E (outreach su numero reale) → fare DOPO step 9.
 
 ---
 
