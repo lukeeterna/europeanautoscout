@@ -1,36 +1,36 @@
 # Prompt ripartenza — generato automaticamente
 
-**Generato**: `2026-06-08T06:49:12Z`
+**Generato**: `2026-06-08T07:19:56Z`
 **Sessione**: `b979a8ea-ab2d-45b0-9c0a-2ac0a58e1799`
 **Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
 **Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
-**Last commit**: `e6a6435 auto-close session 963b00f0-65e3-4a49-b076-a416ce4bc7fc @ 2026-06-06T18:59:45Z`
+**Last commit**: `f2af94b docs(S243): piano+resume nel repo (reboot-safe) — state/s242_verdict + s244_resume`
 
 ## Ultimi 5 commit
 ```
+f2af94b docs(S243): piano+resume nel repo (reboot-safe) — state/s242_verdict + s244_resume
+ec12ad6 auto-close session b979a8ea-ab2d-45b0-9c0a-2ac0a58e1799 @ 2026-06-08T07:05:00Z
+ccc3639 feat(S243): substrato stato generato (Gate A) — verita' calcolata non scritta
 e6a6435 auto-close session 963b00f0-65e3-4a49-b076-a416ce4bc7fc @ 2026-06-06T18:59:45Z
 43cd295 auto-close session 963b00f0-65e3-4a49-b076-a416ce4bc7fc @ 2026-06-06T18:58:26Z
-301fea0 docs(S241): PRIORITA #0 S242 = consolidare file di stato (root cause "punto e a capo")
-2266896 docs(S241): #9B reject VERIFIED 4/9 — diagnosi S240 SMENTITA, bot tg sano
-f87d71f docs(S241): handoff S242 — diagnosi S240 SMENTITA. Token VALIDO (getMe ok), bot processa /help, agent-ops ha allucinato 409->404. #9B callback NON raccolto: ipotesi reale = stallo loop tg-bot post-iterazione (probe offset=-1 -> ok:true non 409). Next: verifica stallo + watchdog liveness.
 ```
 
 ## File modificati nell'ultimo commit
 ```
-M	.claude/NEXT_SESSION_PROMPT.md
-D	.claude/SESSION_DIRTY.md
+A	state/s242_claude_ai_verdict.md
+A	state/s244_resume.md
 ```
 
 ## Ultimo prompt utente (estratto)
 ```
-[{"tool_use_id":"toolu_01PpbXsZre5xkuuv6YUnfVUn","type":"tool_result","content":"=== guard ARGOS in global_session_end.sh ===\n66:  COMMIT_RESULT=\"cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)\"\n=== archive/ esiste? ===\nls: archive/: No such file or directory\n=== handoff/prompt ancora a root/.claude? ===\n(eval):1: no matches found: NEXT_SESSION*.md\n=== prompts/ dir ===\n      58","is_error":false}]
+[{"tool_use_id":"toolu_013akfcKEMfhzYJtAUWrVcMU","type":"tool_result","content":"🔍 ARGOS Pre-Commit Checks...\n✅ Pre-commit checks passed\nrc=0\nf2af94b docs(S243): piano+resume nel repo (reboot-safe) — state/s242_verdict + s244_resume\n M .claude/NEXT_SESSION_PROMPT.md","is_error":false}]
 ```
 
 ## Ultimi turni assistant
 ```
-- Step 6-8 (protezione `.harness/`, redirect hook, **archiviazione 7 doc**): toccano harness e fanno una move lossy di file → checkpoint git + backup verificato (Rule 1d) **prima**, e te li mostro.
-- Step 4 "guadagnare VERIFIED su 5/6/7" richiede E2E su TEST_FOUNDER 393314928901 = serve te fisico → se non sei disponibile ora, quegli anelli restano `UNVERIFIED` onesti (non li fake-verifico) e il resto del substrato è comunque completo.
-Domanda di scope (unica, non tecnica): **parto con la sequenza adesso?** Se sì, comincio subito da step 2-3 (substrato), che è la leva massima e non distrugge nulla.
+```
+Questo basta. Io leggerò il resume, la prima azione sarà `bash state/refresh.sh S244` (lo stato si rigenera dal codice), e continuerò da **step 4**. Il piano completo è in `state/s242_claude_ai_verdict.md`, già referenziato dal resume.
+**Sessione chiusa verde.** Tutto nel repo, nessun file volatile. Context 59% → stop qui.
 ```
 
 ## Come riprendere
