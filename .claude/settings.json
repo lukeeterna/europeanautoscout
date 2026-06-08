@@ -44,6 +44,15 @@
             "command": "python3 .harness/state_guard.py"
           }
         ]
+      },
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .harness/gate_e.py"
+          }
+        ]
       }
     ],
     "Stop": [

@@ -15,15 +15,15 @@ Rigenera con: `bash state/refresh.sh <SESSION_ID>` · sorgente: `state/rings.jso
 
 <!-- GENERATED:rings:start -->
 <!-- NON modificare a mano: rigenerato da `bash state/refresh.sh`. VERIFIED = check passato in QUESTA sessione. -->
-_Rigenerato 2026-06-08T08:21:58Z · sessione `S246`_
+_Rigenerato 2026-06-08T08:51:55Z · sessione `auto-20260608T105155Z`_
 
 | # | Anello | Stato | Tier | Check | Ultima sessione |
 |---|--------|-------|------|-------|-----------------|
 | 1 | invio Day1 WA | UNVERIFIED | full | — | — |
-| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | S246 |
-| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | S246 |
+| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | auto-20260608T105155Z |
+| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | auto-20260608T105155Z |
 | 9B | reject -> abort | UNVERIFIED | full | — | — |
-| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | S246 |
+| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | auto-20260608T105155Z |
 | 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED | full | — | — |
 | 8 | contract -> sign_url | BLOCKED | full | freeze: sign_url firmato dal dealer reale (HITL fisico Luke o terzo) — fatto esterno non raggiungibile in-sessione | — |
 <!-- GENERATED:rings:end -->
@@ -47,21 +47,30 @@ verificata: dry-run su repo ARGOS produce breadcrumb.
 **Step 8 CHIUSO (commit d8f8018)**: `git mv` 58 prompt + 2 HANDOFF → `archive/` (history preservata,
 reversibile, revert testato). STATE.md sez.7 = pointer archivio.
 **(S245) Step 6 CHIUSO (commit d97d353)**: `.harness/state_guard.py` Gate A–D attivo, 11 test PASS.
+**Step 9 CHIUSO (S247)**: `.harness/gate_e.py` = PreToolUse hook (matcher `Bash|Write|Edit|MultiEdit`,
+registrato in `.claude/settings.json`). CLASSE azioni high-stakes: `outreach_real` (WA a numero ≠
+TEST_FOUNDER), `archive_doc` (git mv/rm → archive/), `overwrite_sot` (CLAUDE.md/MEMORY.md/DECISIONS.md/
+PLAN.md/*.db via Write/Edit/Bash-lossy — chiude il gap Bash di state_guard, es. `sed -i STATE.md`),
+`disable_hook` (settings.json/hook globali/file-harness). Meccanica: BLOCCA → scrive
+`pending_review/<slug>.md` (packet precompilato) → CC fermo finché Luke non incolla verdetto esterno +
+`! python3 .harness/gate_e.py approve <slug>` (token one-shot consumato all'uso; CC non può auto-approvare).
+Done-condition VERIFICATA E2E: deny+packet, retry deny, approve→allow, consumo→deny, self-approve→deny.
+selftest 9/9 PASS. NB hook attivo dalla PROSSIMA sessione (gli hook si leggono a SessionStart).
 
-Restano (verdetto Claude AI): step 9 (Gate E azioni high-stakes) + 6-7 E2E (gate HITL iMac +
-invio PDF TEST_FOUNDER 393314928901).
+Resta (verdetto Claude AI): 6-7 E2E (gate HITL iMac + invio PDF TEST_FOUNDER 393314928901). È la prima
+azione che innescherà Gate E (classe `outreach_real`).
 
 ---
 
-## 3. Prossimi step (S247)
+## 3. Prossimi step (S248)
 
-1. **Step 9** — definisci CLASSE azioni high-stakes (overwrite source-of-truth, archiviazione doc,
-   outreach reale, flip VERIFIED-full, disattivazione hook) + Gate E: PreToolUse hook in `.harness/`
-   che BLOCCA, scrive `pending_review/<azione>.md` (packet precompilato) ed esce non-zero. CC non
-   procede finché Luke non incolla verdetto esterno + comando registra l'approvazione (verdetto §4 Gate E).
-2. **6-7 E2E** — gate HITL su iMac (fastapi presente) + invio PDF su TEST_FOUNDER 393314928901
-   (mai dealer reale). Anello 6 fastapi-coupled: smoke-abile solo iMac/CI. Anello 6-7 è la prima
-   azione che dovrebbe innescare Gate E (outreach su numero reale) → fare DOPO step 9.
+1. **6-7 E2E** — gate HITL su iMac (fastapi presente) + invio PDF su TEST_FOUNDER 393314928901
+   (mai dealer reale). Anello 6 fastapi-coupled: smoke-abile solo iMac/CI. È la prima azione che
+   innesca **Gate E** (classe `outreach_real`): l'invio WA verrà BLOCCATO, gate_e scriverà il packet
+   in `.harness/pending_review/`, e si procede solo dopo verdetto esterno + `approve <slug>` di Luke.
+2. **Hardening Gate E differito** (BACKLOG, non bloccante): aggiungere `gate_e.py` a PROTECTED_FILES
+   di `state_guard.py` (mutua protezione completa) — richiede `ARGOS_HARNESS_UNLOCK=1`. Oggi gate_e
+   si auto-protegge (classe `disable_hook`), ma state_guard non lo conosce ancora.
 
 ---
 
