@@ -55,7 +55,9 @@ PLAN.md/*.db via Write/Edit/Bash-lossy — chiude il gap Bash di state_guard, es
 `pending_review/<slug>.md` (packet precompilato) → CC fermo finché Luke non incolla verdetto esterno +
 `! python3 .harness/gate_e.py approve <slug>` (token one-shot consumato all'uso; CC non può auto-approvare).
 Done-condition VERIFICATA E2E: deny+packet, retry deny, approve→allow, consumo→deny, self-approve→deny.
-selftest 9/9 PASS. NB hook attivo dalla PROSSIMA sessione (gli hook si leggono a SessionStart).
+selftest 9/9 PASS. Hook ATTIVO LIVE (CC rilegge settings.json a caldo): ha bloccato il proprio
+commit di install = prova in produzione. Verdetto esterno Claude AI S247: APPROVE (atterra verificato,
+refinement dopo con stessa disciplina verify-then-land).
 
 Resta (verdetto Claude AI): 6-7 E2E (gate HITL iMac + invio PDF TEST_FOUNDER 393314928901). È la prima
 azione che innescherà Gate E (classe `outreach_real`).
@@ -64,13 +66,22 @@ azione che innescherà Gate E (classe `outreach_real`).
 
 ## 3. Prossimi step (S248)
 
-1. **6-7 E2E** — gate HITL su iMac (fastapi presente) + invio PDF su TEST_FOUNDER 393314928901
+1. **Gate E refinement — PROSSIMO work-item gated, NON "BACKLOG un giorno"** (verdetto Claude AI S247).
+   Far scattare il gate SOLO sugli operandi reali (numero destinatario, path-file effettivi, edit reale
+   del file-hook), MAI sul testo del commit message — il match sulla prosa è un errore di categoria
+   (FP illimitati, zero veri-positivi extra). + restringere `*.db` al path del DB source-of-truth.
+   + `ARGOS_HARNESS_UNLOCK=1` come escape manutenzione di gate_e + `gate_e.py` in PROTECTED_FILES di
+   state_guard. Disciplina: edit → selftest+E2E → land (verify-then-land). Trigger: FP sostenuto sposta
+   il decadimento da auto-disciplina-AI a vigilanza-umana = stesso failure-mode che l'apparato impedisce.
+2. **COVERAGE-CHECK (production-blocking per classe `outreach_real`, verdetto Claude AI S247)**: l'E2E
+   ha verificato il blocco sul path-SHELL. PRIMA di alzare la soglia autonomia-invio (oggi già bloccata
+   da regola ≥10 CLOSED_WON), CONFERMARE che Gate E intercetti il path-tool REALE con cui AMBRA invia in
+   produzione. Se AMBRA manda via tool MCP/Python che bypassa il matcher-shell → breaker DECORATIVO sulla
+   sua classe più critica = difetto strutturale (flip a REJECT). Non urgente oggi (autonomia già gated).
+3. **6-7 E2E** — gate HITL su iMac (fastapi presente) + invio PDF su TEST_FOUNDER 393314928901
    (mai dealer reale). Anello 6 fastapi-coupled: smoke-abile solo iMac/CI. È la prima azione che
-   innesca **Gate E** (classe `outreach_real`): l'invio WA verrà BLOCCATO, gate_e scriverà il packet
-   in `.harness/pending_review/`, e si procede solo dopo verdetto esterno + `approve <slug>` di Luke.
-2. **Hardening Gate E differito** (BACKLOG, non bloccante): aggiungere `gate_e.py` a PROTECTED_FILES
-   di `state_guard.py` (mutua protezione completa) — richiede `ARGOS_HARNESS_UNLOCK=1`. Oggi gate_e
-   si auto-protegge (classe `disable_hook`), ma state_guard non lo conosce ancora.
+   innesca **Gate E** (classe `outreach_real`): l'invio verrà BLOCCATO + packet, si procede solo dopo
+   verdetto esterno + `approve <slug>`. NB: fare DOPO il coverage-check (item 2).
 
 ---
 
