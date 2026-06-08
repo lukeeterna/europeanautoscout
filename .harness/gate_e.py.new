@@ -289,9 +289,11 @@ def lossy_operands(cmd):
                 rest = rest[1:]  # salta il mode (000/+x/...)
             ops += [t for t in rest if t and not t.startswith("-")]
         elif verb == "sed" and any(t == "-i" or t.startswith("-i") for t in rest):
-            # ultimo/i arg = file; scarta flag, suffisso backup vuoto e script s/.../
-            ops += [t for t in rest
-                    if t and not t.startswith("-") and "s/" not in t]
+            # in modalita' -i: scartate flag e suffisso-backup vuoto, il PRIMO positional
+            # e' lo script (s/.../, y/.../, p, d, ...), i RESTANTI sono i file editati.
+            # (NON usare "s/" in t: matcha substring in path tipo `.harness/...`)
+            positionals = [t for t in rest if t and not t.startswith("-")]
+            ops += positionals[1:]
     return ops
 
 
@@ -439,6 +441,14 @@ def cli_selftest():
         ({"tool_name": "Write", "tool_input": {"file_path": "BACKLOG.md", "content": "x"}}, "allow"),
         ({"tool_name": "Edit", "tool_input": {"file_path": ".claude/settings.json"}}, "deny"),
         ({"tool_name": "Edit", "tool_input": {"file_path": ".harness/gate_e.py"}}, "deny"),
+        # --- TP-SoT espliciti vs matcher NUOVO (condizione #1 S249, anti falsi-NEGATIVI) ---
+        ({"tool_name": "Write", "tool_input": {"file_path": "CLAUDE.md", "content": "x"}}, "deny"),
+        ({"tool_name": "Write", "tool_input": {"file_path": os.path.join(HOME, ".claude/projects/p/memory/MEMORY.md"), "content": "x"}}, "deny"),
+        ({"tool_name": "Write", "tool_input": {"file_path": os.path.join(HOME, "venture-os/wiki/projects/G/DECISIONS.md"), "content": "x"}}, "deny"),
+        ({"tool_name": "Bash", "tool_input": {"command": "rm dealer_network.sqlite"}}, "deny"),
+        ({"tool_name": "Bash", "tool_input": {"command": "truncate -s 0 comm-broker/bridge.sqlite"}}, "deny"),
+        ({"tool_name": "Bash", "tool_input": {"command": "sed -i '' 's/a/b/' .harness/state_guard.py"}}, "deny"),
+        ({"tool_name": "Bash", "tool_input": {"command": "rm src/cove/data/nhtsa_wmi.duckdb"}}, "allow"),
     ]
     # redirige PENDING_DIR su tmp per non sporcare
     global PENDING_DIR, AUDIT
