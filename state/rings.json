@@ -1,0 +1,74 @@
+[
+  {
+    "id": "1",
+    "name": "invio Day1 WA",
+    "check_cmd": null,
+    "tier": "full",
+    "blocked_on": null,
+    "revalidation_forbidden": false,
+    "last_status": "UNVERIFIED",
+    "last_run_ts": null,
+    "last_run_session": null,
+    "note": "Tier full: richiede daemon WA reale + TEST_FOUNDER. Nessuno smoke offline → UNVERIFIED finche' non eseguito su numero reale."
+  },
+  {
+    "id": "2",
+    "name": "classifier intent (AMBRA)",
+    "check_cmd": "python3 tools/test_ambra_5scenarios.py",
+    "tier": "smoke",
+    "blocked_on": null,
+    "revalidation_forbidden": false,
+    "last_status": "PASS",
+    "last_run_ts": "2026-06-08T07:02:19Z",
+    "last_run_session": "S243",
+    "note": "Smoke offline: 5 scenari intent su fixture DB, zero LLM zero msg reali."
+  },
+  {
+    "id": "9A",
+    "name": "approve -> send",
+    "check_cmd": "python3 tools/tests/test_approve_reply_runtime.py",
+    "tier": "smoke",
+    "blocked_on": null,
+    "revalidation_forbidden": false,
+    "last_status": "PASS",
+    "last_run_ts": "2026-06-08T07:02:19Z",
+    "last_run_session": "S243",
+    "note": "Smoke offline: approve_reply runtime con SQLite fixtures schema produzione. Gate '5/5 PASS'."
+  },
+  {
+    "id": "9B",
+    "name": "reject -> abort",
+    "check_cmd": null,
+    "tier": "full",
+    "blocked_on": null,
+    "revalidation_forbidden": false,
+    "last_status": "UNVERIFIED",
+    "last_run_ts": null,
+    "last_run_session": null,
+    "note": "Tier full: verificato S241 via callback fisico Telegram. Nessuno smoke offline isolato -> UNVERIFIED finche' non re-eseguito in sessione."
+  },
+  {
+    "id": "5-6-7",
+    "name": "dossier -> approve HITL -> invio PDF",
+    "check_cmd": null,
+    "tier": "smoke",
+    "blocked_on": null,
+    "revalidation_forbidden": false,
+    "last_status": "UNVERIFIED",
+    "last_run_ts": null,
+    "last_run_session": null,
+    "note": "FOCUS. Smoke check da scrivere (step 4). Finche' assente -> UNVERIFIED."
+  },
+  {
+    "id": "8",
+    "name": "contract -> sign_url",
+    "check_cmd": null,
+    "tier": "full",
+    "blocked_on": "sign_url firmato dal dealer reale (HITL fisico Luke o terzo) — fatto esterno non raggiungibile in-sessione",
+    "revalidation_forbidden": true,
+    "last_status": "BLOCKED",
+    "last_run_ts": null,
+    "last_run_session": null,
+    "note": "Freeze Rule 1b/Gate D: refresh salta, hook impedisce flip BLOCKED->VERIFIED senza sblocco Luke."
+  }
+]

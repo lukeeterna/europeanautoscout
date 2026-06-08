@@ -1,32 +1,45 @@
 # STATE.md — ARGOS · unico source-of-truth di stato
 
 > **Questo è l'UNICO file che risponde a "a che punto siamo + cosa faccio dopo".**
-> Non creare HANDOFF/NEXT_SESSION/prompt paralleli: aggiorna QUESTO file a fine sessione.
+> La tabella anelli sotto è **GENERATA** da `state/refresh.sh` (non scrivibile a mano).
+> "VERIFIED" = check passato in QUESTA sessione, non una frase digitata.
 > Stato cross-sessione (memorie) → `~/.claude/projects/.../memory/MEMORY.md` (scopo diverso).
-> Piano dettagliato → `PLAN.md` · Problemi parcheggiati → `BACKLOG.md` (NON duplicare lo stato lì).
-> Aggiornato: **S242 · 2026-06-06**
+> Piano dettagliato → `PLAN.md` · Problemi parcheggiati → `BACKLOG.md`.
+> Aggiornato: **S243 · 2026-06-08**
 
 ---
 
-## 1. Anelli E2E — mappa autoritativa
+## 1. Anelli E2E — mappa autoritativa (GENERATA, non editare a mano)
 
-| #   | Anello                              | Stato                  |
-|-----|-------------------------------------|------------------------|
-| 1   | invio Day1 WA                       | VERIFIED               |
-| 2   | classifier intent (AMBRA)           | VERIFIED (S202)        |
-| 9A  | approve → send                      | VERIFIED (S230)        |
-| 9B  | reject → abort                      | VERIFIED (S241)        |
-| 5/6/7 | dossier → approve → invio PDF     | PARZIALI ← focus next  |
-| 8   | contract → sign_url                 | BLOCKED (Luke/terzo)   |
+Rigenera con: `bash state/refresh.sh <SESSION_ID>` · sorgente: `state/rings.json`
+
+<!-- GENERATED:rings:start -->
+<!-- NON modificare a mano: rigenerato da `bash state/refresh.sh`. VERIFIED = check passato in QUESTA sessione. -->
+_Rigenerato 2026-06-08T07:02:19Z · sessione `S243`_
+
+| # | Anello | Stato | Tier | Check | Ultima sessione |
+|---|--------|-------|------|-------|-----------------|
+| 1 | invio Day1 WA | UNVERIFIED | full | — | — |
+| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | S243 |
+| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | S243 |
+| 9B | reject -> abort | UNVERIFIED | full | — | — |
+| 5-6-7 | dossier -> approve HITL -> invio PDF | UNVERIFIED | smoke | — | — |
+| 8 | contract -> sign_url | BLOCKED | full | freeze: sign_url firmato dal dealer reale (HITL fisico Luke o terzo) — fatto esterno non raggiungibile in-sessione | — |
+<!-- GENERATED:rings:end -->
+
+Legenda: **VERIFIED** = check PASS in questa sessione · **STALE** = PASS ma in sessione
+precedente (riesegui refresh) · **UNVERIFIED** = nessun check eseguibile in-sessione (o non
+ancora scritto) · **FAIL** = check fallito = gap reale · **BLOCKED** = freeze su fatto esterno.
 
 Pipeline core: `Scraper (28 portali) → CoVe Engine (scoring+fraud) → Opportunity Selection → Dealer Dossier`.
 
 ---
 
-## 2. Task corrente (S242)
+## 2. Task corrente (S243)
 
-**PRIORITÀ #0 (in corso)**: consolidamento file di stato — questo STATE.md è il risultato.
-Done quando: STATE.md unico, handoff/prompt obsoleti archiviati, hook auto-close OFF per ARGOS.
+**Consolidamento substrato di stato** — sequenza verdetto Claude AI (`/tmp/s242_claude_ai_verdict.md`).
+Substrato (rings.json + refresh.sh + render) costruito. Restano: guadagnare VERIFIED su 5/6/7
+(step 4), gate A–C + .harness (step 6), redirect hook (step 7), archivio 7 doc (step 8), Gate E (step 9).
 
 Dopo il consolidamento → anelli **5/6/7** (dossier → approve HITL → invio PDF al dealer).
 
@@ -34,9 +47,10 @@ Dopo il consolidamento → anelli **5/6/7** (dossier → approve HITL → invio 
 
 ## 3. Prossimi 3 step
 
-1. **Verificare su CODICE** (non doc) lo stato reale degli anelli 5/6/7: generazione dossier → approvazione HITL → invio PDF. Punto di partenza file critici sotto.
-2. Identificare il primo gap concreto della catena 5/6/7 e chiuderlo con E2E su **TEST_FOUNDER 393314928901** (mai dealer reale prima).
-3. Solo a 5/6/7 VERIFIED → valutare anello #8 (resta BLOCKED su Luke fisico/terzo).
+1. **Step 4** — scrivere lo smoke check per 5/6/7, eseguirlo via refresh, chiudere i rossi con E2E
+   su **TEST_FOUNDER 393314928901** (mai dealer reale prima).
+2. **Step 6–7** — gate A–C + protezione `.harness/` + redirect auto-close hook (checkpoint git prima).
+3. **Step 8** — archivio 7 doc legacy (backup verificato Rule 1d) + commit checkpoint reversibile.
 
 ---
 
@@ -48,6 +62,7 @@ Dopo il consolidamento → anelli **5/6/7** (dossier → approve HITL → invio 
 - Deploy 2-path. Per OGNI path iMac consultare memoria `reference_imac_deploy_paths.md`.
 - DB canonico `pending_replies` = `~/Documents/app-antigravity-auto/dealer_network.sqlite` (ROOT, via symlink shared).
 - Token Telegram in `current/wa-intelligence/.env` var `ARGOS_TELEGRAM_TOKEN` (MAI stampare).
+- `argos.py` NON esiste (CLAUDE.md `python3 argos.py test` è stale). Test reali: `tools/test_*.py`, `tools/tests/`.
 
 ---
 
@@ -58,7 +73,8 @@ Dopo il consolidamento → anelli **5/6/7** (dossier → approve HITL → invio 
 - PDF dossier: `tools/scripts/pdf_generator_enterprise.py`
 - Response analyzer (AMBRA): `wa-intelligence/response-analyzer.py`
 - WA daemon: `wa-intelligence/wa-daemon.js` · Dashboard: `wa-intelligence/dashboard/app.py`
-- Bridge HITL Telegram: invio via daemon (bridge S173). Bot tg pid sano (S241).
+- Bridge HITL Telegram: invio via daemon (bridge S173).
+- Substrato stato: `state/rings.json` (sorgente) · `state/refresh.sh` (generatore).
 
 ---
 
@@ -73,5 +89,7 @@ Dopo il consolidamento → anelli **5/6/7** (dossier → approve HITL → invio 
 
 ## 7. Archivio storico
 
-Handoff/prompt pre-S242 in `archive/` (HANDOFF*, AUDIT_E2E, 58 prompts/, NEXT_SESSION_PROMPT*).
-Consultabili per contesto storico; NON sono stato vivo. L'hook auto-close è disattivato per ARGOS (vedi guard in `~/.claude/hooks/global_session_end.sh`).
+> **STATO REALE (S243)**: archivio NON ancora creato (step 8 pendente). Handoff/prompt legacy
+> ancora in `prompts/` (58 file), `HANDOFF*.md`, `.claude/NEXT_SESSION_PROMPT.md`.
+> Auto-close hook `~/.claude/hooks/global_session_end.sh` **ATTIVO** (NON disattivato): da
+> reindirizzare a breadcrumb-pointer (step 7), non spegnere.
