@@ -1,20 +1,41 @@
-# PROSSIMA SESSIONE — S246
+# Prompt ripartenza — generato automaticamente
 
-**Entrypoint unico**: `state/s246_resume.md` (reboot-safe nel repo).
+**Generato**: `2026-06-08T07:56:42Z`
+**Sessione**: `92bc5188-9697-47a1-b039-f16dc114d59f`
+**Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
+**Commit auto**: no-changes
+**Last commit**: `8e71915 chore(S245): auto-close — NEXT_SESSION_PROMPT pointer a s246_resume`
 
-PRIMA AZIONE: `cd ~/Documents/combaretrovamiauto-enterprise && bash state/refresh.sh S246`
-→ poi leggi `STATE.md` (tabella anelli GENERATA + sezioni 2/3). NON editare il blocco
-`<!-- GENERATED:rings -->` (Gate A lo blocca da S245).
+## Ultimi 5 commit
+```
+8e71915 chore(S245): auto-close — NEXT_SESSION_PROMPT pointer a s246_resume
+adbe7cd docs(S245): STATE.md sezioni 2/3/7 = Step 6 chiuso + resume S246 reboot-safe
+d97d353 feat(S245 step6): Gate A-C state_guard PreToolUse hook + SessionStart refresh
+858ca32 chore(S245): checkpoint pre-hook — refresh.sh rigenera tabella anelli S245
+a9f1167 auto-close session 22852c8e-5251-41d0-9674-5851d11af5a7 @ 2026-06-08T07:34:58Z
+```
 
-## Fatto in S245 (Step 6 CHIUSO)
-- `.harness/state_guard.py` PreToolUse hook Gate A/B/C/D-via-B (commit d97d353, 11 test PASS).
-- `session_start.sh` esegue `refresh.sh` PRIMA di CC. Checkpoint pre-hook: 858ca32.
-- Guard ATTIVO da S246. Editare guard/generatori richiede `ARGOS_HARNESS_UNLOCK=1`.
+## File modificati nell'ultimo commit
+```
+M	.claude/NEXT_SESSION_PROMPT.md
+```
 
-## Restano (ordine)
-1. Step 7 — redirect `~/.claude/hooks/global_session_end.sh` a breadcrumb (NON disattivare). Backup Rule 1d.
-2. Step 8 — archivio prompts(58)/HANDOFF*/NEXT_SESSION_PROMPT → pointer STATE.md. Backup Rule 1d.
-3. Step 9 — Gate E azioni high-stakes.
-4. 6-7 E2E — gate HITL iMac + invio PDF TEST_FOUNDER 393314928901 (mai dealer reale).
+## Ultimo prompt utente (estratto)
+```
+[{"tool_use_id":"toolu_015XJ1Ga7LNi1raW2Q8Auxiy","type":"tool_result","content":"🔍 ARGOS Pre-Commit Checks...\n✅ Pre-commit checks passed\n=== tree clean? ===\n8e71915 chore(S245): auto-close — NEXT_SESSION_PROMPT pointer a s246_resume\nadbe7cd docs(S245): STATE.md sezioni 2/3/7 = Step 6 chiuso + resume S246 reboot-safe\nd97d353 feat(S245 step6): Gate A-C state_guard PreToolUse hook + SessionStart refresh\n858ca32 chore(S245): checkpoint pre-hook — refresh.sh rigenera tabella anelli S24
+```
 
-Stato anelli atteso: 2 + 9A + 5 = VERIFIED · 8 = BLOCKED · 1/9B/6-7 = UNVERIFIED.
+## Ultimi turni assistant
+```
+**Nota attivazione:** gli hook si leggono a SessionStart → il guard è attivo **dalla prossima sessione (S246)**. Verificato via unit-test stdin in questa sessione.
+**Restano (handoff in `state/s246_resume.md`):** Step 7 (redirect auto-close hook → breadcrumb, NON disattivare), Step 8 (archivio doc legacy), Step 9 (Gate E), 6-7 E2E su TEST_FOUNDER.
+Stato anelli invariato e onesto: 2 + 9A + 5 = VERIFIED · 8 = BLOCKED · 1/9B/6-7 = UNVERIFIED.
+```
+
+## Come riprendere
+
+1. Apri Claude Code da `/Users/macbook/Documents/combaretrovamiauto-enterprise`
+2. Leggi questo file (auto-loaded? dipende da config progetto)
+3. Continua dal punto indicato negli ultimi turni assistant sopra
+
+Se `SESSION_DIRTY.md` esiste in questa stessa cartella, risolvi PRIMA i conflitti.
