@@ -26,6 +26,13 @@ veri-positivi extra): ha bloccato 2 volte il commit S247 e l'avvio di S248
 (non piu' "qualunque .db sotto ROOT", che becca i DB-spazzatura del profilo Chrome).
 Escape manutenzione: env ARGOS_HARNESS_UNLOCK=1 (come state_guard.gate_c).
 
+GAP NOTI over-narrow (accettati — threat=sbadataggine di CC, NON evasione attiva; Rule 1d):
+il "verbo in posizione di comando" NON intercetta `sudo rm X`, `dd of=X`, ne' un redirect
+con path da variabile (`> "$VAR"`). L'env-prefix (`A=1 rm X`) E' gestito (saltiamo le
+assegnazioni iniziali). Scritti qui come limite noto, non da scoprire in produzione.
+NB il narrowing e' SHELL-scoped: i path di scrittura non-shell (Write tool, `python -c`, MCP)
+restano fuori da classify_bash — invariato vs prima (tracciato in coverage-check #2).
+
 CLASSI rilevate:
   - outreach_real   : Bash che invia WA a un numero != TEST_FOUNDER (393314928901).
                       Match volutamente BROAD (classe piu' critica: meglio un FP che
