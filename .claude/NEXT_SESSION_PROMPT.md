@@ -1,42 +1,20 @@
-# Prompt ripartenza — generato automaticamente
+# PROSSIMA SESSIONE — S246
 
-**Generato**: `2026-06-08T07:36:48Z`
-**Sessione**: `22852c8e-5251-41d0-9674-5851d11af5a7`
-**Repo**: `/Users/macbook/Documents/combaretrovamiauto-enterprise` (branch `s210/audit-master-plan`)
-**Commit auto**: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
-**Last commit**: `a9f1167 auto-close session 22852c8e-5251-41d0-9674-5851d11af5a7 @ 2026-06-08T07:34:58Z`
+**Entrypoint unico**: `state/s246_resume.md` (reboot-safe nel repo).
 
-## Ultimi 5 commit
-```
-a9f1167 auto-close session 22852c8e-5251-41d0-9674-5851d11af5a7 @ 2026-06-08T07:34:58Z
-2020966 feat(S244): Step 4 — smoke anello 5 (dossier PDF) VERIFIED + split ring 5-6-7
-f2af94b docs(S243): piano+resume nel repo (reboot-safe) — state/s242_verdict + s244_resume
-ec12ad6 auto-close session b979a8ea-ab2d-45b0-9c0a-2ac0a58e1799 @ 2026-06-08T07:05:00Z
-ccc3639 feat(S243): substrato stato generato (Gate A) — verita' calcolata non scritta
-```
+PRIMA AZIONE: `cd ~/Documents/combaretrovamiauto-enterprise && bash state/refresh.sh S246`
+→ poi leggi `STATE.md` (tabella anelli GENERATA + sezioni 2/3). NON editare il blocco
+`<!-- GENERATED:rings -->` (Gate A lo blocca da S245).
 
-## File modificati nell'ultimo commit
-```
-M	.claude/NEXT_SESSION_PROMPT.md
-M	vos-out/decisions.jsonl
-```
+## Fatto in S245 (Step 6 CHIUSO)
+- `.harness/state_guard.py` PreToolUse hook Gate A/B/C/D-via-B (commit d97d353, 11 test PASS).
+- `session_start.sh` esegue `refresh.sh` PRIMA di CC. Checkpoint pre-hook: 858ca32.
+- Guard ATTIVO da S246. Editare guard/generatori richiede `ARGOS_HARNESS_UNLOCK=1`.
 
-## Ultimo prompt utente (estratto)
-```
-CONTEXT 64% CHIUDI ORDINATAMENTE E DAMMI PROMPT NEXT
-```
+## Restano (ordine)
+1. Step 7 — redirect `~/.claude/hooks/global_session_end.sh` a breadcrumb (NON disattivare). Backup Rule 1d.
+2. Step 8 — archivio prompts(58)/HANDOFF*/NEXT_SESSION_PROMPT → pointer STATE.md. Backup Rule 1d.
+3. Step 9 — Gate E azioni high-stakes.
+4. 6-7 E2E — gate HITL iMac + invio PDF TEST_FOUNDER 393314928901 (mai dealer reale).
 
-## Ultimi turni assistant
-```
-4. **6-7 E2E** — gate HITL su iMac (fastapi presente) + invio PDF su **TEST_FOUNDER 393314928901** (mai dealer reale).
-**Nota onestà da ricordare:** anello 6 (gate HITL `app.py`) è fastapi-coupled → smoke-abile solo su iMac/CI, su MacBook fa SKIP non-gating (memoria `s244_ring_split_hitl_fastapi.md`).
-Sessione chiusa verde. Branch `s210/audit-master-plan` pushato.
-```
-
-## Come riprendere
-
-1. Apri Claude Code da `/Users/macbook/Documents/combaretrovamiauto-enterprise`
-2. Leggi questo file (auto-loaded? dipende da config progetto)
-3. Continua dal punto indicato negli ultimi turni assistant sopra
-
-Se `SESSION_DIRTY.md` esiste in questa stessa cartella, risolvi PRIMA i conflitti.
+Stato anelli atteso: 2 + 9A + 5 = VERIFIED · 8 = BLOCKED · 1/9B/6-7 = UNVERIFIED.
