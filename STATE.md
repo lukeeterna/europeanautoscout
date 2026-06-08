@@ -99,9 +99,11 @@ step 9 (Gate E azioni high-stakes), + 6-7 E2E (gate HITL iMac + invio PDF TEST_F
 
 ## 7. Archivio storico
 
-> **STATO REALE (S245)**: archivio NON ancora creato (step 8 pendente). Handoff/prompt legacy
-> ancora in `prompts/` (58 file), `HANDOFF*.md`, `.claude/NEXT_SESSION_PROMPT.md`.
-> Auto-close hook `~/.claude/hooks/global_session_end.sh` **ATTIVO** (NON disattivato): da
-> reindirizzare a breadcrumb-pointer (step 7), non spegnere.
-> Gate A–C (`.harness/state_guard.py`) **ATTIVO dalla prossima sessione** (commit d97d353):
-> per modificare guard/generatori serve `ARGOS_HARNESS_UNLOCK=1`.
+> Doc legacy di stato (58 prompt + 2 HANDOFF) archiviati in **`archive/`** (S246, `git mv` →
+> history preservata, ripristinabile con `git revert` o `git mv` inverso). NON sono più
+> source-of-truth: lo stato vive solo qui in STATE.md + `state/rings.json`.
+> Auto-close hook `~/.claude/hooks/global_session_end.sh` **ATTIVO + REINDIRIZZATO** (S246 step 7):
+> su repo con STATE.md genera breadcrumb zero-status (pointer a STATE.md), NON più prosa di stato.
+> Auto-commit safety-net invariato. Backup pre-modifica: `global_session_end.sh.bak-S246-*`.
+> Gate A–C (`.harness/state_guard.py`) **ATTIVO** (commit d97d353): per modificare guard/generatori
+> o il blocco GENERATED serve `ARGOS_HARNESS_UNLOCK=1`.
