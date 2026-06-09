@@ -7,10 +7,13 @@
 > Piano dettagliato → `PLAN.md` · Problemi parcheggiati → `BACKLOG.md`.
 > Aggiornato: **S245 · 2026-06-08**
 
-> **S259 · CRITICAL PATH = comparabili IT spec-aware.** Spec attuabile in
-> `.claude/NEXT_SESSION_PROMPT.manual.md` (NON nel breadcrumb auto-rigenerato).
-> Report: `.claude/REPORT_S259.md`. DoD#1 VERDE (mediane DIVERSE per trim +
-> NO-VERDICT su N<min_n); DoD#2/#3 BLOCKED-ON budget (PDF E2E reale nel repo).
+> **S260 · CRITICAL PATH = chiudere l'anello (PDF reale CoVe⊕margine).**
+> Report: `.claude/REPORT_S260.md`. FASE 1 VERDE: no-fusione confermata da 2° ingresso
+> (330i, `tools/trace_330i_s260.py`) + asserzione strutturale cablata (`tools/tests/test_no_fusion_ladder.py` 4/4).
+> T2 (PDF X1) + T3 (PDF auto reale, NO-VERDICT atteso) BLOCKED-ON budget.
+> SCOPERTA pre-req T3: Step 2c (on_demand_runner.py:482) NON spec-aware (call legacy trim-blind)
+> + veto `return None` su zero-PASS = nessun PDF su NO-VERDICT → serve harness dossier-onesto.
+> min_n resta 8 (ratifica dopo B3). DoD#1 storico → BLOCKED-ON pool (S261).
 
 ---
 
