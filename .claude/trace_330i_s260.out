@@ -1,0 +1,18 @@
+2026-06-09 22:24:37 [argos.scraper] INFO [autoscout24_it] Scraping BMW Serie 3 (anno 2019-2023, km max 80000)
+2026-06-09 22:24:38 [argos.scraper] INFO [autoscout24_it] Pagina 1/10: 19 listing (19 totali unici)
+2026-06-09 22:24:38 [argos.scraper] INFO [autoscout24_it] Completato BMW Serie 3: 19 listing in 1 pagine
+TARGET 330i = 330/rwd/base/petrol  (engine=330 drive=rwd fuel=petrol)
+
+POOL raw=19  prezzo>0 -> 19 comparabili
+
+L0  cfg(engine=True,drive=True,trim=True,fuel=True,km=True,yt=1)
+     N= 0  drivetrains=[]  fuels=[]  engines=[]
+L1  cfg(engine=True,drive=True,trim=True,fuel=True,km=False,yt=1)
+     N= 0  drivetrains=[]  fuels=[]  engines=[]
+L2  cfg(engine=True,drive=True,trim=True,fuel=True,km=False,yt=2)
+     N= 0  drivetrains=[]  fuels=[]  engines=[]
+L3  cfg(engine=True,drive=True,trim=False,fuel=True,km=False,yt=2)
+     N= 2  drivetrains=['rwd']  fuels=['petrol']  engines=['330']
+
+=== VERDETTO 1a ===
+NESSUNA FUSIONE su L0->L3 (drivetrain e fuel pinnati) -> principio solido

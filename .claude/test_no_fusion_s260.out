@@ -1,0 +1,6 @@
+OK strutturale: drivetrain+engine pinnati su tutti i livelli, span 1 e 2
+OK comportamentale: rwd non matcha mai awd su nessun livello
+OK comportamentale: petrol non matcha mai diesel su nessun livello
+OK canary: un L4 drivetrain=False fonderebbe awd+rwd (assertion non vacua)
+
+TUTTI I CONTROLLI 1b PASSATI
