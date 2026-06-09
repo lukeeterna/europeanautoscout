@@ -115,6 +115,23 @@ class VehicleData:
     import_cost_total_max: int = 0
     import_days: int = 0
 
+    # S257: margin gate (asse "bonta' dell'AFFARE") — popolati dal runner Step 2c.
+    # Numeri REALI: mercato IT = mediana comparabili reali (NON prezzo_de x1.15),
+    # fee ARGOS = quota del surplus (NON flat 900). None = margin gate non eseguito.
+    margin_decision: Optional[str] = None        # "PASS" | "REJECT"
+    chiavi_in_mano: Optional[float] = None
+    spread_lordo: Optional[float] = None
+    dealer_floor: Optional[float] = None
+    surplus: Optional[float] = None
+    fee_argos: Optional[float] = None
+    margine_netto_dealer: Optional[float] = None
+    margine_netto_pct: Optional[float] = None
+    it_median: Optional[float] = None
+    it_p25: Optional[float] = None
+    it_p75: Optional[float] = None
+    it_n: Optional[int] = None
+    it_source: Optional[str] = None
+
     @classmethod
     def from_opportunity(cls, opp, dealer_city: str = "Eboli") -> "VehicleData":
         """Crea VehicleData da un Opportunity della pipeline, con trasporto e import."""
@@ -276,6 +293,14 @@ class ARGOSPDFGenerator:
         # Financial analysis (V2: includes ARGOS fee)
         story.append(self._create_financial_analysis_v2(vehicle, grade_data=grade_data))
         story.append(Spacer(1, 6*mm))
+
+        # S257: verdetto gate margine + distribuzione mercato IT (numeri reali)
+        if vehicle.margin_decision:
+            story.append(self._create_margin_verdict_section(vehicle))
+            story.append(Spacer(1, 6*mm))
+        if vehicle.it_median:
+            story.append(self._create_it_distribution_section(vehicle))
+            story.append(Spacer(1, 6*mm))
 
         # Intelligence + Verification combined
         if vehicle.opportunity_score > 0:
@@ -495,7 +520,9 @@ class ARGOSPDFGenerator:
     def _create_executive_summary(self, vehicle: VehicleData, grade_data: Optional[dict] = None) -> Table:
         """Key numbers in a clean dark box"""
         transport = vehicle.transport_cost if vehicle.transport_cost > 0 else 750
-        argos_fee = 900
+        # S257: fee ARGOS reale dal margin gate (ZERO se REJECT/no-surplus); 900 solo
+        # come fallback storico quando il margin gate non e' stato eseguito.
+        argos_fee = int(vehicle.fee_argos) if vehicle.fee_argos is not None else 900
         power_kw = getattr(vehicle, '_power_kw', None) or 150
         if grade_data and grade_data.get('power_kw'):
             power_kw = grade_data['power_kw']
@@ -794,7 +821,9 @@ class ARGOSPDFGenerator:
         immatricolazione = import_costs['totale']
         ipt_detail = f"IPT EUR {import_costs['ipt']} + targhe + ACI + agenzia"
 
-        argos_fee = 900
+        # S257: fee ARGOS reale dal margin gate (ZERO se REJECT/no-surplus); 900 solo
+        # come fallback storico quando il margin gate non e' stato eseguito.
+        argos_fee = int(vehicle.fee_argos) if vehicle.fee_argos is not None else 900
         market_it = vehicle.price_it_estimate
 
         costo_chiavi_in_mano = vehicle.price_eu + transport + immatricolazione
@@ -848,6 +877,104 @@ class ARGOSPDFGenerator:
             ('TEXTCOLOR', (0, -2), (-1, -2), self.text_dark),
         ]))
         return financial_table
+
+    def _create_margin_verdict_section(self, vehicle: VehicleData) -> Table:
+        """S257: verdetto del gate margine (asse "bonta' dell'AFFARE").
+
+        Numeri REALI dal margin_gate: prezzo DE reale, mercato IT = mediana
+        comparabili reali, fee ARGOS = quota del SURPLUS (NON flat 900).
+        """
+        def _eur(n):
+            if n is None:
+                return "—"
+            return "EUR " + f"{int(round(n)):,}".replace(",", ".")
+
+        is_pass = (vehicle.margin_decision or "").upper() == "PASS"
+        fee = vehicle.fee_argos if vehicle.fee_argos is not None else 0
+        pct = vehicle.margine_netto_pct if vehicle.margine_netto_pct is not None else 0.0
+        decision_label = "PASS — affare valido" if is_pass else "REJECT — sotto pavimento dealer"
+
+        data = [
+            ['VERDETTO AFFARE', 'IMPORTO', 'NOTE'],
+            ['Prezzo acquisto EU', _eur(vehicle.price_eu), 'Annuncio estero reale'],
+            ['Costo chiavi in mano', _eur(vehicle.chiavi_in_mano), 'Incl. trasporto + immatricolazione'],
+            ['Prezzo mercato Italia', _eur(vehicle.it_median), f'Mediana {vehicle.it_n or 0} comparabili reali'],
+            ['Spread lordo', _eur(vehicle.spread_lordo), 'Mercato IT meno chiavi in mano'],
+            ['Pavimento dealer (12%)', _eur(vehicle.dealer_floor), 'Margine minimo garantito al dealer'],
+            ['Surplus oltre il pavimento', _eur(vehicle.surplus), 'Eccedenza condivisibile'],
+            ['Fee ARGOS', _eur(fee), 'Solo su surplus reale, a deal chiuso'],
+            ['MARGINE NETTO DEALER', f'{_eur(vehicle.margine_netto_dealer)} ({pct:.1f}%)', decision_label],
+        ]
+
+        table = Table(data, colWidths=[65*mm, 45*mm, 70*mm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
+            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
+            ('TEXTCOLOR', (1, 1), (1, -1), self.text_dark),
+            ('TEXTCOLOR', (2, 1), (2, -1), self.text_secondary),
+            ('FONTNAME', (1, 1), (1, -1), 'Helvetica-Bold'),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('ALIGN', (2, 0), (2, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
+            ('LINEBELOW', (0, 1), (-1, -2), 0.3, HexColor('#E5E7EB')),
+            # Surplus row — subtle highlight
+            ('BACKGROUND', (0, 6), (-1, 6), HexColor('#FEF3C7')),
+            # MARGINE NETTO row — gold on black
+            ('BACKGROUND', (0, -1), (-1, -1), self.brand_black),
+            ('TEXTCOLOR', (0, -1), (-1, -1), self.brand_gold),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ]))
+        return table
+
+    def _create_it_distribution_section(self, vehicle: VehicleData) -> Table:
+        """S257: distribuzione del mercato IT (comparabili reali AutoScout24.it)."""
+        def _eur(n):
+            if n is None:
+                return "—"
+            return "EUR " + f"{int(round(n)):,}".replace(",", ".")
+
+        data = [
+            ['MERCATO ITALIA — COMPARABILI', 'VALORE', 'NOTE'],
+            ['Comparabili reali (N)', str(vehicle.it_n or 0), f'Fonte: {vehicle.it_source or "AutoScout24.it"}'],
+            ['Mediana', _eur(vehicle.it_median), 'Riferimento prezzo mercato IT'],
+            ['25 percentile', _eur(vehicle.it_p25), 'Fascia bassa'],
+            ['75 percentile', _eur(vehicle.it_p75), 'Fascia alta'],
+        ]
+
+        table = Table(data, colWidths=[65*mm, 45*mm, 70*mm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
+            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
+            ('TEXTCOLOR', (1, 1), (1, -1), self.text_dark),
+            ('TEXTCOLOR', (2, 1), (2, -1), self.text_secondary),
+            ('FONTNAME', (1, 1), (1, -1), 'Helvetica-Bold'),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('ALIGN', (2, 0), (2, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
+            ('LINEBELOW', (0, 1), (-1, -1), 0.3, HexColor('#E5E7EB')),
+            # Mediana row — highlight
+            ('BACKGROUND', (0, 2), (-1, 2), self.brand_light_bg),
+            ('FONTNAME', (0, 2), (-1, 2), 'Helvetica-Bold'),
+        ]))
+        return table
 
     def _create_financial_analysis(self, vehicle: VehicleData) -> Table:
         """Clean financial breakdown with brand styling"""
@@ -1801,8 +1928,15 @@ def generate_dossier_from_data(
 
     os.makedirs(output_dir, exist_ok=True)
 
-    # Market price IT estimate: EU price + 15% (delta medio EU-IT osservato da CoVe)
-    market_it = int(price * 1.15) if price else 0
+    # S257: prezzo mercato IT = mediana comparabili reali (margin gate Step 2c),
+    # NON piu' il falso prezzo_de x1.15. Fallback ×1.15 solo se il margin gate
+    # non e' stato eseguito (es. --listing mode, dati IT assenti).
+    it_dist = best.get('_it_distribution') or {}
+    it_median = it_dist.get('median')
+    if it_median:
+        market_it = int(round(it_median))
+    else:
+        market_it = int(price * 1.15) if price else 0
 
     vehicle = VehicleData(
         make=make,
@@ -1822,6 +1956,20 @@ def generate_dossier_from_data(
         price_score=int(confidence * 100),
         age_score=85,
         history_score=75,
+        # S257: numeri reali dal margin gate (Step 2c on_demand_runner)
+        margin_decision=best.get('_margin_decision'),
+        chiavi_in_mano=best.get('_margin_chiavi_in_mano'),
+        spread_lordo=best.get('_margin_spread_lordo'),
+        dealer_floor=best.get('_margin_dealer_floor'),
+        surplus=best.get('_margin_surplus'),
+        fee_argos=best.get('_margin_fee_argos'),
+        margine_netto_dealer=best.get('_margin_netto_dealer'),
+        margine_netto_pct=best.get('_margin_netto_pct'),
+        it_median=it_median,
+        it_p25=it_dist.get('p25'),
+        it_p75=it_dist.get('p75'),
+        it_n=it_dist.get('n'),
+        it_source=it_dist.get('source'),
     )
 
     dealer = DealerInfo(
