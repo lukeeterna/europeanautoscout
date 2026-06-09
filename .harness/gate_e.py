@@ -301,16 +301,49 @@ def lossy_operands(cmd):
     return ops
 
 
+_CMD_SEPARATORS = {";", "&&", "||", "|", "&", "\n"}
+
+
+def strip_git_invocations(cmd):
+    """Rimuove le invocazioni `git ...` (subcommand + argomenti + body del commit-message)
+    PRIMA del match outreach. git non invia mai WA: una SEND_SIGNATURE dentro un
+    `git commit -m "...send-doc..."`, un `git add tools/outreach/...` o un `git log --grep`
+    e' SEMPRE incidentale. Estende a `outreach_real` la doctrine S248 ("mai sul testo/
+    operando non-eseguito") che le altre classi gia' applicano via lossy_operands; outreach
+    era rimasto broad-su-tutto-cmd -> FP sulla prosa del commit (S251). shlex collassa
+    l'heredoc del commit-message in token unici, cosi' anche i messaggi multi-riga (stile
+    CC) vengono rimossi interi. NON tocca FN su invii reali: un send NON e' mai un `git`.
+    GAP NOTO: se shlex fallisce (ValueError) si ricade su seg.split() e un commit-message
+    multi-riga che contiene ANCHE un separatore (`&&`) puo' lasciar trapelare una signature
+    dopo il separatore. Best-effort (threat = sbadataggine CC, non evasione; Rule 1d)."""
+    toks = _split_segment_tokens(cmd)
+    if "git" not in toks:
+        return cmd
+    out, dropping = [], False
+    for t in toks:
+        if t in _CMD_SEPARATORS:
+            dropping = False
+            out.append(t)
+        elif t == "git":
+            dropping = True
+        elif not dropping:
+            out.append(t)
+    return " ".join(out)
+
+
 def classify_bash(cmd):
     """Ritorna (action_class, target, detail) o (None, None, None)."""
     # --- outreach_real (BROAD by design: classe piu' critica) ---
-    hit_sig = any(sig in cmd for sig in SEND_SIGNATURES)
+    # scan = comando ripulito dalle invocazioni git (le signature li' sono prosa/operandi,
+    # mai un invio reale): elimina gli FP da commit-message/`git add` senza creare FN.
+    scan = strip_git_invocations(cmd)
+    hit_sig = any(sig in scan for sig in SEND_SIGNATURES)
     # entrypoint outreach per FILENAME: --dry-run escluso (non invia). Se lo script gira
     # senza numero esplicito -> ramo "no-number" -> DENY (il numero e' hardcoded nel .py).
-    hit_script = (any(sig in cmd for sig in OUTREACH_SCRIPT_SIGNATURES)
-                  and "--dry-run" not in cmd)
+    hit_script = (any(sig in scan for sig in OUTREACH_SCRIPT_SIGNATURES)
+                  and "--dry-run" not in scan)
     if hit_sig or hit_script:
-        all_nums = set(PHONE_RE.findall(cmd))
+        all_nums = set(PHONE_RE.findall(scan))
         non_test = [n for n in all_nums if n not in TEST_FOUNDER]
         if non_test:
             return ("outreach_real", non_test[0],
@@ -449,6 +482,14 @@ def cli_selftest():
         # --- #2 fix S251: entrypoint outreach per FILENAME (signature dentro il .py) ---
         ({"tool_name": "Bash", "tool_input": {"command": "python3 tools/outreach/send_day1_stile_car.py"}}, "deny"),
         ({"tool_name": "Bash", "tool_input": {"command": "python3 tools/outreach/send_day1_stile_car.py --dry-run"}}, "allow"),
+        # --- FP S251: SEND_SIGNATURE nella PROSA di git (commit-message / git add) -> allow ---
+        ({"tool_name": "Bash", "tool_input": {"command": "git commit -m 'fix /send-doc retry + bridge_outbound timeout'"}}, "allow"),
+        ({"tool_name": "Bash", "tool_input": {"command": "git commit -m \"refactor :9191/send handler, sendMessage( cleanup\""}}, "allow"),
+        ({"tool_name": "Bash", "tool_input": {"command": "git add tools/outreach/send_day1_stile_car.py && git commit -m 'wip'"}}, "allow"),
+        # --- commit-message multi-riga (heredoc stile CC) con signature nel body -> allow ---
+        ({"tool_name": "Bash", "tool_input": {"command": "git commit -m \"$(cat <<'EOF'\nharden /send-doc path\nEOF\n)\""}}, "allow"),
+        # --- ma un invio REALE composto con un commit resta deny (anti-FN, Rule #11) ---
+        ({"tool_name": "Bash", "tool_input": {"command": "curl :9191/send -d to=393998887766 && git commit -m 'sent'"}}, "deny"),
         ({"tool_name": "Write", "tool_input": {"file_path": "PLAN.md", "content": "x"}}, "deny"),
         ({"tool_name": "Write", "tool_input": {"file_path": "BACKLOG.md", "content": "x"}}, "allow"),
         ({"tool_name": "Edit", "tool_input": {"file_path": ".claude/settings.json"}}, "deny"),
