@@ -1,6 +1,6 @@
 # Breadcrumb ripartenza — STATE.md è il source-of-truth
 
-**Generato**: `2026-06-09T19:05:27Z` · sessione `d85e3f12-8671-4e16-8dda-333147394a8b` · commit auto: committed: f1f13c7
+**Generato**: `2026-06-09T19:10:55Z` · sessione `d85e3f12-8671-4e16-8dda-333147394a8b` · commit auto: cosmetic-skip (only NEXT_SESSION_PROMPT.md dirty, no plan/scope change)
 
 > Questo file NON contiene stato. Lo stato reale (anelli E2E, task corrente,
 > prossimi step) è in `STATE.md` — generato da `state/refresh.sh`, unico
