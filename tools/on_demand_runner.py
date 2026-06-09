@@ -463,6 +463,52 @@ def run(marca, budget, modello=None, anno_min=None, km_max=None, dealer_name=Non
         else:
             logger.warning(f'A4 quality gate: zero veicoli con GRADE >= C — usando top {len(top)} comunque')
 
+    # Step 2c: Margin gate — asse "bonta' dell'AFFARE" (VETO, separato da CoVe).
+    # Per ogni veicolo sopravvissuto: prezzo mercato IT REALE = mediana comparabili
+    # AutoScout24.it (NON prezzo_de x1.15). REJECT se margine dealer sotto pavimento.
+    from tools.it_market_price import get_it_distribution
+    from tools.margin_gate import evaluate_margin
+    margin_passed = []
+    for v in top:
+        v_make = v.get('make') or params.get('make')
+        v_model = v.get('model') or params.get('model')
+        v_year = int(v.get('year', 0) or 0)
+        v_km = int(v.get('km', 0) or 0)
+        v_price = float(v.get('price_eur', 0) or 0)
+        if not (v_make and v_model and v_year and v_price > 0):
+            logger.info(f'Margin gate: SKIP {v.get("listing_id", "?")} — dati insufficienti')
+            continue
+        try:
+            it = get_it_distribution(v_make, v_model, v_year, v_km)
+        except Exception as e:
+            logger.warning(f'Margin gate: get_it_distribution fallito ({e}) — SKIP {v.get("listing_id","?")}')
+            continue
+        if not it.get('median'):
+            logger.info(f'Margin gate: SKIP {v.get("listing_id","?")} — 0 comparabili IT')
+            continue
+        mr = evaluate_margin(prezzo_de=v_price, prezzo_mercato_it=it['median'])
+        v['_margin_decision'] = mr.decision
+        v['_margin_chiavi_in_mano'] = mr.chiavi_in_mano
+        v['_margin_spread_lordo'] = mr.spread_lordo
+        v['_margin_dealer_floor'] = mr.dealer_floor_amount
+        v['_margin_surplus'] = mr.surplus
+        v['_margin_fee_argos'] = mr.fee_argos
+        v['_margin_netto_dealer'] = mr.margine_netto_dealer
+        v['_margin_netto_pct'] = mr.margine_netto_pct
+        v['_it_distribution'] = it
+        logger.info(
+            f'Margin gate: {v.get("listing_id","?")} prezzo_DE={v_price:.0f} '
+            f'mercato_IT={it["median"]:.0f} (n={it["n"]}) surplus={mr.surplus:.0f} '
+            f'-> {mr.decision}'
+        )
+        if mr.decision == 'PASS':
+            margin_passed.append(v)
+    logger.info(f'Margin gate: {len(margin_passed)}/{len(top)} PASS (VETO sui REJECT)')
+    if not margin_passed:
+        logger.warning('Margin gate: zero veicoli PASS — nessun dossier (affare sotto pavimento dealer)')
+        return None
+    top = margin_passed
+
     # Step 3: PDF
     pdf_path = generate_dossier(top, params, dealer_name)
 
