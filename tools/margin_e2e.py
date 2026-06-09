@@ -15,7 +15,7 @@ import argparse
 import logging
 
 from .scrapers.autoscout_scraper import AutoScoutScraper
-from .it_market_price import get_it_distribution
+from .it_market_price import get_it_distribution, derive_trim_family
 from .margin_gate import evaluate_margin, DEFAULT_FRICTION_EUR
 
 
@@ -32,16 +32,24 @@ def run(make: str, model: str, year_min: int, year_max: int, pages: int, limit: 
     print(f"Annunci DE reali analizzati: {len(de_valid)} (su {len(listings)} scrapati)")
     print(f"{'='*120}\n")
 
-    it_cache: dict[int, dict] = {}
+    # Cache spec-aware PER (anno, trim_family_key): comparabili IT dello STESSO trim.
+    it_cache: dict[tuple, dict] = {}
 
-    def it_for(year: int) -> dict:
-        if year not in it_cache:
-            # km=0 -> distribuzione market per model/anno (km-agnostica), N comparabili disclosed
-            it_cache[year] = get_it_distribution(make, model, year, km=0)
-        return it_cache[year]
+    def it_for(l) -> dict:
+        ftv = getattr(getattr(l, "fuel_type", None), "value", None)
+        trv = getattr(getattr(l, "transmission", None), "value", None)
+        spec = derive_trim_family(l.variant or "", ftv, trv, getattr(l, "power_hp", 0) or 0)
+        key = (int(l.year), spec["key"])
+        if key not in it_cache:
+            it_cache[key] = get_it_distribution(
+                make, model, int(l.year), km=int(l.km or 0), fuel=ftv,
+                target_variant=l.variant or "", target_transmission=trv,
+                target_power_hp=getattr(l, "power_hp", 0) or 0,
+            )
+        return it_cache[key]
 
     hdr = (f"{'#':<3}{'anno':<5}{'km':>8}  {'prezzo_DE':>10}{'mercato_IT':>11}"
-           f"{'(N)':>5}{'chiavi':>9}{'spread':>8}{'floor':>8}{'surplus':>9}"
+           f"{'(N)':>5}{'L':>3}{'chiavi':>9}{'spread':>8}{'floor':>8}{'surplus':>9}"
            f"{'fee':>7}{'netto€':>9}{'netto%':>8}  DECIS  url")
     print(hdr)
     print("-" * 120)
@@ -49,17 +57,21 @@ def run(make: str, model: str, year_min: int, year_max: int, pages: int, limit: 
     passed = 0
     rows = []
     for i, l in enumerate(de_valid, 1):
-        it = it_for(int(l.year))
-        if not it.get("median"):
-            print(f"{i:<3}{l.year:<5}{(l.km or 0):>8}  {l.price_eur:>10.0f}  --- 0 comparabili IT ---  SKIP  {l.listing_url}")
+        it = it_for(l)
+        if it.get("no_verdict") or not it.get("median"):
+            why = "NO-VERDICT (n<min_n)" if it.get("no_verdict") else "0 comparabili IT"
+            print(f"{i:<3}{l.year:<5}{(l.km or 0):>8}  {l.price_eur:>10.0f}  "
+                  f"--- {why} n={it.get('n')} ---  SKIP  {l.listing_url}")
             continue
         mr = evaluate_margin(prezzo_de=float(l.price_eur), prezzo_mercato_it=it["median"])
         if mr.decision == "PASS":
             passed += 1
         rows.append((l, it, mr))
+        lvl = it.get("relaxation_level")
         print(
             f"{i:<3}{l.year:<5}{(l.km or 0):>8}  {l.price_eur:>10.0f}{it['median']:>11.0f}"
-            f"{it['n']:>5}{mr.chiavi_in_mano:>9.0f}{mr.spread_lordo:>8.0f}{mr.dealer_floor_amount:>8.0f}"
+            f"{it['n']:>5}{('-' if lvl is None else lvl):>3}{mr.chiavi_in_mano:>9.0f}"
+            f"{mr.spread_lordo:>8.0f}{mr.dealer_floor_amount:>8.0f}"
             f"{mr.surplus:>9.0f}{mr.fee_argos:>7.0f}{mr.margine_netto_dealer:>9.0f}{mr.margine_netto_pct:>7.1f}%"
             f"  {mr.decision:<6} {l.listing_url}"
         )
