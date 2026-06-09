@@ -2,6 +2,51 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
+## S257 2026-06-09 — #S257-1 [CRITICAL PATH — non backlog opzionale, founder verdict]
+
+### 🔴 Mediana mercato IT è TRIM-BLIND → il verdetto del gate margine non è ancora affidabile
+
+**NON declassare a "precisione".** La mediana IT (`tools/it_market_price.py:get_it_distribution`)
+e' l'**input portante** di ogni decisione del gate. Oggi esce IDENTICA per ogni anno
+(€41.200, n=19) perche' lo scrape `scrape_model(year±1)` non discrimina anno ne' allestimento.
+Logica perfetta su input grezzo = risposta sbagliata detta con sicurezza.
+
+**Perche' e' il rischio peggiore per ARGOS (falso-PASS):**
+- Il bug €167 (S254) aveva DUE cause: (a) fee flat €900 — UCCISA davvero (S257); (b) prezzo IT
+  finto ×1.15 — cambiato il *meccanismo* (scrape reale) ma NON l'*affidabilita'* (resta trim-blind).
+- ×1.15 SOTTOstimava → falso-REJECT (perdi un affare). Mediana pooled alta SOVRAstima →
+  **falso-PASS** (mandi al dealer un affare che non c'e'). Per ARGOS il falso-PASS e' peggiore.
+- Esempio dal DoD #2: DE €29.980 → IT €41.200 = gap 27% (oltre la forbice import 10-30%).
+  Non distinguibile oggi tra (a) vero affare d'oro (auto carica sottoprezzata DE) e
+  (b) artefatto (auto DE base vs pool IT inquinato da M-Sport/M340i nella stessa mediana).
+  Un verdetto che non distingui da un artefatto NON e' un verdetto.
+
+**Regola per chi ci mette mano (anti-trappola):**
+- Filtra spec-aware (trim + anno + km), NON solo year±1.
+- Riporta SEMPRE N. Stringere il filtro fa crollare N: mediana su n=4 e' fragile quanto
+  trim-blind su n=19. NON scambiare cecita' sul trim per cecita' sul campione.
+- Sotto soglia minima di comparabili → emetti **"bassa confidenza / no verdetto"**,
+  MAI un numero detto con sicurezza.
+- Delta optional DE↔IT in €: se non hai listino reale per trim → `[unverified]`, non inventare.
+
+**Gating**: blocca la dichiarazione "anello 6-7 verde col gate". Il gate e' solido in
+isolamento ma il suo input no.
+
+## S257 2026-06-09 — #S257-2 [HIGH — coesistenza assi non dimostrata]
+
+### 🟠 Gate margine verificato in ISOLAMENTO, non co-esercitato con CoVe nel runner reale
+
+Il DoD #2 ha chiamato il vero `on_demand_runner.generate_dossier` MA con un driver che
+salta lo scoring CoVe a monte. I due assi (CoVe = bonta' dell'AUTO, margine = bonta'
+dell'AFFARE) dovevano coesistere: quella coesistenza nella pipeline reale
+(scrape → CoVe → Step 2c → PDF) NON e' dimostrata end-to-end.
+
+**Done-condition**: un run completo del runner (con CoVe attivo) che produce un PDF
+con verdetto margine reale su un PASS. Solo allora l'anello 6-7 e' "verde col gate".
+
+**Prova DoD #2 (versionata)**: `evidence/dod/S257_DoD2_PASS_BMW_Serie3_2021.pdf`
+(+ `evidence/dod/S257_DoD2_run.log`). NB: `dossiers/` e' gitignored — la prova vive in `evidence/`.
+
 ## S229 2026-06-02 — BACKLOG #S229-1 [MED, UX, richiesta Luke]
 
 ### 🟡 Bottoni inline tappabili /approva /rifiuta sotto la reply auto-generata su Telegram
