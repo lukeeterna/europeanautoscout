@@ -1,4 +1,4 @@
-"""ARGOS IT market-price distribution — SPEC-AWARE (S259).
+r"""ARGOS IT market-price distribution — SPEC-AWARE (S259).
 
 Fetcher di comparabili REALI sul mercato italiano. Sostituisce il falso
 `prezzo_de * 1.15` hardcoded sparso nel codice: il prezzo di mercato IT
@@ -114,7 +114,10 @@ def derive_trim_family(
 #   L1: droppa km-band                       (anno+-1)
 #   L2: anno+-2                               (resta engine+drivetrain+trim+fuel)
 #   L3: droppa trim_line                      (engine+drivetrain+fuel, anno+-2)
-#   L4: droppa drivetrain                     (engine+fuel, anno+-2)
+# PRINCIPIO (S259-bis, critica Luke): NON si rilassa MAI attraverso le dimensioni
+# che MUOVONO il prezzo (drivetrain, engine_class). trim_line si molla presto (L3),
+# drivetrain/motore MAI: meglio NO-VERDICT che una mediana che fonde xDrive+sDrive
+# o 320+340. Il vecchio L4 (droppa drivetrain) fondeva awd+rwd -> rimosso.
 def _levels(year_span: int) -> list[dict]:
     yt = min(max(year_span, 1), 2)
     return [
@@ -122,7 +125,6 @@ def _levels(year_span: int) -> list[dict]:
         dict(engine=True, drivetrain=True, trim=True, fuel=True, km=False, year_tol=1),
         dict(engine=True, drivetrain=True, trim=True, fuel=True, km=False, year_tol=2),
         dict(engine=True, drivetrain=True, trim=False, fuel=True, km=False, year_tol=2),
-        dict(engine=True, drivetrain=False, trim=False, fuel=True, km=False, year_tol=2),
     ]
 
 
