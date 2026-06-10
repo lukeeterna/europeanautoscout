@@ -93,5 +93,18 @@ non le contiene?
 - Conta N con le STESSE chiavi del gate: `derive_trim_family` + `_match` a OGNI livello L0→L3.
   **Output = riga per famiglia: `L0=.. L1=.. L2=.. L3=..`** (NON N generico: 320d 2021 conta 12,
   ma 320d xDrive 2021 diesel a L0 ne conta 2 — il numero che decide è quello che vede il gate).
+
+> **CONTEGGIO — REGOLA NON NEGOZIABILE (decide Esito A vs B):**
+> Il numero che conta NON è il conteggio di pagina. Prima di contare:
+> 1. **DEDUP per VIN**: lo stesso annuncio ricompare tra pagine → contalo una volta.
+> 2. **RI-FILTRA col gate**: passa OGNI listing per `derive_trim_family` + `_match`.
+>    Oltre pagina N il portale serve risultati FUORI FILTRO per riempire
+>    (318d/320i quando hai chiesto 320d xDrive diesel) → vanno scartati, non contati.
+> 3. **N per famiglia** = listing distinti-per-VIN che il gate valida a quel livello.
+>
+> Esempio del rischio: pagina grezza N=15 a L0 → dopo dedup+rifiltro = 3 reali.
+> Contare grezzo = **Esito A falso** = costruisci stealth verso un pool thin.
+> È la **mediana fusa spostata di un livello**: input non ripulito che gonfia il
+> numero su cui poi decidi il prodotto.
 - Esito A (N≥8 a L0-L1) → B3 industrializza scraper IT, DoD su famiglie-con-N non listing totali.
 - Esito B (N=1-3 pescando tutto) → verdetto a bande, NON mediana puntuale. NON costruire stealth.

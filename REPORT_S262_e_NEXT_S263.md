@@ -128,6 +128,19 @@ METODO (idempotente, throwaway, NO infra nuova):
     (NON un N generico: 320d 2021 ne conta ~12, ma 320d xDrive 2021 diesel a L0
      ne conta 2 — il numero che decide e' quello che vede il gate.)
 
+  CONTEGGIO — REGOLA NON NEGOZIABILE (decide Esito A vs B):
+    Il numero che conta NON e' il conteggio di pagina. Prima di contare:
+    1. DEDUP per VIN: lo stesso annuncio ricompare tra pagine -> contalo una volta.
+    2. RI-FILTRA col gate: passa OGNI listing per derive_trim_family + _match.
+       Oltre pagina N il portale serve risultati FUORI FILTRO per riempire
+       (318d/320i quando hai chiesto 320d xDrive diesel) -> vanno scartati,
+       non contati.
+    3. N per famiglia = listing distinti-per-VIN che il gate valida a quel livello.
+    Esempio del rischio: pagina grezza N=15 a L0 -> dopo dedup+rifiltro = 3 reali.
+    Contare grezzo = Esito A FALSO = costruisci stealth verso un pool thin.
+    E' la mediana fusa spostata di un livello: input non ripulito che gonfia
+    il numero su cui poi decidi il prodotto.
+
 ESITI:
   - Esito A (N>=8 a L0-L1)  -> B3: industrializza lo scraper IT; DoD su
     famiglie-con-N, non su listing totali.
