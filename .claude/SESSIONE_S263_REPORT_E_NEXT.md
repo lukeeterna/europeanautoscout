@@ -174,3 +174,50 @@ NON decidere lo scope ">5 pagine" in questa sessione: PORTA la traiettoria a Luk
 - Stealth/scaling/proxy → solo su Esito A confermato sulle liquide.
 - Verdetto a bande → solo su thin confermate dal mercato (non dal cap pagine).
 - mobile.de / Vincario / invio dossier.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+## NOTE STRATEGICHE — leggere PRIMA di iniziare e PRIMA di chiudere S264
+
+### 1. Il troncamento `get_total_pages` è IL punto che decide se S264 funziona
+Il muro AS24.it ha DUE strati, non uno (verificato sul codice in S263):
+- Strato noto: gate zero-data (`autoscout_scraper.py:1227-1228`) — il Selenium scatta solo
+  se ≥80% dei listing ha price E km a zero.
+- Strato PRIMA, che decide tutto: il loop curl (`base_scraper.py:335`) chiama `get_total_pages`
+  sulla pagina 1; su AS24.it JS-rendered quella funzione vede solo il batch SSR e ritorna
+  "1 pagina totale" → il loop si ferma a pagina 1 e NON RAGGIUNGE MAI il punto dove il fallback
+  Selenium verrebbe valutato.
+CONSEGUENZA OPERATIVA: de-gatare SOLO il trigger zero-data NON basta. Se togli il gate Selenium
+ma lasci il loop curl che tronca a pagina 1, il Selenium resta irraggiungibile e il de-gate
+fallisce in SILENZIO — la scrape torna 19, sembra "non ha funzionato", e si bruciano ore nel
+punto cieco tra due componenti. → FASE 0(b) obbliga a confermare ENTRAMBE le righe (gate Selenium
+E troncamento curl) PRIMA di toccare codice. Non è una scoperta da fare a runtime: è il pre-req.
+
+### 2. Falso positivo Gate E su `cp STATE.md` — NON agire in S264, ma annotato
+In S263 Gate E ha bloccato un `cp STATE.md <backup>` — un backup legittimo, NON una sovrascrittura.
+È la conferma concreta del difetto strutturale già noto: Gate E matcha sul TARGET (nome file),
+non sull'operazione reale. Ogni FP = un token `approve` manuale = abitua a sbloccare di riflesso,
+che è il modo in cui un gate di sicurezza si logora fino a diventare un timbro. NON è scope S264.
+È la prova-sul-campo che il refinement Gate E (FASE 3, parcheggiato) vale: quando ci si torna,
+questo FP è l'evidenza. In S264: se Gate E spara su un'operazione innocua, lascia il token a Luke,
+non insistere.
+
+### 3. Traiettoria N-per-pagina sulle thin = il dato che decide il prodotto
+Il print per-pagina nel probe throwaway (non in produzione) è la mossa minima giusta. È ciò che
+distingue "M340 a zero perché il mercato non la contiene" da "M340 a zero perché 5 pagine non
+bastano":
+- M340 inchiodata a 0 da p1 a p5 mentre il pool totale cresce a ~150 → fortissimo indizio
+  mercato-vuoto → >5 pagine NON aiuta → bande per le thin.
+- M340 che cresce 0→1→2→3 senza saturare → >5 pagine la deciderebbe → scope separato a freddo.
+Quella traiettoria permette la decisione di scope COI NUMERI, non a naso.
+
+### 4. LENTE per leggere REPORT_S264.md — il pool depth è il PENULTIMO miglio, non il traguardo
+La domanda che S264 risolve ("ARGOS vede abbastanza mercato per un verdetto affidabile") è ancora
+INTERNA. Il fatto terminale mai toccato resta lo stesso: un dossier REALE, su un'auto VERA, con un
+margine VERO, mandato a un dealer VERO che risponde. Tutto il lavoro profondità-pool è la CONDIZIONE
+per arrivare al test che conta, non il test.
+Quando arrivano i numeri delle liquide, la domanda NON è "i numeri sono buoni" ma "sono abbastanza
+buoni da far partire il PRIMO dossier reale". Prossimo passo dopo S264 (se almeno una liquida regge
+N≥8 a L0/L1): prendere UNA famiglia che regge → generare un dossier che passa il gate → decidere se
+è il momento di metterlo davanti a un dealer. NON un'altra sessione tecnica. Leggere REPORT_S264.md
+con questa lente.
