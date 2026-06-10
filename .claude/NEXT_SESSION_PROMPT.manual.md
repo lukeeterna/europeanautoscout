@@ -1,110 +1,116 @@
-> **S262 DONE (2026-06-10, commit 9fb7824, pushed).** Anello PDF CHIUSO. DoD verde:
-> T1 margin_gate X1 REJECT EXIT 0 (non-regressione) · T2 PDF REJECT nel repo ·
-> T3 PDF NO-VERDICT con N=2/L3 REALI (non 0/'-'). Gotcha fuel 'unknown'->None chiuso
-> in runner E margin_e2e. **PROSSIMA SESSIONE = S263 (probe pool IT, sezione in fondo).**
+# BRIEF CC — ARGOS · Sessione S264 (IDEMPOTENTE) — DE-GATE FETCH PROFONDO IT + RERUN PROBE
+# Obiettivo: sbloccare la paginazione profonda su AS24.it (path Selenium GIA' ESISTENTE, oggi gated) e ri-eseguire il probe S263 identico.
+# NON-obiettivo: nessuna infra nuova (no proxy/stealth/retry-framework), nessun ridisegno del verdetto, nessuna ratifica forzata.
+# Progetto: /Users/macbook/Documents/combaretrovamiauto-enterprise (MacBook locale, macOS Big Sur)
+# Branch: s210/audit-master-plan
+# Autorita': Luke. Autonomia tecnica piena. NESSUNA azione esterna.
+# Fonte di verita': PLAN.md + STATE.md + git.
 
-# RESUME S262 — chiudere l'anello PDF (T2/T3) — ISOLATO. Probe → S263 separato.
+> EREDITATO DA S263 (verificato, non assunto):
+> - Anello PDF CHIUSO (S262, commit 9fb7824). Probe S263 = ESITO C: muro = scraper, NON mercato.
+> - AS24.it JS-rendered: curl_cffi vede SOLO pagina-1 SSR (~19 listing). Famiglie esatte 0 a L0/L1.
+> - Path Selenium profondo ESISTE (`autoscout_scraper.py:1250`, cap 5 pagine) ma gated su zero-data
+>   (`autoscout_scraper.py:1227-1228`: scatta solo se >=80% listing con price==0 AND km==0).
+> - Report: `.claude/REPORT_S263.md`. Probe identico riusabile: `tools/_s263_probe.py` (NON eliminato).
 
-**Generato**: 2026-06-10 · chiusura S261 (de-risking) + peer review Claude AI · `PLAN.md` = source-of-truth.
+## INQUADRAMENTO — L'ESITO E' PARZIALE PER COSTRUZIONE (non saltarlo)
+Il fallback Selenium e' cappato a 5 pagine (`min(max_pages,5)`). Il rerun porta ~19 -> ~100-150 listing,
+NON "tutto il mercato".
+Conseguenza da ACCETTARE PRIMA di partire, non da scoprire a meta':
+- Famiglie LIQUIDE (320d, 318d): 100-150 listing probabilmente BASTANO. Se a L0/L1 raccolgono N>=8
+  -> Esito A per quella famiglia, CHIUSO.
+- Famiglie THIN (M340, forse 330i): 5 pagine quasi certamente NON bastano. Se restano 0-2, NON e'
+  dimostrato "mercato non le contiene" -> e' "5 pagine non bastano". Resta ambiguo, ed e' OK.
+DoD NON e' "deciso A vs B". E': "deciso A vs B PER LE LIQUIDE; per le thin, misurato il meglio che
+5 pagine danno e NOMINATO se serve andare oltre". Chiamare "deciso" cio' che 5 pagine non possono
+decidere = disonesto.
 
-> ORDINE NON NEGOZIABILE (peer review): **S262 = SOLO anello (T1/T2/T3)**. Il probe pool IT
-> apre la domanda strategica grossa e se scivola nella stessa sessione si mangia il budget e
-> l'anello resta BLOCKED un altro giro. L'anello è il fatto terminale mai prodotto su questo
-> asse: chiudilo isolato. **Probe = S263, sessione sua.** NON intrecciarli.
+## REGOLE DI ESECUZIONE (idempotenza)
+- Sicuro da rieseguire: nessun doppio effetto.
+- NON delegare a subagent (S258). Main context, output reddiretto su file (`> /tmp/s264.txt 2>&1`, leggi tail/grep).
+- Converge su OUTPUT definito (tabella per-famiglia + esito nominato). Se gia' prodotto in rerun -> riportalo e FERMATI.
+- Source-of-truth (STATE.md/PLAN.md): solo diff-first, mostra il diff a Luke prima di scrivere.
+  NB: Gate E blocca Write/Edit/cp su SOT (e da' FP anche sul backup `cp STATE.md` per match-su-nome).
+  Tieni l'edit STATE.md come ULTIMO passo, diff-first, e lascia a Luke il token `approve` se serve.
 
-## STATO EREDITATO (verificato live S261, non assunto)
-- **S259 spec-aware**: IMPLEMENTATO in `tools/it_market_price.py` (`derive_trim_family` +
-  `get_it_distribution` filtro L0→L3). DoD#1 verde (mediane diverse per trim).
-- **S260 no-fusione**: VALIDATO. Livelli **L0→L3** (indici 0-3), L4 rimosso. Test
-  `tools/tests/test_no_fusion_ladder.py` 4/4. NON reintrodurre L4.
-- **S261**: solo de-risking, ZERO edit. Mappa plumbing sotto.
+## FASE 0 — GROUND TRUTH (sola lettura)
+a) `git rev-parse --show-toplevel` + branch corretti.
+b) Conferma la RIGA REALE del gating zero-data: `autoscout_scraper.py:1227-1228`
+   (`zero_data = sum(... price_eur==0 and km==0)`; `if zero_data < len*0.8: return listings`).
+   Se non combacia col report S263 -> NON modificare a memoria: riporta la condizione reale e adatta.
+c) Conferma che `tools/_s263_probe.py` esiste ed e' rieseguibile identico.
+Solo dopo a-c si procede.
 
-## EDIT ESATTI ANELLO (meccanici, no esplorazione)
+## FASE 1 — DE-GATE (cambio minimo, componente esistente)
+Obiettivo: il deep-fetch Selenium (fino a 5 pagine) deve scattare per il caso IT ANCHE quando i
+listing hanno dati validi — non solo sul trigger zero-data.
+- Modifica MINIMA: aggiungi una condizione che attiva il path profondo per `autoscout24_it`
+  a prescindere dal trigger zero-data (es. flag esplicito `deep_fetch=True` per la sorgente IT,
+  o condizione equivalente sulla riga reale di FASE 0).
+- NON rimuovere il trigger zero-data esistente: AGGIUNGI un secondo motivo di attivazione, non sostituire.
+- NON toccare altro in base_scraper/autoscout_scraper oltre questa attivazione. Niente refactor opportunistici.
+- Reversibilita': backup del file prima dell'edit (Rule 1d). [il file scraper NON e' SOT -> niente Gate E qui]
+VERIFICA FASE 1 (terminal fact, non "compila"): una scrape live di prova su Serie 3 IT deve restituire
+>19 listing (prova che il deep-fetch ora scatta). Incolla il conteggio reale di pagine fetchate e
+listing totali. Se resta a 1 pagina/19 -> de-gate NON ha funzionato: FERMATI e diagnostica, non proseguire.
 
-### Punto 1 — runner spec-aware (`tools/on_demand_runner.py`, loop ~riga 482)
-`v` = dict. Chiavi: `variant`(str), `fuel_type`(str value default 'unknown'),
-`transmission`(str value default 'unknown'), `power_hp`(int).
-GOTCHA: passare `fuel=None` quando 'unknown' (derive_trim_family non lo normalizza).
-```python
-ftv = v.get('fuel_type') or None
-if ftv == 'unknown': ftv = None
-trv = v.get('transmission') or None
-it = get_it_distribution(
-    v_make, v_model, v_year, v_km, fuel=ftv,
-    target_variant=v.get('variant') or '',
-    target_transmission=trv,
-    target_power_hp=int(v.get('power_hp', 0) or 0),
-)
-```
-Dopo `if not it.get('median')`: aggiungere skip su `it.get('no_verdict')` →
-log "SKIP NO-VERDICT n<min_n", `continue`. In produzione no_verdict NON deve mai PASS.
+## FASE 2 — RERUN PROBE IDENTICO
+- `python3 -m tools._s263_probe` (stesso identico probe, zero modifiche alla logica di conteggio).
+- Stesse 4 famiglie, stesse chiavi gate (`derive_trim_family` + `_match` L0->L3), stessa regola:
+  DEDUP per `listing_id` (VIN assente nel SSR AS24.it) + RI-FILTRO col gate. Conta SOLO listing
+  distinti validati dal gate, non righe di pagina.
+- NB: il probe oggi fa UNA scrape (anno+-2). Per la traiettoria N-per-pagina (vedi sotto) potrebbe
+  servire loggare il conteggio per pagina: aggiungilo SOLO come print nel probe throwaway, non in produzione.
+- Riporta SEMPRE per famiglia: grezzi totali, dopo-dedup, N validati per livello L0->L3, e a quale
+  livello (se mai) tocca N>=8.
 
-### Punto 1-bis — chiudere il gotcha fuel ANCHE in `tools/margin_e2e.py` (STESSO GIRO)
-Peer review: il gotcha `fuel 'unknown'` è latente anche in `margin_e2e.py:39` — se
-`fuel_type=FuelType.UNKNOWN` → `ftv='unknown'` → over-restringe a comparabili fuel="unknown" (=0).
-È la **stessa classe del bug mediana-fusa**: input non normalizzato che falsa silenziosamente il
-match (qui over-restringe → NO-VERDICT spurio, là fondeva → falso-PASS). Radice identica.
-Fix in `it_for` (margin_e2e.py): `if ftv == 'unknown': ftv = None` prima della call.
-NON lasciarlo aperto: trappola che riappare.
+## OUTPUT (fatto terminale)
+Tabella per famiglia:
+  FAMIGLIA | pagine_fetchate | grezzi | dedup | L0 L1 L2 L3 | N>=8 a quale livello
+Piu' la riga di esito per famiglia (A deciso / thin-ambiguo / misto), NON un giudizio aggregato unico.
 
-### Punto 2 — ramo NO_VERDICT nel PDF (`tools/scripts/pdf_generator_enterprise.py`)
-- **`it_n` GIÀ ESISTE** su VehicleData (riga 132, verificato S261) — la label NON stampa 0 default. OK.
-- riga 121: commento `# "PASS" | "REJECT" | "NO_VERDICT"`.
-- riga ~133 (VehicleData): aggiungere SOLO `relaxation_level: Optional[int] = None`,
-  `no_verdict: bool = False`.
-- mapping righe 1960-1972: aggiungere `relaxation_level=it_dist.get('relaxation_level')`,
-  `no_verdict=bool(it_dist.get('no_verdict'))`. Se `it_dist.get('no_verdict')` → forzare
-  `margin_decision='NO_VERDICT'`.
-- metodo `_create_margin_verdict_section` (881-906): branch 3 vie. NO_VERDICT label CON
-  N e livello REALI (non 0/'-' di default — è il numero che conta):
-  `f"NO-VERDICT — comparabili insufficienti (N={vehicle.it_n or 0}, livello L{vehicle.relaxation_level if vehicle.relaxation_level is not None else '-'})"`.
+## DECISIONE (nomina, NON eseguire design)
+- Famiglia LIQUIDA che tocca N>=8 a L0/L1 -> Esito A per quella famiglia: mediana puntuale regge li'.
+- Famiglia THIN che resta 0-2 dopo 5 pagine -> NON dichiarare "mercato thin": dichiara "indeciso a
+  5 pagine, servirebbe profondita' >5 per decidere". E' un dato, non un fallimento.
+- Esito complessivo atteso = MISTO o PARZIALE. Porta i NUMERI a Luke. Il design del verdetto (mediana
+  dove regge / bande dove e' thin) lo decide Luke sui numeri, NON CC in sessione.
+- "Conta, non interpretare": riporta i numeri, la lettura strategica la fa Luke.
 
-## DoD S262 (terminal fact reali — Rule 1b)
-- **T1 [veto prod intatto]**: `python3 -m tools.margin_gate` → X1 REJECT EXIT 0 (non-regressione).
-- **T2 [REJECT nel repo]**: harness inietta X1 (21795/22862) via `generate_dossier` diretto →
-  PDF NEL REPO, CoVe alto + margine REJECT + decisione finale REJECT. Path incollato.
-- **T3 [NO-VERDICT nel repo]**: harness veicolo pool thin (no_verdict=True) → PDF NEL REPO.
-  VERIFICA CHIAVE (peer review): che renderizzi **N e livello REALI**, non uno zero/'-' di default.
-  Aprire il PDF e leggere il numero. Path incollato.
-- T2/T3 via harness diretto (NON il runner reale — ha veto `return None`).
+## min_n — RATIFICA SOLO SE I DATI LO PERMETTONO
+- Se le liquide producono una distribuzione N reale (non corrotta dal muro) -> PROPONI min_n
+  difendibile dai loro numeri, Luke ratifica.
+- Se anche post-de-gate i numeri restano near-zero ovunque -> min_n resta PARCHEGGIATO, e questo
+  stesso e' un segnale forte (frammentazione domina il volume). NON ratificare su rumore.
 
-## min_n
-Resta 8 (MIN_N_DEFAULT). NON ratificato — ratifica dopo dati probe S263.
+## DOMANDA APERTA DA RISOLVERE COI NUMERI (non prima)
+Il cap a 5 pagine: dopo il rerun, i numeri delle thin dicono se "andare oltre 5 pagine" e' necessario o inutile.
+- Thin a 5 pagine gia' a 0 con pool totale grande (es. 150 listing e M340=0) -> forte indizio che il
+  mercato davvero non le contiene -> andare oltre 5 pagine NON aiuterebbe -> vira verso bande per le thin.
+- Thin che cresce ma non basta (es. 0->4 da p1 a p5, traiettoria non satura) -> >5 pagine potrebbe
+  deciderle -> decisione di scope separata, a freddo coi numeri davanti.
+NON decidere lo scope ">5 pagine" in questa sessione: PORTA la traiettoria (N per pagina) a Luke.
 
-## VINCOLI S262
-- NON delegare implementazione (S258: subagent esaurì context). Main context, e2e REDIRETTO su
-  file (`> /tmp/s262.txt 2>&1`, leggi tail/grep).
-- NON toccare `cove_engine_v4.py`. Nessuna azione esterna (dealer/WA). NON shared-state a saturazione.
-- FUORI SCOPE S262: probe pool IT (→ S263), stealth scraping, scaling, mobile.de adapter.
+## OUTPUT FINE SESSIONE (richiesto)
+- Scrivi `<repo>/.claude/REPORT_S264.md` (NEL REPO): tabella per-famiglia coi conteggi e pagine_fetchate,
+  esito per-famiglia, traiettoria N-per-pagina delle thin, proposta min_n (o motivazione del parcheggio),
+  debito residuo.
+- Aprilo: `open -a TextEdit "<repo>/.claude/REPORT_S264.md"`
+- Persisti esito in STATE.md diff-first (Gate E: lascia a Luke il token approve se blocca).
 
----
+## VINCOLI / ANTI-PATTERN
+- Prova al layer giusto: FASE 1 provata da >19 listing reali fetchati, NON da "compila"; il probe
+  conta post-dedup+gate, non righe di pagina.
+- NON inseguire un Esito A forzato: NON abbassare min_n, NON allargare le chiavi, NON reintrodurre L4
+  (fusione drivetrain) per "far salire N". Un misto/thin onesto e' il risultato corretto.
+- NON allargare lo scope: solo de-gate + rerun. Niente proxy/stealth/scaling/mobile.de. Il cap a 5
+  pagine NON si supera in questa sessione.
+- NON chiudere al budget spacciandolo per progresso: se de-gate non funziona o il probe non gira sulle
+  4 famiglie -> BLOCKED-ON col fatto mancante, non "completato".
+- NON toccare `cove_engine_v4.py`. NESSUNA azione esterna.
 
-## S263 (SESSIONE SEPARATA — solo dopo anello verde) — PROBE PROFONDITÀ POOL IT
-**Inquadramento (peer review): nessun esito "fallisce".** Esito A → lo scraping enterprise
-ripaga, lo costruisci con convinzione. Esito B → ti risparmia l'autostrada verso un pozzo vuoto
-e ti dice che il prodotto è un verdetto a BANDE ("questa auto sta nella fascia alta/bassa del
-mercato IT per la sua configurazione") — vendibile a un dealer. Scopri QUALE prodotto stai
-costruendo. Per questo vale mezza sessione e va PRIMA di qualsiasi riga di stealth.
-**Domanda unica**: aumentando profondità le famiglie ESATTE si riempiono (N≥8) o il mercato
-non le contiene?
-**Metodo idempotente, throwaway, NO infra nuova**:
-- Famiglie: 320d xDrive 2021, 318d 2021, 330i petrol 2021, M340 2021.
-- Per ciascuna: `AutoScoutScraper("autoscout24_it").scrape_model` anno±2, paginazione profonda.
-- Conta N con le STESSE chiavi del gate: `derive_trim_family` + `_match` a OGNI livello L0→L3.
-  **Output = riga per famiglia: `L0=.. L1=.. L2=.. L3=..`** (NON N generico: 320d 2021 conta 12,
-  ma 320d xDrive 2021 diesel a L0 ne conta 2 — il numero che decide è quello che vede il gate).
-
-> **CONTEGGIO — REGOLA NON NEGOZIABILE (decide Esito A vs B):**
-> Il numero che conta NON è il conteggio di pagina. Prima di contare:
-> 1. **DEDUP per VIN**: lo stesso annuncio ricompare tra pagine → contalo una volta.
-> 2. **RI-FILTRA col gate**: passa OGNI listing per `derive_trim_family` + `_match`.
->    Oltre pagina N il portale serve risultati FUORI FILTRO per riempire
->    (318d/320i quando hai chiesto 320d xDrive diesel) → vanno scartati, non contati.
-> 3. **N per famiglia** = listing distinti-per-VIN che il gate valida a quel livello.
->
-> Esempio del rischio: pagina grezza N=15 a L0 → dopo dedup+rifiltro = 3 reali.
-> Contare grezzo = **Esito A falso** = costruisci stealth verso un pool thin.
-> È la **mediana fusa spostata di un livello**: input non ripulito che gonfia il
-> numero su cui poi decidi il prodotto.
-- Esito A (N≥8 a L0-L1) → B3 industrializza scraper IT, DoD su famiglie-con-N non listing totali.
-- Esito B (N=1-3 pescando tutto) → verdetto a bande, NON mediana puntuale. NON costruire stealth.
+## FUORI SCOPE (dopo i numeri di S264)
+- Profondita' >5 pagine -> decisione di scope separata, solo se la traiettoria thin la giustifica.
+- Stealth/scaling/proxy -> solo su Esito A confermato su famiglie liquide.
+- Verdetto a bande -> solo su thin confermate dal mercato (non dal cap pagine).
+- mobile.de / Vincario / invio dossier.
