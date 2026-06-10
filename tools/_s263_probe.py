@@ -43,6 +43,16 @@ def scrape_deep():
         object.__setattr__(sc.config, "max_pages", DEEP_PAGES)
     except Exception as e:
         print(f"[warn] non riesco a bumpare max_pages: {e}")
+    # S264 de-gate REALE: il muro S263 (19 listing) NON era get_total_pages ne'
+    # il gate Selenium, ma lo short-page break base_scraper:374-375
+    # (len(page)=19 < results_per_page=20 -> break dopo pagina 1). Quando pagina-1
+    # torna piena (20) il curl pagina fino a 305/20pag. Forzo results_per_page=1
+    # cosi' lo short-page break non scatta mai e il curl pagina fino a max_pages.
+    # Probe-local (istanza throwaway), nessun impatto su produzione.
+    try:
+        object.__setattr__(sc.config, "results_per_page", 1)
+    except Exception as e:
+        print(f"[warn] results_per_page: {e}")
     t0 = time.time()
     raw = sc.scrape_model(
         make=MAKE, model=MODEL,
