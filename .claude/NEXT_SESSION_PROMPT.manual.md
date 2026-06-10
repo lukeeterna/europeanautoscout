@@ -1,3 +1,8 @@
+> **S262 DONE (2026-06-10, commit 9fb7824, pushed).** Anello PDF CHIUSO. DoD verde:
+> T1 margin_gate X1 REJECT EXIT 0 (non-regressione) · T2 PDF REJECT nel repo ·
+> T3 PDF NO-VERDICT con N=2/L3 REALI (non 0/'-'). Gotcha fuel 'unknown'->None chiuso
+> in runner E margin_e2e. **PROSSIMA SESSIONE = S263 (probe pool IT, sezione in fondo).**
+
 # RESUME S262 — chiudere l'anello PDF (T2/T3) — ISOLATO. Probe → S263 separato.
 
 **Generato**: 2026-06-10 · chiusura S261 (de-risking) + peer review Claude AI · `PLAN.md` = source-of-truth.
