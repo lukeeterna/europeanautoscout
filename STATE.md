@@ -7,13 +7,14 @@
 > Piano dettagliato → `PLAN.md` · Problemi parcheggiati → `BACKLOG.md`.
 > Aggiornato: **S245 · 2026-06-08**
 
-> **S260 · CRITICAL PATH = chiudere l'anello (PDF reale CoVe⊕margine).**
-> Report: `.claude/REPORT_S260.md`. FASE 1 VERDE: no-fusione confermata da 2° ingresso
-> (330i, `tools/trace_330i_s260.py`) + asserzione strutturale cablata (`tools/tests/test_no_fusion_ladder.py` 4/4).
-> T2 (PDF X1) + T3 (PDF auto reale, NO-VERDICT atteso) BLOCKED-ON budget.
-> SCOPERTA pre-req T3: Step 2c (on_demand_runner.py:482) NON spec-aware (call legacy trim-blind)
-> + veto `return None` su zero-PASS = nessun PDF su NO-VERDICT → serve harness dossier-onesto.
-> min_n resta 8 (ratifica dopo B3). DoD#1 storico → BLOCKED-ON pool (S261).
+> **S263 · PROBE pool IT = ESITO C (inconclusivo sul mercato, conclusivo sullo scraper).**
+> Report: `.claude/REPORT_S263.md`. Anello PDF CHIUSO in S262 (commit 9fb7824).
+> Il muro NON è il mercato: lo scraper AS24.it via curl_cffi vede SOLO pagina-1 SSR (~19
+> listing); il path Selenium-profondo esiste (`autoscout_scraper.py:1250`) ma è gated su
+> zero-data → non scatta. A vs B INDECIDIBILE finché lo scraper non pagina oltre p.1.
+> Segnale che sopravvive: config esatte (L0/L1) = 0 in tutte le 4 famiglie, solo L3 pesca 1-2
+> → preview Esito misto (M340 = 0 ovunque). min_n NON ratificato (distribuzione corrotta dal muro).
+> S264 proposto: de-gate fetch profondo IT (cambio poche righe, NO infra) → ri-eseguire probe.
 
 ---
 
