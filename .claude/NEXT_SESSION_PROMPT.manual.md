@@ -1,44 +1,63 @@
-# RESUME S259 — comparabili IT spec-aware (CRITICAL PATH aperto)
+# RESUME S262 — chiudere l'anello PDF (T2/T3) + probe profondità pool IT
 
-**Generato**: 2026-06-09 · chiusura S258 (context budget) · leggi PLAN.md come source-of-truth, questo è il breadcrumb attuabile.
+**Generato**: 2026-06-10 · chiusura S261 (context budget 50%→stop pre-edit) · `PLAN.md` = source-of-truth, questo è il breadcrumb attuabile.
 
-## STATO A FINE S258 (verificato live in S258, non ereditato)
-**FASE 0 VERDE** (numeri reali):
-- 0a: commit S255–S257 presenti (eb68342, f219ef3, 1e509c2, 68ac3ef, fd09384). NON ricostruire il gate.
-- 0b: `python3 -m tools.margin_gate` → X1 REJECT (chiavi 21795, spread 1067, floor 2743, surplus -1676). EXIT 0.
-- 0c: `python3 -m tools.margin_e2e --make BMW --model "Serie 3" --year-min 2021 --year-max 2024 --pages 2 --limit 22` → **8 PASS / 14 REJECT** su 22 annunci DE reali, X1 REJECT. EXIT 0.
+## STATO EREDITATO (verificato live in S261, non assunto)
+- **S259 spec-aware**: IMPLEMENTATO in `tools/it_market_price.py` (`derive_trim_family` + `get_it_distribution` con filtro L0→L3). DoD#1 verde (mediane diverse per trim).
+- **S260 no-fusione**: VALIDATO. Livelli sono **L0→L3** (4 livelli, indici 0-3). Il vecchio L4 (droppa drivetrain) è stato RIMOSSO in S259-bis. `relaxation_level` max = 3. Test cablato: `tools/tests/test_no_fusion_ladder.py` 4/4. NON reintrodurre L4.
+- **S261**: solo de-risking, ZERO edit. Mappa plumbing verificata sotto.
 
-**PROBLEMA CONFERMATO da 0c (il bug che S259 chiude):** mediana IT trim-blind e quasi year-blind. Output reale: mercato_IT 2021→43550, 2024→36000 (auto più nuova costa MENO = incoerente), N=19 identico ogni anno. M340i 2024 (DE 51499) vs €36000 pooled → REJECT -48% FALSO.
+## PRE-REQ VERIFICATO (le 3 claim S260 reggono — controllate riga per riga in S261)
+1. `tools/on_demand_runner.py:482` → `get_it_distribution(v_make, v_model, v_year, v_km)` è **trim-blind** (call legacy, manca target_variant/fuel/transmission/power).
+2. `tools/on_demand_runner.py:507-509` → `if not margin_passed: return None`. È VETO DI PRODUZIONE CORRETTO (zero-PASS = nessun dossier al dealer). **NON rimuoverlo.** T2/T3 si fanno con harness separato che invoca `generate_dossier` direttamente.
+3. `tools/scripts/pdf_generator_enterprise.py:892-895` → label binaria PASS/REJECT. Manca ramo NO_VERDICT.
 
-**LAVORO S258 NON INIZIATO.** Solo backup Rule 1d creati: `tools/it_market_price.py.s258.bak`, `tools/margin_e2e.py.s258.bak` (identici ai sorgenti, nessun edit — riutilizzabili/cancellabili).
-**LEZIONE S258:** delega a subagent backend-architect FALLITA (esaurì il suo context leggendo i 2 file senza implementare). In S259 NON delegare: implementazione deterministica, falla in main context con output e2e REDIRETTO su file (`> /tmp/s259_e2e.txt 2>&1`, leggi solo tail/grep — la tabella 22 righe brucia context).
+## EDIT ESATTI ANELLO (mechanici, no esplorazione)
 
-## OBIETTIVO 1 S259 (critical path) — spec-aware in `tools/it_market_price.py`
-Deterministico (no LLM, no vector-db):
-1. `derive_trim_family(variant, fuel, transmission, power_hp) -> dict`:
-   - `engine_class`: regex `(?i)\bm?(\d{3})\b` su variant → "318"/"320"/"330"/"340". "M340"/"M3" → flag performance. Vuoto se assente.
-   - `drivetrain`: "awd" se 'xdrive'/'quattro'/'4matic'/'allrad' in variant.lower() else "rwd".
-   - `trim_line`: 'm sport'/'m-sport'/'msport'→m_sport; 'luxury'→luxury; 'advantage'→advantage; 'sport line'/'sportline'→sport_line; else base.
-   - `fuel`: da fuel.value lower (NON variant). `transmission`: da transmission.value lower. Gestire variant sporco/vuoto senza crash.
-2. Filtro spec-aware + allargamento progressivo IN-MEMORY (1 sola scrape: IT con year±2 km-agnostico, poi filtra a livelli):
-   - L0: engine_class== AND drivetrain== AND trim_line== AND fuel== AND km±band AND anno±1
-   - L1: droppa km-band → L2: anno±2 → L3: droppa trim_line → L4: droppa drivetrain (tieni engine_class+fuel)
-   - Itera finché n>=min_n; registra `relaxation_level` nel dict.
-3. Dict: aggiungi `relaxation_level`, `trim_family`, **`no_verdict=True`** se n<min_n anche a L4 (gate NON emette PASS → NO-VERDICT). `n` SEMPRE riportato.
-4. `min_n`: oggi MIN_CONFIDENT_N=5. Raccogli distribuzione N osservata, PROPONI MIN_N a Luke (default provvisorio 8). NON sacro.
-5. Optional NON nel gate (già nel prezzo comparabili stesso-trim) — solo flag qualitativa.
-6. Firma retrocompatibile: `get_it_distribution(make, model, year, km, fuel=None, *, target_variant=None, target_transmission=None, target_power_hp=None, km_band=..., year_span=1, min_n=8)`.
+### Punto 1 — runner spec-aware (`tools/on_demand_runner.py`, dentro il loop a riga ~482)
+I `v` sono **dict** (non oggetti Listing). Chiavi: `variant`(str), `fuel_type`(str value, default 'unknown'), `transmission`(str value, default 'unknown'), `power_hp`(int).
+GOTCHA: `derive_trim_family` normalizza `transmission 'unknown'→None` ma **NON** `fuel 'unknown'` → passare `fuel=None` quando 'unknown', altrimenti il match over-restringe a comparabili fuel="unknown" (=0).
+Sostituire la call:
+```python
+ftv = v.get('fuel_type') or None
+if ftv == 'unknown': ftv = None
+trv = v.get('transmission') or None
+it = get_it_distribution(
+    v_make, v_model, v_year, v_km, fuel=ftv,
+    target_variant=v.get('variant') or '',
+    target_transmission=trv,
+    target_power_hp=int(v.get('power_hp', 0) or 0),
+)
+```
+Poi DOPO `if not it.get('median')`: aggiungere skip su `it.get('no_verdict')` → log "SKIP NO-VERDICT n<min_n", `continue` (in produzione no_verdict NON deve mai PASS). Riferimento pattern già validato: `tools/margin_e2e.py:38-49` (`it_for`), ma lì sono enum con `.value`, qui sono già string nel dict.
 
-### `tools/margin_e2e.py`
-`it_for` oggi cache PER ANNO con km=0 → cambiare: cache PER (year, trim_family_key); passare variant/fuel/transmission/power del listing DE. Su `no_verdict` → SKIP (mai PASS). Stampare relaxation_level + N per riga.
+### Punto 2 — ramo NO_VERDICT nel PDF (`tools/scripts/pdf_generator_enterprise.py`)
+- riga 121: commento `# "PASS" | "REJECT" | "NO_VERDICT"`.
+- riga ~133 (dataclass VehicleData): aggiungere `relaxation_level: Optional[int] = None` e `no_verdict: bool = False`.
+- mapping riga 1960-1972 (build VehicleData da `best`+`it_dist`): aggiungere `relaxation_level=it_dist.get('relaxation_level')`, `no_verdict=bool(it_dist.get('no_verdict'))`. Se `it_dist.get('no_verdict')` → forzare `margin_decision='NO_VERDICT'`.
+- metodo `_create_margin_verdict_section` (881-906): branch a 3 vie. Per NO_VERDICT il `decision_label` DEVE riportare **N e relaxation_level** (richiesta esplicita Luke S261 — un NO-VERDICT muto è inutile):
+  `f"NO-VERDICT — comparabili insufficienti (N={vehicle.it_n or 0}, livello L{vehicle.relaxation_level if vehicle.relaxation_level is not None else '-'})"`.
+  is_pass resta solo per PASS; REJECT e NO_VERDICT etichette distinte.
 
-## DoD S259 (terminal fact reali — Rule 1b, tutti + FASE 0 verde)
-1. [spec-aware] mediane IT DIVERSE per 2 trim distinti stesso model/anno, ognuna col suo N; + ≥1 caso split→N<MIN_N → NO-VERDICT invece di numero. Incolla numeri. 2 trim mediana IDENTICA = BLOCKED.
-2. [PASS reale E2E] 1 annuncio reale nel runner COMPLETO (scrape DE→CoVe→Step 2c spec-aware→PDF). PDF NEL REPO (non /tmp) con CoVe + verdetto margine + N comparabili. Path incollato.
-3. [veto+falsificazione] X1 dati iniettati (21795/22862) via CoVe→Step 2c→PDF: CoVe alto nel PDF, margine REJECT nel PDF, decisione finale REJECT. PDF nel repo, path incollato.
+## DoD S262 (terminal fact reali — Rule 1b, tutti + FASE 0 verde)
+- **T1 [veto prod intatto]**: `python3 -m tools.margin_gate` → X1 REJECT EXIT 0 (smoke, conferma non-regressione).
+- **T2 [REJECT nel repo]**: harness che inietta X1 (prezzo 21795 / mercato 22862) via `generate_dossier` diretto → PDF NEL REPO con CoVe alto + margine REJECT + decisione finale REJECT. Path incollato.
+- **T3 [NO-VERDICT nel repo]**: harness con veicolo su pool thin (no_verdict=True) → PDF NEL REPO che renderizza "NO-VERDICT N=.. L.." (NON muto). Path incollato.
+- T2/T3 via harness diretto (NON il runner reale — quello ha veto `return None`).
 
-## OBIETTIVO 2 (dopo Obj 1) — coesistenza CoVe⊕Gate nel runner reale
-Gate finora verificato in ISOLAMENTO (DoD#2 S257 chiamò generate_dossier ma SALTÒ il CoVe). Nel PDF entrambi distinti: CoVe (bontà auto) + verdetto margine (bontà affare). VETO indipendente: X1 = CoVe 80/100 "CERTIFICATO" S254 MA margine REJECT → REJECT finale.
+## PROBE PROFONDITÀ POOL IT (dopo anello, o sessione dedicata se budget)
+**Domanda unica**: aumentando profondità, le famiglie ESATTE si riempiono (N≥8) o il mercato non le contiene? (Discrimine "non li prendo tutti" vs "non esistono".) Decide se industrializzare scraping (stealth/scaling — solo SE famiglie si riempiono) o cambiare forma verdetto (bande prezzo / intervallo confidenza).
+**Metodo idempotente, throwaway, NO infra nuova**:
+- 3-4 famiglie concrete: 320d xDrive 2021, 318d 2021, 330i petrol 2021, M340 2021.
+- Per ciascuna: scrape AutoScout24.it (`AutoScoutScraper("autoscout24_it").scrape_model`) con anno±2, paginazione profonda.
+- Conta N usando le STESSE chiavi del gate: `derive_trim_family` + `_match` a OGNI livello L0→L3. **Output = riga per famiglia: `L0=.. L1=.. L2=.. L3=..`**. NON un N generico (320d 2021 ne conta 12, ma 320d xDrive 2021 diesel a L0 ne conta 2 — il numero che decide è quello che il gate vede).
+- Esito A (famiglie N≥8 a L0-L1) → B3 = industrializza scraper IT (proxy/fingerprint/rate-limit) con DoD su famiglie-con-N, non listing totali.
+- Esito B (N=1-3 anche pescando tutto) → mercato non li contiene → verdetto a bande, NON mediana puntuale. NON costruire scraping enterprise.
 
-## FUORI SCOPE: mobile.de/AS24.de adapter, Vincario v3.2, invio dossier a Luke, precisione premium oltre spec-aware.
-## VINCOLI: prova al layer giusto (numeri reali + PDF reale + X1→REJECT live, NON "compila"). NON toccare cove_engine_v4.py distruttivo. Nessuna azione esterna.
+## min_n
+Resta 8 (MIN_N_DEFAULT). NON ratificato — ratifica dopo dati probe (distribuzione N per famiglia reale).
+
+## VINCOLI
+- NON delegare implementazione (S258: subagent esaurì context senza implementare). Main context, e2e REDIRETTO su file (`> /tmp/s262.txt 2>&1`, leggi tail/grep — tabella 22 righe brucia context).
+- NON toccare `cove_engine_v4.py`. Nessuna azione esterna (dealer/WA). NON shared-state a saturazione.
+- FUORI SCOPE: stealth scraping, scaling, mobile.de adapter — tutto rinviato a Esito A del probe.
