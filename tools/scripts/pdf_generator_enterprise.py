@@ -118,7 +118,7 @@ class VehicleData:
     # S257: margin gate (asse "bonta' dell'AFFARE") — popolati dal runner Step 2c.
     # Numeri REALI: mercato IT = mediana comparabili reali (NON prezzo_de x1.15),
     # fee ARGOS = quota del surplus (NON flat 900). None = margin gate non eseguito.
-    margin_decision: Optional[str] = None        # "PASS" | "REJECT"
+    margin_decision: Optional[str] = None        # "PASS" | "REJECT" | "NO_VERDICT"
     chiavi_in_mano: Optional[float] = None
     spread_lordo: Optional[float] = None
     dealer_floor: Optional[float] = None
@@ -131,6 +131,8 @@ class VehicleData:
     it_p75: Optional[float] = None
     it_n: Optional[int] = None
     it_source: Optional[str] = None
+    relaxation_level: Optional[int] = None       # L0-L3 raggiunto dal filtro spec-aware
+    no_verdict: bool = False                      # True = comparabili insufficienti (n<min_n)
 
     @classmethod
     def from_opportunity(cls, opp, dealer_city: str = "Eboli") -> "VehicleData":
@@ -889,10 +891,20 @@ class ARGOSPDFGenerator:
                 return "—"
             return "EUR " + f"{int(round(n)):,}".replace(",", ".")
 
-        is_pass = (vehicle.margin_decision or "").upper() == "PASS"
+        decision = (vehicle.margin_decision or "").upper()
         fee = vehicle.fee_argos if vehicle.fee_argos is not None else 0
         pct = vehicle.margine_netto_pct if vehicle.margine_netto_pct is not None else 0.0
-        decision_label = "PASS — affare valido" if is_pass else "REJECT — sotto pavimento dealer"
+        if decision == "NO_VERDICT":
+            # Numeri REALI nella label — N e livello sono il dato che conta, non 0/'-'.
+            _lvl = vehicle.relaxation_level if vehicle.relaxation_level is not None else '-'
+            decision_label = (
+                f"NO-VERDICT — comparabili insufficienti "
+                f"(N={vehicle.it_n or 0}, livello L{_lvl})"
+            )
+        elif decision == "PASS":
+            decision_label = "PASS — affare valido"
+        else:
+            decision_label = "REJECT — sotto pavimento dealer"
 
         data = [
             ['VERDETTO AFFARE', 'IMPORTO', 'NOTE'],
@@ -1970,7 +1982,13 @@ def generate_dossier_from_data(
         it_p75=it_dist.get('p75'),
         it_n=it_dist.get('n'),
         it_source=it_dist.get('source'),
+        relaxation_level=it_dist.get('relaxation_level'),
+        no_verdict=bool(it_dist.get('no_verdict')),
     )
+    # NO-VERDICT (comparabili insufficienti a trim esatto): il verdetto affare NON
+    # e' ne' PASS ne' REJECT — il PDF deve dirlo esplicitamente col numero reale.
+    if it_dist.get('no_verdict'):
+        vehicle.margin_decision = 'NO_VERDICT'
 
     dealer = DealerInfo(
         name=dealer_name,

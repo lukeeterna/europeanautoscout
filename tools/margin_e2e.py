@@ -37,6 +37,10 @@ def run(make: str, model: str, year_min: int, year_max: int, pages: int, limit: 
 
     def it_for(l) -> dict:
         ftv = getattr(getattr(l, "fuel_type", None), "value", None)
+        # STESSA classe del bug mediana-fusa: 'unknown' non normalizzato over-restringe
+        # i comparabili a fuel="unknown" (=0 match). derive_trim_family non lo tratta.
+        if ftv == "unknown":
+            ftv = None
         trv = getattr(getattr(l, "transmission", None), "value", None)
         spec = derive_trim_family(l.variant or "", ftv, trv, getattr(l, "power_hp", 0) or 0)
         key = (int(l.year), spec["key"])

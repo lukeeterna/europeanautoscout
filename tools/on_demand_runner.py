@@ -478,13 +478,32 @@ def run(marca, budget, modello=None, anno_min=None, km_max=None, dealer_name=Non
         if not (v_make and v_model and v_year and v_price > 0):
             logger.info(f'Margin gate: SKIP {v.get("listing_id", "?")} — dati insufficienti')
             continue
+        # Spec-aware: comparabili IT dello STESSO trim (drivetrain/engine/fuel),
+        # NON mediana fusa. GOTCHA fuel 'unknown' -> None (derive_trim_family
+        # NON normalizza 'unknown', resterebbe a over-restringere su fuel="unknown").
+        ftv = v.get('fuel_type') or None
+        if ftv == 'unknown':
+            ftv = None
+        trv = v.get('transmission') or None
         try:
-            it = get_it_distribution(v_make, v_model, v_year, v_km)
+            it = get_it_distribution(
+                v_make, v_model, v_year, v_km, fuel=ftv,
+                target_variant=v.get('variant') or '',
+                target_transmission=trv,
+                target_power_hp=int(v.get('power_hp', 0) or 0),
+            )
         except Exception as e:
             logger.warning(f'Margin gate: get_it_distribution fallito ({e}) — SKIP {v.get("listing_id","?")}')
             continue
         if not it.get('median'):
             logger.info(f'Margin gate: SKIP {v.get("listing_id","?")} — 0 comparabili IT')
+            continue
+        # NO-VERDICT (n<min_n a trim esatto): in produzione NON deve mai PASS.
+        if it.get('no_verdict'):
+            logger.info(
+                f'Margin gate: SKIP NO-VERDICT {v.get("listing_id","?")} '
+                f'— comparabili insufficienti (n={it.get("n")} < min_n)'
+            )
             continue
         mr = evaluate_margin(prezzo_de=v_price, prezzo_mercato_it=it['median'])
         v['_margin_decision'] = mr.decision
