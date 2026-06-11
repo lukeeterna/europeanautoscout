@@ -186,6 +186,47 @@ def _confidence_label(
     return "bassa"
 
 
+def _decide(
+    n: int,
+    min_n: int,
+    relaxation_level: Optional[int],
+    spread_pool: Optional[float],
+    spread_infra_trim: Optional[float],
+    median: Optional[float],
+    *,
+    spec_aware: bool = True,
+) -> tuple[bool, str, str]:
+    """Decisione gate PURA (S267) -> (no_verdict, width_nature, confidence).
+
+    Estratta da `get_it_distribution` (prima inline, righe 291-292 + 376-397)
+    per essere TESTABILE diretta: forzare (N, width) a L3 via la pipeline di
+    leveling e' fragile, la funzione pura blocca la tavola di verita'.
+
+    Bracci (Luke S265, gate COMPOSTO):
+      - width_nature: a L3 (trim droppato) la larghezza viene dalla FUSIONE
+        allestimenti (`fusione_trim`) o dall'incertezza campione
+        (`incertezza_campione`); se il sub-pool trim-esatto (L2) ha <2 punti
+        (`spread_infra_trim is None`) la natura NON e' dichiarabile -> `indeterminato`.
+      - no_verdict = spec_aware AND ( N<min_n  OR  L3-indeterminato ). I due bracci
+        sono in OR: il braccio width fa NO_VERDICT anche su un N che passerebbe.
+    `median` non entra nella decisione (firma per simmetria col chiamante).
+    """
+    if relaxation_level == 3:
+        if spread_infra_trim is None:
+            width_nature = "indeterminato"
+        elif spread_pool is not None and spread_pool > spread_infra_trim * 1.5:
+            width_nature = "fusione_trim"
+        else:
+            width_nature = "incertezza_campione"
+    else:
+        width_nature = "config_esatta"
+
+    l3_unverifiable = (relaxation_level == 3 and spread_infra_trim is None)
+    no_verdict = spec_aware and (n < min_n or l3_unverifiable)
+    confidence = _confidence_label(n, min_n, relaxation_level, no_verdict, width_nature)
+    return no_verdict, width_nature, confidence
+
+
 def _load_fixture(path: str) -> tuple[list, str]:
     """Carica una fixture reale committata (S266) -> (raw_listings, scrape_date).
 
@@ -311,12 +352,10 @@ def get_it_distribution(
     prices = sorted(float(l.price_eur) for l in comps)
     n = len(prices)
     # Gate COMPOSTO (Luke S265): verdetto emesso solo se N>=min_n E la natura
-    # della banda e' VERIFICABILE. A L3 con sub-pool trim-esatto <2 punti
-    # (spread_infra_trim is None) non si distingue fusione da incertezza ->
-    # width_nature='indeterminato' -> NO_VERDICT. min_n=8 = cuscinetto contro
-    # la sotto-raccolta short-page (il probe vede piu' del campo reale).
-    l3_unverifiable = (relaxation_level == 3 and spread_infra_trim is None)
-    no_verdict = spec_aware and (n < min_n or l3_unverifiable)
+    # della banda e' VERIFICABILE. La decisione (no_verdict + width_nature +
+    # confidence) vive ora nella funzione PURA `_decide` (S267), chiamata sotto
+    # quando spread_pool e' noto. min_n=8 = cuscinetto contro la sotto-raccolta
+    # short-page (il probe vede piu' del campo reale).
 
     out: dict = {
         "source": "AutoScout24.it",
@@ -329,7 +368,6 @@ def get_it_distribution(
         "trim_family": target["key"] if spec_aware else None,
         "target_spec": target if spec_aware else None,
         "min_n": min_n,
-        "no_verdict": no_verdict,
         "low_confidence": n < MIN_CONFIDENT_N,
         "spread_infra_trim": spread_infra_trim,     # GAP-1: spread a trim ESATTO (L2)
         "listings": [
@@ -345,11 +383,16 @@ def get_it_distribution(
     }
 
     if n == 0:
+        no_verdict, width_nature, confidence = _decide(
+            0, min_n, relaxation_level, None, spread_infra_trim, None,
+            spec_aware=spec_aware,
+        )
         out.update(
+            no_verdict=no_verdict,
             median=None, p25=None, p75=None, min=None, max=None,
             band_low=None, band_high=None, band_width_pct=None,
-            spread_pool=None, width_nature="indeterminato",
-            confidence=_confidence_label(0, min_n, relaxation_level, no_verdict, "indeterminato"),
+            spread_pool=None, width_nature=width_nature,
+            confidence=confidence,
         )
         logger.warning(
             "[it_market_price] %s %s %s trim=%s: 0 comparabili (raw=%d pool=%d)",
@@ -369,21 +412,17 @@ def get_it_distribution(
     spread_pool = round(band_high - band_low, 2)
     band_width_pct = round((spread_pool / median * 100.0), 2) if median else None
 
-    # GAP-1: natura della larghezza della banda. A L3 (trim fuso) confronta lo
-    # spread del pool L3 con lo spread a trim ESATTO (L2): se il pool e' molto
-    # piu' largo del trim esatto, la larghezza viene dalla FUSIONE allestimenti
-    # (precisione finta), non dall'incertezza del campione.
-    if relaxation_level == 3:
-        if spread_infra_trim is None:
-            width_nature = "indeterminato"   # trim esatto <2 punti: non dichiarabile
-        elif spread_pool > spread_infra_trim * 1.5:
-            width_nature = "fusione_trim"    # domina il mescolamento allestimenti
-        else:
-            width_nature = "incertezza_campione"
-    else:
-        width_nature = "config_esatta"       # banda = dispersione reale a trim esatto
+    # Decisione gate PURA (S267): GAP-1 width_nature + no_verdict + confidence
+    # in un solo posto testabile. A L3 confronta spread_pool con spread_infra_trim
+    # (L2): se il pool e' molto piu' largo del trim esatto la larghezza viene dalla
+    # FUSIONE allestimenti (precisione finta), non dall'incertezza campione.
+    no_verdict, width_nature, confidence = _decide(
+        n, min_n, relaxation_level, spread_pool, spread_infra_trim, median,
+        spec_aware=spec_aware,
+    )
 
     out.update(
+        no_verdict=no_verdict,
         median=round(median, 2),
         p25=band_low,
         p75=band_high,
@@ -394,7 +433,7 @@ def get_it_distribution(
         band_width_pct=band_width_pct,
         spread_pool=spread_pool,
         width_nature=width_nature,
-        confidence=_confidence_label(n, min_n, relaxation_level, no_verdict, width_nature),
+        confidence=confidence,
     )
     return out
 
