@@ -26,6 +26,7 @@ from __future__ import annotations
 import logging
 import re
 import statistics
+from datetime import date
 from typing import Optional
 
 from .scrapers.autoscout_scraper import AutoScoutScraper
@@ -150,6 +151,36 @@ def _match(target: dict, cspec: dict, c_km: int, c_year: int,
     return True
 
 
+def _iqr_spread(prices: list) -> Optional[float]:
+    """Spread interquartile (p75-p25) in EUR. None se <2 prezzi."""
+    if len(prices) < 2:
+        return None
+    q = statistics.quantiles(sorted(prices), n=4, method="inclusive")
+    return round(q[2] - q[0], 2)
+
+
+def _confidence_label(
+    n: int, min_n: int, level: Optional[int], no_verdict: bool, width_nature: str
+) -> str:
+    """Confidence ONESTA, monotona, derivata da N e dal livello (GAP-1).
+
+    Invariante anti-falso-PASS (testato in _test_confidence_honesty):
+      "alta" => livello in {0,1,2} AND n>=20 AND not no_verdict.
+    Mai "alta" su L3 (trim fuso) ne' su N piccolo: la banda stretta su pochi
+    comparabili = falso-PASS travestito (il bug ucciso S256-S262).
+    """
+    if no_verdict:
+        return "NO_VERDICT"
+    if level == 3:
+        # L3 = trim droppato (allestimenti fusi). MAI "alta", a prescindere da N.
+        return "bassa" if width_nature == "fusione_trim" else "media"
+    if n >= 20:
+        return "alta"
+    if n >= 10:
+        return "media"
+    return "bassa"
+
+
 def get_it_distribution(
     make: str,
     model: str,
@@ -209,18 +240,31 @@ def get_it_distribution(
             int(getattr(lst, "year", 0) or 0),
         ))
 
+    n_by_level: Optional[dict] = None
+    spread_infra_trim: Optional[float] = None  # GAP-1: spread a trim ESATTO (L2)
     if spec_aware:
         levels = _levels(year_span)
-        selected, chosen_level = [], len(levels) - 1
-        for idx, cfg in enumerate(levels):
-            matched = [
-                p for p in pool
-                if _match(target, p[1], p[2], p[3], km, year, km_band, cfg)
-            ]
-            selected, chosen_level = matched, idx
-            if len(matched) >= min_n:
+        # Calcola i match per OGNI livello (pool piccolo): serve N_L0..N_L3 per
+        # la riga d'onesta' del report e lo spread infra-trim (GAP-1).
+        matched_by_level = [
+            [p for p in pool
+             if _match(target, p[1], p[2], p[3], km, year, km_band, cfg)]
+            for cfg in levels
+        ]
+        n_by_level = {i: len(m) for i, m in enumerate(matched_by_level)}
+        # Livello scelto = primo che raggiunge min_n, altrimenti l'ultimo (L3).
+        chosen_level = len(levels) - 1
+        for idx, m in enumerate(matched_by_level):
+            if len(m) >= min_n:
+                chosen_level = idx
                 break
+        selected = matched_by_level[chosen_level]
         relaxation_level = chosen_level
+        # GAP-1: spread a TRIM ESATTO = L2 (engine+drivetrain+trim+fuel, anno+-2).
+        # A L3 il trim e' droppato: confrontare lo spread del pool L3 con questo
+        # dice se la larghezza viene dalla FUSIONE allestimenti o dall'incertezza.
+        l2_prices = [float(p[0].price_eur) for p in matched_by_level[2]]
+        spread_infra_trim = _iqr_spread(l2_prices)
     else:
         # legacy: fuel + km + anno+-year_span, livello unico
         cfg = dict(engine=False, drivetrain=False, trim=False, fuel=True,
@@ -238,15 +282,18 @@ def get_it_distribution(
 
     out: dict = {
         "source": "AutoScout24.it",
+        "scrape_date": date.today().isoformat(),   # GAP-2: la banda e' una FOTOGRAFIA
         "n": n,
         "n_raw": len(raw),
         "n_pool": len(pool),
+        "n_by_level": n_by_level,                   # GAP-1: N_L0..N_L3 per riga onesta'
         "relaxation_level": relaxation_level,
         "trim_family": target["key"] if spec_aware else None,
         "target_spec": target if spec_aware else None,
         "min_n": min_n,
         "no_verdict": no_verdict,
         "low_confidence": n < MIN_CONFIDENT_N,
+        "spread_infra_trim": spread_infra_trim,     # GAP-1: spread a trim ESATTO (L2)
         "listings": [
             {
                 "price_eur": float(l.price_eur),
@@ -260,7 +307,12 @@ def get_it_distribution(
     }
 
     if n == 0:
-        out.update(median=None, p25=None, p75=None, min=None, max=None)
+        out.update(
+            median=None, p25=None, p75=None, min=None, max=None,
+            band_low=None, band_high=None, band_width_pct=None,
+            spread_pool=None, width_nature="indeterminato",
+            confidence=_confidence_label(0, min_n, relaxation_level, no_verdict, "indeterminato"),
+        )
         logger.warning(
             "[it_market_price] %s %s %s trim=%s: 0 comparabili (raw=%d pool=%d)",
             make, model, year, out["trim_family"], len(raw), len(pool),
@@ -273,20 +325,87 @@ def get_it_distribution(
     else:
         p25 = p75 = prices[0]
 
+    median = statistics.median(prices)
+    # BANDA = p25-p75 del pool al livello usato (Luke ratifica i percentili).
+    band_low, band_high = round(p25, 2), round(p75, 2)
+    spread_pool = round(band_high - band_low, 2)
+    band_width_pct = round((spread_pool / median * 100.0), 2) if median else None
+
+    # GAP-1: natura della larghezza della banda. A L3 (trim fuso) confronta lo
+    # spread del pool L3 con lo spread a trim ESATTO (L2): se il pool e' molto
+    # piu' largo del trim esatto, la larghezza viene dalla FUSIONE allestimenti
+    # (precisione finta), non dall'incertezza del campione.
+    if relaxation_level == 3:
+        if spread_infra_trim is None:
+            width_nature = "indeterminato"   # trim esatto <2 punti: non dichiarabile
+        elif spread_pool > spread_infra_trim * 1.5:
+            width_nature = "fusione_trim"    # domina il mescolamento allestimenti
+        else:
+            width_nature = "incertezza_campione"
+    else:
+        width_nature = "config_esatta"       # banda = dispersione reale a trim esatto
+
     out.update(
-        median=round(statistics.median(prices), 2),
-        p25=round(p25, 2),
-        p75=round(p75, 2),
+        median=round(median, 2),
+        p25=band_low,
+        p75=band_high,
         min=round(prices[0], 2),
         max=round(prices[-1], 2),
+        band_low=band_low,
+        band_high=band_high,
+        band_width_pct=band_width_pct,
+        spread_pool=spread_pool,
+        width_nature=width_nature,
+        confidence=_confidence_label(n, min_n, relaxation_level, no_verdict, width_nature),
     )
     return out
 
 
+def _test_confidence_honesty() -> int:
+    """DoD #1 (S265): VIETA "confidence alta" su banda stretta / N piccolo / L3.
+
+    Questo test FALLISCE (return>0) se l'invariante anti-falso-PASS si rompe.
+    Invariante: confidence=="alta"  =>  level in {0,1,2} AND n>=20 AND not no_verdict.
+    Il falso-PASS travestito (banda stretta su N piccolo spacciata per "alta")
+    e' lo stesso bug ucciso S256-S262: qui e' protetto da test.
+    """
+    fail = 0
+    # (1) falso-PASS travestito: N piccolo NON deve dare "alta", neppure se la
+    #     banda fosse strettissima (width_nature non puo' promuovere ad alta).
+    if _confidence_label(6, 5, 0, False, "config_esatta") == "alta":
+        print("  !! FAIL: N=6 -> 'alta' (banda stretta su N piccolo = falso-PASS)")
+        fail += 1
+    # (2) L3 (trim fuso) MAI "alta", neppure con N grande.
+    if _confidence_label(50, 5, 3, False, "incertezza_campione") == "alta":
+        print("  !! FAIL: L3 con N=50 -> 'alta' (trim fuso non puo' essere alta)")
+        fail += 1
+    # (3) fusione_trim a L3 deve degradare a "bassa" (precisione finta).
+    if _confidence_label(14, 5, 3, False, "fusione_trim") != "bassa":
+        print("  !! FAIL: L3 fusione_trim non degrada a 'bassa'")
+        fail += 1
+    # (4) griglia: "alta" SOLO se n>=20 e level<3.
+    for n in range(0, 60, 2):
+        for lvl in (0, 1, 2, 3):
+            c = _confidence_label(n, 5, lvl, n < 5, "config_esatta")
+            if c == "alta" and (n < 20 or lvl == 3):
+                print(f"  !! FAIL: (n={n}, L{lvl}) -> 'alta' viola invariante")
+                fail += 1
+    # (5) no_verdict domina sempre.
+    if _confidence_label(100, 5, 0, True, "config_esatta") != "NO_VERDICT":
+        print("  !! FAIL: no_verdict non domina")
+        fail += 1
+    print("  OK: invariante confidence onesta rispettata" if fail == 0
+          else f"  {fail} violazioni invariante confidence")
+    return fail
+
+
 def _selftest() -> int:
     """DoD #1 spec-aware: 2 trim distinti stesso model/anno -> mediane DIVERSE,
-    ciascuna col suo N; + 1 caso split->N<min_n -> NO-VERDICT."""
+    ciascuna col suo N; + 1 caso split->N<min_n -> NO-VERDICT;
+    + invariante confidence onesta (S265)."""
     logging.basicConfig(level=logging.WARNING, format="%(message)s")
+    print("=== _test_confidence_honesty (S265, no rete) ===")
+    conf_fail = _test_confidence_honesty()
     YEAR = 2021
 
     def show(tag, d):
@@ -330,8 +449,8 @@ def _selftest() -> int:
     )
     print(f"\n  caso raro (320e electric luxury): n={d_rare['n']} "
           f"relax={d_rare['relaxation_level']} no_verdict={d_rare['no_verdict']}")
-    print("TUTTI I CONTROLLI OK" if ok else "CONTROLLI FALLITI")
-    return 0 if ok else 1
+    print("TUTTI I CONTROLLI OK" if (ok and conf_fail == 0) else "CONTROLLI FALLITI")
+    return 0 if (ok and conf_fail == 0) else 1
 
 
 if __name__ == "__main__":
