@@ -48,9 +48,49 @@ Header fermo a S245/S246, non allineato a S264-S267. È SoT → l'edit innesca G
 (BLOCCA + `pending_review/<slug>.md` + serve `! python3 .harness/gate_e.py approve <slug>` da Luke).
 Diff-first, backup Rule 1d, edit = ULTIMO passo.
 
-### DoD #4 (primo dossier davanti a dealer reale) = decisione Luke, NON sessione tecnica. Gate (b) chiuso → sbloccabile.
+### DoD #4 (primo dossier davanti a dealer reale) = decisione Luke, NON sessione tecnica.
+NB (DELTA-3): Gate (b) chiuso = LOGICA sana, NON dato sano. DoD#4 NON sbloccabile finché scrape esaustiva non fatta.
 
 ## REGOLE
 - NON delegare a subagent (S258). Main context, output E2E > /tmp/s268.txt 2>&1.
 - Rule 1d: backup verificato prima di overwrite SoT. NON reintrodurre precisione finta. NON allargare scope (no fix short-page, no mobile.de).
-- Report S266 (banda+N+livello+riconciliazione): `.claude/REPORT_S266.md`.
+- Report S266 (banda+N+livello+riconciliazione): `.claude/REPORT_S266.md`. Report S267: `.claude/REPORT_S267.md`.
+
+---
+
+# CORREZIONE BRIEF S268 (validazione Luke S267 — ADDITIVA, il brief sopra resta valido)
+Sintesi: item (b) sostanzialmente vinto; l'arco S264→S267 poggia su campione che SAPPIAMO tagliato
+(cap 20 pagine). I PDF possono nascere sopra; il PRIMO dossier a un dealer NO, finché non sappiamo
+se la sottigliezza (330i NO_VERDICT) è del mercato o dello scraper.
+
+## DELTA-1 — prova STRUTTURALE che la produzione usa _decide (GIÀ ESEGUITO E VERDE in S267)
+Incollare in REPORT_S268 a conferma:
+  grep -nE "no_verdict\s*=|width_nature\s*=|confidence\s*=" tools/it_market_price.py
+Esito S267: CALCOLO solo dentro _decide (righe 216-226); due soli unpack al call-site (riga 386 ramo
+n==0, riga 419 ramo n>=1); il resto sono kwargs di out.update e confronti in _confidence_label.
+Nessun terzo sito che calcola il gate fuori da _decide → item (b) CHIUSO col fatto, non con la frase.
+Regola permanente: se ricompare un sito di CALCOLO fuori da _decide = gate residuo da instradare.
+
+## DELTA-2 — item (c): PAVIMENTI resi onesti NEL PDF (non solo nel REPORT)
+325 = CAP max_pages=20, non esaurimento → 320d=13 / 330i=5 sono PAVIMENTI (>=), non conteggi.
+Nei 2 PDF DoD #2/#3 il numero NON va nudo:
+- Verdetto:   ">=13 comparabili (campione cap 20 pagine / 325 annunci AS24.it, non esaustivo)".
+- NO_VERDICT: ">=5 comparabili a config esatta sotto-rappresentata (campione non esaustivo)".
+- La riga d'onestà deve dire che N è un PAVIMENTO, non un totale di mercato.
+Motivo: il dealer "rifà il conto"; se trova più auto di quante ne dichiari, salta la credibilità del
+perito, che È il prodotto. La precisione DICHIARATA include la dichiarazione del cap.
+
+## DELTA-3 — nuovo BLOCKED-ON esplicito PRIMA di DoD#4 (in STATE.md, diff-first / Gate E)
+Gate (min_n=8, percentili, soglie width_nature) e 330i→NO_VERDICT calibrati su campione CAP.
+Registra in STATE.md come prerequisito di DoD#4:
+  "BLOCKED-ON DoD#4: scrape ESAUSTIVA (override results_per_page=1 fino a pagina corta, NESSUN cap
+   max_pages) sulla famiglia vetrina, per falsificare che NO_VERDICT 330i e min_n=8 NON siano
+   artefatti del cap. Finché non fatto: NO_VERDICT può essere falso-NO_VERDICT (rifiuto di affare
+   reale). Fatto terminale = pagina corta raggiunta."
+NON è lavoro di S268 (FASE 2 PDF resta priorità): è la nomina del gate empirico che separa
+"logica onesta" da "verdetto onesto sul mercato vero".
+
+## INVARIATO
+- FASE 2 PDF (DoD #2/#3 dalla fixture, no rete) procede come da brief S268.
+- Item 3 STATE.md header resta gated Gate E overwrite_sot. DELTA-3 = stessa scrittura SoT, stesso gate.
+- DoD#4 NON sbloccabile finché DELTA-3 non soddisfatto (logica sana ≠ dato sano).
