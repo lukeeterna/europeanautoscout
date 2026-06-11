@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 KM_BAND_DEFAULT = 30_000   # +/- attorno al km target
 MIN_CONFIDENT_N = 5        # soglia legacy `low_confidence` (retrocompat campo)
-MIN_N_DEFAULT = 8          # soglia NO-VERDICT spec-aware (PROVVISORIA — ratifica Luke)
+MIN_N_DEFAULT = 8          # soglia NO-VERDICT (RATIFICATO Luke S265 = 8 + gate composto)
 
 # engine-class: 3 cifre NON circondate da altre cifre (esclude anni 2020),
 # prefisso M opzionale (performance, M340/M3). Cattura "320" in "320d".
@@ -173,6 +173,11 @@ def _confidence_label(
         return "NO_VERDICT"
     if level == 3:
         # L3 = trim droppato (allestimenti fusi). MAI "alta", a prescindere da N.
+        # indeterminato = natura banda NON verificabile (sub-pool trim-esatto <2
+        # punti): mai "media", e' NO_VERDICT (Luke S265 — narrativa al posto del
+        # fatto verificabile). Solo "incertezza_campione" (spread vero) -> media.
+        if width_nature == "indeterminato":
+            return "NO_VERDICT"
         return "bassa" if width_nature == "fusione_trim" else "media"
     if n >= 20:
         return "alta"
@@ -278,7 +283,13 @@ def get_it_distribution(
     comps = [p[0] for p in selected]
     prices = sorted(float(l.price_eur) for l in comps)
     n = len(prices)
-    no_verdict = spec_aware and n < min_n
+    # Gate COMPOSTO (Luke S265): verdetto emesso solo se N>=min_n E la natura
+    # della banda e' VERIFICABILE. A L3 con sub-pool trim-esatto <2 punti
+    # (spread_infra_trim is None) non si distingue fusione da incertezza ->
+    # width_nature='indeterminato' -> NO_VERDICT. min_n=8 = cuscinetto contro
+    # la sotto-raccolta short-page (il probe vede piu' del campo reale).
+    l3_unverifiable = (relaxation_level == 3 and spread_infra_trim is None)
+    no_verdict = spec_aware and (n < min_n or l3_unverifiable)
 
     out: dict = {
         "source": "AutoScout24.it",
@@ -393,6 +404,10 @@ def _test_confidence_honesty() -> int:
     # (5) no_verdict domina sempre.
     if _confidence_label(100, 5, 0, True, "config_esatta") != "NO_VERDICT":
         print("  !! FAIL: no_verdict non domina")
+        fail += 1
+    # (6) L3 indeterminato (natura banda non verificabile) -> mai "media" (Luke S265).
+    if _confidence_label(14, 8, 3, False, "indeterminato") == "media":
+        print("  !! FAIL: L3 indeterminato -> 'media' (natura banda non verificabile)")
         fail += 1
     print("  OK: invariante confidence onesta rispettata" if fail == 0
           else f"  {fail} violazioni invariante confidence")
