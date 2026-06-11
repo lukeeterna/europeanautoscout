@@ -133,6 +133,16 @@ class VehicleData:
     it_source: Optional[str] = None
     relaxation_level: Optional[int] = None       # L0-L3 raggiunto dal filtro spec-aware
     no_verdict: bool = False                      # True = comparabili insufficienti (n<min_n)
+    # S268: banda-come-prodotto + intervallo margine + onesta' del campione.
+    it_band_low: Optional[float] = None           # p25 banda prezzo IT (PRODOTTO)
+    it_band_high: Optional[float] = None          # p75 banda prezzo IT (PRODOTTO)
+    it_confidence: Optional[str] = None           # alta|media|bassa|NO_VERDICT
+    it_width_nature: Optional[str] = None         # config_esatta|incertezza_campione|fusione_trim|indeterminato
+    it_n_by_level: Optional[dict] = None          # {0:N0,1:N1,2:N2,3:N3} riga d'onesta'
+    it_scrape_date: Optional[str] = None          # GAP-2: data fotografia mercato
+    it_is_floor: bool = True                       # DELTA-2: N e' PAVIMENTO (campione cap), non totale mercato
+    margine_netto_low: Optional[float] = None     # margine dealer al band_low (IT prezzo basso)
+    margine_netto_high: Optional[float] = None    # margine dealer al band_high (IT prezzo alto)
 
     @classmethod
     def from_opportunity(cls, opp, dealer_city: str = "Eboli") -> "VehicleData":
@@ -906,16 +916,29 @@ class ARGOSPDFGenerator:
         else:
             decision_label = "REJECT — sotto pavimento dealer"
 
+        # S268: mercato IT = BANDA (non mediana puntuale); margine = INTERVALLO.
+        floor = ">=" if vehicle.it_is_floor else ""
+        if vehicle.it_band_low is not None and vehicle.it_band_high is not None:
+            it_price_cell = f"{_eur(vehicle.it_band_low)} - {_eur(vehicle.it_band_high)}"
+            it_price_note = f'Banda p25-p75, {floor}{vehicle.it_n or 0} comparabili (non esaustivo)'
+        else:
+            it_price_cell = _eur(vehicle.it_median)
+            it_price_note = f'Mediana {floor}{vehicle.it_n or 0} comparabili reali'
+        if vehicle.margine_netto_low is not None and vehicle.margine_netto_high is not None:
+            netto_cell = f"{_eur(vehicle.margine_netto_low)} - {_eur(vehicle.margine_netto_high)}"
+        else:
+            netto_cell = f'{_eur(vehicle.margine_netto_dealer)} ({pct:.1f}%)'
+
         data = [
             ['VERDETTO AFFARE', 'IMPORTO', 'NOTE'],
             ['Prezzo acquisto EU', _eur(vehicle.price_eu), 'Annuncio estero reale'],
             ['Costo chiavi in mano', _eur(vehicle.chiavi_in_mano), 'Incl. trasporto + immatricolazione'],
-            ['Prezzo mercato Italia', _eur(vehicle.it_median), f'Mediana {vehicle.it_n or 0} comparabili reali'],
+            ['Prezzo mercato Italia', it_price_cell, it_price_note],
             ['Spread lordo', _eur(vehicle.spread_lordo), 'Mercato IT meno chiavi in mano'],
             ['Pavimento dealer (12%)', _eur(vehicle.dealer_floor), 'Margine minimo garantito al dealer'],
             ['Surplus oltre il pavimento', _eur(vehicle.surplus), 'Eccedenza condivisibile'],
             ['Fee ARGOS', _eur(fee), 'Solo su surplus reale, a deal chiuso'],
-            ['MARGINE NETTO DEALER', f'{_eur(vehicle.margine_netto_dealer)} ({pct:.1f}%)', decision_label],
+            ['MARGINE NETTO DEALER', netto_cell, decision_label],
         ]
 
         table = Table(data, colWidths=[65*mm, 45*mm, 70*mm])
@@ -954,12 +977,42 @@ class ARGOSPDFGenerator:
                 return "—"
             return "EUR " + f"{int(round(n)):,}".replace(",", ".")
 
+        # S268: la BANDA (p25-p75) e' il PRODOTTO ("rifai-il-conto"), non la mediana
+        # puntuale con asterisco. N e' un PAVIMENTO (campione AS24 cap 20 pagine,
+        # NON esaustivo): dichiarato col ">=" per non perdere credibilita' quando il
+        # dealer trova piu' auto di quante ne dichiariamo (DELTA-2).
+        n = vehicle.it_n or 0
+        lvl = vehicle.relaxation_level if vehicle.relaxation_level is not None else '-'
+        floor = ">=" if vehicle.it_is_floor else ""
+        no_verdict = bool(vehicle.no_verdict)
+        wn = vehicle.it_width_nature or ""
+        wn_label = {
+            "config_esatta": "Banda a configurazione esatta (trim non fuso)",
+            "incertezza_campione": "Larghezza = incertezza campione (trim esatto)",
+            "fusione_trim": "ATTENZIONE: larghezza gonfiata da fusione allestimenti",
+            "indeterminato": "Natura banda non verificabile (sub-pool trim < 2)",
+        }.get(wn, wn or "—")
+        nbl = vehicle.it_n_by_level or {}
+        if nbl:
+            nbl_str = " ".join(f"L{k}:{v}" for k, v in sorted(nbl.items(), key=lambda x: int(x[0])))
+            wn_label = f"{wn_label} · {nbl_str}"
+        if no_verdict:
+            n_note = (f"{floor}{n} comparabili a config esatta sotto-rappresentata "
+                      f"(campione non esaustivo)")
+            row1 = ['Verdetto banda', 'NO-VERDICT', f'Config esatta sotto-rappresentata (livello L{lvl})']
+        else:
+            n_note = (f"{floor}{n} comparabili (campione cap 20 pagine / "
+                      f"325 annunci AS24.it, non esaustivo)")
+            band = f"{_eur(vehicle.it_band_low)} - {_eur(vehicle.it_band_high)}"
+            row1 = ['Banda prezzo IT (p25-p75)', band,
+                    f'Rifai il conto: {floor}{n} comparabili, livello L{lvl}']
+
         data = [
-            ['MERCATO ITALIA — COMPARABILI', 'VALORE', 'NOTE'],
-            ['Comparabili reali (N)', str(vehicle.it_n or 0), f'Fonte: {vehicle.it_source or "AutoScout24.it"}'],
-            ['Mediana', _eur(vehicle.it_median), 'Riferimento prezzo mercato IT'],
-            ['25 percentile', _eur(vehicle.it_p25), 'Fascia bassa'],
-            ['75 percentile', _eur(vehicle.it_p75), 'Fascia alta'],
+            ['MERCATO ITALIA — BANDA PREZZO', 'VALORE', 'NOTE'],
+            row1,
+            ['Comparabili (pavimento)', f'{floor}{n}', n_note],
+            ['Confidenza banda', (vehicle.it_confidence or '—'), wn_label],
+            ['Rilevazione', (vehicle.it_scrape_date or '—'), 'Fotografia AS24.it di quel giorno (GAP-2)'],
         ]
 
         table = Table(data, colWidths=[65*mm, 45*mm, 70*mm])
@@ -982,9 +1035,9 @@ class ARGOSPDFGenerator:
             ('LEFTPADDING', (0, 0), (-1, -1), 6),
             ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
             ('LINEBELOW', (0, 1), (-1, -1), 0.3, HexColor('#E5E7EB')),
-            # Mediana row — highlight
-            ('BACKGROUND', (0, 2), (-1, 2), self.brand_light_bg),
-            ('FONTNAME', (0, 2), (-1, 2), 'Helvetica-Bold'),
+            # Banda row (PRODOTTO) — highlight
+            ('BACKGROUND', (0, 1), (-1, 1), self.brand_light_bg),
+            ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
         ]))
         return table
 
@@ -1950,6 +2003,19 @@ def generate_dossier_from_data(
     else:
         market_it = int(price * 1.15) if price else 0
 
+    # S268: INTERVALLO margine dealer dalla BANDA (p25-p75) IT — non punto singolo.
+    # band_low (IT prezzo basso) -> margine basso; band_high -> margine alto.
+    it_band_low = it_dist.get('band_low')
+    it_band_high = it_dist.get('band_high')
+    margine_netto_low = margine_netto_high = None
+    if it_band_low is not None and it_band_high is not None and price:
+        try:
+            from tools.margin_gate import evaluate_margin
+            margine_netto_low = evaluate_margin(float(price), float(it_band_low)).margine_netto_dealer
+            margine_netto_high = evaluate_margin(float(price), float(it_band_high)).margine_netto_dealer
+        except Exception:
+            pass
+
     vehicle = VehicleData(
         make=make,
         model=model,
@@ -1984,6 +2050,15 @@ def generate_dossier_from_data(
         it_source=it_dist.get('source'),
         relaxation_level=it_dist.get('relaxation_level'),
         no_verdict=bool(it_dist.get('no_verdict')),
+        it_band_low=it_band_low,
+        it_band_high=it_band_high,
+        it_confidence=it_dist.get('confidence'),
+        it_width_nature=it_dist.get('width_nature'),
+        it_n_by_level=it_dist.get('n_by_level'),
+        it_scrape_date=it_dist.get('scrape_date'),
+        it_is_floor=bool(it_dist.get('is_floor', True)),
+        margine_netto_low=margine_netto_low,
+        margine_netto_high=margine_netto_high,
     )
     # NO-VERDICT (comparabili insufficienti a trim esatto): il verdetto affare NON
     # e' ne' PASS ne' REJECT — il PDF deve dirlo esplicitamente col numero reale.
