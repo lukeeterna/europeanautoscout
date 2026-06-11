@@ -1,0 +1,130 @@
+================================================================================
+ARGOS — SESSIONE S268 — REPORT COMPLETO DI CHIUSURA (VERDE)
+Branch: s210/audit-master-plan   Data: 2026-06-11
+================================================================================
+
+--------------------------------------------------------------------------------
+[A] I 2 PDF CREATI — PATH ASSOLUTI
+--------------------------------------------------------------------------------
+1) /Users/macbook/Documents/combaretrovamiauto-enterprise/tests/dossiers_s268/ARGOS_DEMO_S268_320d_xDrive.pdf
+   6484 byte   sha256: 6fd3f7bad21fd226a93de9d1d4186c6be34dc022031a2be4f95e93cdaadcb3fc
+
+2) /Users/macbook/Documents/combaretrovamiauto-enterprise/tests/dossiers_s268/ARGOS_DEMO_S268_330i.pdf
+   6453 byte   sha256: 1fc2bb42b7e6ff125c80211c0b74e03eec87720430ff8aa3c161419c843fae88
+
+Entrambi tracciati in git (commit 24eb9ab) e pushati su origin/s210/audit-master-plan.
+Per aprirli:  open "<path .pdf>"
+
+--------------------------------------------------------------------------------
+[B] EVIDENZA E2E — RUN REALE (log /tmp/s268.txt)
+comando: python3 -m tools.scripts.build_s268_dossier   ->   rc=0   (NO rete, da fixture)
+--------------------------------------------------------------------------------
+[320d_xDrive] N=13 L3 no_verdict=False conf=bassa       band=33200.0-39950.0
+[330i]        N=5  L3 no_verdict=True  conf=NO_VERDICT   band=25299.0-30900.0
+
+DoD #2/#3 PDF generati:
+  OK  .../ARGOS_DEMO_S268_320d_xDrive.pdf (6484 byte)
+  OK  .../ARGOS_DEMO_S268_330i.pdf        (6453 byte)
+
+Fixture sorgente: tests/fixtures/it_dist_bmw_serie3_2021.json
+  (scrape AS24.it 2026-06-11, campione CAP 20 pagine / 325 annunci -> N e' un PAVIMENTO)
+
+--------------------------------------------------------------------------------
+[C] EVIDENZA GIT (commit + push)
+--------------------------------------------------------------------------------
+c95f98b  S268 close: next prompt S269 (DELTA-3 STATE.md Gate E + DoD#4 gate empirico)
+24eb9ab  S268 FASE 2 PDF (DoD #2/#3): banda-come-prodotto + intervallo margine + pavimenti onesti
+9104d1d  auto-close session ...
+b42a4f4  S267 validazione Luke: REPORT_S267 + delta S268
+
+PDF tracciati (git ls-files):
+  tests/dossiers_s268/ARGOS_DEMO_S268_320d_xDrive.pdf
+  tests/dossiers_s268/ARGOS_DEMO_S268_330i.pdf
+HEAD vs origin:  0  0   (tutto pushato)
+
+--------------------------------------------------------------------------------
+[D] REPORT COMPLETO — COSA E' STATO FATTO
+--------------------------------------------------------------------------------
+DoD #2/#3 — 2 PDF reali da fixture (no rete) ................. FATTO (committati)
+BANDA p25-p75 = prodotto (no mediana puntuale) .............. FATTO  _create_it_distribution_section
+Margine = INTERVALLO (evaluate_margin band_low/high) ........ FATTO  _create_margin_verdict_section
+DELTA-2 PAVIMENTI nel PDF (>=N, "campione non esaustivo") ... FATTO  it_is_floor=True
+330i -> NO_VERDICT senza banda fittizia ..................... FATTO  (verificato a runtime)
+GAP-2 data-scrape (2026-06-11) mostrata nel PDF ............. FATTO
+VehicleData +8 campi + wiring generate_dossier_from_data .... FATTO  (~righe 1953-2005)
+build_s268_dossier.py (pre-flight reportlab + fixture) ...... FATTO  (NUOVO)
+Report .claude/REPORT_S268.md .............................. FATTO
+
+File modificati:
+- tools/scripts/pdf_generator_enterprise.py
+- tools/scripts/build_s268_dossier.py  (nuovo)
+- tests/dossiers_s268/*.pdf             (2 PDF)
+- .claude/REPORT_S268.md                (nuovo)
+
+Dettaglio resa PDF:
+- 320d xDrive: banda €33.200-39.950 (spread €6.75k su ~36k). E' il DOMINIO ONESTO,
+  non un difetto: confidence "bassa" perche' L3 (allestimenti fusi). Verdetto-banda emesso.
+- 330i: NO_VERDICT — config esatta sotto-rappresentata sul campione cap. Nessuna banda
+  spacciata per verdetto: il PDF mostra solo N+livello.
+
+--------------------------------------------------------------------------------
+[E] NOTA ONESTA' (limite dichiarato)
+--------------------------------------------------------------------------------
+prezzo_de nei 2 PDF e' ILLUSTRATIVO (demo): la BANDA IT e' dato reale dalla fixture,
+il prezzo DE e' input dimostrativo dichiarato. Questi NON sono il primo dossier a un
+dealer reale (DoD#4 = BLOCKED).
+
+--------------------------------------------------------------------------------
+[F] DEFERITO A S269 (non forzato in S268)
+--------------------------------------------------------------------------------
+DELTA-3 / item 3 STATE.md = SoT -> innesca Gate E `overwrite_sot`:
+  BLOCCA + pending_review/<slug>.md + serve  ! python3 .harness/gate_e.py approve <slug>  da Luke.
+DoD#4 resta BLOCKED: gate (min_n=8, soglie, 330i->NO_VERDICT) calibrato su campione CAP
+  -> LOGICA sana, NON dato sano. Sbloccabile solo dopo scrape ESAUSTIVA (no cap, fino a pagina corta).
+
+================================================================================
+[G] NEXT PROMPT — S269 (copia di .claude/NEXT_SESSION_PROMPT.manual.md)
+================================================================================
+
+# BRIEF CC — ARGOS · S269 — DELTA-3 STATE.md (Gate E) + DoD#4 gate empirico
+# Branch s210/audit-master-plan · Fonte verita': codice + git + STATE.md. Chat NON e' fonte.
+
+## CHIUSO IN S268 (VERDE — non riaprire)
+DoD #2/#3 — 2 PDF reali committati (commit 24eb9ab, pushed).
+- tests/dossiers_s268/ARGOS_DEMO_S268_320d_xDrive.pdf (6484 byte) — N=13, L3, verdetto-banda,
+  conf=bassa, banda 33.200-39.950 (spread 6.75k su ~36k = dominio onesto).
+- tests/dossiers_s268/ARGOS_DEMO_S268_330i.pdf (6453 byte) — N=5, L3, NO_VERDICT, no banda fittizia.
+- pdf_generator_enterprise.py: BANDA p25-p75 = prodotto, margine = INTERVALLO, N col >= (pavimento),
+  NO_VERDICT senza banda. VehicleData +8 campi. Wiring generate_dossier_from_data ~1953-2005.
+- build_s268_dossier.py (NUOVO) — pre-flight reportlab+fixture, no rete.
+  Run: python3 -m tools.scripts.build_s268_dossier -> rc=0 (log /tmp/s268.txt).
+- Report: .claude/REPORT_S268.md.  DELTA-2 (item c) PAVIMENTI: fatto NEL PDF.
+- NB: prezzo_de nei 2 PDF e' ILLUSTRATIVO (banda IT = dato reale fixture; DE = input demo).
+
+## DA FARE S269
+### DELTA-3 + item 3 — STATE.md (GATED Gate E overwrite_sot) — PRIORITA'
+STATE.md e' SoT: l'edit innesca Gate E -> BLOCCA + pending_review/<slug>.md + serve
+! python3 .harness/gate_e.py approve <slug>  da Luke. Procedura:
+1. Rule 1d: backup verificato di STATE.md (stesso path, size>0, mtime precedente, fuori /tmp, citato).
+2. Diff-first: mostra il diff PRIMA di scrivere.
+3. Edit = ULTIMO passo. Due scritture, stessa natura SoT, stesso gate:
+   (a) Allinea header STATE.md S245/S246 -> S264-S268 (contenuto verificato presente DOPO, NON soglia righe).
+   (b) Registra il BLOCKED-ON DoD#4 (testo esatto sotto).
+   Testo DELTA-3 da inserire:
+   "BLOCKED-ON DoD#4: scrape ESAUSTIVA (override results_per_page=1 fino a pagina corta, NESSUN cap
+    max_pages) sulla famiglia vetrina, per falsificare che NO_VERDICT 330i e min_n=8 NON siano
+    artefatti del cap. Finche' non fatto: NO_VERDICT puo' essere falso-NO_VERDICT (rifiuto di affare
+    reale). Fatto terminale = pagina corta raggiunta."
+
+### DoD#4 = decisione Luke, NON sessione tecnica.
+Gate (b) chiuso = LOGICA sana, NON dato sano. DoD#4 NON sbloccabile finche' DELTA-3 non soddisfatto.
+
+## REGOLE
+- NON delegare a subagent (S258). Main context, output E2E > /tmp/s269.txt 2>&1.
+- Rule 1d: backup verificato-per-stat PRIMA di overwrite STATE.md. NON reintrodurre precisione finta.
+- NON allargare scope: no fix short-page, no mobile.de, no nuova scrape in S269.
+- Context budget: /context, chiudi a 60%.
+
+================================================================================
+FINE REPORT S268
+================================================================================
