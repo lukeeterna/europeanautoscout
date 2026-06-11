@@ -186,6 +186,24 @@ def _confidence_label(
     return "bassa"
 
 
+def _load_fixture(path: str) -> tuple[list, str]:
+    """Carica una fixture reale committata (S266) -> (raw_listings, scrape_date).
+
+    La fixture e' l'output di UNA scrape profonda (results_per_page=1 override,
+    vedi tools/scripts/build_it_fixture.py), serializzata con Listing.to_dict().
+    Round-trip esatto via Listing.from_row(). scrape_date = giorno reale della
+    scrape (NON oggi): la banda calcolata e' la fotografia di quel giorno.
+    """
+    import json
+    from .scrapers.models import Listing
+
+    with open(path, encoding="utf-8") as fh:
+        blob = json.load(fh)
+    raw = [Listing.from_row(r) for r in blob.get("listings", [])]
+    scrape_date = (blob.get("meta") or {}).get("scrape_date") or date.today().isoformat()
+    return raw, scrape_date
+
+
 def get_it_distribution(
     make: str,
     model: str,
@@ -199,6 +217,7 @@ def get_it_distribution(
     km_band: int = KM_BAND_DEFAULT,
     year_span: int = 1,
     min_n: int = MIN_N_DEFAULT,
+    fixture_path: Optional[str] = None,
 ) -> dict:
     """Distribuzione prezzi reali IT per comparabili dello STESSO trim.
 
@@ -213,14 +232,22 @@ def get_it_distribution(
     relaxation_level, trim_family, target_spec, no_verdict, low_confidence,
     source, listings.
     """
-    scraper = AutoScoutScraper("autoscout24_it")
     spec_aware = bool(target_variant)
-    # spec-aware: pool largo (anno+-2) filtrato in memoria. Legacy: anno+-year_span.
-    scrape_span = 2 if spec_aware else year_span
-    raw = scraper.scrape_model(
-        make=make, model=model,
-        year_min=year - scrape_span, year_max=year + scrape_span,
-    )
+    if fixture_path:
+        # FIXTURE (S266): pool reale committato, scrape gia' avvenuta UNA volta.
+        # Chiude il debito S264 (fatto fondante buttato): DoD/test riproducibili
+        # su dato vero su disco, NON ri-scrapando ogni sessione. scrape_date viene
+        # dalla fixture (la banda e' una FOTOGRAFIA di QUEL giorno, non di oggi).
+        raw, scrape_date = _load_fixture(fixture_path)
+    else:
+        scraper = AutoScoutScraper("autoscout24_it")
+        # spec-aware: pool largo (anno+-2) filtrato in memoria. Legacy: anno+-year_span.
+        scrape_span = 2 if spec_aware else year_span
+        raw = scraper.scrape_model(
+            make=make, model=model,
+            year_min=year - scrape_span, year_max=year + scrape_span,
+        )
+        scrape_date = date.today().isoformat()
 
     target = derive_trim_family(
         target_variant or "", fuel, target_transmission, target_power_hp or 0,
@@ -293,7 +320,7 @@ def get_it_distribution(
 
     out: dict = {
         "source": "AutoScout24.it",
-        "scrape_date": date.today().isoformat(),   # GAP-2: la banda e' una FOTOGRAFIA
+        "scrape_date": scrape_date,                 # GAP-2: la banda e' una FOTOGRAFIA
         "n": n,
         "n_raw": len(raw),
         "n_pool": len(pool),
