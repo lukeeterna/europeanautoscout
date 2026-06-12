@@ -1,0 +1,165 @@
+================================================================================
+ARGOS — SESSIONE S270 — REPORT COMPLETO (DOSSIER ONESTO — FIX-A header + FIX-B note)
+Branch: s210/audit-master-plan   Data: 2026-06-12   Stato: GIALLO ONESTO (codice
+modificato, build rc=0, MA test+render-verify non fatti -> NON committato)
+================================================================================
+
+--------------------------------------------------------------------------------
+[0] COSA E' STATA L'ULTIMA OPERAZIONE
+--------------------------------------------------------------------------------
+Il brief S270 (NEXT_SESSION_PROMPT.manual.md) chiedeva DUE fix pre-commit dal dossier
+S269 (FIX-A header margine, FIX-B note troncate) + cleanup build script + test
+committato + verifica render con pypdf, poi COMMIT (ultimo passo) e poi STATE.md.
+
+Ho applicato i due fix di codice + il cleanup e ho fatto un crash-check (build rc=0).
+La sessione e' stata chiusa al gate context 60% (vincolo #7 CLAUDE.md) PRIMA di poter
+scrivere il test committato ed eseguire la verifica sul render: pypdf NON era
+installato sul MacBook. Quindi NON ho committato (il brief gata il commit su
+test+render verdi, e l'evidenza sul render non esiste ancora).
+
+--------------------------------------------------------------------------------
+[A] FIX-A — header margine = INVILUPPO VALIDO (no piu' range grezzo che il verdetto rifiuta)
+--------------------------------------------------------------------------------
+File: tools/scripts/pdf_generator_enterprise.py
+
+Problema S269 residuo: l'header "Margine dealer (banda)" mostrava il range grezzo
+margine(band_low)..margine(band_high). Per il 320d band_low=33.200 da' margine 1.785
+ma a quel prezzo evaluate_margin restituisce decision=REJECT (surplus -2.199): l'header
+sovra-dichiarava il pavimento (falso-PASS un layer sopra la tabella-verdetto).
+
+Fix: NUOVO helper puro (prima della classe, dopo _margin_verdict_rows):
+  _header_margin_envelope(price_eu, band_low, band_high) -> (disp, bound_inf, status, breakeven)
+  Regola UNICA geometrica = bound inferiore al prezzo IT MINIMO VALIDO = max(band_low, breakeven):
+    - PASS         (band_low >= breakeven): bound_inf = margine a band_low (range grezzo gia' valido)
+    - CONDIZIONATO (band_low < breakeven <= band_high): bound_inf = margine a breakeven
+                    + suffisso "(se prezzo IT >= <be>)"
+    - REJECT       (breakeven > band_high, regione valida vuota): disp = "n.d.", bound_inf = None (MAI un range)
+  Riusa _band_verdict (unica source of truth) per status e breakeven.
+
+_create_executive_summary: l'header ora chiama _header_margin_envelope invece di
+calcolare il range grezzo _ml..._mh. La cella margine e' wrappata in Paragraph
+(ParagraphStyle gold, 9pt, centrato) cosi' la condizione "(se prezzo IT >= ...)" va
+a capo invece di traboccare nelle colonne adiacenti.
+
+Header 320d atteso: "Margine dealer (banda): 4.284-7.039 (se prezzo IT >= 35.699)".
+
+--------------------------------------------------------------------------------
+[B] FIX-B — note troncate -> wrap in Paragraph (recupera il payload "rifai il conto")
+--------------------------------------------------------------------------------
+File: tools/scripts/pdf_generator_enterprise.py
+
+Problema: le celle-NOTE erano str grezze in Table con colWidth fissa (70mm) ->
+reportlab CLIPPA, non manda a capo -> "L0:2 L1[TAGLIATO]" perdeva N_L1/N_L2
+(il numero per livello = payload con cui il dealer "rifa' il conto").
+
+Fix in 2 punti:
+  - _create_it_distribution_section: col NOTE (data[1:][2]) wrappata in Paragraph
+    (it_note style, 8pt, text_secondary).
+  - _create_margin_verdict_section: col NOTE wrappata in Paragraph; sull'ultima riga
+    (label del verdetto, lunga per CONDIZIONATO) il colore segue lo status:
+    verde=PASS, rosso=REJECT|NO_VERDICT, oro=CONDIZIONATO (replica lo style precedente
+    su (2,last), che su Paragraph non si applicava piu').
+
+--------------------------------------------------------------------------------
+[C] CLEANUP build script (item 2)
+--------------------------------------------------------------------------------
+File: tools/scripts/build_s268_dossier.py
+RIMOSSI i `_margin_*` puntuali sul mediano (chiavi_in_mano/spread/floor/surplus/fee/
+netto/netto_pct): erano INERTI perche' il generatore ricalcola tutto l'intervallo
+dalla banda via _band_verdict. Resta SOLO `_margin_decision` (gate di rendering della
+sezione verdetto) + `_it_distribution`.
+
+--------------------------------------------------------------------------------
+[D] ITEM 3 CERTIFIC — VERIFICATO, NESSUN RELABEL DOVUTO (chiuso senza modifica)
+--------------------------------------------------------------------------------
+grep CERTIFIC/certificat in pdf_generator_enterprise.py = 5 hit, NESSUNO adiacente al
+verdetto-affare:
+  :733  'CERTIFICATO'      -> riga TOTALE di ANALISI ARGOS (punteggio AUTO/CoVe, asse-AUTO)
+  :1253 "portale certificato" / :1279 "Portale EU certificato" -> sezione verifica-fonte annuncio
+  :1357 / :1363            -> fallback TEXT report (non il PDF)
+Header gia' separato in S269 ("Punteggio ARGOS" -> "Qualita auto"). Criterio brief
+("se sta accanto al verdetto-affare") non si applica -> nessuna modifica.
+
+--------------------------------------------------------------------------------
+[E] EVIDENZE E2E (cosa e' stato realmente eseguito)
+--------------------------------------------------------------------------------
+1) BUILD REALE (no rete, fixture committata) — /tmp/s270_build.txt:
+   $ python3 -m tools.scripts.build_s268_dossier   -> rc=0
+   [320d_xDrive] N=13 L3 no_verdict=False conf=bassa band=33200.0-39950.0
+                 -> ARGOS_DEMO_S268_320d_xDrive.pdf (6.686 byte)
+   [330i]        N=5  L3 no_verdict=True  conf=NO_VERDICT band=25299.0-30900.0
+                 -> ARGOS_DEMO_S268_330i.pdf (6.008 byte)
+   DoD #2/#3 PDF generati: OK + OK.
+
+2) NUMERI FIX-A verificati A MANO (margin_gate, friction default 1915):
+   320d price_eu=29500, chiavi_in_mano=31415
+     @ band_low 33200 : spread 1785, floor 3984, surplus -2199 -> REJECT, margine 1.785
+     breakeven = 31415 / (1 - 0.12) = 35.698,86 -> 35.699
+     @ breakeven 35699: margine netto = 4.284  (bound inferiore VALIDO)
+     @ band_high 39950: spread 8535, floor 4794, surplus 3741 -> PASS, fee 1496, margine 7.039
+   => header onesto = "4.284-7.039 (se prezzo IT >= 35.699)"; il falso-PASS 1.785 ELIMINATO.
+
+3) NON ESEGUITO (manca budget context):
+   - pypdf NON installato su MacBook (modulo assente) -> render-verify (item 4) RIMANDATA
+   - test_s269_band_verdict.py NON scritto (item 1) RIMANDATO
+   => l'evidenza S270 e' a layer-CODICE + numeri-a-mano, NON sullo stream renderizzato.
+
+--------------------------------------------------------------------------------
+[F] PROGRESSI vs DoD
+--------------------------------------------------------------------------------
+- FASE 2 (banda=prodotto, margine=intervallo, pavimento onesto): consolidata in S269.
+- S270: chiusi i 2 difetti residui di RAPPRESENTAZIONE (header inviluppo valido + note
+  non clippate) a livello codice; build verde. Resta da PROVARLO sul render + test file.
+- DoD#4 (sblocco Day-1 dossier reale) RESTA BLOCKED-ON 2 condizioni:
+  (i) dossier coerente VERDE + test committato (manca render-verify + test)
+  (ii) scrape ESAUSTIVA fatta (non in scope qui).
+
+--------------------------------------------------------------------------------
+[G] FILE TOCCATI (DIRTY, NON committati)
+--------------------------------------------------------------------------------
+M tools/scripts/pdf_generator_enterprise.py      (FIX-A helper + header, FIX-B x2)
+M tools/scripts/build_s268_dossier.py            (cleanup _margin_*)
+M tests/dossiers_s268/ARGOS_DEMO_S268_320d_xDrive.pdf   (rigenerato 6.686 byte)
+M tests/dossiers_s268/ARGOS_DEMO_S268_330i.pdf          (rigenerato 6.008 byte)
+A .claude/NEXT_SESSION_PROMPT.manual.md          (brief S271 aggiornato)
+A .claude/REPORT_S270.txt                        (questo file)
+NB: STATE.md / state/rings.json -> rigenerati da refresh.sh, ESCLUSI dal commit-dossier.
+
+--------------------------------------------------------------------------------
+[H] DECISIONE / GATE
+--------------------------------------------------------------------------------
+NON ho forzato il commit-dossier: il brief lo gata su test+render verdi, qui non
+esistono ancora. Codice DIRTY reversibile sul branch. La rete di sicurezza auto-close
+gestira' l'eventuale WIP commit. Stato onesto: GIALLO documentato, NON verde-finto.
+
+================================================================================
+NEXT PROMPT — S271 (ordine vincolante; COMMIT = ultimo passo)
+================================================================================
+0. pip install pypdf (puro Python, Big Sur ok — NON era installato S270).
+1. tests/test_s269_band_verdict.py (no rete, rc=0, FALSIFICATORE):
+   - _band_verdict(29500,33200,39950): status=='CONDIZIONATO', round(breakeven)==35699.
+   - caso che ATTRAVERSA il floor DEVE dare CONDIZIONATO, MAI 'PASS' (togliere il ramo
+     condizionato -> il test DEVE fallire).
+   - NO_VERDICT: _margin_verdict_rows(VehicleData no_verdict=True + banda) -> len(rows)==3,
+     nessuna cella 'Spread'/'Surplus'/range banda.
+   - FIX-A: _header_margin_envelope(29500,33200,39950) -> status=='CONDIZIONATO',
+     round(bound_inf)==4284 (NON 1785), disp contiene "35.699"; un REJECT -> disp=='n.d.'
+     e bound_inf is None; PASS -> bound_inf==margine a band_low.
+     Falsificatore: forzando il ramo CONDIZIONATO a band_low il test DEVE fallire.
+2. RENDER verify pypdf (commit-blocker) sui 2 PDF in tests/dossiers_s268/:
+   - 320d: CONTIENE "4.284" E "(se prezzo IT >= 35.699)"; NON "1.785"; NON "38.799"/"Media mercato"/"900";
+     FIX-B: "L0:" "L1:" "L2:" presenti INTERI.
+   - 330i: nessun numero margine in header (atteso "n.d."); verdetto minimale (no banda/margine).
+   Falsificatore d'artefatto: se l'header rendesse "1.785" l'asserzione DEVE fallire.
+3. SOLO dopo 1+2 verdi -> COMMIT: pdf_generator_enterprise.py + build_s268_dossier.py +
+   tests/dossiers_s268/*.pdf + tests/test_s269_band_verdict.py. ESCLUDI STATE.md/state/rings.json.
+   NB git diff --check: i .pdf danno trailing-whitespace warning (binari) -> committali comunque.
+4. ITEM FINALE STATE.md (GATED Gate E overwrite_sot): allinea header S245->S270 +
+   BLOCKED-ON DoD#4 (scrape esaustiva, testo in SESSIONE_S268_REPORT_COMPLETO.txt [F]).
+   Rule 1d: backup verificato-per-stat PRIMA. Diff-first. Edit ULTIMO. Serve
+   `! python3 .harness/gate_e.py approve <slug>` da Luke. Se a budget -> S272.
+
+INVARIATO: DoD#4 gated su (i) dossier verde+test E (ii) scrape esaustiva. NON allargare
+scope (no short-page, no mobile.de, no nuova scrape). NON delegare a subagent.
+Output E2E > /tmp/s271.txt 2>&1. Chiudi a 60% context.
+================================================================================

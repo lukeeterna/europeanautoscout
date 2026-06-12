@@ -1,0 +1,157 @@
+================================================================================
+ARGOS — SESSIONE S269 — REPORT COMPLETO (DOSSIER ONESTO — FIX "FRANKENSTEIN")
+Branch: s210/audit-master-plan   Data: 2026-06-11   Stato: VERDE (non committato)
+================================================================================
+
+--------------------------------------------------------------------------------
+[0] COSA E' STATA L'ULTIMA OPERAZIONE
+--------------------------------------------------------------------------------
+Una review esterna (Claude AI web) ha provato che i 2 PDF S268 si CONTRADDICEVANO:
+sopra il vecchio generatore (mediana puntuale + fee flat 900) era stata "bullonata"
+la nuova logica a banda. Risultato = dossier Frankenstein: DUE rappresentazioni di
+mercato e DUE logiche di fee nello stesso PDF.
+
+Ho verificato INDIPENDENTEMENTE i 6 claim della review sul CODICE ESEGUITO:
+tutti CONFERMATI. Root cause: _create_financial_analysis_v2 veniva renderizzata
+SEMPRE (riga 306) PRIMA delle nuove sezioni a banda, portandosi dietro la mediana
+puntuale e la fee flat 900. Il mio claim di chiusura S268 ("BANDA=prodotto FATTO")
+era FALSO a livello di artefatto (vero solo a livello di codice nuovo, mai rimosso
+quello vecchio).
+
+Poi ho applicato il fix completo (sotto) e rigenerato i 2 PDF.
+
+--------------------------------------------------------------------------------
+[A] FIX APPLICATI — tools/scripts/pdf_generator_enterprise.py
+--------------------------------------------------------------------------------
+3 HELPER PURI nuovi (prima della classe, righe 222-299):
+  - _eur_fmt(n)              formattazione EUR / "—" su None
+  - _band_verdict(price_eu, band_low, band_high)   <-- KEYSTONE
+      Chiama evaluate_margin ai DUE bordi banda (unica source of truth).
+      breakeven = chiavi_in_mano / (1 - floor_pct), con floor_pct DERIVATO
+      dall'output del gate (m_low.dealer_floor_amount/band_low), NON hardcoded 0.88.
+      Regola verdetto: m_low PASS -> PASS ; m_high REJECT -> REJECT ;
+                       altrimenti CONDIZIONATO @ breakeven.
+  - _margin_verdict_rows(vehicle)   costruisce le righe; NO_VERDICT/banda assente
+      -> 3 righe minimali (N+livello, NESSUNA banda/margine).
+
+Sezioni riscritte:
+  - _create_margin_verdict_section : band-driven, tutte le voci INTERVALLI
+    (spread/pavimento/surplus/fee/margine = range low-high). Tabella a row-count
+    variabile (3 righe NO_VERDICT, 9 righe pieno). PASS->nota verde, REJECT/
+    NO_VERDICT->nota rossa.
+  - _create_financial_analysis_v2 : SVUOTATA a sola itemizzazione COSTI (5 righe).
+    RIMOSSE mediana puntuale ("Media mercato IT"), fee flat 900, margine singolo.
+  - _create_executive_summary (header): "Banda mercato IT"=range, "Margine dealer
+    (banda)"=intervallo, fee 900 ELIMINATA, "Punteggio ARGOS"->"Qualita auto"
+    (separa CoVe = bonta AUTO da margine = bonta AFFARE). FONTSIZE hero 12->9.
+
+PRINCIPIO: UN solo oggetto-mercato (la banda), UNA sola logica-fee (40% surplus,
+0 se REJECT/NO_VERDICT). Eliminato il punto-morto S256-S262 (doppio mercato).
+
+--------------------------------------------------------------------------------
+[B] EVIDENZA E2E — RUN REALE (rieseguito post-compact, 2026-06-11)
+comando: python3 -m tools.scripts.build_s268_dossier   ->   rc=0   (NO rete, fixture)
+--------------------------------------------------------------------------------
+[320d_xDrive] N=13 L3 no_verdict=False conf=bassa     band=33200.0-39950.0
+  -> PDF 6384 byte
+[330i]        N=5  L3 no_verdict=True  conf=NO_VERDICT band=25299.0-30900.0
+  -> PDF 5812 byte
+
+DoD #2/#3 PDF generati:
+  OK tests/dossiers_s268/ARGOS_DEMO_S268_320d_xDrive.pdf (6384 byte)
+  OK tests/dossiers_s268/ARGOS_DEMO_S268_330i.pdf        (5812 byte)
+
+Fixture: tests/fixtures/it_dist_bmw_serie3_2021.json (scrape AS24.it 2026-06-11,
+campione CAP 20 pagine / 325 annunci -> N e' un PAVIMENTO, non totale mercato).
+
+--------------------------------------------------------------------------------
+[C] EVIDENZA KEYSTONE — VERDETTO BAND-DRIVEN (rieseguito post-compact)
+comando: _band_verdict() su 3 casi
+--------------------------------------------------------------------------------
+320d (29500 / 33200-39950) -> CONDIZIONATO   breakeven = 35699
+  La banda ATTRAVERSA il break-even: il FALSO-PASS di S268 e' ELIMINATO.
+  Verdetto onesto: "valido solo se prezzo IT realizzato >= EUR 35.699".
+high-band (29500 / 45000-50000) -> PASS     (intera banda sopra il pavimento)
+low-band  (29500 / 30000-31000) -> REJECT   (intera banda sotto il pavimento)
+
+Helper presenti nel codice (grep verificato):
+  222 def _eur_fmt   228 def _band_verdict   259 def _margin_verdict_rows
+  243 breakeven derivato   252 status CONDIZIONATO
+
+--------------------------------------------------------------------------------
+[D] STATO GIT (NON committato — context gate ha bloccato il commit a 82%)
+--------------------------------------------------------------------------------
+File modificati su disco (git status):
+  M tools/scripts/pdf_generator_enterprise.py   (+227/-... il fix)
+  M tests/dossiers_s268/ARGOS_DEMO_S268_320d_xDrive.pdf
+  M tests/dossiers_s268/ARGOS_DEMO_S268_330i.pdf
+  M STATE.md  state/rings.json  (toccati da refresh.sh, NON da me — da verificare)
+  M .claude/NEXT_SESSION_PROMPT*.md
+
+ATTENZIONE: STATE.md e state/rings.json risultano modificati. NON e' un edit mio
+deliberato (Gate E overwrite_sot NON e' stato eseguito). Probabile refresh.sh
+automatico a session-start. DA VERIFICARE in S270 col diff prima di committare.
+
+AZIONE COMMIT (da fare appena context fresco):
+  git add tools/scripts/pdf_generator_enterprise.py tests/dossiers_s268/*.pdf
+  git commit -m "S269 dossier onesto: banda unica + verdetto band-driven (no Frankenstein)"
+  git push
+
+--------------------------------------------------------------------------------
+[E] NOTA ONESTA' (limiti dichiarati)
+--------------------------------------------------------------------------------
+1. prezzo_de nei 2 PDF e' ILLUSTRATIVO (demo): la BANDA IT e' dato reale fixture,
+   il prezzo DE e' input dimostrativo. NON sono il primo dossier a un dealer reale.
+2. Validazione S269 SOLO a layer-codice + run reale. NON ho letto lo stream PDF
+   renderizzato (nessun estrattore testo: pdftotext/pdfminer/pypdf assenti).
+   -> Verifica celle PDF DEFERITA a S270 (install pypdf, leggere "no 38.799/900").
+3. DoD#4 resta BLOCKED: gate calibrato su campione CAP -> logica sana != dato sano.
+
+================================================================================
+[F] NEXT PROMPT — S270
+================================================================================
+
+# BRIEF CC — ARGOS · S270 — commit S269 + test falsificatore + verifica PDF, poi STATE.md
+# Branch s210/audit-master-plan · Fonte verita': codice + git. Chat NON e' fonte.
+
+## FATTO IN S269 (VERDE su disco, NON committato — verificare prima)
+Fix "Frankenstein" dossier: UN mercato (banda) + UNA fee (40% surplus, 0 se reject).
+- pdf_generator_enterprise.py: 3 helper puri (_eur_fmt/_band_verdict/_margin_verdict_rows),
+  _band_verdict = KEYSTONE (evaluate_margin ai due bordi, breakeven DERIVATO).
+  _create_financial_analysis_v2 svuotata a soli costi; header band-driven.
+- RUN REALE rc=0: 320d CONDIZIONATO @ 35699 (false-PASS eliminato), 330i NO_VERDICT.
+- PDF: 320d 6384 byte, 330i 5812 byte.
+
+## DA FARE S270 (in ordine)
+0. COMMIT prima di tutto. ATTENZIONE: git status mostra STATE.md + state/rings.json
+   modificati NON da me (probabile refresh.sh). VERIFICA il diff: se sono solo
+   header auto-rigenerati, NON includerli nel commit del dossier. Committa SOLO:
+   tools/scripts/pdf_generator_enterprise.py + tests/dossiers_s268/*.pdf.
+1. TEST committato tests/test_s269_band_verdict.py (no rete, rc=0, FALSIFICATORE):
+   - 320d (29500/33200/39950) -> status=='CONDIZIONATO', round(breakeven)==35699;
+   - caso che ATTRAVERSA il floor DEVE dare CONDIZIONATO, MAI 'PASS' secco
+     (togliendo il ramo condizionato il test DEVE fallire);
+   - NO_VERDICT: _margin_verdict_rows(VehicleData(no_verdict=True, banda settata))
+     -> len(rows)==3, nessuna cella con 'Spread'/'Surplus'/range banda.
+2. Cleanup build_s268_dossier.py: smette di calcolare _margin_* sulla mediana
+   (ora inerte: il generatore ricalcola dalla banda). Lascia _margin_decision +
+   _it_distribution.
+3. grep "CERTIFIC"/"certificato" in pdf_generator_enterprise.py: se sta accanto al
+   verdetto-affare, relabella (CoVe = qualita AUTO, non garanzia AFFARE).
+4. Verifica testo PDF reale: installa pypdf (puro Python, Big Sur ok) e LEGGI le
+   celle: confermare 320d NON contiene "38.799"/"Media mercato"/"900"; 330i nessuna
+   banda/margine. (S269 validato solo a layer-codice, non sullo stream renderizzato.)
+
+## ITEM FINALE (ultimo) — STATE.md (GATED Gate E overwrite_sot)
+Allinea header S245->S264-S269 + registra BLOCKED-ON DoD#4 (scrape esaustiva, testo
+in SESSIONE_S268_REPORT_COMPLETO.txt [F]). Rule 1d: backup verificato-per-stat PRIMA.
+Diff-first. Edit ULTIMO. Serve `! python3 .harness/gate_e.py approve <slug>` da Luke.
+
+## INVARIATO
+- DoD#4 NON sbloccabile finche': (i) dossier coerente verde+test, E (ii) scrape
+  ESAUSTIVA fatta. NON allargare scope. NON delegare a subagent. Output E2E >
+  /tmp/s270.txt 2>&1. Chiudi a 60% context.
+
+================================================================================
+FINE REPORT S269
+================================================================================
