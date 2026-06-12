@@ -1,0 +1,137 @@
+================================================================================
+ARGOS — SESSIONE S271 — REPORT COMPLETO (DOSSIER COERENZA: test + render-verify)
+Branch: s210/audit-master-plan   Data: 2026-06-12   Stato: VERDE (committato+pushato)
+================================================================================
+
+--------------------------------------------------------------------------------
+[0] COSA E' STATA L'ULTIMA OPERAZIONE
+--------------------------------------------------------------------------------
+Il brief S271 (NEXT_SESSION_PROMPT.manual.md) chiedeva di CHIUDERE la coerenza del
+dossier lasciata a meta' in S270 (codice modificato, build rc=0, ma NON testato ne'
+verificato sul render -> NON committabile). Ordine vincolante: (0) install pypdf,
+(1) test falsificatore committato, (2) render-verify pypdf, (3) COMMIT solo dopo 1+2
+verdi, (item finale) STATE.md gated Gate E.
+
+Eseguito tutto fino al COMMIT+PUSH. STATE.md resta gated (task S272).
+
+--------------------------------------------------------------------------------
+[A] SETUP — pypdf installato
+--------------------------------------------------------------------------------
+pypdf 6.13.2 installato in SYSTEM python3 via `pip install --break-system-packages pypdf`
+(PEP 668: --user bloccato; coerente con reportlab 4.4.10 gia' presente in system py3).
+NB: il build dossier gira con SYSTEM python3, NON con .venv (che NON ha reportlab).
+
+--------------------------------------------------------------------------------
+[B] TEST FALSIFICATORE — tests/test_s269_band_verdict.py (NUOVO, committato)
+--------------------------------------------------------------------------------
+6 test, no rete, rc=0. Numeri ottenuti ESEGUENDO il codice reale (margin_gate), non a mano.
+  - test_band_verdict_320d_condizionato: _band_verdict(29500,33200,39950)
+        -> status=='CONDIZIONATO', round(breakeven)==35699
+  - test_band_verdict_crosses_floor_never_pass (FALSIFICATORE): m_low.decision=='REJECT',
+        m_high.decision=='PASS' -> status MAI 'PASS', deve essere 'CONDIZIONATO'
+  - test_no_verdict_minimal: _margin_verdict_rows(VehicleData no_verdict=True + banda)
+        -> len(rows)==3, nessun 'Spread'/'Surplus'/range banda
+  - test_header_envelope_condizionato (FALSIFICATORE): _header_margin_envelope(29500,33200,39950)
+        -> round(bound_inf)==4284 (NON 1785), disp contiene "35.699"
+  - test_header_envelope_reject: _header_margin_envelope(35000,33000,36000)
+        -> status=='REJECT', disp=='n.d.', bound_inf is None
+  - test_header_envelope_pass: _header_margin_envelope(20000,30000,35000)
+        -> status=='PASS', round(bound_inf)==6291
+
+--------------------------------------------------------------------------------
+[C] CORREZIONE AL BRIEF (vincolo #10 — non scrivere asserzioni che falliscono su output corretto)
+--------------------------------------------------------------------------------
+Il brief item 2 chiedeva "320d testo-pagina NON contiene 1.785". FALSO sul PDF CORRETTO:
+1.785 compare LEGITTIMO nella tabella VERDETTO AFFARE come bordo-basso dell'intervallo
+banda (MARGINE NETTO DEALER EUR 1.785 – EUR 7.039). La riga falsificatore del brief
+disambigua l'intento reale: "se l'HEADER rendesse 1.785". Percio' ho SCOPATO il check
+1.785 all'HEADER (testo prima di "DETTAGLI VEICOLO"). Un'asserzione whole-page avrebbe
+fatto fallire un dossier corretto.
+
+--------------------------------------------------------------------------------
+[D] EVIDENZE E2E (cosa e' stato realmente eseguito)
+--------------------------------------------------------------------------------
+1) BUILD REALE (no rete) — /tmp/s271_build.txt:
+   $ python3 -m tools.scripts.build_s268_dossier   -> rc=0
+   [320d_xDrive] N=13 L3 no_verdict=False conf=bassa band=33200-39950
+                 -> ARGOS_DEMO_S268_320d_xDrive.pdf (6.686 byte)
+   [330i]        N=5  L3 no_verdict=True  conf=NO_VERDICT band=25299-30900
+                 -> ARGOS_DEMO_S268_330i.pdf (6.008 byte)
+
+2) TEST — $ python3 tests/test_s269_band_verdict.py -> 6/6 PASS, rc=0
+   (verificati eseguendo il codice: breakeven 35699; margine@be 4283.86->4284;
+    margine@band_high 7039; margine@band_low 1785.0 = decision REJECT -> VIETATO header)
+
+3) RENDER-VERIFY pypdf — /tmp/s271_render_verify.py (one-shot, NON committato) -> 13/13:
+   320d header CONTIENE "4.284" + "(se prezzo IT >= 35.699)"; NON "1.785";
+        whole-page NON "38.799"/"Media mercato"/"900"; FIX-B "L0:" "L1:" "L2:" interi
+        (render reale: "L0:2 L1:2 L2:3 L3:13").
+   330i header "n.d." (nessuna cifra margine); verdetto AFFARE minimale
+        (solo prezzo EU + NO-VERDICT, nessuno Spread/Surplus/Pavimento/MARGINE NETTO).
+
+=> EVIDENZA S271 = a layer-CODICE (test) + sullo STREAM renderizzato (render-verify).
+   Colma il gap S270 (che era solo codice + numeri-a-mano).
+
+--------------------------------------------------------------------------------
+[E] COMMIT + PUSH
+--------------------------------------------------------------------------------
+commit e39536b "S271: coerenza dossier verdetto-affare — test falsificatore + render-verify"
+  5 file: pdf_generator_enterprise.py + build_s268_dossier.py + tests/dossiers_s268/*.pdf (x2)
+          + tests/test_s269_band_verdict.py (NUOVO)
+  ESCLUSI: STATE.md, state/rings.json (rigenerati da refresh.sh).
+  .pdf committati con `git -c core.whitespace=-trailing-space` (warning binari accettato).
+commit a926f43 "S271 close: handoff S272"  (.claude/NEXT_SESSION_PROMPT.manual.md)
+PUSH: e9b05a1..e39536b..a926f43 -> origin/s210/audit-master-plan  (OK)
+
+--------------------------------------------------------------------------------
+[F] PROGRESSI vs DoD
+--------------------------------------------------------------------------------
+- DoD#4 punto (i) "dossier coerente VERDE + test committato" = CHIUSO (S271).
+- DoD#4 punto (ii) "scrape ESAUSTIVA fatta" = ANCORA PENDING (non in scope S271).
+- DoD#4 (sblocco Day-1 dossier reale) resta BLOCKED finche' (i) AND (ii). Ora manca solo (ii).
+- STATE.md align = item gated Gate E -> S272 (lo slug si genera al primo Edit su STATE.md).
+
+--------------------------------------------------------------------------------
+[G] FILE TOCCATI
+--------------------------------------------------------------------------------
+COMMITTATI (e39536b):
+  M tools/scripts/pdf_generator_enterprise.py
+  M tools/scripts/build_s268_dossier.py
+  M tests/dossiers_s268/ARGOS_DEMO_S268_320d_xDrive.pdf  (6.686 byte)
+  M tests/dossiers_s268/ARGOS_DEMO_S268_330i.pdf         (6.008 byte)
+  A tests/test_s269_band_verdict.py
+COMMITTATO (a926f43):
+  M .claude/NEXT_SESSION_PROMPT.manual.md  (brief S272)
+NON committati (per design):
+  STATE.md, state/rings.json (refresh.sh) ; NEXT_SESSION_PROMPT.md (breadcrumb auto-close)
+MEMORIA: s271_dossier_coherence_closed.md + riga-indice MEMORY.md (Gate E approvato da Luke).
+
+--------------------------------------------------------------------------------
+[H] DECISIONE / GATE
+--------------------------------------------------------------------------------
+Commit-dossier sbloccato solo dopo test 6/6 + render-verify 13/13 (gate rispettato).
+STATE.md NON toccato a budget basso (rischio scrittura sciatta su SoT) -> S272 con
+backup rule 1d + Gate E. Stato onesto: VERDE su scope S271, BLOCKED-ON onesto su (ii).
+
+================================================================================
+NEXT PROMPT — S272 (STATE.md align Gate E + DoD#4(ii) scrape esaustiva)
+================================================================================
+STATO INGRESSO: S271 chiusa verde, pushata (e39536b/a926f43). DoD#4(i) CHIUSO.
+pypdf 6.13.2 in system py3. Build gira con system py3 (non .venv).
+
+1. STATE.md align (GATED Gate E overwrite_sot):
+   - Allinea header S245->S264->S269->S270->S271 + registra BLOCKED-ON DoD#4(ii).
+   - Rule 1d: backup verificato-per-stat PRIMA. Diff-first. Edit ULTIMO.
+   - Lo slug Gate E NON esiste ancora (i 3 overwrite_sot esistenti puntano a MEMORY.md):
+     si genera al PRIMO Edit su STATE.md -> Gate E scrive packet in
+     .harness/pending_review/<slug>.md -> Luke `! python3 .harness/gate_e.py approve <slug>`
+     -> RE-Edit (token una-tantum).
+   - VERIFICA PRIMA: STATE.md e' hand-edit o GENERATO da state/refresh.sh? (memoria S243:
+     tabella anelli generata leggendo rings.json -> forse NON va editato a mano).
+2. DoD#4 punto (ii): scrape ESAUSTIVA. Definire cosa = "esaustiva" da MASTER PLAN /
+   SESSIONE_S268_REPORT_COMPLETO.txt [F] PRIMA di lanciare.
+
+INVARIATO: DoD#4 sblocco = (i)[FATTO] AND (ii)[PENDING]. NON allargare scope (no
+short-page, no mobile.de, no nuova feature). NON delegare task atomici a subagent.
+Output E2E > /tmp/s272.txt. Chiudi a 60% context.
+================================================================================
