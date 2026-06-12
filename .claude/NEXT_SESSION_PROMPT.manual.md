@@ -1,66 +1,70 @@
-# BRIEF CC — ARGOS · S272 — render-verify COMMITTATO (durabilita') -> STATE.md -> scrape esaustiva
+# BRIEF CC — ARGOS · ROADMAP S273→S275 verso DAY-1 (primo dossier reale a dealer vero)
 # Branch s210/audit-master-plan · Fonte verita': codice + git. Chat NON e' fonte.
 
-## STATO INGRESSO (S271 CHIUSA verde, pushata — verde REALE, non S268-finto)
-- commit e39536b + a926f43 + 9d4546c su origin. Arco coerenza S268->S271 sostanzialmente finito:
-  Frankenstein morto, false-PASS ucciso in 2 layer (verdetto + header), breakeven derivato,
-  CoVe separato dall'affare, demo verificato sullo STREAM reale (13/13).
-- BUCO DI DURABILITA' (verificato git ls-files): il render-verify che ha dato la prova
-  d'artefatto e' in /tmp/s271_render_verify.py, NON committato. Il committato
-  tests/test_s269_band_verdict.py testa SOLO la LOGICA delle helper (zero pypdf/PDF),
-  NON il WIRING (helper -> cella-PDF). Il Frankenstein S268 e' nato proprio dal wiring
-  (helper giuste, _create_financial_analysis_v2 renderizzata prima trascinava la mediana
-  morta) -> un unit-test di logica NON lo prende. Finche' la prova d'artefatto non e' in
-  suite, "demo che resta pulito" (il senso del filone S268) NON e' raggiunto.
-- AMBIENTE: build+test girano SOLO con system python3 (reportlab 4.4.10 + pypdf 6.13.2);
-  .venv NON ha reportlab. Eseguire con `python3` di sistema, NON .venv, o falliscono spurii.
+## STATO INGRESSO (S272 CHIUSA verde — ITEM 1 durabilita' DoD#4-i)
+- commit f50d4b0 + ff4763a su origin. test_s271_render_artifact.py 5/5 (rigenera da fixture in
+  tempdir, ricomputa i bound dalle helper, asserisce stream pypdf). Falsifier verificato: header
+  con margine band_low (falso-PASS S268) -> test 320d FAIL. test_s269 6/6. DoD#4(i) DURABILE-chiuso.
+- 2 AZIONI LUKE PENDENTI (una-tantum, dettaglio in .claude/REPORT_S272.txt):
+  1) Gate E pointer indice MEMORY.md: `! python3 .harness/gate_e.py approve overwrite_sot-dc04f63aaf`
+     (file-memoria topic gia' scritto; manca solo la riga-indice). Poi CC ri-fa l'Edit una volta.
+  2) Restore 2 PDF demo (diff SOLO timestamp): `! git checkout -- tests/dossiers_s268/`.
 
-## ITEM 1 (PRIMO — chiude la durabilita' di DoD#4-i) — render-verify COMMITTATO
-Promuovi il render-verify /tmp a test committato che difende dal WIRING.
-- NUOVO tests/test_s271_render_artifact.py (no rete, deterministico, system py3, pypdf gia' c'e'):
-  1. Rigenera i 2 PDF dalla fixture committata in una TEMP dir (tempfile, NON sovrascrivere i
-     demo committati in tests/dossiers_s268/).
-  2. RICOMPUTA gli attesi dalle helper (_header_margin_envelope, evaluate_margin, _band_verdict)
-     -> NON hardcodare "4.284" come stringa magica (disciplina S266: invarianti STRUTTURALI, non N
-     cablati). Cosi' il test sopravvive a un cambio-fixture (ITEM 3 lo cambiera').
-  3. Asserzioni STRUTTURALI sullo stream pypdf:
-     - header 320d CONTIENE il bound_inf ricomputato (=margine a max(band_low,breakeven)) + suffisso
-       "(se prezzo IT >= <breakeven>)"; header NON contiene il margine a band_low se status!=PASS
-       (il falso-PASS d'header);
-     - 330i NO_VERDICT: ZERO cifre-margine in header E in tabella-verdetto (suppressione totale);
-     - nota distribuzione: "L0:.. L1:.. L2:.. L3:.." INTERA (FIX-B non clippato);
-     - whole-page: nessun "38.799"/"Media mercato"/"900" (mediana morta + flat-fee legacy).
-  4. Normalizza whitespace prima del match (reportlab+pypdf inietta spazi spuri): es. "4.284"=="4 284".
-- Commit del test. Da qui la regressione di WIRING e' presa SENZA lettura esterna.
-- Riferimento pronto: /tmp/s271_render_verify.py (header-scoping gia' corretto, da generalizzare a recompute).
-=> SOLO dopo ITEM 1 committato: DoD#4 punto (i) e' DURABILE-chiuso.
+# INQUADRAMENTO (non saltarlo): l'ENGINE (banda+verdetto+artefatto onesto) e' chiuso e durabile (S272).
+# Day-1 = lo stesso engine alimentato da UN caso reale con scrape COMPLETE. NON serve fixare lo
+# short-page sui 28 portali ne' automatizzare il sourcing DE: quelli gateano lo SCALING, non Day-1.
+# Per UN dossier ti puoi permettere uno scrape lento-ma-completo (results_per_page=1, tecnica S264,
+# una volta) e sourcing DE manuale (Luke sceglie 1 auto reale).
+# REGOLA DANNO-ZERO: nessun dossier va a un dealer se la sua banda poggia su scrape sotto-raccolto
+# (short-page) o cap-troncato. Il dealer rifa il conto: piu' comparabili di quanti dichiari = credibilita'
+# (= prodotto) morta al primo contatto. SECONDO danno: non farti BLOCCARE da AS24.it (perdi la fonte).
 
-## ITEM 2 — STATE.md align (GATED Gate E overwrite_sot)
-- PRE-CHECK OBBLIGATORIO prima di editare: STATE.md e' hand-edit o GENERATO da state/refresh.sh?
-  (memoria S243: tabella anelli generata leggendo rings.json). Se GENERATO -> NON editarlo a mano,
-  correggi sorgente/template + rilancia refresh.sh.
-- Rule 1d: backup verificato-per-stat PRIMA. Diff-first. Edit ULTIMO.
-- Slug Gate E NON esiste ancora (i 3 overwrite_sot esistenti puntano a MEMORY.md): si genera al
-  PRIMO Edit su STATE.md -> packet in .harness/pending_review/<slug>.md -> Luke
-  `! python3 .harness/gate_e.py approve <slug>` -> RE-Edit (token una-tantum).
-- Allinea header S245->S264->S269->S271 + registra BLOCKED-ON DoD#4(ii).
+## SEQUENZA (3 sessioni, NON una - non comprimere, no PARTIAL):
+##   S273 = ITEM A (calibrazione) [+ ITEM B se avanza budget]
+##   S274 = ITEM C (1 dossier reale end-to-end) - richiede 1 input reale da Luke
+##   S275 = ITEM D (STATE.md) - housekeeping, NON gatea Day-1
 
-## ITEM 3 — DoD#4(ii) scrape esaustiva (gate empirico mercato vero vs artefatto scraper)
-- Definisci "esaustiva" (fatto terminale = pagina corta) PRIMA di lanciare. min_n=8.
-- AVVISO durabilita': la scrape esaustiva PUO' invalidare il demo committato — se la 330i ha un
-  pool reale oltre il cap (>min_n), SMETTE di essere NO_VERDICT e il suo PDF cambia. NON e'
-  regressione: e' il test che si risolve (NO_VERDICT-330i = artefatto del cap 20-pagine, non del
-  mercato). Quando la fixture-cap e' sostituita dall'esaustiva -> ri-committa fixture + 2 PDF +
-  RICOMPUTA le asserzioni di ITEM 1 (bound alla fixture corrente, by design — per questo ITEM 1
-  ricomputa invece di cablare).
+## ITEM A (S273) - CALIBRAZIONE: lo scrape completo dice se il gate e' mercato o artefatto
+Gate empirico DoD#4(ii). Famiglia vetrina (BMW Serie 3 2021), scrape ESAUSTIVO:
+- "esaustivo" = fatto terminale = PAGINA VUOTA raggiunta SENZA cap (rimuovi max_pages per QUESTA run,
+  override results_per_page=1 come S264, locale, non-mutante via object.__setattr__).
+- CAVEAT RATE-LIMIT (verifica PRIMA di lanciare, su codice reale): results_per_page=1 = ~325 richieste;
+  le costanti di produzione (DAILY_LIMIT=30, sleep, Semaphore) possono bloccare la run O farti bloccare
+  da AS24.it. Riconcilia: run deliberata one-off, con throttle, FUORI dal daily-limit ma SENZA martellare.
+  Se il rischio-blocco e' reale, FERMA e segnala a Luke prima di bruciare l'accesso.
+- Ricomputa la tabella S264 (L0..L3, N per famiglia) sul pool NON troncato.
+- FALSIFICA o conferma: 330i resta NO_VERDICT a config esatta, o era il cap? min_n=8 regge sui numeri completi?
+- Persisti il pool esaustivo come NUOVA fixture committata.
+- Ri-gira test_s271_render_artifact: ricomputa i bound da solo (by design) -> resta verde sulla nuova
+  fixture; se il verdetto 330i cambia, il suo PDF cambia: NON e' regressione, e' il test che si risolve.
+  Documenta il delta.
+ESITO: sai se i verdetti sono veri sul mercato, non su una fetta. Chiudi a 60%.
 
-## MAPPA VERSO PRODUCTION (non mossa — i 2 gate empirici restano, prima che un dealer veda nulla)
-1. scrape esaustiva (mercato vero vs artefatto scraper; NO_VERDICT-330i, min_n=8) = ITEM 3.
-2. prezzo_de REALE al posto dell'illustrativo nel dossier.
+## ITEM B (S273 se avanza, senno' S273-bis) - DEMO: canonico o campione? (DECISIONE LUKE prima di codice)
+I 2 PDF in tests/dossiers_s268/ sono CAMPIONI (esempi di resa) o il DOSSIER CANONICO che mostrerai?
+- Campione -> nessuna azione (il test rigenera in tempdir).
+- Canonico -> assert in test_s271 "demo committato == rigenerato (timestamp a parte)": un drift
+  codice-vs-PDF-mostrato viene preso. (L'incidente di sovrascrittura S272 prova che driftano.)
+
+## ITEM C (S274) - UN DOSSIER REALE END-TO-END = il candidato Day-1
+INPUT DA LUKE (se assente -> CC parca BLOCKED-ON-LUKE-INPUT e FERMA, non inventa):
+- 1 annuncio DE reale (URL + prezzo + spec: modello/trim/anno/km/alimentazione/drivetrain).
+  Sourcing manuale. NON automatizzare il sourcing per Day-1.
+CC poi, in PRODUZIONE reale (NON fixture):
+- Scrape COMPLETO AS24.it dei comparabili per QUELLA config esatta (results_per_page=1, fino a pagina
+  vuota, no cap, throttle come ITEM A: e' UN'auto, lento-ma-completo te lo puoi permettere una volta).
+- prezzo_de REALE (annuncio Luke) al posto dell'illustrativo.
+- Genera il dossier reale -> render-verify pypdf E lettura umana dell'artefatto (lo stesso rituale che ha
+  preso il Frankenstein): banda, verdetto, riga d'onesta', margine-intervallo coerenti e onesti SU DATO VERO?
+ESITO: il primo dossier reale, verificato come artefatto. Questo porti a Day-1.
+
+## ITEM D (S275) - STATE.md align (GATED Gate E) - housekeeping, ULTIMO, NON gatea Day-1
+[invariato: pre-check hand-edit vs refresh.sh (memoria S243); Rule 1d backup-per-stat; diff-first; slug
+Gate E si genera al primo Edit; allinea header S245->S272 + BLOCKED-ON DoD#4(ii)]. Falla quando comoda.
 
 ## INVARIATO
-- DoD#4 sblocco = (i)[DURABILE-chiuso dopo ITEM 1 committato] AND (ii)[scrape esaustiva].
-- NON allargare scope (no short-page, no mobile.de, no nuova feature). NON delegare task atomici
-  a subagent. Output E2E > /tmp/s272.txt. Chiudi a 60% context.
-- FINE SESSIONE OBBLIGATORIO: MEMORY.md + .claude/REPORT_S272.txt (progressi+evidenze E2E+next
-  prompt, UN file) aperto con `open -a TextEdit` + handoff + commit/push.
+- NON allargare scope (no fix short-page-28-portali, no mobile.de, no automazione sourcing = tutti
+  SCALING, non Day-1). NON delegare a subagent task atomici. system python3, MAI .venv.
+  Output E2E > /tmp/s273.txt. Chiudi a 60% context. No PARTIAL.
+- ITEM C dipende da Luke che fornisce 1 auto reale: dipendenza VOLUTA (sourcing a mano = edge di
+  dominio), non un buco. Non automatizzare il sourcing per partire.
