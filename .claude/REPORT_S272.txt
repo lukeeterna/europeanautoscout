@@ -1,0 +1,80 @@
+================================================================================
+REPORT S272 — render-verify COMMITTATO (durabilità DoD#4-i)
+Branch s210/audit-master-plan · chiusura a 60% context (vincolo #7)
+================================================================================
+
+STATO: ITEM 1 VERDE-CHIUSO e pushato. ITEM 2/3 = handoff S273 (non iniziati).
+        Non è PARTIAL: ITEM 1 è un blocco terminale completo; 2/3 sono scope a sé.
+
+--------------------------------------------------------------------------------
+ITEM 1 — render-verify COMMITTATO  ✅  (commit f50d4b0, pushato su origin)
+--------------------------------------------------------------------------------
+PROBLEMA: il render-verify che dava la prova d'artefatto era /tmp/s271_render_verify.py
+(NON committato) e leggeva PDF STATICI → non prendeva una regressione di WIRING
+(helper→cella-PDF), che è dove nacque il Frankenstein S268. test_s269_band_verdict.py
+copre solo la LOGICA delle helper pure (zero pypdf).
+
+FATTO:
+- NUOVO tests/test_s271_render_artifact.py — 5/5 PASS. RIGENERA i 2 PDF da fixture in
+  tempdir (generate_dossiers(tmp)), asserisce sullo STREAM pypdf. NON tocca i demo
+  committati. Attesi RICOMPUTATI dalle helper (_header_margin_envelope / evaluate_margin),
+  NON "4.284" cablato (disciplina S266) → sopravvive al cambio-fixture di ITEM 3.
+  Whitespace normalizzato (reportlab+pypdf inietta spazi spuri).
+  Asserzioni: 320d header espone bound@breakeven (4.284) + "(se prezzo IT >= 35.699)" e
+  NON band_low (1.785, il falso-PASS); FIX-B "L0:2 L1:2 L2:3 L3:13" intera; no legacy
+  (38.799 / Media mercato / 900). 330i NO_VERDICT: header n.d. + zero cifre-margine +
+  verdetto minimale (no Spread/Surplus/Pavimento/MARGINE NETTO).
+- tools/scripts/build_s268_dossier.py refactorato: estratti build_payload() +
+  generate_dossiers(out_dir) per riusare il path di generazione REALE (single-source
+  VEHICLES). main() invariato; script rigenera i committati identici (solo timestamp).
+
+PROVA FALSIFIER (vincolo #10): monkeypatch header→margine band_low (Frankenstein S268)
+→ "1.785" appare nell'header → test_320d FAIL atteso. È un vero falsificatore, non
+verde-su-tutto. test_s269 (logica isolata) NON lo prenderebbe.
+
+EVIDENZE E2E (system python3, reportlab 4.4.10 + pypdf 6.13.2):
+  test_s269_band_verdict.py ........ 6/6 PASS
+  test_s271_render_artifact.py ..... 5/5 PASS
+  falsifier check .................. "1.785" in header = True → FAIL atteso
+
+DoD#4 punto (i) = DURABILE-chiuso.
+
+--------------------------------------------------------------------------------
+DUE AZIONI LUKE PENDENTI (una-tantum)
+--------------------------------------------------------------------------------
+1) Gate E — pointer indice MEMORY.md (ITEM 2 in miniatura, già scattato):
+   l'Edit additivo della riga-indice S272 in MEMORY.md è bloccato da Gate E
+   (overwrite_sot). Il file-memoria topic è GIÀ scritto:
+     ~/.claude/projects/.../memory/s272_item1_render_artifact_committed.md
+   Manca solo il pointer. Per registrarlo:
+     ! python3 .harness/gate_e.py approve overwrite_sot-dc04f63aaf
+   (poi CC ri-fa l'Edit una volta). Packet: .harness/pending_review/overwrite_sot-dc04f63aaf.md
+
+2) Ripristino 2 PDF demo (diff SOLO timestamp /CreationDate, byte-identico):
+   ho lanciato build_s268_dossier sul default OUT_DIR e ho sovrascritto i committati.
+   git checkout bloccato 2× dai permessi. Ripristina con:
+     ! git checkout -- tests/dossiers_s268/
+   (zero lavoro perso: artefatti rigenerabili). Dettaglio: /tmp/s272_problem_restore_pdf.md
+   Il nuovo test usa tempdir → l'incidente non si ripresenta.
+
+--------------------------------------------------------------------------------
+HANDOFF S273 — ITEM 2 + ITEM 3 (non iniziati)
+--------------------------------------------------------------------------------
+ITEM 2 — STATE.md align (GATED Gate E overwrite_sot):
+  - PRE-CHECK: STATE.md è hand-edit o GENERATO da state/refresh.sh? (memoria S243: tabella
+    anelli generata da rings.json). Se GENERATO → NON editare a mano, correggi sorgente +
+    rilancia refresh.sh.
+  - Rule 1d: backup verificato-per-stat PRIMA. Diff-first. Edit ULTIMO.
+  - Slug Gate E si genera al primo Edit su STATE.md → packet → Luke approve → re-Edit.
+  - Allinea header S245→S264→S269→S271→S272 + registra BLOCKED-ON DoD#4(ii).
+
+ITEM 3 — DoD#4(ii) scrape esaustiva (gate empirico mercato vero vs artefatto scraper):
+  - Definisci "esaustiva" (fatto terminale = pagina corta) PRIMA di lanciare. min_n=8.
+  - AVVISO: può invalidare il demo 330i NO_VERDICT (artefatto del cap 20 pagine, non del
+    mercato). NON è regressione. Quando la fixture-cap è sostituita → ri-committa fixture +
+    2 PDF + il test ITEM 1 RICOMPUTA i bound da solo (by design).
+  - Poi: prezzo_de REALE al posto dell'illustrativo nel dossier.
+
+INVARIATO: DoD#4 sblocco = (i)[ORA durabile-chiuso] AND (ii)[scrape esaustiva].
+NON allargare scope. Eseguire test/build con system python3, MAI .venv.
+================================================================================
