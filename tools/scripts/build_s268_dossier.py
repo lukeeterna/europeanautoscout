@@ -66,46 +66,62 @@ def _preflight() -> None:
         sys.exit(1)
 
 
-def main() -> int:
-    _preflight()
+def build_payload(v, fixture_path=FIXTURE):
+    """Costruisce (veh_dict, dist) per UN veicolo dalla fixture. Path REALE usato
+    sia dal generatore script sia dal render-test S271 (single-source, no rete)."""
     from tools.it_market_price import get_it_distribution
     from tools.margin_gate import evaluate_margin
+
+    dist = get_it_distribution(fixture_path=fixture_path, **v["gd"])
+    dist["is_floor"] = True  # campione cap -> N e' un PAVIMENTO (DELTA-2)
+
+    prezzo_de = float(v["prezzo_de"])
+    # S270: il generatore ricalcola TUTTO l'intervallo margine dalla banda
+    # (via _band_verdict). Qui non serve piu' calcolare i `_margin_*` puntuali
+    # sul mediano (erano inerti): basta `_margin_decision` come gate di
+    # rendering della sezione verdetto. Se NO_VERDICT, niente PASS/REJECT.
+    veh = {
+        "make": v["gd"]["make"], "model": v["gd"]["model"],
+        "year": v["gd"]["year"], "km": v["gd"]["km"],
+        "price_eur": int(prezzo_de),
+        "fuel_type": v["gd"]["fuel"], "transmission": v["gd"]["target_transmission"],
+        "_cove_confidence": 0.75,
+        "_it_distribution": dist,
+    }
+    if dist.get("no_verdict"):
+        veh["_margin_decision"] = "NO_VERDICT"
+    elif dist.get("median") is not None:
+        veh["_margin_decision"] = evaluate_margin(prezzo_de, float(dist["median"])).decision
+    return veh, dist
+
+
+def generate_dossiers(out_dir, fixture_path=FIXTURE):
+    """Genera i 2 PDF demo in out_dir. Ritorna [(tag, path, veh, dist), ...].
+    out_dir parametrizzato cosi' il test render rigenera in TEMP senza toccare i
+    demo committati. Path di generazione IDENTICO a quello dello script."""
     from tools.scripts.pdf_generator_enterprise import generate_dossier_from_data
 
-    os.makedirs(OUT_DIR, exist_ok=True)
-    paths = []
+    os.makedirs(out_dir, exist_ok=True)
+    out = []
     for v in VEHICLES:
-        dist = get_it_distribution(fixture_path=FIXTURE, **v["gd"])
-        dist["is_floor"] = True  # campione cap -> N e' un PAVIMENTO (DELTA-2)
-
-        prezzo_de = float(v["prezzo_de"])
-        # S270: il generatore ricalcola TUTTO l'intervallo margine dalla banda
-        # (via _band_verdict). Qui non serve piu' calcolare i `_margin_*` puntuali
-        # sul mediano (erano inerti): basta `_margin_decision` come gate di
-        # rendering della sezione verdetto. Se NO_VERDICT, niente PASS/REJECT.
-        veh = {
-            "make": v["gd"]["make"], "model": v["gd"]["model"],
-            "year": v["gd"]["year"], "km": v["gd"]["km"],
-            "price_eur": int(prezzo_de),
-            "fuel_type": v["gd"]["fuel"], "transmission": v["gd"]["target_transmission"],
-            "_cove_confidence": 0.75,
-            "_it_distribution": dist,
-        }
-        if dist.get("no_verdict"):
-            veh["_margin_decision"] = "NO_VERDICT"
-        elif dist.get("median") is not None:
-            veh["_margin_decision"] = evaluate_margin(prezzo_de, float(dist["median"])).decision
-
-        out_path = os.path.join(OUT_DIR, f"ARGOS_DEMO_S268_{v['tag']}.pdf")
+        veh, dist = build_payload(v, fixture_path)
+        out_path = os.path.join(out_dir, f"ARGOS_DEMO_S268_{v['tag']}.pdf")
         data_json = json.dumps({"vehicles": [veh]})
         result = generate_dossier_from_data(data_json, dealer_name="DEMO S268", output_path=out_path)
-        paths.append(result)
-        print(f"[{v['tag']}] N={dist.get('n')} L{dist.get('relaxation_level')} "
+        out.append((v["tag"], result, veh, dist))
+    return out
+
+
+def main() -> int:
+    _preflight()
+    rows = generate_dossiers(OUT_DIR)
+    for tag, result, veh, dist in rows:
+        print(f"[{tag}] N={dist.get('n')} L{dist.get('relaxation_level')} "
               f"no_verdict={dist.get('no_verdict')} conf={dist.get('confidence')} "
               f"band={dist.get('band_low')}-{dist.get('band_high')} -> {result}")
 
     print("\nDoD #2/#3 PDF generati:")
-    for p in paths:
+    for _tag, p, _veh, _dist in rows:
         ok = os.path.isfile(p) and os.path.getsize(p) > 0
         print(f"  {'OK ' if ok else 'MISSING '}{p} ({os.path.getsize(p) if ok else 0} byte)")
     return 0
