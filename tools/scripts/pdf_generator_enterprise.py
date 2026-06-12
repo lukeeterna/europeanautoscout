@@ -218,6 +218,122 @@ class DealerInfo:
     city: str
     contact_person: str = "Direttore"
 
+
+def _eur_fmt(n) -> str:
+    if n is None:
+        return "—"
+    return "EUR " + f"{int(round(n)):,}".replace(",", ".")
+
+
+def _band_verdict(price_eu, band_low, band_high):
+    """S269 KEYSTONE — verdetto-affare onesto sull'INTERA banda IT.
+
+    Riusa evaluate_margin (unica source of truth) ai due bordi banda. Il
+    break-even NON e' hardcodato: floor_pct e chiavi-in-mano sono derivati
+    dall'output reale del gate, cosi' la soglia segue il gate se cambia.
+
+    band_low  = prezzo IT realizzato PEGGIORE per il dealer (caso sfavorevole)
+    band_high = prezzo IT realizzato MIGLIORE.
+    Ritorna (m_low, m_high, breakeven, status, label).
+    """
+    from tools.margin_gate import evaluate_margin
+    m_low = evaluate_margin(float(price_eu), float(band_low))
+    m_high = evaluate_margin(float(price_eu), float(band_high))
+    floor_pct = (m_low.dealer_floor_amount / float(band_low)) if band_low else 0.12
+    breakeven = (m_low.chiavi_in_mano / (1.0 - floor_pct)) if floor_pct < 1.0 else None
+    if m_low.decision == "PASS":
+        status = "PASS"
+        label = "PASS — affare valido (intera banda sopra il pavimento)"
+    elif m_high.decision == "REJECT":
+        status = "REJECT"
+        label = "REJECT — sotto il pavimento dealer sull'intera banda"
+    else:
+        be = int(round(breakeven)) if breakeven else 0
+        status = "CONDIZIONATO"
+        label = ("PASS CONDIZIONATO — valido solo se prezzo IT realizzato >= "
+                 + "EUR " + f"{be:,}".replace(",", ".")
+                 + "; sotto, il dealer non raggiunge il pavimento 12%")
+    return m_low, m_high, breakeven, status, label
+
+
+def _margin_verdict_rows(vehicle):
+    """Righe pure della sezione VERDETTO AFFARE (testabili senza reportlab).
+
+    NO_VERDICT o banda assente -> minimale: N+livello, NESSUNA banda, NESSUN
+    margine (FASE 3). Altrimenti tutte le voci sono INTERVALLI sui bordi banda.
+    Ritorna (rows, status, breakeven).
+    """
+    floor = ">=" if vehicle.it_is_floor else ""
+    n = vehicle.it_n or 0
+    lvl = vehicle.relaxation_level if vehicle.relaxation_level is not None else '-'
+    if vehicle.no_verdict or vehicle.it_band_low is None or vehicle.it_band_high is None:
+        rows = [
+            ['VERDETTO AFFARE', 'VALORE', 'NOTE'],
+            ['Prezzo acquisto EU', _eur_fmt(vehicle.price_eu), 'Annuncio estero reale'],
+            ['Verdetto', 'NO-VERDICT',
+             f'Comparabili insufficienti (N={floor}{n}, livello L{lvl}) — nessuna banda emessa'],
+        ]
+        return rows, "NO_VERDICT", None
+
+    m_low, m_high, breakeven, status, label = _band_verdict(
+        vehicle.price_eu, vehicle.it_band_low, vehicle.it_band_high)
+
+    def _rng(a, b):
+        return f"{_eur_fmt(a)} – {_eur_fmt(b)}"
+
+    rows = [
+        ['VERDETTO AFFARE', 'INTERVALLO (banda IT)', 'NOTE'],
+        ['Prezzo acquisto EU', _eur_fmt(vehicle.price_eu), 'Annuncio estero reale'],
+        ['Costo chiavi in mano', _eur_fmt(m_low.chiavi_in_mano), 'Incl. trasporto + immatricolazione'],
+        ['Prezzo mercato Italia', _rng(vehicle.it_band_low, vehicle.it_band_high),
+         f'Banda p25-p75, {floor}{n} comparabili (non esaustivo)'],
+        ['Spread lordo', _rng(m_low.spread_lordo, m_high.spread_lordo), 'Mercato IT meno chiavi in mano'],
+        ['Pavimento dealer (12%)', _rng(m_low.dealer_floor_amount, m_high.dealer_floor_amount),
+         'Minimo garantito al dealer'],
+        ['Surplus oltre pavimento', _rng(m_low.surplus, m_high.surplus),
+         'Eccedenza condivisibile (negativo = sotto pavimento)'],
+        ['Fee ARGOS', _rng(m_low.fee_argos, m_high.fee_argos),
+         'Solo su surplus reale, 0 se sotto pavimento'],
+        ['MARGINE NETTO DEALER', _rng(m_low.margine_netto_dealer, m_high.margine_netto_dealer), label],
+    ]
+    return rows, status, breakeven
+
+
+def _header_margin_envelope(price_eu, band_low, band_high):
+    """S270 FIX-A — inviluppo margine VALIDO per l'header, status-aware.
+
+    L'header NON deve mostrare il range grezzo di margine (band_low..band_high):
+    a band_low il margine puo' cadere su una regione che il verdetto STESSO
+    rifiuta (sotto il pavimento dealer) -> falso-PASS un layer su'.
+
+    Regola UNICA (geometrica, copre i 3 stati): il bound inferiore = margine al
+    prezzo IT realizzato MINIMO VALIDO = max(band_low, breakeven).
+      PASS         (band_low >= breakeven): bound_inf = margine a band_low.
+      CONDIZIONATO (band_low < breakeven <= band_high): bound_inf = margine a breakeven.
+      REJECT       (breakeven > band_high, regione valida vuota): 'n.d.' — MAI un range.
+
+    Ritorna (disp, bound_inf, status, breakeven). disp e' la stringa header
+    (es. "4.284-7.039 (se prezzo IT >= 35.699)" per il caso CONDIZIONATO).
+    """
+    from tools.margin_gate import evaluate_margin
+    m_low, m_high, breakeven, status, _lbl = _band_verdict(price_eu, band_low, band_high)
+
+    def _f(n):
+        return f"{int(round(n)):,}".replace(",", ".")
+
+    if status == "REJECT":
+        # Banda interamente sotto il pavimento: nessuna regione valida.
+        return "n.d.", None, status, breakeven
+    if status == "PASS":
+        bound_inf = m_low.margine_netto_dealer  # band_low gia' >= breakeven
+        disp = f"{_f(bound_inf)}-{_f(m_high.margine_netto_dealer)}"
+    else:  # CONDIZIONATO — bound inferiore al break-even, non a band_low
+        bound_inf = evaluate_margin(float(price_eu), float(breakeven)).margine_netto_dealer
+        disp = (f"{_f(bound_inf)}-{_f(m_high.margine_netto_dealer)}"
+                f" (se prezzo IT >= {_f(breakeven)})")
+    return disp, bound_inf, status, breakeven
+
+
 class ARGOSPDFGenerator:
     """
     Professional PDF Generator for ARGOS Automotive
@@ -531,16 +647,6 @@ class ARGOSPDFGenerator:
 
     def _create_executive_summary(self, vehicle: VehicleData, grade_data: Optional[dict] = None) -> Table:
         """Key numbers in a clean dark box"""
-        transport = vehicle.transport_cost if vehicle.transport_cost > 0 else 750
-        # S257: fee ARGOS reale dal margin gate (ZERO se REJECT/no-surplus); 900 solo
-        # come fallback storico quando il margin gate non e' stato eseguito.
-        argos_fee = int(vehicle.fee_argos) if vehicle.fee_argos is not None else 900
-        power_kw = getattr(vehicle, '_power_kw', None) or 150
-        if grade_data and grade_data.get('power_kw'):
-            power_kw = grade_data['power_kw']
-        immatricolazione = self._calc_import_costs(power_kw)['totale']
-        market_it = vehicle.price_it_estimate
-        net_margin = market_it - vehicle.price_eu - transport - immatricolazione - argos_fee
         score = grade_data.get('score', vehicle.confidence) if grade_data else vehicle.confidence
         score_display = int(score * 100) if score <= 1.0 else int(score)
 
@@ -553,19 +659,38 @@ class ARGOSPDFGenerator:
 
         # Format prices with dot separator (Italian convention) for readability
         def _fmt(n):
-            return f"{int(n):,}".replace(",", ".")
+            return f"{int(round(n)):,}".replace(",", ".")
+
+        # S269: header coerente con la banda — niente mediana puntuale, niente
+        # fee flat 900, niente margine singolo. Mercato = banda; margine =
+        # intervallo. CoVe = "Qualita' auto" (asse AUTO), separato dall'affare.
+        if (vehicle.it_band_low is not None and vehicle.it_band_high is not None
+                and not vehicle.no_verdict):
+            market_disp = f'{_fmt(vehicle.it_band_low)}-{_fmt(vehicle.it_band_high)}'
+            # S270 FIX-A: inviluppo VALIDO (no range grezzo che il verdetto rifiuta).
+            margin_disp, _b_inf, _h_st, _h_be = _header_margin_envelope(
+                vehicle.price_eu, vehicle.it_band_low, vehicle.it_band_high)
+        else:
+            market_disp = 'n.d.'
+            margin_disp = 'n.d.'
+
+        # Il margine puo' portare la condizione "(se prezzo IT >= ...)": wrap in
+        # Paragraph cosi' va a capo invece di traboccare/clippare nella cella.
+        margin_cell = Paragraph(margin_disp, ParagraphStyle(
+            'hdr_margin', fontName='Helvetica-Bold', fontSize=9, leading=10,
+            textColor=self.brand_gold, alignment=1))
 
         summary_data = [
             [badge_cell,
              f'{_fmt(vehicle.price_eu)}',
-             f'{_fmt(vehicle.price_it_estimate)}',
-             f'{_fmt(net_margin)}',
+             market_disp,
+             margin_cell,
              f'{score_display}/100'],
             ['',
              'Prezzo EU',
-             'Mercato Italia',
-             'Margine Netto',
-             'Punteggio ARGOS'],
+             'Banda mercato IT',
+             'Margine dealer (banda)',
+             'Qualita auto'],
         ]
 
         summary_table = Table(summary_data, colWidths=[24*mm, 38*mm, 38*mm, 38*mm, 32*mm])
@@ -575,7 +700,7 @@ class ARGOSPDFGenerator:
             # Numbers row — white bold, font reduced to avoid overlap
             ('TEXTCOLOR', (1, 0), (-1, 0), self.brand_white),
             ('FONTNAME', (1, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (1, 0), (-1, 0), 12),
+            ('FONTSIZE', (1, 0), (-1, 0), 9),
             ('ALIGN', (1, 0), (-1, 0), 'CENTER'),
             # Gold for margin
             ('TEXTCOLOR', (3, 0), (3, 0), self.brand_gold),
@@ -824,45 +949,31 @@ class ARGOSPDFGenerator:
         Margin: Prezzo mercato IT - costo chiavi in mano
         """
         transport = vehicle.transport_cost if vehicle.transport_cost > 0 else 750
-
-        # Calcolo immatricolazione REALE basato su kW (default 150 kW se sconosciuto)
         power_kw = getattr(vehicle, '_power_kw', None) or 150
         if grade_data and grade_data.get('power_kw'):
             power_kw = grade_data['power_kw']
         import_costs = self._calc_import_costs(power_kw)
         immatricolazione = import_costs['totale']
         ipt_detail = f"IPT EUR {import_costs['ipt']} + targhe + ACI + agenzia"
-
-        # S257: fee ARGOS reale dal margin gate (ZERO se REJECT/no-surplus); 900 solo
-        # come fallback storico quando il margin gate non e' stato eseguito.
-        argos_fee = int(vehicle.fee_argos) if vehicle.fee_argos is not None else 900
-        market_it = vehicle.price_it_estimate
-
         costo_chiavi_in_mano = vehicle.price_eu + transport + immatricolazione
-        margine_lordo = market_it - costo_chiavi_in_mano
-        margine_netto = margine_lordo - argos_fee
 
+        # S269: SOLO itemizzazione costi. Mercato/margine/fee vivono UNA volta
+        # sola nel VERDETTO AFFARE (banda). Qui niente mediana puntuale, niente
+        # fee flat 900, niente margine singolo (eliminato il Frankenstein S268).
         financial_data = [
-            ['ANALISI FINANZIARIA', 'IMPORTO', 'NOTE'],
+            ['ANALISI COSTI (CHIAVI IN MANO)', 'IMPORTO', 'NOTE'],
             ['Prezzo acquisto EU', f'EUR {vehicle.price_eu:,}', 'IVA esclusa (reverse charge intra-UE)'],
             ['Trasporto bisarca', f'EUR {transport:,}', 'Bisarca condivisa EU verso Sud Italia'],
             ['Immatricolazione IT', f'EUR {immatricolazione:,}', ipt_detail],
-            ['Costo chiavi in mano', f'EUR {costo_chiavi_in_mano:,}', ''],
-            ['', '', ''],
-            ['Prezzo mercato Italia', f'EUR {market_it:,}', 'Media mercato IT verificata'],
-            ['Margine lordo dealer', f'EUR {margine_lordo:,}', 'Prima della fee ARGOS'],
-            ['Fee ARGOS (success fee)', f'EUR {argos_fee:,}', 'Solo a deal completato'],
-            ['MARGINE NETTO DEALER', f'EUR {margine_netto:,}', 'Netto tutto'],
+            ['COSTO CHIAVI IN MANO', f'EUR {costo_chiavi_in_mano:,}', 'Base del verdetto-affare'],
         ]
 
         financial_table = Table(financial_data, colWidths=[65*mm, 35*mm, 80*mm])
         financial_table.setStyle(TableStyle([
-            # Header
             ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
             ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 9),
-            # Body
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 8),
             ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
@@ -877,72 +988,36 @@ class ARGOSPDFGenerator:
             ('LEFTPADDING', (0, 0), (-1, -1), 6),
             ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
             ('LINEBELOW', (0, 1), (-1, -2), 0.3, HexColor('#E5E7EB')),
-            # Costo chiavi in mano row (row 4)
-            ('BACKGROUND', (0, 4), (-1, 4), self.brand_light_bg),
-            ('FONTNAME', (0, 4), (-1, 4), 'Helvetica-Bold'),
-            # MARGINE NETTO row (last row) — gold on black
             ('BACKGROUND', (0, -1), (-1, -1), self.brand_black),
             ('TEXTCOLOR', (0, -1), (-1, -1), self.brand_gold),
             ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-            # Fee ARGOS row — subtle highlight
-            ('BACKGROUND', (0, -2), (-1, -2), HexColor('#FEF3C7')),
-            ('TEXTCOLOR', (0, -2), (-1, -2), self.text_dark),
         ]))
         return financial_table
 
     def _create_margin_verdict_section(self, vehicle: VehicleData) -> Table:
-        """S257: verdetto del gate margine (asse "bonta' dell'AFFARE").
-
-        Numeri REALI dal margin_gate: prezzo DE reale, mercato IT = mediana
-        comparabili reali, fee ARGOS = quota del SURPLUS (NON flat 900).
-        """
-        def _eur(n):
-            if n is None:
-                return "—"
-            return "EUR " + f"{int(round(n)):,}".replace(",", ".")
-
-        decision = (vehicle.margin_decision or "").upper()
-        fee = vehicle.fee_argos if vehicle.fee_argos is not None else 0
-        pct = vehicle.margine_netto_pct if vehicle.margine_netto_pct is not None else 0.0
-        if decision == "NO_VERDICT":
-            # Numeri REALI nella label — N e livello sono il dato che conta, non 0/'-'.
-            _lvl = vehicle.relaxation_level if vehicle.relaxation_level is not None else '-'
-            decision_label = (
-                f"NO-VERDICT — comparabili insufficienti "
-                f"(N={vehicle.it_n or 0}, livello L{_lvl})"
-            )
-        elif decision == "PASS":
-            decision_label = "PASS — affare valido"
+        """S269: verdetto-affare onesto sulla BANDA. Tutte le voci sono
+        INTERVALLI calcolati ai bordi banda via evaluate_margin (unica source
+        of truth). NO_VERDICT/banda assente -> minimale, nessuna banda/margine.
+        Vedi _margin_verdict_rows + _band_verdict (KEYSTONE)."""
+        rows, status, _be = _margin_verdict_rows(vehicle)
+        last = len(rows) - 1
+        # S270 FIX-B: la col NOTE (in fondo il `label` del verdetto, lungo per
+        # CONDIZIONATO) eccede 70mm e veniva clippata. Wrap in Paragraph; sull'
+        # ultima riga il colore segue lo status (verde/rosso/oro) come da style.
+        if status == "PASS":
+            _label_color = self.success_green
+        elif status in ("REJECT", "NO_VERDICT"):
+            _label_color = HexColor('#EF4444')
         else:
-            decision_label = "REJECT — sotto pavimento dealer"
-
-        # S268: mercato IT = BANDA (non mediana puntuale); margine = INTERVALLO.
-        floor = ">=" if vehicle.it_is_floor else ""
-        if vehicle.it_band_low is not None and vehicle.it_band_high is not None:
-            it_price_cell = f"{_eur(vehicle.it_band_low)} - {_eur(vehicle.it_band_high)}"
-            it_price_note = f'Banda p25-p75, {floor}{vehicle.it_n or 0} comparabili (non esaustivo)'
-        else:
-            it_price_cell = _eur(vehicle.it_median)
-            it_price_note = f'Mediana {floor}{vehicle.it_n or 0} comparabili reali'
-        if vehicle.margine_netto_low is not None and vehicle.margine_netto_high is not None:
-            netto_cell = f"{_eur(vehicle.margine_netto_low)} - {_eur(vehicle.margine_netto_high)}"
-        else:
-            netto_cell = f'{_eur(vehicle.margine_netto_dealer)} ({pct:.1f}%)'
-
-        data = [
-            ['VERDETTO AFFARE', 'IMPORTO', 'NOTE'],
-            ['Prezzo acquisto EU', _eur(vehicle.price_eu), 'Annuncio estero reale'],
-            ['Costo chiavi in mano', _eur(vehicle.chiavi_in_mano), 'Incl. trasporto + immatricolazione'],
-            ['Prezzo mercato Italia', it_price_cell, it_price_note],
-            ['Spread lordo', _eur(vehicle.spread_lordo), 'Mercato IT meno chiavi in mano'],
-            ['Pavimento dealer (12%)', _eur(vehicle.dealer_floor), 'Margine minimo garantito al dealer'],
-            ['Surplus oltre il pavimento', _eur(vehicle.surplus), 'Eccedenza condivisibile'],
-            ['Fee ARGOS', _eur(fee), 'Solo su surplus reale, a deal chiuso'],
-            ['MARGINE NETTO DEALER', netto_cell, decision_label],
-        ]
-
-        table = Table(data, colWidths=[65*mm, 45*mm, 70*mm])
-        table.setStyle(TableStyle([
+            _label_color = self.brand_gold
+        _note_style = ParagraphStyle('mv_note', fontName='Helvetica', fontSize=8,
+                                     leading=9, textColor=self.text_secondary)
+        _label_style = ParagraphStyle('mv_label', fontName='Helvetica-Bold', fontSize=8,
+                                      leading=9, textColor=_label_color)
+        for _i, _r in enumerate(rows[1:], start=1):
+            _r[2] = Paragraph(str(_r[2]), _label_style if _i == last else _note_style)
+        table = Table(rows, colWidths=[60*mm, 50*mm, 70*mm])
+        style = [
             ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
             ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -961,13 +1036,17 @@ class ARGOSPDFGenerator:
             ('LEFTPADDING', (0, 0), (-1, -1), 6),
             ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
             ('LINEBELOW', (0, 1), (-1, -2), 0.3, HexColor('#E5E7EB')),
-            # Surplus row — subtle highlight
-            ('BACKGROUND', (0, 6), (-1, 6), HexColor('#FEF3C7')),
-            # MARGINE NETTO row — gold on black
-            ('BACKGROUND', (0, -1), (-1, -1), self.brand_black),
-            ('TEXTCOLOR', (0, -1), (-1, -1), self.brand_gold),
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ]))
+            ('BACKGROUND', (0, last), (-1, last), self.brand_black),
+            ('TEXTCOLOR', (0, last), (-1, last), self.brand_gold),
+            ('FONTNAME', (0, last), (-1, last), 'Helvetica-Bold'),
+        ]
+        if status == "PASS":
+            style.append(('TEXTCOLOR', (2, last), (2, last), self.success_green))
+        elif status in ("REJECT", "NO_VERDICT"):
+            style.append(('TEXTCOLOR', (2, last), (2, last), HexColor('#EF4444')))
+        if len(rows) > 7:  # riga surplus solo nella tabella piena
+            style.append(('BACKGROUND', (0, 6), (-1, 6), HexColor('#FEF3C7')))
+        table.setStyle(TableStyle(style))
         return table
 
     def _create_it_distribution_section(self, vehicle: VehicleData) -> Table:
@@ -1014,6 +1093,14 @@ class ARGOSPDFGenerator:
             ['Confidenza banda', (vehicle.it_confidence or '—'), wn_label],
             ['Rilevazione', (vehicle.it_scrape_date or '—'), 'Fotografia AS24.it di quel giorno (GAP-2)'],
         ]
+
+        # S270 FIX-B: la col NOTE (n_note, wn_label con "L0:.. L1:.. L2:..") eccede
+        # la colonna 70mm -> reportlab CLIPPA stringhe grezze. Wrap in Paragraph
+        # cosi' il payload "rifai il conto" va a capo invece di essere tagliato.
+        _note_style = ParagraphStyle('it_note', fontName='Helvetica', fontSize=8,
+                                     leading=9, textColor=self.text_secondary)
+        for _r in data[1:]:
+            _r[2] = Paragraph(str(_r[2]), _note_style)
 
         table = Table(data, colWidths=[65*mm, 45*mm, 70*mm])
         table.setStyle(TableStyle([

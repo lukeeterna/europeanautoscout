@@ -79,12 +79,10 @@ def main() -> int:
         dist["is_floor"] = True  # campione cap -> N e' un PAVIMENTO (DELTA-2)
 
         prezzo_de = float(v["prezzo_de"])
-        # _margin_* puntuali (sul mediano) — l'INTERVALLO lo calcola il generatore
-        # dalla banda. Se NO_VERDICT, il gate non emette PASS/REJECT.
-        margin = None
-        if dist.get("median") is not None and not dist.get("no_verdict"):
-            margin = evaluate_margin(prezzo_de, float(dist["median"]))
-
+        # S270: il generatore ricalcola TUTTO l'intervallo margine dalla banda
+        # (via _band_verdict). Qui non serve piu' calcolare i `_margin_*` puntuali
+        # sul mediano (erano inerti): basta `_margin_decision` come gate di
+        # rendering della sezione verdetto. Se NO_VERDICT, niente PASS/REJECT.
         veh = {
             "make": v["gd"]["make"], "model": v["gd"]["model"],
             "year": v["gd"]["year"], "km": v["gd"]["km"],
@@ -95,17 +93,8 @@ def main() -> int:
         }
         if dist.get("no_verdict"):
             veh["_margin_decision"] = "NO_VERDICT"
-        elif margin is not None:
-            veh.update(
-                _margin_decision=margin.decision,
-                _margin_chiavi_in_mano=margin.chiavi_in_mano,
-                _margin_spread_lordo=margin.spread_lordo,
-                _margin_dealer_floor=margin.dealer_floor_amount,
-                _margin_surplus=margin.surplus,
-                _margin_fee_argos=margin.fee_argos,
-                _margin_netto_dealer=margin.margine_netto_dealer,
-                _margin_netto_pct=margin.margine_netto_pct,
-            )
+        elif dist.get("median") is not None:
+            veh["_margin_decision"] = evaluate_margin(prezzo_de, float(dist["median"])).decision
 
         out_path = os.path.join(OUT_DIR, f"ARGOS_DEMO_S268_{v['tag']}.pdf")
         data_json = json.dumps({"vehicles": [veh]})
