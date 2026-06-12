@@ -1,6 +1,6 @@
 # Breadcrumb ripartenza — STATE.md è il source-of-truth
 
-**Generato**: `2026-06-12T14:33:16Z` · sessione `292be5af-85e2-44af-9749-4f583e11672e` · commit auto: DIRTY (vedi /Users/macbook/Documents/combaretrovamiauto-enterprise/.claude/SESSION_DIRTY.md)
+**Generato**: `2026-06-12T14:51:29Z` · sessione `c1fcfea1-5c6c-461c-940d-012c09eaeea9` · commit auto: committed: 6b6d683
 
 > Questo file NON contiene stato. Lo stato reale (anelli E2E, task corrente,
 > prossimi step) è in `STATE.md` — generato da `state/refresh.sh`, unico
