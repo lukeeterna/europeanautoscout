@@ -5,9 +5,40 @@
 ## FINDING S273: la fixture committata (325) era TRONCATA dal cap DEEP_PAGES=20. Verification scrape
 ## (results_per_page=1, max_pages=50) = 770 listing e terminato AL CAP (pagina vuota NON raggiunta) ->
 ## pool reale >770. Calibrazione 330i NO_VERDICT(n=5)/320d(n=13) era su MEZZO pool = INVALIDA.
-## S273-cont = AZIONE UNICA: build_it_fixture DEEP_PAGES->80 su path NUOVO (Rule 1d), run fino a pagina
-## VUOTA, ricomputa tabella + falsifica 330i (era cap o mercato?), re-test s271, commit. POI ITEM B/C/D sotto.
+## S273-cont = build_it_fixture DEEP_PAGES->80 su path NUOVO (Rule 1d) + 3 GATE DI VALIDITA' (ADD-1/2/3
+## sotto) che PRECEDONO il fidarsi dei numeri. Re-test s271, commit. POI ITEM B/C/D sotto.
 ## (Le 2 azioni Luke una-tantum qui sotto restano pendenti: lanciale via '!'.)
+
+## >>> INTEGRAZIONE S273-cont (Luke 2026-06-13, validata sui dati da CC — additiva all'azione unica)
+## Il finding S273 e' piu' grande di "ricalibra 330i": 3 conclusioni empiriche del pivot (config-esatta
+## mai N>=8 / min_n scatta a L3 / "alta" e' codice morto) sono state ratificate sul pool 325 = MEZZO
+## mercato. Sono claim sul MERCATO, non sul codice -> vanno ri-misurate sul pool pieno PRIMA di fidarsene.
+##
+## ADD-1 — RE-DERIVA l'intera tabella L0..L3, non solo la 330i.
+##   Sul pool esaustivo misura ESPLICITAMENTE la profondita' a config ESATTA (L0/L1) per le famiglie
+##   LIQUIDE (320d xDrive, 318d). Domanda decisiva: una tocca N>=8 a L0/L1 sul pool pieno?
+##   SI -> "config esatta e' morta" si ROVESCIA parz. e "alta" NON e' codice morto: banda STRETTA L0/L1,
+##        non larga L3. Il prodotto guadagna precisione reale.   NO -> il pivot regge anche sul pool vero.
+##   Documenta la tabella L0..L3 COMPLETA, non solo il delta 330i. E' la base empirica dell'intero pivot.
+##
+## ADD-2 — il sito PAGINA-CAPPA? (PRIMA di alzare DEEP_PAGES a 80 e inseguire la pagina vuota).
+##   La verification scrape S273 ha pagina 50 ANCORA piena = indistinguibile tra "pool enorme" e "cap >50".
+##   Probe cheap: chiedi una pagina molto alta (es. 200) e osserva. Se AS24 hard-cappa (vuoto/dup/errore
+##   oltre pagina N) -> "esaustivo = pagina vuota" e' INDEFINIBILE, inseguirlo brucia budget; l'unita'
+##   onesta diventa "gli N annunci che il portale ESPONE per query+sort", dichiarata come tale. Se serve
+##   indefinitamente -> la pagina vuota e' il fatto terminale corretto (piano build_it_fixture valido).
+##
+## ADD-3 — il `sort` (RISCRITTO da CC: gia' VERIFICATO sul codice, non e' un bias di prezzo).
+##   FATTO: sort="standard" (autoscout_scraper.py:415; base_scraper.py:295-315 non lo sovrascrive ->
+##   default tiene). NON e' price_asc -> lo scenario "fixture 325 = meta' economica, bande troppo basse"
+##   e' INFONDATO. Inoltre fixture(2026-06-11) e verification(2026-06-13) sono snapshot DIVERSI a 2 giorni:
+##   con sort=rilevanza (ri-rankabile, non chiave deterministica) NON puoi dedurre la direzione del bias dal
+##   delta 325->770. => NON inseguire un bias-prezzo (non esiste). Azione: DICHIARA il campione come
+##   relevance-ordered nel meta della nuova fixture e chiudi la COMPLETEZZA via ADD-2. Niente reorder.
+##
+## ORDINE: ADD-2 (probe pagina-200) PRIMA di scegliere DEEP_PAGES. Poi scrape esaustiva UNICA fresca ->
+## ADD-1 (tabella L0..L3 completa) -> falsifica 330i sul pool vero. ITEM C (dossier reale) NON parte
+## finche' ADD-1/2/3 non hanno dato una base-mercato fidata.
 
 ## STATO INGRESSO (S272 CHIUSA verde — ITEM 1 durabilita' DoD#4-i)
 - commit f50d4b0 + ff4763a su origin. test_s271_render_artifact.py 5/5 (rigenera da fixture in
