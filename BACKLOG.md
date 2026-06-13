@@ -2,6 +2,58 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
+## S273 2026-06-13 — #S273-ASTE [ICEBOX — canale SOURCING #2, NON PLAN item]
+
+### 🧊 Aste giudiziarie IT come canale ACQUISTO — parcheggiato (esito FASE 0: NON-FATTIBILE-ORA senza autorizzazione)
+
+**TRIGGER DI RIEVOCO (entrambi, verificati non assunti)**: (a) primo dossier DE→IT reale
+CHIUSO con un dealer vero (primo CLOSED_WON); (b) baseline AS24 consolidata (pool geo==IT,
+experiment EU-wide OFF). Finché (a)&(b) non sono veri questo NON parte. È il secondo canale,
+non apre il primo. Prossimo lavoro reale = ADD-1 / prezzo_de reale / primo dealer — NON questo.
+
+**ESITO FASE 0 (research S273, provato — non assunto)**:
+- I veicoli vivono SOLO nel circuito IVG (`astagiudiziaria.com/inserzioni/autoveicoli-e-cicli`
+  + singoli IVG `/ricerca/mobili`). NON sul PVP-immobili.
+- `astagiudiziaria.com/robots.txt` (verificato): `Disallow: /` + `Disallow: /json/*` +
+  `Disallow: /stampa-pdf/*`, Allow solo Googlebot/social/GPTBot. → l'endpoint JSON strutturato
+  ESISTE ma è esplicitamente off-limits. Scrape del canale-veicoli = robots-vietato.
+- PVP non ha read-API: i 3 parser OSS noti usano tutti Playwright/browser-scrape, e sono tutti
+  immobiliari/generici (nessuno copre veicoli). Vedi reference sotto.
+- GDPR/Garante: "disponibilità pubblica ≠ legittimità scraping" (avvisi contengono dati personali).
+- **Conclusione**: nessun metodo automatizzato ToS-compliant oggi sul canale-veicoli. Vie pulite =
+  solo autorizzative: MyAsta (alert email ANVG, manuale) o accesso autorizzato/partnership ANVG/IVG.
+  API commerciali (gestionale-aste/miglioriaste) solo SE coprono veicoli E ToS-riuso ok (entrambe
+  immobili-centriche, key "test" da verificare). Scrape robots-vietato = STOP, decisione Luke col
+  rischio legale/reputazionale in chiaro, MAI CC in autonomia.
+
+**MODELLO DI PRODOTTO (vale a prescindere dall'accesso, da preservare se si riapre)**:
+- Asta = canale ACQUISTO (come la Germania), MAI un comparabile. Entra nel verdetto-margine come
+  prezzo-acquisto alternativo; NON entra MAI in `get_it_distribution` (il pool-comp resta AS24
+  geo==IT puro — mischiarla = banda artificialmente bassa = falso-REJECT).
+- Tre prezzi distinti, mai collassati: prezzo_base (perizia, è un'ESCA — errore speculare all'X1) |
+  prezzo_minimo | prezzo_aggiudicazione (reale, noto solo a vendita conclusa). Il margine si calcola
+  sull'AGGIUDICAZIONE stimata. Se non prevedibile → il verdetto DICHIARA il range + incertezza,
+  non finge un punto.
+- Vantaggio strutturale vs DE: auto già in IT, già immatricolata IT → ZERO trasporto (-750) +
+  ZERO re-immatricolazione (-1.165).
+- Rischi-canale DA DICHIARARE nel dossier: rilanci imprevedibili; "visto e piaciuto" no garanzia;
+  stato reale incerto; tempi/burocrazia; cauzione; rischio non-aggiudicazione.
+- Riuso motore esistente (NON nuovo): `evaluate_margin` (tools/margin_gate.py:54) + `_band_verdict`
+  (pdf_generator_enterprise.py:228). chiavi_in_mano_asta = aggiudicazione_stimata + cauzione/oneri
+  (no trasporto, no re-immatr.); spread = banda_AS24_geo_IT − chiavi_in_mano_asta.
+- Gate pre-produzione: test che un record fonte=asta NON entri MAI in `get_it_distribution`; test
+  render (pypdf) che il dossier dichiari fonte + base≠aggiudicazione + frizione-IT-azzerata + rischi
+  + etichetta non dica "dealer"/"mercato".
+
+**REFERENCE FASE 0 (parser PVP OSS, immobiliari — riuso del "come", non del "cosa")**:
+- `lumontech/aste-giudiziarie` (2026-06-07, Flask+Playwright+dashboard) — mattone base più fresco
+- `webextdev/pvp-scraper` (2026-05) — annunci immobiliari PVP
+- `sdelliq/PVP_WebScraping` (2024) — scrape generico PVP
+- BDAG: accesso = identità digitale UMANA (SPID/CIE/CNS/ADN) via SAML/IAMG, nessuna API M2M →
+  presunzione forte solo-istituzionale → da scartare.
+
+**Owner**: chi riapre dopo (a)&(b). **Gating**: NON parte prima del primo CLOSED_WON.
+
 ## S257 2026-06-09 — #S257-1 [CRITICAL PATH — non backlog opzionale, founder verdict]
 
 ### 🔴 Mediana mercato IT è TRIM-BLIND → il verdetto del gate margine non è ancora affidabile

@@ -1,4 +1,4 @@
-════════════════════════════════════════════════════════════════════════════
+Ce ════════════════════════════════════════════════════════════════════════════
  REPORT SESSIONE COMPLETO — S273-cont3 · ARGOS · 2026-06-13
  Branch: s210/audit-master-plan
  Fonte verita': codice + probe reale (NON chat)
