@@ -115,14 +115,35 @@ ESEGUI STEP 1-8 (ordine non comprimibile):
    dell'overwrite base_scraper.py:361. Verifica dataclass Listing (models.py) frozen?.
 3. FILTRO comp geo==IT al layer COMP (get_it_distribution/it_market_price), sul
    campo NUOVO, NON sul `country` (test "zero country!=IT" passa SEMPRE = falso).
-4. Rebuild fixture _s273.json: terminatore "zero-nuovi-IT" (filter-then-terminate
-   sul set IT-only, MAI stop su pagine all-padding) + filtro geo.
-5. ADD-1 tabella L0..L3 sul pool pulito (320d xDrive/318d toccano N>=8 a L0/L1?
-   falsifica 330i NO_VERDICT / min_n=8).
+4. [CORRETTO cont3 — purezza != completezza] Rebuild fixture _s273.json SOTTO
+   A/B==OFF VERIFICATO:
+   - pre-check pag.1 al build: leggi isEuWideCountExperimentActive.
+       ON  -> ABORTA il build, ritenta dopo qualche minuto (build one-time:
+              aspettare OFF e' accettabile; NON tentare di catturare ON).
+       OFF -> procedi. Registra il flag NEL METADATO della fixture.
+   - terminatore = PAGINA VUOTA (0 listing), NON "zero-nuovi-IT": sotto ON
+     zero-nuovi-IT == pagina all-padding -> auto-contraddittorio = stop precoce
+     su strato padding = pool puro ma INCOMPLETO (falso-completo); sotto OFF
+     pag.>ultima e' vuota (cont2 P23/P40) = IT esaurito, terminatore corretto.
+   - geo-filter (STEP 3) = PUREZZA; A/B-OFF + pagina-vuota = COMPLETEZZA. Due
+     garanzie SEPARATE: il geo-filter NON copre la completezza (errore concl. cont3).
+5. ADD-1 tabella L0..L3 + PARITA' PROFONDITA' calibrazione<->produzione:
+   produzione max_pages=10 = ~200/419 (~48%) del pool IT = TRONCATO dal ranking.
+   min_n calibrato sul pool PROFONDO e' OTTIMISTA per una produzione a max_pages=10.
+   VERIFY-FIRST: il path on-demand/ITEM C usa config max_pages=10 o un override?
+   (leggi tools/on_demand_runner.py, NON assumere). DECISIONE Luke (scope): ITEM C
+   gira sul PATH PROFONDO (loop-bound STEP 1 -> stop pagina-vuota), NON max_pages=10;
+   OPPURE si DICHIARA che la produzione fa NO_VERDICT piu' spesso della fixture.
+   Nomina quale. -> fix #1 load-bearing anche per ITEM C, non solo la fixture.
+   (320d xDrive/318d toccano N>=8 a L0/L1? falsifica 330i NO_VERDICT / min_n=8).
 6. ADD-4 al RENDER (pypdf, NON grep): label "Fascia prezzi richiesti AS24.it"
    + assert anti-drift in test_s271.
-7. GATE repo fixture-validation: RIFIUTA pool non-fidato (terminatore zero-nuovi-IT;
-   ZERO geo!=IT su location.countryCode reale; metadato completezza-validata).
+7. [RAFFORZATO cont3] GATE repo fixture-validation: RIFIUTA pool se manca UNO di:
+   (a) metadato isEuWideCountExperimentActive==OFF;
+   (b) ZERO geo!=IT su location.countryCode reale;
+   (c) terminatore=pagina-vuota raggiunto (NON cap, NON zero-nuovi-IT).
+   Una fixture A/B-ON = SOSPETTA per default anche se 100% geo==IT (pura ma
+   potenzialmente incompleta = falso-completo, gemello del falso-PASS).
 8. Re-test (fixture + test_s271 5/5) -> commit + PUSH. POI ITEM B/C/D.
 
 PENDENTE gate_e: indicizza feedback_eos_full_report_textedit dopo approvazione Luke.
