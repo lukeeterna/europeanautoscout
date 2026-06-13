@@ -1,6 +1,14 @@
 # BRIEF CC — ARGOS · ROADMAP S273→S275 verso DAY-1 (primo dossier reale a dealer vero)
 # Branch s210/audit-master-plan · Fonte verita': codice + git. Chat NON e' fonte.
 
+## >>> S273 PARZIALE — ITEM A NON chiuso (handoff su context-gate). DETTAGLIO: .claude/REPORT_S273.txt
+## FINDING S273: la fixture committata (325) era TRONCATA dal cap DEEP_PAGES=20. Verification scrape
+## (results_per_page=1, max_pages=50) = 770 listing e terminato AL CAP (pagina vuota NON raggiunta) ->
+## pool reale >770. Calibrazione 330i NO_VERDICT(n=5)/320d(n=13) era su MEZZO pool = INVALIDA.
+## S273-cont = AZIONE UNICA: build_it_fixture DEEP_PAGES->80 su path NUOVO (Rule 1d), run fino a pagina
+## VUOTA, ricomputa tabella + falsifica 330i (era cap o mercato?), re-test s271, commit. POI ITEM B/C/D sotto.
+## (Le 2 azioni Luke una-tantum qui sotto restano pendenti: lanciale via '!'.)
+
 ## STATO INGRESSO (S272 CHIUSA verde — ITEM 1 durabilita' DoD#4-i)
 - commit f50d4b0 + ff4763a su origin. test_s271_render_artifact.py 5/5 (rigenera da fixture in
   tempdir, ricomputa i bound dalle helper, asserisce stream pypdf). Falsifier verificato: header

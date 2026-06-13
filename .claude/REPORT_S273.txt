@@ -1,0 +1,53 @@
+S273 — ITEM A (calibrazione DoD#4-ii) — HANDOFF su context-gate #7 (no PARTIAL)
+Branch s210/audit-master-plan. Fonte verita': codice + git + /tmp/s273_scrape.log.
+
+== 2 AZIONI LUKE UNA-TANTUM (ancora pendenti, dal brief S272) ==
+  ! python3 .harness/gate_e.py approve overwrite_sot-dc04f63aaf   (poi CC ri-fa l'Edit indice MEMORY)
+  ! git checkout -- tests/dossiers_s268/                          (PDF demo: diff = solo timestamp; verificato)
+  (Ho tentato io il checkout -> denied: lo lanci tu via '!'. NON re-tentato.)
+
+== VERIFICA RATE-LIMIT (fatta PRIMA dello scrape, su codice reale) ==
+- `results_per_page` NON entra nell'URL (autoscout_scraper.build_search_url:448-472): e' solo la
+  SOGLIA di break interna (base_scraper:374). =1 -> break solo su pagina VUOTA. Quindi richieste
+  esaustive = N_listing/20 (~24 pagine), NON ~325. Il "325" del brief era il conteggio LISTING.
+- Nessun DAILY_LIMIT/Semaphore nel path scrape (il DAILY_LIMIT=30 e' contatti-dealer CoVe, altro).
+- NUOVO: esiste burst-pause base_scraper (_rate_limit_sleep): 33s ogni 30 richieste. Benigno (rallenta).
+- Verdetto: rischio-blocco AS24 trascurabile -> proceduto (il brief imponeva STOP solo se reale).
+
+== FINDING DECISIVO: LA FIXTURE COMMITTATA ERA TRONCATA DAL CAP ==
+- tests/fixtures/it_dist_bmw_serie3_2021.json: n_raw=325, scrape_date 2026-06-11, DEEP_PAGES=20.
+- Verification scrape (results_per_page=1, max_pages=50): a pagina 30/50 gia' 474 unici, PAGINE PIENE
+  (20/pag), ancora in corso -> il vero pool e' >>325. La fixture 325 era CAP-TRUNCATED, non esaustiva.
+- => La calibrazione sotto (su 325) e' INVALIDA come gate di mercato. Va RIFATTA sul pool completo.
+
+== CALIBRAZIONE su pool 325 (TRONCATO -> da rifare, registrata per delta) ==
+  320d xDrive : n=13  L3  no_verdict=False  banda 33200..39950  conf=bassa(fusione_trim)
+  330i        : n=5   L3  no_verdict=True   NO_VERDICT          width=indeterminato
+- test_it_distribution_fixture: 7/7 OK (invarianti strutturali, non numeri di mercato).
+- test_s271_render_artifact: 5/5 PASS sulla fixture attuale.
+- ATTENZIONE: su >474 il 330i potrebbe passare min_n=8 -> il NO_VERDICT era IL CAP, non il mercato.
+  Questa e' la falsificazione che il brief chiedeva: VA CHIUSA sul pool completo (S273-cont).
+
+== STATO ITEM A — verification scrape COMPLETATO (exit 0) ==
+- TERMINAL_FACT n_raw=770 n_priced=770. MA terminato AL CAP (pagina 50/50 ANCORA PIENA 20 listing,
+  log "Completato ... in 50 pagine", NESSUNA riga "Nessun listing"): la PAGINA VUOTA non e' raggiunta
+  nemmeno a 50 pagine -> pool reale >770. La fixture 325 era troncata di OLTRE 2x.
+- => S273-cont DEVE alzare il cap finche' compare "Nessun listing in pagina K" (fatto terminale vero).
+  Parti da DEEP_PAGES=80 (770/20~=39 pagine note piene; margine per la coda).
+- NON persistito: la run di verifica conta soltanto, non scrive fixture (per non raddoppiare carico AS24).
+
+== RESUME S273-cont (1 sola azione, ~30 min) ==
+1. Rebuild fixture ESAUSTIVA persistente. Edita tools/scripts/build_it_fixture.py:38 DEEP_PAGES=20->60
+   e scrivi su PATH NUOVO (OUT con suffisso _s273, NON overwrite -> Rule 1d safe), oppure backup-per-stat
+   della fixture vecchia PRIMA. Run: python3 -m tools.scripts.build_it_fixture. Fatto terminale = log
+   "Nessun listing in pagina K" (pagina vuota) PRIMA del cap 60.
+2. Ricomputa la tabella su pool completo: python3 -m tools.tests.test_it_distribution_fixture
+   (punta FIXTURE al nuovo path). Leggi N_L0..L3 per 320d e 330i.
+3. FALSIFICA: 330i ancora NO_VERDICT a config esatta su pool completo? min_n=8 regge? Documenta il delta
+   vs 325 (n=5 -> n=?). Se il verdetto 330i cambia, il suo PDF cambia: NON e' regressione (test by-design
+   ricomputa i bound) -> documenta.
+4. Commit nuova fixture + REPORT delta. Poi ITEM B (demo canonico vs campione, DECISIONE LUKE) e ITEM C.
+
+== INVARIATO ==
+system python3 mai .venv. No scope creep (no short-page-28-portali, no mobile.de, no sourcing auto).
+ITEM C dipende da 1 auto reale fornita da Luke (dipendenza voluta). Chiudi a 60%. No PARTIAL.
