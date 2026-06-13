@@ -1,0 +1,131 @@
+════════════════════════════════════════════════════════════════════════════
+ REPORT SESSIONE COMPLETO — S273-cont3 · ARGOS · 2026-06-13
+ Branch: s210/audit-master-plan
+ Fonte verita': codice + probe reale (NON chat)
+ Commit sessione: e64e97d (STEP 0-bis) + breadcrumb close
+════════════════════════════════════════════════════════════════════════════
+
+────────────────────────────────────────────────────────────────────────────
+0. ESITO IN UNA RIGA
+────────────────────────────────────────────────────────────────────────────
+STEP 0-bis CHIUSO con dato decisivo: A/B "EuWide" NON osservabile in sessione
+(6/6 fetch False) -> CORR-2 resta [BLOCKED-ON: A/B ON], onesto. Geo-filter
+giustificato comunque (correttezza-comp). Diagnosi over-collection 834 chiusa
+sui dati. STEP 1-8 (modifica 28-portali) NON aperti per R3+budget. VERDE, no PARTIAL.
+
+────────────────────────────────────────────────────────────────────────────
+1. EVIDENZE DI PROGRESSO — cosa e' VERIFICATO sui dati (non narrato)
+────────────────────────────────────────────────────────────────────────────
+
+[E-1] PROBE A/B ON (tools/scripts/s273cont3_probe_ab.py) — OUTPUT RAW REALE:
+  === S273-cont3 STEP 0-bis — cattura A/B ON ===
+  [try 1] A/B=False numberOfResults=419 numberOfPages=22 listings_pag1=19
+  [try 2] A/B=False numberOfResults=419 numberOfPages=22 listings_pag1=19
+  [try 3] A/B=False numberOfResults=419 numberOfPages=22 listings_pag1=19
+  [try 4] A/B=False numberOfResults=419 numberOfPages=22 listings_pag1=19
+  [try 5] A/B=False numberOfResults=419 numberOfPages=22 listings_pag1=19
+  [try 6] A/B=False numberOfResults=419 numberOfPages=22 listings_pag1=19
+  A/B states osservati: [False, False, False, False, False, False]
+  ESITO: A/B ON NON catturato -> [BLOCKED-ON: A/B ON non osservabile in sessione]
+  -> Query: BMW Serie 3 2019-2023, sort=standard. 6 sessioni HTTP fresche.
+  -> Lettura: A/B stabilmente OFF => nessun padding (pag.>22 = vuote, cfr cont2
+     P23/P40). Quindi NON c'era alcun listing oltre pag.22 da classificare
+     geo!=IT. CORR-2 ("padding = geo!=IT") NON confermabile NE' falsificabile
+     ora -> resta [BLOCKED-ON], non spacciato per fatto.
+
+[E-2] CAMPO GEO REALE (verificato cont2, confermato base):
+  pageProps.listings[].location.{countryCode,zip,city} esiste, coverage 100% IT
+  su pag.1 E pag.20. NON usare il campo `country` salvato: base_scraper.py:361
+  lo forza a config.countries[0]="IT" -> un test "zero country!=IT" passa SEMPRE
+  = falsa sicurezza (FINDING-NUOVO cont2). Il geo vero = location.countryCode.
+
+[E-3] DIAGNOSI OVER-COLLECTION 834 — CHIUSA SUL CODICE:
+  - config.py:163-171 autoscout24_it -> results_per_page=20, max_pages=10.
+    Produzione: range(1,11) -> cap 10x20=200. L'834 NON puo' nascere qui.
+  - L'834 (E2 S273-cont) viene dal path fixture-build DEEP (DEEP_PAGES>=80, cfr
+    memory s273_fixture_truncated_cap): max_pages alzato a ~80 -> range(1,81).
+  - base_scraper.py:310 `for page_num in range(1, max_pages+1)`: il range e'
+    valutato UNA volta sola. Il clamp get_total_pages (righe 335-339) riassegna
+    max_pages DENTRO il loop -> NO-OP sul bound (cambia solo il log riga 369).
+    => max_pages=80 + A/B ON (pagine mai short/empty) = collezione fino a ~1600
+       -> 834. In A/B OFF il break empty-html (:326) ferma da solo.
+  - CONCLUSIONE: fix loop-bound (STEP 1) = LOAD-BEARING per il path fixture
+    (max_pages alto), GUARDRAIL ridondante per la produzione (max_pages=10).
+
+[E-4] GIUSTIFICAZIONE GEO-FILTER, indipendente dal padding:
+  Un dealer estero su AS24.it (location.countryCode=DE/FR/...) inquina un comp
+  "mercato IT" anche nel pool NORMALE, senza padding. Il filtro comp geo==IT
+  serve alla CORRETTEZZA del comp a prescindere dall'A/B -> STEP 2-3 NON sono
+  over-engineering anche se il padding non si e' ripresentato.
+
+────────────────────────────────────────────────────────────────────────────
+2. STATO E2E PIPELINE (onesto — cosa NON e' stato toccato)
+────────────────────────────────────────────────────────────────────────────
+- Pipeline E2E completa (scrape->CoVe->PDF->outreach) NON eseguita in cont3:
+  sessione focalizzata sul gate STEP 0-bis (misura empirica), non su un run E2E.
+- Il valore di cont3 e' UPSTREAM dell'E2E: garantire un POOL/COMP pulito e
+  filtrato e' la pre-condizione perche' il dossier (ITEM C) non dica "no" a un
+  dealer su un'auto buona per colpa di un comp sporco (CORR-5).
+- ITEM C (dossier reale) resta gated su: baseline pulita + filtrata +
+  completezza-validata (STEP 1-8) E 1 auto reale di Luke.
+- Nessuna modifica a base_scraper / autoscout_scraper / fixture / test_s271:
+  STEP 1-8 aperti, intatti.
+
+────────────────────────────────────────────────────────────────────────────
+3. STATO REPO (commit reali)
+────────────────────────────────────────────────────────────────────────────
+- e64e97d  S273-cont3 close: STEP 0-bis chiuso (3 file, +258)
+           NUOVO tools/scripts/s273cont3_probe_ab.py (probe riproducibile)
+           NUOVO .claude/REPORT_SESSIONE_S273cont3.md
+- breadcrumb refresh .claude/NEXT_SESSION_PROMPT.md (pushato)
+- MEMORY.md (fuori repo): +1 riga-indice file project s272_item1_render_artifact
+  (token gate_e dc04f63aaf consumato; Edit passata).
+
+────────────────────────────────────────────────────────────────────────────
+4. PENDENTE (azione Luke)
+────────────────────────────────────────────────────────────────────────────
+gate_e: 1 file-memoria ancora da indicizzare = feedback_eos_full_report_textedit
+(sezione feedback, diversa da quella gia' editata -> nuova consumazione token).
+Comando da nuovo terminale (da home):
+  cd ~/Documents/combaretrovamiauto-enterprise && python3 .harness/gate_e.py approve overwrite_sot-dc04f63aaf
+Poi in cont4 CC fa 1 Edit-indice MEMORY.md per quel file.
+
+────────────────────────────────────────────────────────────────────────────
+5. NEXT PROMPT — S273-cont4 (COPIA-INCOLLA)
+────────────────────────────────────────────────────────────────────────────
+Leggi .claude/REPORT_S273cont2_INTEGRAZIONE.md (piano STEP 1-8) e
+.claude/REPORT_SESSIONE_S273cont3.md (STEP 0-bis chiuso). Branch
+s210/audit-master-plan. Fonte verita' = codice + log scrape reale, NON chat.
+
+STEP 0/0-bis CHIUSI: geo=location.countryCode esiste+affidabile (100% IT).
+CORR-2 = [BLOCKED-ON: A/B ON non osservabile] (6/6 False in cont3) -> NON
+ri-provare a catturare A/B (gia' fatto, sterile). Geo-filter procede
+giustificato da CORRETTEZZA-COMP (dealer estero su .it inquina comp IT),
+NON dall'anti-padding. Diagnosi 834 gia' chiusa (path fixture DEEP max_pages
+alto + clamp no-op; NON la produzione max_pages=10).
+
+ESEGUI STEP 1-8 (ordine non comprimibile):
+1. FIX loop-bound base_scraper.py:310 — dopo process pagina:
+   `if total_pages is not None and page_num >= total_pages: break`
+   (total_pages = get_total_pages letto a pag.1). Tieni break short-page :374
+   e empty-html :326. No-regression: 1 scrape reale su 1 portale DE noto,
+   n NON crolli a 0. DELEGA a backend-architect (tocca 28 portali, review chirurgica).
+2. PERSISTI geo dal raw nel parser autoscout (_parse_next_data / item->Listing):
+   item.location.countryCode/zip/city -> campo NUOVO su Listing PRIMA
+   dell'overwrite base_scraper.py:361. Verifica dataclass Listing (models.py) frozen?.
+3. FILTRO comp geo==IT al layer COMP (get_it_distribution/it_market_price), sul
+   campo NUOVO, NON sul `country` (test "zero country!=IT" passa SEMPRE = falso).
+4. Rebuild fixture _s273.json: terminatore "zero-nuovi-IT" (filter-then-terminate
+   sul set IT-only, MAI stop su pagine all-padding) + filtro geo.
+5. ADD-1 tabella L0..L3 sul pool pulito (320d xDrive/318d toccano N>=8 a L0/L1?
+   falsifica 330i NO_VERDICT / min_n=8).
+6. ADD-4 al RENDER (pypdf, NON grep): label "Fascia prezzi richiesti AS24.it"
+   + assert anti-drift in test_s271.
+7. GATE repo fixture-validation: RIFIUTA pool non-fidato (terminatore zero-nuovi-IT;
+   ZERO geo!=IT su location.countryCode reale; metadato completezza-validata).
+8. Re-test (fixture + test_s271 5/5) -> commit + PUSH. POI ITEM B/C/D.
+
+PENDENTE gate_e: indicizza feedback_eos_full_report_textedit dopo approvazione Luke.
+INVARIATO: system python3 mai .venv. No scope creep oltre fix #1. ITEM C dipende
+da 1 auto reale di Luke. Chiudi a 60%. No PARTIAL.
+════════════════════════════════════════════════════════════════════════════
