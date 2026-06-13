@@ -104,7 +104,7 @@ R4. Costo-zero rispettato: nessuna libreria, nessun servizio. Il dato (numberOfP
 ────────────────────────────────────────────────────────────────────────────
 5. NEXT PROMPT — S273-cont2 (copia-incolla a inizio sessione)
 ────────────────────────────────────────────────────────────────────────────
-Leggi .claude/REPORT_S273_cont.txt e .claude/REPORT_SESSIONE_S273cont.txt.
+Leggi .claude/REPORT_S273_cont.md e .claude/REPORT_SESSIONE_S273cont.md.
 Branch s210/audit-master-plan. Fonte verita' = codice + git + log scrape, NON chat.
 
 STEP (ordine non comprimibile):

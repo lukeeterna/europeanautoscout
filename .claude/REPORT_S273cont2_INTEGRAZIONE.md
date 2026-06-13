@@ -1,6 +1,6 @@
 ════════════════════════════════════════════════════════════════════════════
  S273-cont2 — INTEGRAZIONE VALIDATA (Luke judge + CC code-check) · 2026-06-13
- Additiva agli STEP di .claude/REPORT_S273_cont.txt. Questi correggono ordine,
+ Additiva agli STEP di .claude/REPORT_S273_cont.md. Questi correggono ordine,
  gate, architettura. Fonte: codice + log E2/E3 sessione S273-cont.
 ════════════════════════════════════════════════════════════════════════════
 
