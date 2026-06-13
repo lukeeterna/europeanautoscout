@@ -50,10 +50,18 @@
 ##   margine (parz. compensato dal prezzo_de anch'esso negoziabile; sui premium lo sconto IT in valore
 ##   assoluto probabilmente domina). FIX di sola ETICHETTA, NON modello di sconto (paralisi = fallimento
 ##   opposto, fuori da Day-1):
-##   PRECOND (CC, anti-spreco): LEGGI prima la stringa header reale in pdf_generator_enterprise.py /
-##     it_market_price.py. NON verificato che l'headline oggi dica "Prezzo mercato Italia"; potrebbe gia'
-##     essere neutra -> se lo e', il rename #1 e' no-op, resta solo #2.
-##   1. SE header over-dichiara ("Banda mercato IT"/"Prezzo mercato Italia") -> "Fascia prezzi richiesti AS24.it".
+##   PREMESSA CONFERMATA ALL'ARTEFATTO (Luke, render S269 letto cella-per-cella): le label erano
+##     "Banda mercato IT" (header), "Prezzo mercato Italia" (riga verdetto), "Banda prezzo IT" (distribuz.)
+##     -> sovra-dichiarano la fonte. Il grep CC sul literal "Prezzo mercato Italia" NON le trova: stringa
+##     COSTRUITA dinamicamente / fuori scope tools/ -> FALSO-NEGATIVO del grep, NON prova di neutralita'
+##     (stesso schema grep-cieco/render-parlante di S268). NON concludere "neutra" da un grep-miss.
+##   VERIFICA STATO CORRENTE AL RENDER, non al grep (S270/S271 han toccato il margine, non risulta la
+##     banda; ma va ri-letto sul render attuale, costo zero): estrai le label header+riga-banda dai 2 PDF
+##     rigenerati in tempdir da test_s271 (pypdf, gia' installato). Per il rename, traccia la COSTRUZIONE
+##     della label (e' dinamica), non il literal.
+##   1. SE dicono ancora "mercato Italia"/"Banda mercato IT" (atteso) -> "Fascia prezzi richiesti AS24.it".
+##      SE gia' neutra (improbabile) -> nessun rename, documenta. In ENTRAMBI i casi aggiungi a test_s271
+##      un assert sulla label header corrente -> cattura il drift futuro (lezione grep-miss/render).
 ##   2. Riga-limite nel dossier: "Fascia su prezzi RICHIESTI (annunci), non di transazione; i prezzi
 ##      realizzati sono tipicamente inferiori." Dichiarazione, NON correzione numerica. Haircut = POST-Day-1.
 ##   Luke (dominio) giudica se lo scarto conta sul caso reale ITEM C.
