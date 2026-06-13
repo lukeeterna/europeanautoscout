@@ -500,6 +500,43 @@ class AutoScoutScraper(BaseScraper):
         """Wrapper per compatibilità con BaseScraper (usa parse_listings con defaults)."""
         return self.parse_listings(html, country=self._country, make='', model='')
 
+    def get_total_pages(self, html: str) -> Optional[int]:
+        """Estrae il numero totale di pagine dichiarato da AutoScout24.
+
+        AS24 (Next.js) espone in __NEXT_DATA__.props.pageProps:
+          - numberOfPages   (paginazione reale per la query)
+          - numberOfResults (totale annunci per la query)
+        Questo e' il FATTO TERMINALE pulito per lo scrape esaustivo (S273 ADD-2,
+        terminatore "a"): il loop base clampa max_pages a questo valore e si ferma
+        all'ultima pagina REALE, senza raccogliere il padding/recommendation che
+        AS24 serve OLTRE l'ultima pagina (id nuovi -> il dedup-by-id non li ferma,
+        causa dell'over-collection 770 vs pool reale ~416 osservata in S273).
+        Ritorna None se il blob non e' presente/parsabile (fallback: max_pages config).
+        """
+        m = re.search(
+            r'<script\s+id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL
+        )
+        if not m:
+            return None
+        try:
+            pp = json.loads(m.group(1)).get("props", {}).get("pageProps", {})
+        except (json.JSONDecodeError, ValueError):
+            return None
+        n_results = pp.get("numberOfResults")
+        n_pages = pp.get("numberOfPages")
+        # stash per meta-fixture onesto (S273): totali DICHIARATI da AS24
+        if isinstance(n_results, int):
+            self._last_declared_results = n_results
+        if isinstance(n_pages, int):
+            self._last_declared_pages = n_pages
+        if isinstance(n_pages, int) and n_pages > 0:
+            return n_pages
+        if isinstance(n_results, int) and n_results > 0:
+            # SSR page-size reale AS24 ~20; NON usare config.results_per_page,
+            # che build_it_fixture forza a 1 come soglia-break interna (S266).
+            return max(1, -(-n_results // 20))
+        return None
+
     def parse_listings(
         self, html: str, country: str, make: str, model: str
     ) -> List[Listing]:

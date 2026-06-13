@@ -35,9 +35,12 @@ MAKE = "BMW"
 MODEL = "Serie 3"
 YEAR = 2021
 YEAR_SPAN = 2
-DEEP_PAGES = 20  # tetto pagine per la scrape profonda
-
-OUT = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "it_dist_bmw_serie3_2021.json"
+DEEP_PAGES = 60  # tetto-di-sicurezza; il vero terminatore e' get_total_pages
+# (S273 ADD-2): AS24 dichiara numberOfPages -> base_scraper clampa max_pages a
+# quel valore (~22) e si ferma all'ultima pagina REALE. DEEP_PAGES alto = solo
+# guard se il blob mancasse. Path NUOVO (Rule 1d: additivo, non sovrascrive la
+# fixture committata cap-truncated 325).
+OUT = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "it_dist_bmw_serie3_2021_s273.json"
 
 
 def main() -> int:
@@ -68,7 +71,14 @@ def main() -> int:
             "scrape_date": date.today().isoformat(),
             "source": "AutoScout24.it",
             "n_raw": n, "n_priced": n_priced,
-            "technique": "results_per_page=1 runtime override (S266, bypass short-page break)",
+            "declared_results": getattr(scraper, "_last_declared_results", None),
+            "declared_pages": getattr(scraper, "_last_declared_pages", None),
+            "terminator": "get_total_pages/numberOfPages clamp (S273 ADD-2, term. a)",
+            # ADD-3: campione ordinato per RILEVANZA (sort=standard), NON per prezzo
+            # -> nessun price-bias; la banda riflette tutto il pool, non una meta'.
+            "sort": "standard (relevance-ordered)",
+            "price_field": "prezzi RICHIESTI (annunci), non di transazione (ADD-4)",
+            "technique": "results_per_page=1 runtime override (S266) + numberOfPages clamp (S273)",
         },
         "listings": [l.to_dict() for l in raw],
     }
