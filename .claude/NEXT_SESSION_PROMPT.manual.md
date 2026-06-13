@@ -23,10 +23,18 @@
 ##
 ## ADD-2 — il sito PAGINA-CAPPA? (PRIMA di alzare DEEP_PAGES a 80 e inseguire la pagina vuota).
 ##   La verification scrape S273 ha pagina 50 ANCORA piena = indistinguibile tra "pool enorme" e "cap >50".
-##   Probe cheap: chiedi una pagina molto alta (es. 200) e osserva. Se AS24 hard-cappa (vuoto/dup/errore
-##   oltre pagina N) -> "esaustivo = pagina vuota" e' INDEFINIBILE, inseguirlo brucia budget; l'unita'
-##   onesta diventa "gli N annunci che il portale ESPONE per query+sort", dichiarata come tale. Se serve
-##   indefinitamente -> la pagina vuota e' il fatto terminale corretto (piano build_it_fixture valido).
+##   GAP VERIFICATO (CC): il break base_scraper.py:374 usa len(page_listings) RAW, NON len(all_listings)
+##   unici (dedup :364-366). Una pagina-di-DUPLICATI al cap (20 raw, 0 nuovi) NON rompe -> il build_it_fixture
+##   attuale NON distingue pool-esaurito da cap-a-duplicati. Quindi "pagina vuota" nuda e' insufficiente.
+##   TERMINATORE in ordine di robustezza:
+##     (a) PRIMA verifica get_total_pages(html) a pagina 1 (base_scraper.py:333-336 lo legge gia' e clampa
+##         max_pages): se AS24 espone il totale -> fatto terminale = "raggiunto total_pages dichiarato",
+##         piu' pulito e cheap della probe. Se ritorna None -> (b).
+##     (b) probe pagina alta (es. 200): se hard-cappa (vuoto/dup/errore) -> "esaustivo" INDEFINIBILE, unita'
+##         onesta = "N annunci che il portale ESPONE per query+sort", dichiarata come tale.
+##     (c) termina su ZERO nuovi listing_id su 2-3 pagine consecutive (non sulla prima vuota); FLAG
+##         "hard-cap sospetto" se n si ferma a numero tondo (1000/2000) o compaiono listing_id duplicati.
+##   Documenta QUALE dei tre: cambia il significato della tabella ADD-1 (pool vero vs fetta-max-esposta).
 ##
 ## ADD-3 — il `sort` (RISCRITTO da CC: gia' VERIFICATO sul codice, non e' un bias di prezzo).
 ##   FATTO: sort="standard" (autoscout_scraper.py:415; base_scraper.py:295-315 non lo sovrascrive ->
@@ -36,7 +44,21 @@
 ##   delta 325->770. => NON inseguire un bias-prezzo (non esiste). Azione: DICHIARA il campione come
 ##   relevance-ordered nel meta della nuova fixture e chiudi la COMPLETEZZA via ADD-2. Niente reorder.
 ##
-## ORDINE: ADD-2 (probe pagina-200) PRIMA di scegliere DEEP_PAGES. Poi scrape esaustiva UNICA fresca ->
+## ADD-4 — onesta' di FONTE (stessa classe dell'header-margine S270). PRECONDIZIONE: VERIFICA prima.
+##   La banda = "prezzi RICHIESTI su AutoScout24.it", non "prezzo mercato Italia"; richiesto != transato
+##   (i dealer trattano al ribasso) -> banda su richiesti SOVRASTIMA il ricavo realizzabile -> gonfia il
+##   margine (parz. compensato dal prezzo_de anch'esso negoziabile; sui premium lo sconto IT in valore
+##   assoluto probabilmente domina). FIX di sola ETICHETTA, NON modello di sconto (paralisi = fallimento
+##   opposto, fuori da Day-1):
+##   PRECOND (CC, anti-spreco): LEGGI prima la stringa header reale in pdf_generator_enterprise.py /
+##     it_market_price.py. NON verificato che l'headline oggi dica "Prezzo mercato Italia"; potrebbe gia'
+##     essere neutra -> se lo e', il rename #1 e' no-op, resta solo #2.
+##   1. SE header over-dichiara ("Banda mercato IT"/"Prezzo mercato Italia") -> "Fascia prezzi richiesti AS24.it".
+##   2. Riga-limite nel dossier: "Fascia su prezzi RICHIESTI (annunci), non di transazione; i prezzi
+##      realizzati sono tipicamente inferiori." Dichiarazione, NON correzione numerica. Haircut = POST-Day-1.
+##   Luke (dominio) giudica se lo scarto conta sul caso reale ITEM C.
+##
+## ORDINE: ADD-2 (get_total_pages / probe / dedup) PRIMA di scegliere DEEP_PAGES. Poi scrape esaustiva UNICA fresca ->
 ## ADD-1 (tabella L0..L3 completa) -> falsifica 330i sul pool vero. ITEM C (dossier reale) NON parte
 ## finche' ADD-1/2/3 non hanno dato una base-mercato fidata.
 
