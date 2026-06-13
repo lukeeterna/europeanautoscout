@@ -92,7 +92,31 @@ Leggi .claude/REPORT_S273cont2_INTEGRAZIONE.md (piano STEP 1-8) e
 .claude/REPORT_SESSIONE_S273cont2.md (STEP 0 chiuso: geo=location.countryCode).
 Branch s210/audit-master-plan. Fonte verita' = codice + log scrape, NON chat.
 
-STEP 0 GIA' FATTO. Riprendi da STEP 1 (ordine non comprimibile):
+STEP 0 PARZIALE — VERIFICATO il campo geo ESISTE (location.countryCode/zip/city,
+100% IT su pag.1+pag.20). NON VERIFICATO che tagghi il padding: con A/B OFF non
+e' stato osservato NESSUN listing non-IT. CORR-2 resta [UNVERIFIED], non "vero".
+
+STEP 0-bis (PRIMA di STEP 1, cheap, chiude il buco onesto):
+ - Re-probe MIRATO a catturare lo stato A/B ON (isEuWideCountExperimentActive=True).
+   Ripeti il probe (tools/scripts/s273cont2_probe_geo.py) finche' il flag e' True,
+   poi leggi i listing OLTRE pag.22: hanno location.countryCode!=IT? -> SOLO allora
+   CORR-2 e' confermato/falsificato sui DATI. Se non riesci a catturare A/B ON in
+   ~3-4 fetch, FLAG [BLOCKED-ON: A/B ON non osservabile in sessione] e prosegui col
+   geo-filter giustificato da (correttezza-comp, sotto), non dall'anti-padding.
+ - Diagnostica 834: l'over-collection era results_per_page=1 (disabilita il break
+   short-page :374) + A/B ON? Verifica: con A/B OFF pag.23/40=VUOTE -> il break
+   short-page basta gia'. Decidi se il fix loop-bound (STEP 1) e' la causa o solo
+   un guardrail ridondante in questo stato.
+ - INTERLACCIAMENTO: se il padding e' mescolato per-pagina (non appeso in coda),
+   il terminatore "zero-nuovi-IT" deve FILTRARE-poi-terminare sul set IT-only, MAI
+   stop su pagine all-padding consecutive (troncherebbe il pool IT vero).
+
+GIUSTIFICAZIONE GEO-FILTER (load-bearing INDIPENDENTE dal padding): un dealer
+estero su AS24.it (countryCode=DE/FR...) inquina un comp "mercato IT" anche nel
+pool normale. Il filtro geo==IT serve alla CORRETTEZZA del comp a prescindere
+dall'A/B -> NON e' over-engineering anche se il padding non si ripresenta.
+
+STEP 1 (ordine non comprimibile):
 1. FIX loop-bound base_scraper.py: range(1,max_pages+1) pre-vincolato -> il clamp
    get_total_pages e' no-op. Dopo aver processato la pagina:
    `if total_pages is not None and page_num >= total_pages: break`. Tieni il break
