@@ -73,24 +73,41 @@ azione che innescherà Gate E (classe `outreach_real`).
 
 ---
 
-## 3. Prossimi step (S248)
+## 3. Prossimi step (S249 · coverage-check ESEGUITO)
 
-1. **Gate E refinement — PROSSIMO work-item gated, NON "BACKLOG un giorno"** (verdetto Claude AI S247).
-   Far scattare il gate SOLO sugli operandi reali (numero destinatario, path-file effettivi, edit reale
-   del file-hook), MAI sul testo del commit message — il match sulla prosa è un errore di categoria
-   (FP illimitati, zero veri-positivi extra). + restringere `*.db` al path del DB source-of-truth.
-   + `ARGOS_HARNESS_UNLOCK=1` come escape manutenzione di gate_e + `gate_e.py` in PROTECTED_FILES di
-   state_guard. Disciplina: edit → selftest+E2E → land (verify-then-land). Trigger: FP sostenuto sposta
-   il decadimento da auto-disciplina-AI a vigilanza-umana = stesso failure-mode che l'apparato impedisce.
-2. **COVERAGE-CHECK (production-blocking per classe `outreach_real`, verdetto Claude AI S247)**: l'E2E
-   ha verificato il blocco sul path-SHELL. PRIMA di alzare la soglia autonomia-invio (oggi già bloccata
-   da regola ≥10 CLOSED_WON), CONFERMARE che Gate E intercetti il path-tool REALE con cui AMBRA invia in
-   produzione. Se AMBRA manda via tool MCP/Python che bypassa il matcher-shell → breaker DECORATIVO sulla
-   sua classe più critica = difetto strutturale (flip a REJECT). Non urgente oggi (autonomia già gated).
+1. **Gate E refinement — CHIUSO** (verificato S249, selftest 33/33 PASS). Raffinamento S248 nel codice:
+   `lossy_operands` su operandi reali, `strip_git_invocations` (no FP su commit-message), `*.db`
+   ristretto ai 3 DB SoT. I FP su prosa commit → allow sono coperti dai casi selftest.
+2. **COVERAGE-CHECK — ESEGUITO S249. Esito: Gate E copre la sua mansione, MA non è il breaker di
+   produzione.** Due threat-model:
+   - **CC-sbadataggine (CC invia in-sessione)** = mansione dichiarata di Gate E → **COPERTO**. Signatures
+     (`:9191/send`, `tools/outreach/`, `send_message.js`, `/send-doc`, `/send-multi`, `sendMessage(`) +
+     discriminazione telefono. I 4 script Day-1 reali cadono sotto le signatures.
+   - **Runtime daemon (AMBRA in produzione)** = Gate E **strutturalmente assente, by design**
+     (docstring gate_e.py righe 33-34: path non-shell fuori da classify_bash). Gate E è PreToolUse di CC,
+     non vede il processo Node in esecuzione.
+   - **BUCO REALE localizzato**: i 4 script Day-1 chiamano `/send` (wa-daemon.js:1269) che **NON ha il
+     gate `approved_ts`** — solo il poller bridge (342) ce l'ha. La garanzia HITL vive nel CALLER, non
+     nell'endpoint. Oggi caller=CC/Luke → coperto. Un processo non-CC (scheduler/PM2/cron) su `/send`
+     bypassa ENTRAMBI (Gate E è CC-only + `/send` salta il bridge) → invio reale non sorvegliato.
+   - **AZIONE gated PRIMA di alzare autonomia-invio (oggi già bloccata da ≥10 CLOSED_WON)**: far
+     rispettare `approved_ts` a `/send` stesso, o instradare ogni invio reale dentro il bridge
+     (single-writer vero). NON blocca 6-7 (TEST_FOUNDER + CC-initiated).
 3. **6-7 E2E** — gate HITL su iMac (fastapi presente) + invio PDF su TEST_FOUNDER 393314928901
-   (mai dealer reale). Anello 6 fastapi-coupled: smoke-abile solo iMac/CI. È la prima azione che
-   innesca **Gate E** (classe `outreach_real`): l'invio verrà BLOCCATO + packet, si procede solo dopo
-   verdetto esterno + `approve <slug>`. NB: fare DOPO il coverage-check (item 2).
+   (mai dealer reale). Anello 6 fastapi-coupled: smoke-abile solo iMac/CI. Prima azione che innesca
+   **Gate E** (classe `outreach_real`): invio BLOCCATO + packet, si procede solo dopo verdetto esterno +
+   `approve <slug>`. Coverage-check (item 2) ESEGUITO → sbloccato.
+
+### GATE LEGALE/TRASPARENZA (sopra Gate E — BLOCKED-ON-LUKE, blocca invio a dealer REALE, NON la E2E test)
+Nessun invio a un dealer **reale** (anelli #1, 6-7 verso numero ≠ TEST_FOUNDER) finché Luke (autorità su
+irreversibile + verifica con professionista legale — CC non è un legale) non chiude:
+ (a) **liceità canale primo contatto**: WA outbound a freddo in IT = alto rischio GDPR (regola-base =
+     consenso; legittimo interesse marketing va usato con parsimonia + balancing test documentato —
+     Garante/Federprivacy 2026 verificato S249). Lecito come follow-up di lead inbound / rapporto
+     preesistente / richiesta esplicita. NON "illegale a prescindere", ma NON assumibile come lecito.
+ (b) **trasparenza AMBRA**: l'agente NON deve negare di essere automatico se interrogato (rimuovere
+     eventuale istruzione KB "nega di essere un bot"). Trasparenza, oltre che consenso.
+La E2E contro TEST_FOUNDER 393314928901 procede comunque (non è un dealer).
 
 ---
 
