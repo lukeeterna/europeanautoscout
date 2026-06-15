@@ -1,0 +1,126 @@
+==============================================================================
+ARGOS — REPORT SESSIONE S249
+Data: 2026-06-15  ·  Sessione: eb1e116f-05c9-45ba-aee8-e6d33c2d83e9
+Branch: s210/audit-master-plan  ·  Context chiusura: ~59% (sotto budget 60%)
+Tema: valutazione second-opinion (b-output) + coverage-check Gate E (item 2)
+==============================================================================
+
+------------------------------------------------------------------------------
+1. STATO ANELLI E2E  (GENERATO da state/refresh.sh, rigenerato in QUESTA sessione)
+------------------------------------------------------------------------------
+  #     Anello                                   Stato        Tier   Verificato in-sessione
+  1     invio Day1 WA                            UNVERIFIED   full   no
+  2     classifier intent (AMBRA)                VERIFIED     smoke  si  (test_ambra_5scenarios.py)
+  9A    approve -> send                          VERIFIED     smoke  si  (test_approve_reply_runtime.py)
+  9B    reject -> abort                          UNVERIFIED   full   no
+  5     generazione dossier PDF                  VERIFIED     smoke  si  (test_dossier_hitl_smoke.py)
+  6-7   approve HITL dossier -> invio PDF dealer UNVERIFIED   full   no
+  8     contract -> sign_url                     BLOCKED      full   freeze: firma dealer reale (esterno)
+
+  NOTA ONESTA: la E2E 6-7 NON e' stata eseguita in S249 (era gated sul coverage-check,
+  ora sbloccata). S249 ha prodotto evidenza su Gate E + coverage, non su 6-7.
+
+------------------------------------------------------------------------------
+2. EVIDENZE RACCOLTE IN S249  (comando -> risultato reale)
+------------------------------------------------------------------------------
+  [E1] Gate E selftest
+       $ python3 .harness/gate_e.py selftest
+       -> SELFTEST PASS (33/33)
+       Copre: FP commit-message (:9191/send nel testo -> ALLOW), invio reale (numero
+       != TEST_FOUNDER -> DENY), TEST_FOUNDER -> ALLOW, lossy su SoT/DB -> DENY.
+
+  [E2] Coverage-check runtime (lettura pura del codice, zero modifiche)
+       Send-surface enumerata in wa-intelligence/wa-daemon.js:
+         - 342  poller bridge_outbound      -> GATED su approved_ts (single writer vero)
+         - 1269 /send (HTTP)                -> precheck24h + onWhatsApp, NO approved_ts
+         - 1392 /send-multi (HTTP)          -> NO approved_ts (si fida del caller)
+         - 1472 /send-voice (HTTP)          -> NO approved_ts (Day7, eccezione doc)
+         - 1600 /send-doc (HTTP)            -> dealer_id richiesto (HITL leggero) = PDF 6-7
+         - 1853 /send force=true            -> eccezione audited documentata
+         - 2x  skill/.../send_message.js    -> processo standalone (auth dir, S228)
+       I 4 script Day-1 reali (tools/outreach/send_day1_stile_car.py, send_day1_*.py)
+       chiamano l'endpoint /send -> il path di produzione NON ha il gate approved_ts.
+
+  [E3] Gate E e' SHELL/CC-scoped BY DESIGN (non ipotesi: docstring gate_e.py righe 33-34)
+       "il narrowing e' SHELL-scoped: i path non-shell (Write, python -c, MCP) restano
+        fuori da classify_bash ... tracciato in coverage-check #2"
+       => Gate E e' un PreToolUse hook di CC: NON vede il processo Node daemon a runtime.
+
+  [E4] Claim legale verificato alla fonte (WebSearch S249, NON da memoria)
+       WA outbound a freddo in IT = ALTO RISCHIO GDPR, non "illegale a prescindere".
+       Regola-base = consenso; legittimo interesse marketing con parsimonia + balancing
+       test documentato. Fonti: Garante Privacy (provv. 12-02-2026), Federprivacy 2026.
+
+------------------------------------------------------------------------------
+3. VERDETTO COVERAGE-CHECK (item 2 di STATE.md §3)
+------------------------------------------------------------------------------
+  Due threat-model, due esiti:
+   (A) CC-sbadataggine (CC invia in-sessione) = mansione DICHIARATA di Gate E -> COPERTO.
+   (B) Runtime daemon (AMBRA in produzione)   = Gate E STRUTTURALMENTE ASSENTE (by design).
+
+  BUCO REALE LOCALIZZATO: la garanzia HITL sull'invio reale vive nel CALLER, non
+  nell'endpoint /send. Oggi caller = CC o Luke -> coperto. Un processo non-CC
+  (scheduler/PM2/cron) su /send bypassa ENTRAMBI (Gate E e' CC-only + /send salta il
+  bridge) -> invio reale NON sorvegliato.
+
+  CONCLUSIONE: Gate E NON e' decorativo per cio' che copre, MA lo diventa se trattato
+  come breaker di produzione per l'autonomia di AMBRA. Il breaker di produzione vero =
+  far rispettare approved_ts a /send (o single-writer via bridge). Questo NON blocca
+  6-7 (TEST_FOUNDER + CC-initiated); blocca solo l'alzata di autonomia-invio futura.
+
+------------------------------------------------------------------------------
+4. RETTIFICHE AL b-output (con dati)
+------------------------------------------------------------------------------
+  - Reorder (FP=sicurezza non ergonomia): ACCETTATO. Ma item 1 era gia' chiuso (S248).
+  - "Far coprire ad AMBRA il path di Gate E": ERRORE DI CATEGORIA. Gate E e' CC-only;
+    AMBRA e' runtime. La guardia giusta per (B) e' il gate bridge approved_ts, non Gate E.
+  - "WA a freddo illegale a prescindere": troppo categorico. E' alto rischio, base
+    giuridica esile esiste -> decisione Luke + legale.
+
+------------------------------------------------------------------------------
+5. MODIFICHE PERSISTITE IN S249
+------------------------------------------------------------------------------
+  - STATE.md §3 riscritto: item1 CHIUSO, item2 coverage-check ESEGUITO (esito sopra),
+    + nuova sezione "GATE LEGALE/TRASPARENZA (BLOCKED-ON-LUKE)" sopra Gate E.
+  - Nessuna modifica al runtime/codice daemon (coverage-check = sola lettura).
+
+------------------------------------------------------------------------------
+6. GATE LEGALE / TRASPARENZA — BLOCKED-ON-LUKE (decisione tua + legale)
+------------------------------------------------------------------------------
+  Nessun invio a dealer REALE (anelli #1, 6-7 verso numero != TEST_FOUNDER) finche':
+   (a) liceita' canale primo contatto (WA freddo IT = alto rischio GDPR; lecito come
+       follow-up di lead inbound / rapporto preesistente / richiesta esplicita);
+   (b) AMBRA non nega di essere automatica se interrogata (rimuovere eventuale
+       istruzione KB "nega di essere un bot").
+  La E2E contro TEST_FOUNDER 393314928901 procede comunque (non e' un dealer).
+
+==============================================================================
+7. NEXT PROMPT  (incollare a inizio sessione S250)
+==============================================================================
+cd /Users/macbook/Documents/combaretrovamiauto-enterprise
+bash state/refresh.sh <SESSION_ID>
+Leggi STATE.md (source-of-truth) — §3 ha coverage-check ESEGUITO + gate legale.
+
+ORDINE DI LAVORO S250:
+1) 6-7 E2E (SBLOCCATO dal coverage-check). Solo su TEST_FOUNDER 393314928901, MAI
+   dealer reale. Anello 6 fastapi-coupled -> smoke-abile solo iMac/CI (fastapi assente
+   su MacBook). Path: gate HITL dossier (wa-intelligence/dashboard/app.py) + invio PDF
+   via /send-doc. Sara' la PRIMA azione a innescare Gate E (classe outreach_real):
+   l'invio verra' BLOCCATO + packet -> serve verdetto esterno +
+   ! python3 .harness/gate_e.py approve <slug>. NON e' un bug: e' il gate che funziona.
+
+2) (SEPARATO, gated su AUTONOMIA non su 6-7) Hardening /send: far rispettare
+   approved_ts su /send stesso, o instradare ogni invio reale dentro bridge_outbound
+   (single-writer vero). Motivo: oggi un processo non-CC che chiama /send invia senza
+   HITL. Da fare PRIMA di alzare la soglia autonomia-invio (oggi gated da >=10 CLOSED_WON).
+
+3) GATE LEGALE (decisione LUKE, non CC): liceita' canale + trasparenza AMBRA.
+   Resta BLOCKED-ON-LUKE finche' non confermato con un professionista legale.
+
+VINCOLI SEMPRE ATTIVI:
+- TEST_FOUNDER 393314928901 prima di QUALSIASI dealer reale. Max 1 Day1/numero.
+- image_sanitizer (D-32) + landing CONGELATI finche' anelli E2E non risalgono.
+- DB canonico pending_replies = ~/Documents/app-antigravity-auto/dealer_network.sqlite
+- argos.py NON esiste (CLAUDE.md stale). Test reali: tools/test_*.py, tools/tests/.
+- No PARTIAL/ARANCIONE. Chiudi verde o handoff. /context, chiudi a 60%.
+==============================================================================
