@@ -75,6 +75,22 @@ azione che innescherà Gate E (classe `outreach_real`).
 
 ## 3. Prossimi step (S249 · coverage-check ESEGUITO)
 
+> **PRIORITÀ S250 (specchio strategico, second-opinion S249 + decisione Luke).**
+> Arco S245→S273 = motore + control-plane induriti, ma **ZERO dealer contattati**. Il vincolo
+> legante NON è tecnico: è il GATE LEGALE/PERSONA (sotto), archiviato BLOCKED-ON-LUKE di sessione
+> in sessione. Motore pronto per un primo dossier, control-plane pronto per invio human-initiated.
+> **#1 = chiudere il gate legale/persona (azione LUKE)**, non altra hardening. Poi 6-7 E2E.
+> **VINCOLO LUKE (duro): "il metodo WA non si tocca"** — canale, sequenza human-first, persona
+> Luca Ferretti sono DECISI. Il gate legale NON è "sostituire WA": è il parere legale sulla base
+> giuridica del primo contatto + la decisione su persona/trasparenza ATTORNO al metodo.
+>
+> **ADD-1 tripwire `/send` — adottare lo SPIRITO, NON la lettera.** "Require `approved_ts` su /send"
+> come hard-assert ROMPE il Day-1 human-initiated: gli script Day-1 fanno POST /send diretto, NON
+> hanno approved_ts (autorizzazione = invocazione umana + precheck24h). Versione sicura = **log-loud
+> NON-bloccante** che marca `direct-/send senza approved_ts` distinto da `bridge-approvato`
+> nell'audit (1 riga di log; l'alert TG per-invio già esiste, wa-daemon.js:1318). Hard-assert +
+> riprogetto 2-path = fase hardening completa, gated su autonomia. NON ora.
+
 1. **Gate E refinement — CHIUSO** (verificato S249, selftest 33/33 PASS). Raffinamento S248 nel codice:
    `lossy_operands` su operandi reali, `strip_git_invocations` (no FP su commit-message), `*.db`
    ristretto ai 3 DB SoT. I FP su prosa commit → allow sono coperti dai casi selftest.
