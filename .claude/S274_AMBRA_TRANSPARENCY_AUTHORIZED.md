@@ -23,6 +23,11 @@
 KB (config, già nota): `argos_knowledge_base.md:244-245` blocco "Sei un bot?" = istruzione di non-ammissione.
 
 ## ESECUZIONE S275 (autorizzata — include RUNTIME)
+**STEP 0 (PRIMA di tutto):** incollare in STATE.md §3 il riframing item (b) (sezione
+"STATE.md §3 — RIFRAMING" sotto). Allinea il SoT al finding PRIMA dell'edit runtime.
+Se Luke non l'ha già fatto in TextEdit a fine S274 → S275 lo gestisce come step 0
+(via Gate E `overwrite_sot`: packet → approve → edit). Solo dopo, gli step 1-6.
+
 1. `response-analyzer.py`:
    - `identity` / `identity_post_handoff`: da "Sei Luca Ferretti" → "Sei l'assistente automatica
      di Luca Ferretti" (mandante reale; AMBRA gestisce i primi contatti perché Luca è sul campo).
