@@ -113,5 +113,39 @@ POI applica Q1-Q4. SE Q3 confermato (bundle con nome AZZURRA):
    (= sostrato del balancing test per Q1/(a), NON lavoro parallelo: protegge response rate E serve al legale).
 3. Commit.
 SE Q2 autorizzato: pre-flight sync.sh (symlink wa-sender/) PRIMA del deploy.
-Item (a) liceità canale = BLOCKED-ON-LUKE finché Q1 non ha risposta. Nessun invio reale.
+Item (a) liceità canale = CONFERMATO (vedi §8). Nessun invio reale finché 3 gate tecnici verdi.
 ```
+
+---
+
+## 8. STATO FINALE ROUND — conferme Luke 2026-06-16
+
+### Risolti questo round
+- **Q1 (a) liceità canale → CONFERMATO** (commit `14ad7f7`): cold WA outreach AUTORIZZATO, decisione
+  founder. **Il blocco a un dealer reale NON è più legale.** Sblocco più importante dell'arco S245→S276.
+- **Q3 nome → AZZURRA** (commit `f46c1d4`): assistente *dichiarata* di Luca, italiana/credibile Sud Italia.
+  Implementazione bundle con firma in S277.
+- **Recupero finding cont3** (commit `f46c1d4`): geo==IT su `location.countryCode` + experiment-OFF
+  recuperati in STATE.md banner + memoria. Memoria durevole aveva perso un finding load-bearing.
+- **3 stale STATE.md corretti** (commit `bd89a10`): header, banner S263, vincolo persona.
+
+### Avanzamenti E2E
+**NESSUN anello E2E mosso questo round.** Lavoro tutto su **control-plane** (SoT/STATE.md) + **gate legale**.
+Anelli invariati: 2/9A/5 VERIFIED(smoke) · 1/6-7/9B UNVERIFIED · 8 BLOCKED(esterno).
+Il valore del round: ha rimosso il gate che dipendeva da Luke (a) e riallineato il SoT — sblocco
+*upstream* di tutta la pipeline, non un avanzamento di anello.
+
+### 3 gate tecnici residui a un invio dealer REALE (tutti miei, nessuno dipende da Luke)
+1. **E2E TEST_FOUNDER** verde (anelli 1/6-7/9B) + Luke "pienamente soddisfatto" (gate qualitativo, recidiva-flagged).
+2. **Trasparenza in PRODUZIONE**: Azzurra+firma (S277) → `sync.sh` (Q2). Daemon live nega ancora = bloccante per coerenza.
+3. **Base-mercato fidata**: scrape esaustivo `DEEP_PAGES≥80` + geo==IT + experiment-OFF (finding cont3).
+
+### CHIARIMENTI CHE MI SERVONO (per partire autonomo in S277)
+- **C1 — copy Day-1**: la scrivo e la wiro in S277 *senza tua revisione preventiva* (poi la vedi nell'E2E
+  TEST_FOUNDER), oppure vuoi **approvarla prima** che tocchi il runtime? (È anche il sostrato del balancing test.)
+- **C2 — Q2 deploy**: autorizzi `sync.sh` in S277 dopo firma+Azzurra (con pre-flight wa-sender/), o lo
+  tieni fermo finché l'E2E TEST_FOUNDER non è verde? (Senza deploy il test gira solo in repo/iMac, non live.)
+- **C3 — Q4 push**: preparo il piano `git filter-repo` (bonifica secret in history) step-by-step da eseguire
+  tu, o resta parcheggiato? (Finché non risolto, ogni commit S277 resta locale, non pushato.)
+- **C4 — autonomia S277**: vuoi che proceda fino al gate "pienamente soddisfatto" fermandomi lì (Azzurra
+  +firma+copy+E2E TEST_FOUNDER), o uno stop intermedio per tua review?
