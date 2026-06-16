@@ -151,3 +151,15 @@ Il valore del round: ha rimosso il gate che dipendeva da Luke (a) e riallineato 
   tu, o resta parcheggiato? (Finché non risolto, ogni commit S277 resta locale, non pushato.)
 - **C4 — autonomia S277**: vuoi che proceda fino al gate "pienamente soddisfatto" fermandomi lì (Azzurra
   +firma+copy+E2E TEST_FOUNDER), o uno stop intermedio per tua review?
+
+### Aggiornamenti chiusura (feedback Luke 2026-06-16, post-§8)
+- **(a) liceità canale = DECISO-FINALE, INDISCUTIBILE** (Luke CAPS): canale = **WA cold outreach**, nessun
+  reframe (l'opzione "(ii) riframe a base inbound" di §5/Q1 è CHIUSA, fuori discussione). Decisione founder.
+  CC smette di trattarlo come blocco aperto. NON è più un gate. Restano SOLO i 3 gate tecnici (miei).
+- **MEMORY.md riga-indice = PRIORITÀ 0 S277 (correttezza, NON cosmetico)**: l'indice è ciò che una sessione
+  futura a corto di budget legge per PRIMA; indice stale "cap-truncated" + topic file fresco = riparte dal
+  quadro dimezzato (stratificazione spostata di un livello). NON scivola sotto Q1-Q4. Fix sotto unlock.
+- **Confine AMBRA/Azzurra = lavoro reale S277, non refuso**: grep → AMBRA 60× in code/docs/plan
+  (`.planning/06-ambra-agent`, PLAN.md, S274, BACKLOG, report). Azzurra = solo testo S276. S277 deve
+  DEFINIRE il confine: Azzurra = public-facing (ciò che dice al dealer) · AMBRA = interno (sistema/codice/
+  identificatori/plan). Senza confine esplicito = incoerenza nomi load-bearing. Parte del bundle Q3.
