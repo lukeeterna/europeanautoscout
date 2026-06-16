@@ -101,9 +101,11 @@ Opzioni Luke: Azzurra / Ivonne / Mia / Sharon. Scelta **Azzurra**, motivata sui 
 ```
 Leggi .claude/REPORT_S276.md §5 (risposte Luke Q1-Q4) + §6b (nome) + STATE.md §3 e banner sourcing.
 
-PRIORITA' 0 — RECUPERO cont3 GIA' FATTO S276 (banner + memoria s273_*): verifica che STATE.md banner
-porti le DUE garanzie (completezza A/B-OFF + purezza geo==IT su location.countryCode). Se sì, ADD-1 in
-futuro = scrape profonda + geo-filter + experiment-OFF (mai solo "più profonda" = pool falso-pulito).
+PRIORITA' 0 — RECUPERO cont3 GIA' FATTO S276 in STATE.md banner + memoria topic file s273_*
+(commit f46c1d4: completezza A/B-OFF + purezza geo==IT su location.countryCode). RESIDUO UNICO =
+riga-indice MEMORY.md (riga 11) ancora "cap-truncated" only → aggiornare a "cap-truncated + geo==IT
++ A/B-experiment-OFF" SOTTO ARGOS_HARNESS_UNLOCK=1 (Gate-E overwrite_sot). Primo step S277.
+ADD-1 futura = scrape profonda + geo-filter + experiment-OFF (mai solo "più profonda" = pool falso-pulito).
 
 POI applica Q1-Q4. SE Q3 confermato (bundle con nome AZZURRA):
 1. response-analyzer.py: identity/firma "Luca" 1a persona → "Azzurra, assistente di Luca Ferretti"
