@@ -20,8 +20,13 @@ Metodo: verifica claim-per-claim contro il **file su disco**, non contro il past
 
 **Meta-punto**: l'eval ha sbagliato il suo claim **più allarmante** (#1) commettendo l'errore esatto da cui
 mette in guardia — affermare sull'artefatto senza leggere il file live. Reale = 3-su-5, NON "il SoT è marcio".
-Le aggiunte dell'eval al banner ("contaminato / padding EU-wide", "geo-filter location.countryCode", "ADD-1")
-**non sono nei dati verificati**: la memoria S273 dice solo **cap-truncated**. NON le ho scritte nel SoT.
+~~Le aggiunte dell'eval ("padding EU-wide", "geo-filter location.countryCode", "ADD-1") non sono nei dati verificati~~
+**[CORREZIONE post-round — io ho rifatto il #1]**: quei finding SONO verificati su disco in
+`REPORT_S273cont3.txt` (geo vero=`location.countryCode` riga 40; `isEuWideCountExperimentActive` riga 120/142;
+over-collection 834 righe 42-56; DUE garanzie separate righe 128-129). Ho asserito dal **file-memoria**
+(che diceva solo "cap-truncated") invece che dal **report primario** — stesso errore del #1. La memoria
+durevole aveva perso un finding load-bearing. **Recuperato S276**: banner STATE.md ora porta entrambe le
+garanzie (completezza A/B-OFF + purezza geo==IT); memoria `s273_*` aggiornata.
 
 ## 3. Cosa è stato corretto (commit `bd89a10`, locale — push bloccato dal secret in history)
 - **header** → `S275 · 2026-06-16`
@@ -81,14 +86,32 @@ rotazione secret.
   Non è task di sessione; dimmi se lo sistemo.
 - Packet Gate E orfano `.harness/pending_review/overwrite_sot-0a13cfcff3.md` (S275): innocuo, cancellabile.
 
+## 6b. Nome assistente — DECISIONE (Luke "vedi tu") → **AZZURRA**
+Opzioni Luke: Azzurra / Ivonne / Mia / Sharon. Scelta **Azzurra**, motivata sui dati di progetto:
+- **credibilità Sud Italia** (communication.md step 1): nome chiaramente **italiano** e caldo → riduce il
+  sospetto "call-center estero/bot" che *Sharon/Ivonne* (anglo/franco) innescano nel target family-business.
+- *Mia* scartato: "sono Mia" = collisione col possessivo italiano (ambiguo nel testo WA).
+- *Azzurra* = elegante, memorabile, distintivo, zero pun. Resta **assistente dichiarata** di Luca reale
+  (NON impersonificazione): "Sono Azzurra, l'assistente di Luca Ferretti…". `AMBRA` resta nome **interno**
+  di sistema/formato, non public-facing.
+- ⚠️ Implementazione = stessa superficie del residuo firma (Q3): identity/hard_rules/KB/disclosure/retry
+  in `response-analyzer.py`. Si fa **insieme** a Q3 in S277, non in due passate.
+
 ## 7. Next prompt (resume S277)
 ```
-Leggi .claude/REPORT_S276.md §5 (blocker + risposte Luke a Q1-Q4) + STATE.md §3.
-PRIMA di tutto: applica le decisioni di Luke su Q1-Q4. Poi, SE Q3 confermato:
-1. response-analyzer.py firma "Luca" → "Assistente di Luca Ferretti" (WA + reply contratto);
-   verifica al RENDER, non al grep (lezione S271). Seam: testo WA→assistente, voce/tel→Luca reale.
-2. Ritocca copy Day-1 perché atterri caldo (protegge response rate vs ancora identity.md step 1).
+Leggi .claude/REPORT_S276.md §5 (risposte Luke Q1-Q4) + §6b (nome) + STATE.md §3 e banner sourcing.
+
+PRIORITA' 0 — RECUPERO cont3 GIA' FATTO S276 (banner + memoria s273_*): verifica che STATE.md banner
+porti le DUE garanzie (completezza A/B-OFF + purezza geo==IT su location.countryCode). Se sì, ADD-1 in
+futuro = scrape profonda + geo-filter + experiment-OFF (mai solo "più profonda" = pool falso-pulito).
+
+POI applica Q1-Q4. SE Q3 confermato (bundle con nome AZZURRA):
+1. response-analyzer.py: identity/firma "Luca" 1a persona → "Azzurra, assistente di Luca Ferretti"
+   (WA + reply contratto). Verifica al RENDER non al grep (lezione S271). Seam: testo WA→Azzurra/assistente,
+   voce/tel→Luca reale. AMBRA resta interno.
+2. Ritocca copy Day-1 perché atterri caldo + disclosure + provenienza contatto + opt-out
+   (= sostrato del balancing test per Q1/(a), NON lavoro parallelo: protegge response rate E serve al legale).
 3. Commit.
-SE Q2 autorizzato: verifica pre-flight sync.sh (symlink wa-sender/) PRIMA del deploy.
+SE Q2 autorizzato: pre-flight sync.sh (symlink wa-sender/) PRIMA del deploy.
 Item (a) liceità canale = BLOCKED-ON-LUKE finché Q1 non ha risposta. Nessun invio reale.
 ```

@@ -12,10 +12,14 @@
 > `DEEP_PAGES=20` (build_it_fixture.py): la verification scrape ha raccolto 770 listing terminando
 > AL CAP (pagina 50 ancora piena, nessun "Nessun listing") → pool reale >770, oltre 2× la fixture.
 > La calibrazione (320d n=13 verdetto / 330i n=5 NO_VERDICT) gira su mezzo mercato → il NO_VERDICT
-> del 330i è probabilmente CAP, non scarsità reale. **Dossier reale BLOCKED** su scrape esaustiva
-> (`DEEP_PAGES≥80` fino a pagina vuota = fatto terminale "Nessun listing in pagina K"), ricomputo
-> N_L0..L3, ri-falsifica 330i. Ring 5 "VERIFIED (smoke)" = il PDF SI GENERA, NON che la base-mercato
-> sotto sia fidata — la fondazione-dati è il blocco reale verso un dossier reale, non la macchina d'invio.
+> del 330i è probabilmente CAP, non scarsità reale. **Dossier reale BLOCKED** su pool che soddisfi DUE
+> garanzie SEPARATE (cont3, riga 128-129): **(i) COMPLETEZZA** = scrape esaustiva `DEEP_PAGES≥80` fino a
+> pagina vuota (fatto terminale "Nessun listing in pagina K") sotto `isEuWideCountExperimentActive`=OFF;
+> **(ii) PUREZZA** = filtro comp `geo==IT` su `location.countryCode` (NON `country`, forzato IT in
+> base_scraper = falsa sicurezza). Il geo-filter NON copre la completezza e viceversa. Poi ricomputo
+> N_L0..L3, ri-falsifica 330i. ⚠️ ADD-1 fatta solo più profonda (senza geo-filter + experiment-OFF) =
+> altro pool falso-pulito = pattern Frankenstein/pool-325 di nuovo. Ring 5 "VERIFIED (smoke)" = il PDF SI
+> GENERA, NON che la base-mercato sotto sia fidata — la fondazione-dati è il blocco reale, non la macchina d'invio.
 
 ---
 
