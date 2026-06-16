@@ -126,7 +126,15 @@ irreversibile + verifica con professionista legale — CC non è un legale) non 
      parole "bot/automatico" e deflette se interrogata. DECISIONE LUKE S274: correggere (assistente
      palese di Luca reale + disclosure + motivo vero), NON ripristinare. Edit runtime AUTORIZZATO.
      Esecuzione S275 (vedi `.claude/S274_AMBRA_TRANSPARENCY_AUTHORIZED.md`). Item (a) liceità
-     canale resta BLOCKED-ON-LUKE. **S275: CHIUSO runtime — vedi nota finding sotto.**
+     canale resta BLOCKED-ON-LUKE.
+>     **S275 (commit 86e8fff): impersonificazione rimossa in REPO a TUTTI i layer** — prompt
+>     (identity/hard_rules) + validator (`_LLM_BANNED_WORDS`:96, `FORBIDDEN_WORDS_EXACT`:1528,
+>     bannavano "automatico" → strisciavano la disclosure) + retry-prompt (2427) + KB. **NON
+>     deployato su iMac**: il daemon live continua a negare finché `bash deploy/sync.sh` → (b)
+>     è chiuso-in-repo, NON chiuso-in-produzione (distinzione S271 codice-verde vs artefatto-verde).
+>     **RESIDUO firma**: WA (385) + reply contratto (2097) ancora prima persona "Luca" su output
+>     bot = re-impersonificazione dalla firma → correggere in "Assistente di Luca Ferretti" (stessa
+>     decisione trasparenza S274, NON branding). Seam: testo WA → assistente; Day-10 voce/Day-30 tel → Luca reale.
 La E2E contro TEST_FOUNDER 393314928901 procede comunque (non è un dealer).
 
 ---
