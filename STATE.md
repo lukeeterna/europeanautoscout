@@ -124,10 +124,15 @@ azione che innescherà Gate E (classe `outreach_real`).
 ### GATE LEGALE/TRASPARENZA (sopra Gate E — BLOCKED-ON-LUKE, blocca invio a dealer REALE, NON la E2E test)
 Nessun invio a un dealer **reale** (anelli #1, 6-7 verso numero ≠ TEST_FOUNDER) finché Luke (autorità su
 irreversibile + verifica con professionista legale — CC non è un legale) non chiude:
- (a) **liceità canale primo contatto**: WA outbound a freddo in IT = alto rischio GDPR (regola-base =
-     consenso; legittimo interesse marketing va usato con parsimonia + balancing test documentato —
-     Garante/Federprivacy 2026 verificato S249). Lecito come follow-up di lead inbound / rapporto
-     preesistente / richiesta esplicita. NON "illegale a prescindere", ma NON assumibile come lecito.
+ (a) **liceità canale primo contatto — CONFERMATO LUKE 2026-06-16**: cold WA outreach AUTORIZZATO come
+     canale di primo contatto (decisione founder, autorità su irreversibile). Residuo NON-bloccante =
+     artefatto di DIFENDIBILITÀ: balancing test legittimo-interesse DOCUMENTATO (Garante/Federprivacy
+     2026, S249), il cui sostrato è la copy Day-1 (disclosure + provenienza contatto + opt-out) prodotta
+     in S277 — si produce lungo il percorso, NON è un re-gate.
+     **→ Il blocco a un invio a dealer REALE NON è più legale. Restano TRE gate tecnici/verificabili:
+     (1) E2E TEST_FOUNDER verde + Luke "pienamente soddisfatto" (anelli 1/6-7/9B UNVERIFIED);
+     (2) trasparenza in PRODUZIONE (Azzurra+firma S277 → sync.sh) — daemon live nega ancora;
+     (3) base-mercato fidata (scrape esaustivo + geo==IT + experiment-OFF, finding cont3).**
  (b) **trasparenza AMBRA — meccanismo runtime di impersonificazione (NON "istruzione KB
      eventuale")**: `response-analyzer.py:341-377` impersona Luca in prima persona, vieta le
      parole "bot/automatico" e deflette se interrogata. DECISIONE LUKE S274: correggere (assistente
