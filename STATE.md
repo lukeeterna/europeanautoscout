@@ -5,16 +5,17 @@
 > "VERIFIED" = check passato in QUESTA sessione, non una frase digitata.
 > Stato cross-sessione (memorie) → `~/.claude/projects/.../memory/MEMORY.md` (scopo diverso).
 > Piano dettagliato → `PLAN.md` · Problemi parcheggiati → `BACKLOG.md`.
-> Aggiornato: **S245 · 2026-06-08**
+> Aggiornato: **S275 · 2026-06-16**
 
-> **S263 · PROBE pool IT = ESITO C (inconclusivo sul mercato, conclusivo sullo scraper).**
-> Report: `.claude/REPORT_S263.md`. Anello PDF CHIUSO in S262 (commit 9fb7824).
-> Il muro NON è il mercato: lo scraper AS24.it via curl_cffi vede SOLO pagina-1 SSR (~19
-> listing); il path Selenium-profondo esiste (`autoscout_scraper.py:1250`) ma è gated su
-> zero-data → non scatta. A vs B INDECIDIBILE finché lo scraper non pagina oltre p.1.
-> Segnale che sopravvive: config esatte (L0/L1) = 0 in tutte le 4 famiglie, solo L3 pesca 1-2
-> → preview Esito misto (M340 = 0 ovunque). min_n NON ratificato (distribuzione corrotta dal muro).
-> S264 proposto: de-gate fetch profondo IT (cambio poche righe, NO infra) → ri-eseguire probe.
+> **S273-cont · base-mercato NON affidabile (cap-truncated).** La fixture
+> `tests/fixtures/it_dist_bmw_serie3_2021.json` (n=325, meta "esaustiva") era TRONCATA dal cap
+> `DEEP_PAGES=20` (build_it_fixture.py): la verification scrape ha raccolto 770 listing terminando
+> AL CAP (pagina 50 ancora piena, nessun "Nessun listing") → pool reale >770, oltre 2× la fixture.
+> La calibrazione (320d n=13 verdetto / 330i n=5 NO_VERDICT) gira su mezzo mercato → il NO_VERDICT
+> del 330i è probabilmente CAP, non scarsità reale. **Dossier reale BLOCKED** su scrape esaustiva
+> (`DEEP_PAGES≥80` fino a pagina vuota = fatto terminale "Nessun listing in pagina K"), ricomputo
+> N_L0..L3, ri-falsifica 330i. Ring 5 "VERIFIED (smoke)" = il PDF SI GENERA, NON che la base-mercato
+> sotto sia fidata — la fondazione-dati è il blocco reale verso un dossier reale, non la macchina d'invio.
 
 ---
 
@@ -24,15 +25,15 @@ Rigenera con: `bash state/refresh.sh <SESSION_ID>` · sorgente: `state/rings.jso
 
 <!-- GENERATED:rings:start -->
 <!-- NON modificare a mano: rigenerato da `bash state/refresh.sh`. VERIFIED = check passato in QUESTA sessione. -->
-_Rigenerato 2026-06-16T07:49:24Z · sessione `auto-20260616T094923Z`_
+_Rigenerato 2026-06-16T15:11:32Z · sessione `auto-20260616T171131Z`_
 
 | # | Anello | Stato | Tier | Check | Ultima sessione |
 |---|--------|-------|------|-------|-----------------|
 | 1 | invio Day1 WA | UNVERIFIED | full | — | — |
-| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | auto-20260616T094923Z |
-| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | auto-20260616T094923Z |
+| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | auto-20260616T171131Z |
+| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | auto-20260616T171131Z |
 | 9B | reject -> abort | UNVERIFIED | full | — | — |
-| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | auto-20260616T094923Z |
+| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | auto-20260616T171131Z |
 | 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED | full | — | — |
 | 8 | contract -> sign_url | BLOCKED | full | freeze: sign_url firmato dal dealer reale (HITL fisico Luke o terzo) — fatto esterno non raggiungibile in-sessione | — |
 <!-- GENERATED:rings:end -->
@@ -80,9 +81,11 @@ azione che innescherà Gate E (classe `outreach_real`).
 > legante NON è tecnico: è il GATE LEGALE/PERSONA (sotto), archiviato BLOCKED-ON-LUKE di sessione
 > in sessione. Motore pronto per un primo dossier, control-plane pronto per invio human-initiated.
 > **#1 = chiudere il gate legale/persona (azione LUKE)**, non altra hardening. Poi 6-7 E2E.
-> **VINCOLO LUKE (duro): "il metodo WA non si tocca"** — canale, sequenza human-first, persona
-> Luca Ferretti sono DECISI. Il gate legale NON è "sostituire WA": è il parere legale sulla base
-> giuridica del primo contatto + la decisione su persona/trasparenza ATTORNO al metodo.
+> **VINCOLO LUKE (duro): "il metodo WA non si tocca"** — canale e sequenza human-first sono DECISI.
+> Persona: **NB S274/S275** — AMBRA = assistente automatica *dichiarata* di Luca Ferretti reale (NON
+> Luca in prima persona); impersonificazione rimossa in repo, firma in correzione S276 (vedi §3(b)).
+> Il gate legale NON è "sostituire WA": è il parere legale sulla base giuridica del primo contatto +
+> la decisione su persona/trasparenza ATTORNO al metodo.
 >
 > **ADD-1 tripwire `/send` — adottare lo SPIRITO, NON la lettera.** "Require `approved_ts` su /send"
 > come hard-assert ROMPE il Day-1 human-initiated: gli script Day-1 fanno POST /send diretto, NON
