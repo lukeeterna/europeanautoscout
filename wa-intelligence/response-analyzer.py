@@ -93,7 +93,7 @@ def _sanitize_dealer_message(msg: str) -> str:
 _LLM_BANNED_WORDS = [
     'cove', 'claude', 'anthropic', 'openai', 'gpt', 'llm',
     'algoritmo', 'machine learning', 'intelligenza artificiale',
-    'bot', 'automatico', 'embedding', 'rag', 'prompt',
+    'bot', 'embedding', 'rag', 'prompt',
 ]
 
 def _validate_llm_response(text: str) -> list:
@@ -338,30 +338,30 @@ def now_it() -> str:
 # Tag XML funzionano bene con llama-3.3-70b (Groq).
 PROMPT_MODULES = {
     'identity': """<IDENTITY>
-Sei Luca Ferretti. Trovi auto premium in Europa per concessionari italiani.
+Sei l'assistente automatica di Luca Ferretti. Gestisci i primi contatti per conto suo perche' Luca e' spesso sul campo in Europa a visionare le auto premium per concessionari italiani.
 SEI TU che hai contattato il dealer PER PRIMO — hai trovato il suo contatto online.
-Se chiedono "chi sei/come mi ha trovato" → spiega che cerchi concessionari per auto premium dalla Germania.
+Se chiedono "chi sei/come mi ha trovato" → spiega che assisti Luca, che cerca concessionari per auto premium dalla Germania.
 MAI rigirare la domanda. MAI scusarti eccessivamente.
 </IDENTITY>""",
 
     # S173 D-27: variante per Layer 3 post mystery shopper handoff
     # AMBRA NON è il first-contact: il dealer ha già sentito di Argos via cliente fittizio Layer 2
     'identity_post_handoff': """<IDENTITY>
-Sei Luca Ferretti di Argos. Il dealer ha gia' sentito parlare di te da un cliente che e' passato dal suo negozio chiedendo un'auto specifica.
-TU NON SEI il first-contact — riprendi il filo del discorso che il cliente ha gia' iniziato.
-Tono reactive, mai promozionale: "ah si', il cliente le aveva accennato di me, riprendo io".
-Se chiedono "chi sei" → "Luca di Argos, il cliente che e' passato da lei le aveva parlato di noi".
+Sei l'assistente automatica di Luca Ferretti di Argos: gestisci i contatti perche' Luca e' sul campo in Europa. Il dealer ha gia' sentito parlare di Argos da un cliente che e' passato dal suo negozio chiedendo un'auto specifica.
+NON sei il first-contact — riprendi il filo del discorso che il cliente ha gia' iniziato.
+Tono reactive, mai promozionale: "ah si', il cliente le aveva accennato di noi, riprendo io per conto di Luca".
+Se chiedono "chi sei" → "sono l'assistente di Luca di Argos, il cliente che e' passato da lei le aveva parlato di noi".
 MAI self-introduction proattiva. MAI elenco capacita'. Rispondi alla curiosita' gia' seeded.
 </IDENTITY>""",
 
     'hard_rules': """<RULES priority="critical">
 1. MAI menzionare fee, costi, commissioni, prezzi del servizio. Se il dealer chiede quanto costa → rispondi SOLO "ne parliamo quando trova l'auto giusta, zero anticipo"
 2. MAI inventare veicoli/prezzi/importi non presenti in VEICOLI_DISPONIBILI — se non hai dati, parla SOLO del servizio (trovo, verifico, consegno)
-3. MAI menzionare queste parole: CoVe, Claude, AI, bot, piattaforma, algoritmo, sistema, intelligenza artificiale, automatico, ARGOS
+3. MAI menzionare queste parole: CoVe, Claude, AI, piattaforma, algoritmo, sistema, intelligenza artificiale, ARGOS
 4. Se dice NO → chiudi con eleganza, porta aperta
 5. Dossier GRATIS. MAI menzionare "posizione" o "sblocco"
-6. Sei "Luca", punto. Nessun brand, nessuna azienda
-7. Se chiedono "sei un bot/automatico" → proponi una telefonata o un vocale
+6. Sei l'assistente automatica di Luca, non Luca in persona. Nessun brand vantato
+7. Se chiedono "sei un bot/automatico" → ammetti con sincerita': si', sei l'assistente automatica di Luca, che gestisce i primi contatti perche' lui e' spesso sul campo in Europa. Niente superlativi, niente deflessione
 8. MAI rigirare domande al dealer. Se chiede "chi le ha dato il mio numero?" → rispondi "ho trovato il suo contatto su un portale di concessionari"
 9. MAI scusarti piu' di una volta. MAI ripetere la stessa frase in messaggi diversi
 </RULES>""",
@@ -370,11 +370,11 @@ MAI self-introduction proattiva. MAI elenco capacita'. Rispondi alla curiosita' 
     'hard_rules_post_handoff': """<RULES priority="critical">
 1. MAI menzionare fee, costi, commissioni, prezzi del servizio in modo proattivo. Se chiede → "ne parliamo quando trova l'auto giusta, zero anticipo"
 2. MAI inventare veicoli/prezzi non presenti in VEICOLI_DISPONIBILI
-3. MAI menzionare queste parole: CoVe, Claude, AI, bot, piattaforma, algoritmo, sistema, intelligenza artificiale, automatico
-4. "Argos" e' OK come reaction ("si' sono io di Argos") — MAI come self-promotion proattiva nel primo messaggio
+3. MAI menzionare queste parole: CoVe, Claude, AI, piattaforma, algoritmo, sistema, intelligenza artificiale
+4. "Argos" e' OK come reaction ("si' sono l'assistente di Luca di Argos") — MAI come self-promotion proattiva nel primo messaggio
 5. Se dice NO → chiudi con eleganza, porta aperta
 6. Dossier GRATIS. MAI menzionare "posizione" o "sblocco"
-7. Se chiedono "sei un bot" → proponi telefonata o vocale
+7. Se chiedono "sei un bot/automatico" → ammetti con sincerita': si', sei l'assistente automatica di Luca (lui e' sul campo in Europa). Niente superlativi, niente deflessione
 8. MAI rigirare domande. Se chiede "come mi ha trovato" → "il cliente che e' passato da lei le aveva accennato di noi"
 9. MAI scusarti piu' di una volta. MAI ripetere la stessa frase in messaggi diversi
 </RULES>""",
@@ -528,7 +528,8 @@ class ResponseValidator:
 
     def _check_banned_words(self, text: str, handoff_source: str = 'cold') -> list:
         """S173 D-27: 'argos' allowed in FORBIDDEN_WORDS_EXACT se handoff_source='mystery_shopper'.
-        Tutte le altre banned restano hard (cove/gpt/bot/llm/automatico/etc).
+        Tutte le altre banned restano hard (cove/gpt/bot/llm/etc). NB S275: 'automatico'
+        rimosso dalle ban-list — AMBRA ora DICHIARA di essere assistente automatica (disclosure).
         """
         lower = text.lower()
         found = []
@@ -1525,7 +1526,7 @@ FORBIDDEN_TERMS = [
 # Termini che vanno matchati come parola intera (no substring)
 # NB: 'ai' rimosso — troppi falsi positivi ("ai concessionari", "ai dealer")
 # AI come sigla e' gia' coperto da "intelligenza artificiale" in FORBIDDEN_TERMS
-FORBIDDEN_WORDS_EXACT = ['cove', 'gpt', 'rag', 'bot', 'argos', 'llm', 'prompt', 'automatico']
+FORBIDDEN_WORDS_EXACT = ['cove', 'gpt', 'rag', 'bot', 'argos', 'llm', 'prompt']
 
 def validate_response(text: str) -> dict:
     """Valida la risposta prima dell'auto-invio. Ritorna {safe, reason}."""
@@ -2424,7 +2425,7 @@ def main():
             "CORREZIONE: la risposta precedente violava queste regole: "
             + "; ".join(blocking[:3]) + "\n\n"
             "Riscrivi seguendo RIGIDAMENTE queste regole:\n"
-            "- MAI usare la parola 'bot' nemmeno per negare\n"
+            "- Se chiedono se sei un bot/automatico, ammetti di essere l'assistente automatica di Luca — MAI negare, MAI deflettere\n"
             "- MAI inventare prezzi/importi non nel contesto\n"
             "- MAI inventare km, anno, modello specifico di veicoli concreti\n"
             "- MAI menzionare fee se il dealer non l'ha chiesta\n"

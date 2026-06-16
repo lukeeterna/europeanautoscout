@@ -24,15 +24,15 @@ Rigenera con: `bash state/refresh.sh <SESSION_ID>` · sorgente: `state/rings.jso
 
 <!-- GENERATED:rings:start -->
 <!-- NON modificare a mano: rigenerato da `bash state/refresh.sh`. VERIFIED = check passato in QUESTA sessione. -->
-_Rigenerato 2026-06-15T14:30:06Z · sessione `fc1cf54b-820f-441b-9eba-a89d24c8955d`_
+_Rigenerato 2026-06-16T07:49:24Z · sessione `auto-20260616T094923Z`_
 
 | # | Anello | Stato | Tier | Check | Ultima sessione |
 |---|--------|-------|------|-------|-----------------|
 | 1 | invio Day1 WA | UNVERIFIED | full | — | — |
-| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | fc1cf54b-820f-441b-9eba-a89d24c8955d |
-| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | fc1cf54b-820f-441b-9eba-a89d24c8955d |
+| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | auto-20260616T094923Z |
+| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | auto-20260616T094923Z |
 | 9B | reject -> abort | UNVERIFIED | full | — | — |
-| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | fc1cf54b-820f-441b-9eba-a89d24c8955d |
+| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | auto-20260616T094923Z |
 | 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED | full | — | — |
 | 8 | contract -> sign_url | BLOCKED | full | freeze: sign_url firmato dal dealer reale (HITL fisico Luke o terzo) — fatto esterno non raggiungibile in-sessione | — |
 <!-- GENERATED:rings:end -->
@@ -121,8 +121,12 @@ irreversibile + verifica con professionista legale — CC non è un legale) non 
      consenso; legittimo interesse marketing va usato con parsimonia + balancing test documentato —
      Garante/Federprivacy 2026 verificato S249). Lecito come follow-up di lead inbound / rapporto
      preesistente / richiesta esplicita. NON "illegale a prescindere", ma NON assumibile come lecito.
- (b) **trasparenza AMBRA**: l'agente NON deve negare di essere automatico se interrogato (rimuovere
-     eventuale istruzione KB "nega di essere un bot"). Trasparenza, oltre che consenso.
+ (b) **trasparenza AMBRA — meccanismo runtime di impersonificazione (NON "istruzione KB
+     eventuale")**: `response-analyzer.py:341-377` impersona Luca in prima persona, vieta le
+     parole "bot/automatico" e deflette se interrogata. DECISIONE LUKE S274: correggere (assistente
+     palese di Luca reale + disclosure + motivo vero), NON ripristinare. Edit runtime AUTORIZZATO.
+     Esecuzione S275 (vedi `.claude/S274_AMBRA_TRANSPARENCY_AUTHORIZED.md`). Item (a) liceità
+     canale resta BLOCKED-ON-LUKE. **S275: CHIUSO runtime — vedi nota finding sotto.**
 La E2E contro TEST_FOUNDER 393314928901 procede comunque (non è un dealer).
 
 ---
