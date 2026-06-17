@@ -5,7 +5,7 @@
 > "VERIFIED" = check passato in QUESTA sessione, non una frase digitata.
 > Stato cross-sessione (memorie) → `~/.claude/projects/.../memory/MEMORY.md` (scopo diverso).
 > Piano dettagliato → `PLAN.md` · Problemi parcheggiati → `BACKLOG.md`.
-> Aggiornato: **S275 · 2026-06-16**
+> Aggiornato: **S278 · 2026-06-17**
 
 > **S273-cont · base-mercato NON affidabile (cap-truncated).** La fixture
 > `tests/fixtures/it_dist_bmw_serie3_2021.json` (n=325, meta "esaustiva") era TRONCATA dal cap
@@ -144,9 +144,13 @@ irreversibile + verifica con professionista legale — CC non è un legale) non 
 >     bannavano "automatico" → strisciavano la disclosure) + retry-prompt (2427) + KB. **NON
 >     deployato su iMac**: il daemon live continua a negare finché `bash deploy/sync.sh` → (b)
 >     è chiuso-in-repo, NON chiuso-in-produzione (distinzione S271 codice-verde vs artefatto-verde).
->     **RESIDUO firma**: WA (385) + reply contratto (2097) ancora prima persona "Luca" su output
->     bot = re-impersonificazione dalla firma → correggere in "Assistente di Luca Ferretti" (stessa
->     decisione trasparenza S274, NON branding). Seam: testo WA → assistente; Day-10 voce/Day-30 tel → Luca reale.
+>     **RESIDUO firma — CHIUSO IN REPO (S277, commit ee0694f)**: l'output WA del bot non firma più
+>     "Luca" in 1ª persona. Costante `ARGOS_ASSISTANT='Azzurra'` (response-analyzer.py:68); firma→Azzurra
+>     a tutti i punti (format_prompt 386, istruzione LLM 835, reply contratto 2099, TEMPLATE_FALLBACK
+>     2378/2382, retry auto-id 2429, broker 2478). `ARGOS_PERSONA='Luca Ferretti'` INVARIATO (persona
+>     reale, voce/tel). test_ambra_5scenarios.py 5/5. Verifica = statica sui literal (il render LLM vero
+>     si vede nell'E2E TEST_FOUNDER, deferito). Seam: testo WA → Azzurra; Day-10 voce/Day-30 tel → Luca reale.
+>     **NON deployato su iMac** (gated C2, dopo E2E verde) → in PRODUZIONE il daemon firma ancora vecchio.
 La E2E contro TEST_FOUNDER 393314928901 procede comunque (non è un dealer).
 
 ---
@@ -160,6 +164,11 @@ La E2E contro TEST_FOUNDER 393314928901 procede comunque (non è un dealer).
 - DB canonico `pending_replies` = `~/Documents/app-antigravity-auto/dealer_network.sqlite` (ROOT, via symlink shared).
 - Token Telegram in `current/wa-intelligence/.env` var `ARGOS_TELEGRAM_TOKEN` (MAI stampare).
 - `argos.py` NON esiste (CLAUDE.md `python3 argos.py test` è stale). Test reali: `tools/test_*.py`, `tools/tests/`.
+- **Enforcement secret (S278, commit 6a01884)**: `.githooks/` tracciati (pre-commit + pre-push) via
+  `core.hooksPath=.githooks`. pre-push blocca il push se UN QUALSIASI commit in arrivo contiene un secret.
+  Dopo OGNI clone: `git config core.hooksPath .githooks` (la config non si clona). MAI `--no-verify`/`git add -A`.
+  Push resta bloccato finché scrub history (filter-repo, `.claude/PLAN_FILTER_REPO_S278.md`) non fatto — il
+  push bloccato NON è il rischio; la rotazione 3 token è azione Luke separata (vedi `.claude/NEXT_PROMPT_S279.md`).
 
 ---
 
