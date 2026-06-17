@@ -19,8 +19,8 @@
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "PASS",
-    "last_run_ts": "2026-06-16T16:24:41Z",
-    "last_run_session": "b5c8a7c0-1476-478f-bd61-2db1d8b2eaa8",
+    "last_run_ts": "2026-06-17T09:48:41Z",
+    "last_run_session": "auto-20260617T114841Z",
     "note": "Smoke offline: 5 scenari intent su fixture DB, zero LLM zero msg reali."
   },
   {
@@ -31,8 +31,8 @@
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "PASS",
-    "last_run_ts": "2026-06-16T16:24:41Z",
-    "last_run_session": "b5c8a7c0-1476-478f-bd61-2db1d8b2eaa8",
+    "last_run_ts": "2026-06-17T09:48:41Z",
+    "last_run_session": "auto-20260617T114841Z",
     "note": "Smoke offline: approve_reply runtime con SQLite fixtures schema produzione. Gate '5/5 PASS'."
   },
   {
@@ -55,8 +55,8 @@
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "PASS",
-    "last_run_ts": "2026-06-16T16:24:41Z",
-    "last_run_session": "b5c8a7c0-1476-478f-bd61-2db1d8b2eaa8",
+    "last_run_ts": "2026-06-17T09:48:41Z",
+    "last_run_session": "auto-20260617T114841Z",
     "note": "Smoke offline: generate_dossier_from_data produce PDF reale su disco (magic %PDF, no rete no immagini). Lo stesso check esercita anche il gate HITL dossier (anello 6) come best-effort SE fastapi presente (iMac/CI); su MacBook fastapi assente -> 6 SKIP non-gating."
   },
   {
