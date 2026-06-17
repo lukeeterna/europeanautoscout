@@ -35,7 +35,8 @@ GATE-0  Token (CORRETTO vs git): solo OpenRouter da ruotare; GitHub PAT morto
 [F]     filter-repo: bonifica history — sblocca il push
 
 ────────────────────────────────────────────────────────
-4. I 3 GATE PRIMA DI UN DEALER REALE (tutti tecnici, niente piu' gate legale)
+4. I 3 GATE PRIMA DI UN DEALER REALE (tecnici). NB: il rischio legale NON e' sparito —
+   il GDPR del cold-WA e' NOTO e ACCETTATO da te (canale deciso), mitigato da provenienza+opt-out.
 ────────────────────────────────────────────────────────
 - [A] E2E TEST_FOUNDER verde + Luke "pienamente soddisfatto"
 - [E] trasparenza Azzurra LIVE in produzione (oggi solo in repo)

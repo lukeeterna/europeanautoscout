@@ -24,4 +24,7 @@
 #
 # BACKLOG (gated, FUORI sequenza): ITEM-ASTE-GIUDIZIARIE (canale sourcing #2, post primo-dealer-reale) → BACKLOG.md.
 #
-# 3 GATE A INVIO DEALER REALE (tutti tecnici): [A] verde + Luke soddisfatto · [E] trasparenza live · [D] base-mercato fidata.
+# 3 GATE A INVIO DEALER REALE (tecnici): [A] verde + Luke soddisfatto · [E] trasparenza live · [D] base-mercato fidata.
+# NB LEGALE (non "gate sparito"): il rischio GDPR del cold-WA e' NOTO e ACCETTATO da Luke (canale deciso-finale,
+#   autorita' su irreversibile), MITIGATO dalla copy con provenienza-contatto + opt-out. Difendibilita' = artefatto
+#   lungo il percorso (balancing test legittimo-interesse documentato, S249), NON un re-gate. Rischio accettato ≠ inesistente.
