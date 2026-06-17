@@ -17,6 +17,15 @@
   (DB scrapato / AutoScout / pagina dealer). NB: "pubblico" ≠ base giuridica (canale deciso-finale, non riapro).
 - **N2** differito (tuning archetipo dopo). **N3** wiring solo a 3 gate verdi.
 
+## PRIMA AZIONE S280 (rinviata da S279 per context-budget): applicare nuovo token bot
+Luke ha (ri)generato il token bot Telegram via @BotFather e lo incolla in `~/argos_new_bot_token_S280.txt`
+(fuori repo, chmod 600). **Applicare a inizio S280 in finestra pulita** (NON fatto in S279: era context 59%,
+mutazione shared-state vietata a saturazione):
+1. leggere il token dallo scratch (MAI stamparlo); 2. aggiornare `ARGOS_TELEGRAM_TOKEN` in iMac
+   `current/wa-intelligence/.env` (consultare `reference_imac_deploy_paths.md`); 3. restart daemon tg;
+   4. verificare `getMe` OK; 5. **cancellare lo scratch**.
+GitHub PAT `ghp_zgws…`: Luke conferma revoca da github.com → Settings → Developer settings → PAT (se non in lista = ok).
+
 ## GATE CHE BRUCIA — prima di [3] e [4]: ROTAZIONE 3 TOKEN (azione Luke)
 S279 NON ha conferma che i 3 token siano revocati (la lista l'ha prodotta CC; la rotazione è azione tua).
 Se NON fatto, è l'unica cosa urgente adesso (chiavi vive), precede tutto:
