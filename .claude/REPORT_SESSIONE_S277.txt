@@ -1,0 +1,156 @@
+AND========================================================================
+  REPORT DI SESSIONE — S277 (ARGOS)
+  Data: 17 giugno 2026
+  Branch: s210/audit-master-plan
+========================================================================
+
+------------------------------------------------------------------------
+1. COSA E' STATO FATTO QUESTO ROUND
+------------------------------------------------------------------------
+
+BUNDLE Q3 — RESIDUO FIRMA "Luca" -> "Azzurra"   [CHIUSO IN REPO]
+  Commit: ee0694f  (locale, NON pushato)
+  File:   wa-intelligence/response-analyzer.py
+
+  Problema chiuso: l'output WhatsApp del bot firmava ancora "Luca" in
+  prima persona = re-impersonificazione dalla firma. Decisione founder
+  (S274) = l'assistente si DICHIARA, non impersona Luca. Nome pubblico
+  deciso S276 = AZZURRA.
+
+  Modifiche (7 punti firma + 1 costante):
+    - riga 68   : AGGIUNTA costante pubblica  ARGOS_ASSISTANT = 'Azzurra'
+                  (ARGOS_PERSONA = 'Luca Ferretti' INVARIATO = persona reale)
+    - riga 386  : firma format_prompt        "Luca" -> "Azzurra"
+    - riga 835  : istruzione al modello LLM   "Rispondi come Luca Ferretti"
+                  -> "Genera come Azzurra, l'assistente di Luca Ferretti"
+    - riga 2099 : firma reply contratto       "Luca" -> "Azzurra"
+    - righe 2378/2382 : firma TEMPLATE_FALLBACK x2  "Luca" -> "Azzurra"
+    - riga 2429 : retry auto-identificazione  -> "Azzurra, l'assistente
+                  automatica di Luca Ferretti"
+    - riga 2478 : firma VEHICLE_REQUEST_BROKER_FALLBACK "Luca" -> "Azzurra"
+
+  Test: tools/test_ambra_5scenarios.py  =>  5/5 PASS
+  Diff verificato a mano (trust-but-verify): pulito, 9+/8-.
+
+CONFINE AMBRA / AZZURRA — DEFINITO E APPLICATO
+    AZZURRA = unico nome PUBLIC-FACING (cio' che il dealer legge nel testo
+              WA + auto-identificazione "sono Azzurra, l'assistente di
+              Luca Ferretti").
+    AMBRA   = nome INTERNO di sistema (identificatori codice, variabili,
+              costanti, commenti, plan/doc) -> INVARIATO.
+    LUCA    = persona reale principale (voce Day-10 / telefono Day-30) ->
+              INVARIATO.
+
+  NOTA limite: la verifica e' stata STATICA sui literal (le firme sono
+  stringhe letterali nei template/prompt, non costruite dinamicamente ->
+  adeguata). Il render LLM "vero" (messaggio generato che firma Azzurra)
+  si vedra' nell'E2E TEST_FOUNDER, deferito (vedi C4).
+
+REPORT DUREVOLE
+    .claude/REPORT_S277.md  (commit 282d10a)
+    .claude/REPORT_SESSIONE_S277.txt  (questo file)
+
+------------------------------------------------------------------------
+2. LE TUE RISPOSTE ALLE 4 DOMANDE (C1-C4)
+------------------------------------------------------------------------
+
+C1 — COPY DAY-1 (disclosure + provenienza contatto + opt-out, firma Azzurra)
+     LA TUA RISPOSTA: "Approvi prima".
+     => La copy si SCRIVE come PROPOSTA e si mostra a te per OK PRIMA di
+        toccare il runtime. E' anche il sostrato del balancing test legale.
+
+C2 — DEPLOY iMac (sync.sh) per portare Azzurra+firma in PRODUZIONE
+     LA TUA RISPOSTA: "Dopo firma + E2E verde".
+     => sync.sh resta FERMO finche' l'E2E TEST_FOUNDER non e' verde.
+        Pre-flight obbligatorio symlink wa-sender/ (memoria S252) prima
+        del deploy. Finche' non deployato, il daemon live nega ancora.
+
+C3 — PUSH bloccato da secret in history (S220)
+     LA TUA RISPOSTA: "Preparo il piano".
+     => Ti PRODUCO il piano git filter-repo step-by-step (bonifica secret
+        + rotazione) da eseguire TU. Da fare in S278. Finche' irrisolto:
+        commit solo locali, niente push.
+
+C4 — AUTONOMIA S277
+     LA TUA RISPOSTA: "Stop dopo firma + Azzurra".
+     => RAGGIUNTO. Mi sono fermato a bundle Q3 fatto. Tu rivedi prima di
+        copy Day-1 / E2E.
+
+PROMEMORIA (gia' deciso prima di questa sessione):
+   (a) LICEITA' CANALE = DECISO-FINALE, INDISCUTIBILE: canale = WhatsApp
+       cold outreach, nessun reframe. NON e' piu' un gate legale.
+
+------------------------------------------------------------------------
+3. STATO E2E (anelli pipeline) — INVARIATO QUESTO ROUND
+------------------------------------------------------------------------
+
+  #     ANELLO                              STATO
+  ----  ----------------------------------  -----------------------------
+   2    classifier intent (AMBRA)           VERIFIED (smoke)
+   9A   approve -> send                     VERIFIED (smoke)
+   5    generazione dossier PDF             VERIFIED (smoke) *
+   1    invio Day1 WA                       UNVERIFIED
+   9B   reject -> abort                     UNVERIFIED
+   6-7  approve HITL dossier -> invio PDF   UNVERIFIED
+   8    contract -> sign_url                BLOCKED (firma dealer reale)
+
+  * Ring 5 = il PDF si genera, MA la base-mercato sotto NON e' fidata
+    (cap-truncated + geo da verificare + A/B-experiment). Vedi gate #3.
+
+  Q3 = lavoro su persona/control-plane: NON muove anelli E2E.
+
+3 GATE TECNICI RESIDUI a un invio a un dealer REALE (nessuno e' legale):
+   1. E2E TEST_FOUNDER verde (anelli 1 / 6-7 / 9B) + tu "pienamente
+      soddisfatto" (gate qualitativo).
+   2. Trasparenza in PRODUZIONE: Azzurra+firma -> sync.sh (C2, dopo E2E).
+   3. Base-mercato fidata: scrape esaustivo DEEP_PAGES>=80 + geo==IT su
+      location.countryCode + experiment-OFF (finding cont3).
+
+------------------------------------------------------------------------
+4. NEXT STEP / PROMPT PROSSIMA SESSIONE (S278)
+------------------------------------------------------------------------
+
+ORDINE PRECISO:
+
+[1] PRIORITA' 0 (CORRETTEZZA, non cosmetico) — RICHIEDE UNLOCK
+    Rilancia Claude Code con la variabile d'ambiente attiva:
+        ARGOS_HARNESS_UNLOCK=1
+    (Gate-E protegge MEMORY.md come overwrite_sot; senza unlock l'edit
+     viene bloccato.)
+    Poi:
+      a) aggiorna la riga-indice 11 di MEMORY.md (oggi ancora
+         "cap-truncated only") allineandola al topic file s273_* gia'
+         completo. Riga pronta:
+         - [S273 base-mercato BMW Serie3 NON affidabile (cap-truncated +
+           geo + A/B)](s273_fixture_truncated_cap.md) — pool valido = 2
+           garanzie SEPARATE: (i) completezza DEEP_PAGES>=80 fino a pagina
+           vuota + experiment-OFF; (ii) purezza geo==IT su
+           location.countryCode. Calibrazione 330i invalida finche' non
+           rifatta.
+         (Backup Rule 1d prima dell'Edit.)
+      b) aggiorna STATE.md a S277 (commit ee0694f, firma Azzurra).
+
+[2] COPY DAY-1 (C1 = approvi prima)
+    Scrivila come PROPOSTA: disclosure + provenienza contatto + opt-out,
+    firma Azzurra, deve atterrare "calda" senza perdere response rate.
+    Mostrala a Luke per OK. NON wirarla nel runtime prima dell'OK.
+
+[3] PIANO git filter-repo (C3)
+    Produci il piano step-by-step (bonifica secret S220 in history +
+    rotazione) da eseguire Luke. Sblocca il push.
+
+PROMPT DI RIPARTENZA (copia-incolla a inizio S278):
+------------------------------------------------------------------------
+Rilancia con ARGOS_HARNESS_UNLOCK=1. Leggi .claude/REPORT_S277.md +
+.claude/REPORT_SESSIONE_S277.txt + STATE.md. Esegui in ordine:
+(1) PRIORITA' 0: riga-indice 11 MEMORY.md + STATE.md a S277 (sotto unlock,
+    backup Rule 1d). (2) Scrivi la copy Day-1 come proposta e mostrala a
+    Luke per OK (NON wirarla). (3) Prepara il piano git filter-repo.
+Anelli E2E invariati. Nessun invio a dealer reale finche' i 3 gate
+tecnici non sono verdi (E2E TEST_FOUNDER, trasparenza in produzione,
+base-mercato fidata).
+------------------------------------------------------------------------
+
+========================================================================
+  FINE REPORT S277
+========================================================================
