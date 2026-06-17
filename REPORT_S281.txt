@@ -1,0 +1,168 @@
+════════════════════════════════════════════════════════════════════
+REPORT SESSIONE — ARGOS · S281 · 17 giugno 2026
+Branch: s210/audit-master-plan
+Tipo sessione: ALLINEAMENTO STATO-REALE (lettura-verità dal git) + AZIONE 1
+               (apply chiavi su iMac, shared-state, eseguita a budget sano)
+════════════════════════════════════════════════════════════════════
+
+
+1. RAGIONAMENTO (le decisioni che ho preso e perché)
+────────────────────────────────────────────────────────────────────
+
+a) SCOPO ricevuto: NON eseguire [A]/[B]/[C]. Solo (1) accertare dove siamo
+   dal git (non dalla chat, non da memoria, non da Claude-AI), (2) verificare
+   che le tappe di sessione siano DAVVERO depositate nei doc, (3) colmare i
+   buchi. Poi Luke: "context 44% decidi tu" → autorità delegata sul next.
+
+b) Perché ho deciso di ESEGUIRE AZIONE 1 (apply chiavi) invece di parcheggiarla:
+   La regola di scheduling che io stesso ho depositato dice che AZIONE 1 è il
+   lavoro di S281 e va chiusa a context <60%. Ero al 44%. L'azione è BOUNDED
+   (edit di 2 righe in .env + restart + verifica) e MIGLIORA lo stato (chiavi
+   vive sostituiscono quelle morte/da-ruotare), non lo degrada. Orario non
+   lavorativo e daemon=initializing NON bloccano un apply-keys: bloccano solo
+   l'INVIO WA a dealer, che qui non avviene. Stallare a budget sano sarebbe
+   stata la scelta sbagliata (avrei riaperto lo stesso lavoro a S282 a budget
+   già speso = rischio PARTIAL).
+
+c) Perché NON ho eseguito [A0]+[A1] (E2E 6-7):
+   È la mutazione+verifica "pesante" che, per la regola scheduling, merita una
+   sessione DEDICATA a budget pieno e in orario lavorativo. Aprirla a metà
+   sessione = rischio PARTIAL sull'anello critico. Inoltre ha prerequisito
+   hard non soddisfatto: daemon WA = initializing (vedi §3).
+
+d) Disciplina secret (vincolo security.md): le 2 chiavi sono passate via STDIN,
+   mai come argomenti di comando → non compaiono in process-list iMac, né nel
+   testo dei comandi loggati. Verifica estrazione fatta in forma MASCHERATA
+   (prefisso+lunghezza) PRIMA di scrivere, per non iniettare un token malformato
+   (il file bot-token era 407 byte = testo attorno al token, non solo il token).
+
+e) Rule 1d (reversibilità prima di mutazione lossy): backup verificato-per-stat
+   sia di ROADMAP.md (prima dell'edit) sia di .env iMac (prima dell'apply),
+   entrambi citati nell'output, size>0, fuori da /tmp.
+
+
+2. OPERAZIONI ESEGUITE
+────────────────────────────────────────────────────────────────────
+
+ALLINEAMENTO (read-only, fonte = git+disco):
+  git log/status            → 3 commit S280 (4ebd50d, 542f520, 3cfc875) + close
+                              0bd8986 confermati; tree pulito; branch ahead.
+  ls docs/ docs/briefs/     → 6 file presenti (ROADMAP, HANDOFF_S280,
+                              RECOVERY_PROMPT_S281, BRIEF_A/B/C).
+  Verifica 6 tappe attese   → 5/6 PRESENTI; 1 ASSENTE (regola scheduling
+                              sessioni non era in ROADMAP, solo in REPORT_S280 §5).
+
+GAP COLMATO:
+  docs/ROADMAP.md           → aggiunto blocco "SCHEDULING SESSIONI" (S281=apply+
+                              checklist; [A0]+[A1]=sessione dedicata budget-pieno).
+                              Backup Rule 1d: docs/backups/ROADMAP.md.bak-S281-*.
+
+AZIONE 1 — apply chiavi su iMac (path canonico da memoria reference):
+  .env iMac                 = symlink unico current→ROOT (NO split-brain S227).
+  Backup                    → wa-intelligence/.env.bak-S281-20260617215944 (1076B).
+  Sostituite 2 chiavi       → OPENROUTER_API_KEY (sk-or-v1-…, len 73) +
+                              ARGOS_TELEGRAM_TOKEN (8691360619:…, len 46), via stdin.
+  Restart                   → argos-tg-bot + argos-wa-daemon (online, ↺1).
+  Scratch                   → ~/argos_new_openrouter_S281.txt + _bot_token_S280.txt
+                              cancellati (nessun residuo).
+
+CHIUSURA GATE:
+  docs/HANDOFF_S280.md      → gate token marcato ✅ FATTO S281 (no re-apply next).
+
+COMMIT (locali; push bloccato dal pre-push = atteso, item [F] non ancora fatto):
+  1eed511  S281 align: deposita regola scheduling sessioni in ROADMAP
+  dd9731c  S281 AZIONE 1 DONE: chiavi OpenRouter+TG applicate su iMac .env
+  (pre-commit secret-scan: passato su entrambi)
+
+VERIFICHE PASSATE (fatti, non opinioni):
+  TG getMe                  → ok=True · username=Argosautomotivebot
+  OpenRouter /auth/key      → http=200 (chiave valida)
+  pm2 status                → argos-tg-bot online ↺1 · argos-wa-daemon online ↺1
+  estrazione token          → 1 match univoco per file, formato corretto
+  backup .env               → 1076 byte (= dimensione originale), pre-edit
+
+
+3. AVANZAMENTI E2E DI SESSIONE
+────────────────────────────────────────────────────────────────────
+
+  ONESTO: ZERO movimento di anelli E2E in S281. Era allineamento + infra
+  (apply chiavi), per design — nessun anello toccato.
+
+  Stato anelli (INVARIATO, SoT = STATE.md / state/rings.json):
+    2   classifier intent (AMBRA)      VERIFIED (smoke)
+    9A  approve -> send                VERIFIED (smoke)
+    5   generazione dossier PDF        VERIFIED (smoke)
+    1   invio Day1 WA                  UNVERIFIED
+    9B  reject -> abort                UNVERIFIED
+    6-7 approve HITL -> invio PDF      UNVERIFIED   ← prossimo target ([A1])
+    8   contract -> sign_url           BLOCKED (fatto esterno: firma dealer reale)
+
+  Il valore di S281 NON è un anello: è (i) aver allineato i doc allo stato reale
+  del git colmando l'unico buco, e (ii) aver chiuso il gate infrastrutturale
+  "chiavi vive su iMac" che precede la cascade LLM. L'anello si muove in [A1].
+
+  STATO INFRA POST-SESSIONE:
+    - cascade LLM: OpenRouter ora con chiave valida (200) → ramo OpenRouter vivo.
+    - bot Telegram: token applicato e vivo (getMe) → HITL TG funzionante.
+    - daemon WA: ANCORA initializing/qr_available:false → NON spedisce (gate [A0]).
+
+
+4. STATO DAEMON (la cosa che decide [A0], verificato ORA 21:49)
+────────────────────────────────────────────────────────────────────
+    wa_status: initializing      qr_available: false
+    is_business_hours: false     daily_remaining: 20/20     uptime ~4.4gg
+  → client WA NON connesso. [A1] (E2E 6-7) NON può partire finché [A0]
+    wa-daemon-ops non porta il daemon initializing→connected (area S252:
+    QR re-scan + Luke fisico sulla SIM + orario lavorativo).
+
+
+5. NEXT STEP / PROMPT — sessione dedicata [A0]+[A1]
+────────────────────────────────────────────────────────────────────
+
+  REGOLA SCHEDULING (depositata in ROADMAP, S279/S280/S281): mutazione
+  sostanziosa + finale-verificato NON convivono a context saturo. S281 (apply
+  chiavi) è chiuso. La prossima è la sessione PESANTE → budget PIENO, dedicata.
+
+  PRECONDIZIONE HARD: orario lavorativo + Luke fisico sulla SIM (per il QR).
+  NON aprire la sessione fuori orario o senza Luke disponibile al telefono.
+
+  ─── PROMPT PROSSIMA SESSIONE (incolla a freddo) ───
+  Lancia CC con ARGOS_HARNESS_UNLOCK=1. Leggi in ordine, NIENT'ALTRO è
+  istruzione: STATE.md → docs/ROADMAP.md → docs/HANDOFF_S280.md →
+  docs/briefs/BRIEF_A_e2e_67_testfounder.md.
+
+  [A0] — wa-daemon-ops (PRECEDE [A1], area S252):
+    1. ssh iMac, curl :9191/status → conferma wa_status.
+    2. Se initializing: rigenera QR, Luke scansiona sulla SIM TEST_FOUNDER.
+    3. done-condition [A0] = wa_status:"connected" + qr_available coerente.
+    NON saltare a [A1] col daemon initializing.
+
+  [A1] — E2E 6-7 su TEST_FOUNDER 393314928901 (done = CHECKLIST VERDE 7 punti,
+    BRIEF_A righe 17-28):
+    scraper AS24 (experiment-OFF, geo==IT) → 1 veicolo → dossier onesto (banda
+    p25-p75, margine INTERVALLO, fonte "prezzi richiesti") → AMBRA genera Day-1
+    con voce + disclosure Azzurra (assistente di Luca) + provenienza + opt-out →
+    RENDER verificato letto da pypdf (firma=Azzurra NON "Luca" 1ª persona,
+    disclosure presente, numeri=banda, grep superlativi=0) → invio via Gate-E
+    (classe outreach_real → BLOCCA → packet → approve Luke) → MOSTRA il messaggio
+    reale letto dal render, non descritto.
+    ⚠️ base-mercato non-fidata (gate [D]): è test di MECCANICA+RENDER, NON dei
+    numeri. PRECONDIZIONE: voce AMBRA (BRIEF B) — se non ancora prodotta, in [A1]
+    si testano firma/disclosure/render, la voce piena arriva con [B].
+
+  RESTANTE SEQUENZA: [B] tool-research voce → [C] monitor fonti sourcing →
+    [D] base-mercato fidata → [E] deploy trasparenza (sync.sh) →
+    [F] filter-repo (sblocca push).
+
+  3 GATE A INVIO DEALER REALE (tecnici): [A] verde + Luke "pienamente
+    soddisfatto" · [E] trasparenza Azzurra LIVE · [D] base-mercato fidata.
+  NB LEGALE (non "gate sparito"): rischio GDPR cold-WA NOTO + ACCETTATO +
+    MITIGATO (provenienza-contatto + opt-out). Accettato ≠ inesistente.
+
+  AZIONI LUKE indipendenti (fuori CC):
+    - Account FB di TEST sacrificabile (cookie c_user+xs) PRIMA del fetch-test
+      del modulo FB-groups sourcing (repo MasuRii/FBScrapeIdeas). Senza, il
+      modulo FB non parte; AS24+sintesi girano comunque.
+    - OpenRouter già ruotato+applicato (FATTO S281). GitHub PAT = niente
+      (morto/scaduto, non in history). TG = applicato (FATTO S281).
+════════════════════════════════════════════════════════════════════
