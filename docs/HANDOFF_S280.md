@@ -14,8 +14,9 @@ NON connesso, non puo' spedire. Portarlo initializing->connected (area S252: QR 
 sulla SIM, in orario lavorativo) PRIMA di [A1] E2E 6-7. Brief: docs/briefs/BRIEF_A_e2e_67_testfounder.md.
 
 ## Gate aperti
-- Token: applicare bot Telegram su iMac (S281 AZIONE 1) — gia' rigenerato+vivo (getMe OK S279), solo
-  apply su current/wa-intelligence/.env + restart + cancella scratch. OpenRouter gia' ruotato.
+- Token: ✅ FATTO S281 — OpenRouter + bot Telegram APPLICATI su iMac wa-intelligence/.env (symlink unico,
+  no split-brain), restart argos-tg-bot+argos-wa-daemon (↺1, online). Verifica: getMe ok=True
+  username=Argosautomotivebot + OpenRouter /auth/key http=200. Scratch cancellati. Backup .env.bak-S281-*.
 - Push: bloccato dal pre-push (45 commit avanti origin + storico-secret S220, scan per PATTERN non
   liveness). Sblocco reale = item [F] filter-repo, sessione dedicata.
 - Memory-index: riga puntatore in MEMORY.md gated da Gate-E (packet overwrite_sot-dc04f63aaf). Il file
