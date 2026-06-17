@@ -1,0 +1,57 @@
+ARGOS — STATO S280 (17 giugno 2026)
+Riepilogo a freddo. Non serve rileggere la sessione.
+
+────────────────────────────────────────────────────────
+1. COSA HO DEPOSITATO (nessun lavoro eseguito, solo deposito)
+────────────────────────────────────────────────────────
+- docs/ROADMAP.md ............ sequenza ufficiale unica del lavoro
+- docs/briefs/BRIEF_A_e2e_67_testfounder.md ... istruzioni item [A]
+- docs/briefs/BRIEF_B_research_tool.md ........ istruzioni item [B]
+- docs/briefs/BRIEF_C_sourcing_monitor.md ..... istruzioni item [C]
+- STATE.md ................... regola di precedenza aggiunta in testa
+- .claude/NEXT_PROMPT_S278/279/280.md ......... marcati SUPERSEDED (archivio)
+Committato (4ebd50d). Push resta bloccato dal pre-push: e' atteso, non un errore.
+
+────────────────────────────────────────────────────────
+2. REGOLA DI PRECEDENZA (in conflitto vince il numero piu' basso)
+────────────────────────────────────────────────────────
+(1) codice + git        = verita' su cosa ESISTE
+(2) STATE.md            = stato corrente
+(3) docs/ROADMAP.md     = sequenza ufficiale del lavoro
+(4) docs/briefs/*       = istruzioni operative per ogni item
+(5) .claude/REPORT_S*.md e NEXT_PROMPT_S*.md = ARCHIVIO, NON istruzioni vive
+A inizio sessione si legge: STATE.md -> ROADMAP.md -> il brief dell'item in corso. Basta.
+
+────────────────────────────────────────────────────────
+3. SEQUENZA UFFICIALE
+────────────────────────────────────────────────────────
+GATE-0  Rotazione 3 token (AZIONE LUKE, brucia ora, indipendente da tutto)
+[A]     E2E 6-7 su TEST_FOUNDER 393314928901 (scraper->dossier->AMBRA parla)
+[B]     Tool-research -> KB voce AMBRA (alimenta [A])
+[C]     Monitor fonti sourcing B2B (settimanale)
+[D]     Base-mercato fidata (scrape esaustivo + geo==IT + experiment-OFF)
+[E]     Deploy trasparenza in PRODUZIONE (sync.sh) — dopo [A] verde
+[F]     filter-repo: bonifica history — sblocca il push
+
+────────────────────────────────────────────────────────
+4. I 3 GATE PRIMA DI UN DEALER REALE (tutti tecnici, niente piu' gate legale)
+────────────────────────────────────────────────────────
+- [A] E2E TEST_FOUNDER verde + Luke "pienamente soddisfatto"
+- [E] trasparenza Azzurra LIVE in produzione (oggi solo in repo)
+- [D] base-mercato fidata sotto il dossier
+
+────────────────────────────────────────────────────────
+5. COSA DEVI FARE TU, LUKE
+────────────────────────────────────────────────────────
+(a) RUOTARE ORA i 3 token (revoca + riemetti):
+    - GitHub PAT  (ghp_zgws...)
+    - OpenRouter  (chiave ...2f13)
+    - bot Telegram @Argosautomotivebot
+(b) Prima dell'item [B] modulo 2: incollare gli URL dei gruppi Facebook
+    in config/fb_groups.yaml (la scoperta gruppi e' manuale, non automatica).
+
+────────────────────────────────────────────────────────
+6. PROSSIMA AZIONE
+────────────────────────────────────────────────────────
+Partire da [A] — E2E 6-7 su TEST_FOUNDER.
+Brief: docs/briefs/BRIEF_A_e2e_67_testfounder.md
