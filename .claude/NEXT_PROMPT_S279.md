@@ -1,3 +1,5 @@
+> SUPERSEDED da docs/ROADMAP.md — vedi STATE.md regola di precedenza.
+
 # PROMPT RIPARTENZA — S279
 
 ## ⚠️ CORREZIONE URGENZA SECRET (precede tutto — fatto verificato S278)

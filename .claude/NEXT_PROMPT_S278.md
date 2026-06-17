@@ -1,3 +1,5 @@
+> SUPERSEDED da docs/ROADMAP.md — vedi STATE.md regola di precedenza.
+
 # PROMPT RIPARTENZA — S278 (APPROVATO Luke 2026-06-17)
 
 > Rilancia Claude Code con `ARGOS_HARNESS_UNLOCK=1` PRIMA di iniziare

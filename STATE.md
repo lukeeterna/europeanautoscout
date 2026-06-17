@@ -1,5 +1,14 @@
 # STATE.md — ARGOS · unico source-of-truth di stato
 
+> **AUTORITA' (in conflitto vince il numero piu' basso):**
+>  (1) codice + git        = verita' su cosa ESISTE
+>  (2) STATE.md            = stato corrente
+>  (3) docs/ROADMAP.md     = sequenza ufficiale del lavoro
+>  (4) docs/briefs/*       = istruzioni operative per ogni item della roadmap
+>  (5) .claude/REPORT_S*.md e NEXT_PROMPT_S*.md = ARCHIVIO storico, NON istruzioni vive (SUPERSEDED).
+> A inizio sessione CC legge: STATE.md → docs/ROADMAP.md → il brief dell'item in corso. Nient'altro e' istruzione.
+> Roadmap ufficiale → docs/ROADMAP.md · Brief operativi → docs/briefs/
+
 > **Questo è l'UNICO file che risponde a "a che punto siamo + cosa faccio dopo".**
 > La tabella anelli sotto è **GENERATA** da `state/refresh.sh` (non scrivibile a mano).
 > "VERIFIED" = check passato in QUESTA sessione, non una frase digitata.
@@ -29,15 +38,15 @@ Rigenera con: `bash state/refresh.sh <SESSION_ID>` · sorgente: `state/rings.jso
 
 <!-- GENERATED:rings:start -->
 <!-- NON modificare a mano: rigenerato da `bash state/refresh.sh`. VERIFIED = check passato in QUESTA sessione. -->
-_Rigenerato 2026-06-17T10:14:55Z · sessione `auto-20260617T121455Z`_
+_Rigenerato 2026-06-17T14:57:28Z · sessione `auto-20260617T165728Z`_
 
 | # | Anello | Stato | Tier | Check | Ultima sessione |
 |---|--------|-------|------|-------|-----------------|
 | 1 | invio Day1 WA | UNVERIFIED | full | — | — |
-| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | auto-20260617T121455Z |
-| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | auto-20260617T121455Z |
+| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | auto-20260617T165728Z |
+| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | auto-20260617T165728Z |
 | 9B | reject -> abort | UNVERIFIED | full | — | — |
-| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | auto-20260617T121455Z |
+| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | auto-20260617T165728Z |
 | 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED | full | — | — |
 | 8 | contract -> sign_url | BLOCKED | full | freeze: sign_url firmato dal dealer reale (HITL fisico Luke o terzo) — fatto esterno non raggiungibile in-sessione | — |
 <!-- GENERATED:rings:end -->

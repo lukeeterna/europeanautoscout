@@ -1,3 +1,5 @@
+> SUPERSEDED da docs/ROADMAP.md — vedi STATE.md regola di precedenza.
+
 # PROMPT RIPARTENZA — S280
 
 ## Cosa è successo in S279 (control-plane + correzione copy)
