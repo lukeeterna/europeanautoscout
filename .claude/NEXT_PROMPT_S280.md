@@ -25,7 +25,11 @@ mutazione shared-state vietata a saturazione):
 1. leggere il token dallo scratch (MAI stamparlo); 2. aggiornare `ARGOS_TELEGRAM_TOKEN` in iMac
    `current/wa-intelligence/.env` (consultare `reference_imac_deploy_paths.md`); 3. restart daemon tg;
    4. verificare `getMe` OK; 5. **cancellare lo scratch**.
-GitHub PAT `ghp_zgws…`: Luke conferma revoca da github.com → Settings → Developer settings → PAT (se non in lista = ok).
+GitHub PAT — **RISOLTO S279, rischio NON vivo**: il token ARGOS = PAT "Antigravity (repo workflow)"
+(nome = progetto app-antigravity-auto), **Expired May 11 2026 → morto**. Grep su tutta la history NON
+trova `ghp_zgws…` raggiungibile (già scrubbato o prefix parziale) → niente chiave GH viva. Nessuna azione.
+Igiene FLUXION (non bloccante): PAT eterni con scope admin larghi e inutilizzati → `stack_locale` (never
+used, delete_repo+admin) da cancellare; valutare `fluxion-desktop`/`DropEvolutionPushToken`/`fluxion2`.
 
 ## GATE CHE BRUCIA — prima di [3] e [4]: ROTAZIONE 3 TOKEN (azione Luke)
 S279 NON ha conferma che i 3 token siano revocati (la lista l'ha prodotta CC; la rotazione è azione tua).
