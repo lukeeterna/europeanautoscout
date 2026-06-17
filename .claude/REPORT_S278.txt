@@ -1,0 +1,98 @@
+============================================================
+REPORT SESSIONE S278 — ARGOS — 2026-06-17
+============================================================
+Branch: s210/audit-master-plan  (ahead 26 su origin, push bloccato)
+Commit prodotti questa sessione: 1e26141, 6a01884 (+ auto-close ba55bef)
+
+------------------------------------------------------------
+1. RAGIONAMENTO (come ho deciso, in ordine)
+------------------------------------------------------------
+- Letto NEXT_PROMPT_S278.md: 3 task in ordine [1] PRIORITA'0 (edita MEMORY.md+STATE.md),
+  [2] copy Day-1 proposta, [3] piano git filter-repo.
+- [1] richiede ARGOS_HARNESS_UNLOCK=1. Ho controllato l'env: NON settato.
+  Ho VERIFICATO (non assunto) che Gate-E blocca davvero l'edit di MEMORY.md
+  -> gate_e.py classe "overwrite_sot", selftest riga 499 = deny.
+  Decisione: [1] NON eseguibile in questa sessione, serve relaunch unlocked.
+  Per non sprecare la sessione ho fatto [2] e [3] (non toccano SoT, no unlock).
+- [3] mentre raccoglievo i dati per il piano ho trovato il FATTO che cambia tutto:
+  i secret NON sono solo in locale, sono GIA' su GitHub (origin/master 3e97b6a,
+  origin/s210 82a5881, entrambi con sk-or-v1). Quindi: rotazione = obbligatoria,
+  non opzionale; il push non era "in attesa", era gia' avvenuto in passato.
+- Su richiesta di Luke (responsabilita' sicurezza = mia) ho diagnosticato la
+  ROOT CAUSE della rotazione ricorrente: NON sono leak nuovi, sono gli stessi
+  secret di S49-S51/S220 mai ripuliti. Il pre-commit (S221) blocca i commit
+  NUOVI ma NON esisteva un pre-push -> la history vecchia passava su origin.
+  -> il buco vero era l'assenza di pre-push.
+- Luke: "hook potabile e tracciato". Giusto: .git/hooks/pre-push non e' versionato
+  e sparirebbe al clone fresco del filter-repo. Spostato in .githooks/ tracciato
+  + core.hooksPath.
+
+------------------------------------------------------------
+2. OPERAZIONI ESEGUITE
+------------------------------------------------------------
+[2] COPY DAY-1 (proposta, NON wirata) -> .claude/COPY_DAY1_S278_PROPOSAL.md
+    - 5 righe WA: veicolo+numeri prima (gancio) -> provenienza -> identita' Azzurra
+      + opt-out -> domanda chiusa.
+    - 3 elementi trasparenza = sostrato balancing test (identita'/provenienza/opt-out).
+    - Numeri = placeholder, da riempire SOLO con scrape fidato (gate-3).
+    - 3 nodi aperti per OK Luke (provenienza dichiarata, archetipo, condizioni wiring).
+
+[3] PIANO GIT FILTER-REPO -> .claude/PLAN_FILTER_REPO_S278.md (8 step, da eseguire Luke)
+    - STEP0 rotazione 3 token, STEP1 backup, STEP2 clone fresco, STEP3 replace.txt,
+      STEP4 filter-repo --replace-text, STEP5 verifica scrub, STEP6 force-push,
+      STEP7 propagazione + ri-config hooksPath, STEP8 igiene (GitHub cache/fork).
+
+ENFORCEMENT SECRET (richiesto da Luke)
+    - .githooks/pre-commit + .githooks/pre-push  (VERSIONATI/tracciati)
+    - git config core.hooksPath .githooks  (auto-attiva su questo clone)
+    - pre-push: blocca push se un commit in arrivo contiene secret.
+      TESTATO: blocca 3e97b6a (secret), exit=1; NON falso-positivo su commit-doc.
+    - REGOLA S278 scritta in .claude/rules/security.md:
+        * rischio secret = di Claude (committo/pusho io)
+        * mai --no-verify, mai git add -A (solo file nominati)
+        * dopo ogni clone: git config core.hooksPath .githooks
+        * rotazione/scrub UNA-TANTUM, non ricorrente
+
+I 3 TOKEN DA REVOCARE (nomi esatti)
+    - OpenRouter: key sk-or-v1-... che finisce con 2f13   -> openrouter.ai/keys
+    - GitHub PAT: ghp_zgws...                              -> github.com/settings/tokens
+    - Telegram bot: @Argosautomotivebot                   -> @BotFather /revoke + aggiorna .env iMac
+
+------------------------------------------------------------
+3. AVANZAMENTO E2E (anelli)
+------------------------------------------------------------
+INVARIATI rispetto a S277. Questa sessione = control-plane + sicurezza, NON tocca gli anelli.
+    | 1   invio Day1 WA              | UNVERIFIED |
+    | 2   classifier intent (AMBRA)  | VERIFIED (smoke) |
+    | 9A  approve -> send            | VERIFIED (smoke) |
+    | 9B  reject -> abort            | UNVERIFIED |
+    | 5   generazione dossier PDF    | VERIFIED (smoke) |
+    | 6-7 approve HITL -> invio PDF  | UNVERIFIED |
+    | 8   contract -> sign_url       | BLOCKED (fatto esterno) |
+
+3 GATE TECNICI a un invio dealer REALE (nessuno legale: WA cold = DECISO-FINALE):
+    (1) E2E TEST_FOUNDER verde (1/6-7/9B) + Luke "pienamente soddisfatto"
+    (2) trasparenza in PRODUZIONE (Azzurra+firma S277 -> sync.sh, dopo E2E verde)
+    (3) base-mercato fidata (scrape DEEP_PAGES>=80 + geo==IT + experiment-OFF)
+
+------------------------------------------------------------
+4. NEXT STEP / PROMPT PREVISTO (S279)
+------------------------------------------------------------
+ORDINE:
+[1] RELAUNCH unlocked:  ARGOS_HARNESS_UNLOCK=1 claude
+    Poi PRIORITA'0 (richiede unlock, Gate-E overwrite_sot):
+      a) backup Rule 1d di MEMORY.md, aggiorna riga-indice 11 (riga gia' pronta in REPORT_S277.md)
+      b) aggiorna STATE.md a S277/S278 (commit ee0694f firma Azzurra + 6a01884 enforcement)
+
+[2] FILTER-REPO (quando Luke vuole sbloccare il push):
+      esegui .claude/PLAN_FILTER_REPO_S278.md, STEP0 rotazione PRIMA di tutto.
+
+[3] COPY DAY-1: OK Luke sui 3 nodi -> poi (solo a gate tecnici verdi) wiring.
+
+[4] Verso E2E: anelli 6-7 (gate HITL iMac + invio PDF a TEST_FOUNDER 393314928901).
+    Prima azione che innesca Gate-E classe outreach_real.
+
+VINCOLI INVARIATI:
+    - Nessun invio dealer reale finche' i 3 gate tecnici non sono verdi.
+    - Push bloccato finche' filter-repo non eseguito (e ora anche dal pre-push).
+============================================================
