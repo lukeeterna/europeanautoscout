@@ -21,29 +21,48 @@ I 3 elementi stanno in 2 righe, così il veicolo resta il primo contenuto e il m
 
 ---
 
-## PROPOSTA (raccomandazione singola — variante RAGIONIERE/baseline, numeri-driven)
+## ⚠️ CORREZIONE S279 — la copy deve essere onesta come il dossier (verificato vs codice)
+La v1 (sotto, BARRATA) quotava **prezzo-punto + margine-netto-punto-come-promessa**. Contraddice la
+struttura del dossier verificata in `pdf_generator_enterprise.py:228-334`: **banda p25–p75** (non punto)
++ verdetto **CONDIZIONATO** ("valido solo se prezzo IT realizzato >= breakeven", es. 320d 35.699).
+Promettere "≈€X netti" alla porta = falso-PASS + bait-and-switch + esposizione. **Regola: nessun numero
+nel cold message che non regga la verifica del dossier.** Inoltre `km certificati` → `km dichiarati`
+(prima del ritiro il km viene dall'annuncio, "verificabile al ritiro").
+
+### v1 — SCARTATA (mente alla porta)
+~~"...{KM} km certificati: oggi sul mercato italiano gira sui {€PREZZO_IT}, a lei arriverebbe pronta con circa {€MARGINE} netti di margine..."~~
+
+## PROPOSTA v2 (raccomandazione singola — path (i): banda + tetto, RAGIONIERE numeri-driven onesto)
 
 > Placeholder `{...}` = riempiti a invio dai dati di **uno scrape fidato** (gate-3:
 > DEEP_PAGES≥80 + geo==IT + experiment-OFF). NESSUN numero inventato a mano.
+> `{€BANDA_LOW}–{€BANDA_HIGH}` = p25–p75 dal motore. `{€MARG_HIGH}` = margine al band_high (TETTO, mai punto promesso).
 
 ```
-Buongiorno, ho una {MODELLO} {ANNO}, {KM} km certificati: oggi sul mercato italiano
-gira sui {€PREZZO_IT}, a lei arriverebbe pronta con circa {€MARGINE} netti di margine.
-Le scrivo perché ho visto la sua attività a {CITTA}, ho preso il numero dalla vostra
-pagina pubblica. Sono Azzurra, assistente di Luca Ferretti — se non le interessa me lo
-dica e non la contatto più. Le mando la scheda con i dettagli?
+Buongiorno, ho una {MODELLO} {ANNO}, {KM} km dichiarati: sul mercato italiano gli annunci
+di pari configurazione stanno in una fascia di {€BANDA_LOW}–{€BANDA_HIGH}; a lei arriverebbe
+pronta, con un margine fino a {€MARG_HIGH} a seconda del prezzo di vendita. Le scrivo perché
+ho visto la sua attività a {CITTA}, ho preso il numero dalla {FONTE_REALE}. Sono Azzurra,
+assistente di Luca Ferretti — se non le interessa me lo dica e non la contatto più. Le mando la scheda?
 ```
 
-5 righe. Veicolo+numeri prima (gancio) → provenienza → identità Azzurra + opt-out → domanda chiusa.
+Veicolo+fascia (gancio onesto) → margine come TETTO condizionato → provenienza → identità Azzurra + opt-out → domanda chiusa.
 
-### Alternativa scartata (1 riga, perché)
-Versione "ultra-corta" senza provenienza/opt-out: massimizza response rate ma **svuota il
-balancing test** → scartata. Lo scopo qui non è solo il contatto, è la *difendibilità* del contatto.
+### Alternativa (1 riga): path (ii) — gancio qualitativo, numeri solo nel dossier
+"...c'è un margine interessante, glielo mostro nella scheda con i numeri e le fonti." Più sicura ma più
+debole per il RAGIONIERE (un archetipo numbers-driven legge il qualitativo come sales-talk vago) →
+**raccomando (i)**; (ii) è il fallback se la fascia sembra ancora troppo impegnativa.
 
 ## Nodi per OK Luke
-- **N1** — provenienza: "pagina pubblica / Google Business" va bene come fonte dichiarata? (deve essere la fonte reale da cui il numero è stato preso).
-- **N2** — archetipo: questa è baseline RAGIONIERE. NARCISO/BARONE vogliono meno numeri e più "esclusività" → tuning per-archetipo DOPO l'OK sulla struttura.
-- **N3** — wiring: a OK, la copy entra nel runtime SOLO con i 3 gate tecnici verdi (E2E + trasparenza in produzione + base-mercato fidata). Prima resta proposta.
+- **N1 — provenienza (`{FONTE_REALE}`)**: dev'essere LETTERALMENTE il canale reale. Se prendi il numero
+  da DB scrapato/AutoScout, la riga deve dirlo — una bugia sulla provenienza distrugge la credibilità che
+  il messaggio costruisce. NB (paletto, non riapro il canale): "pubblico" NON è base giuridica — la
+  provenienza dichiarata serve a trasparenza/balancing test, non sana il rischio cold WA (deciso-finale).
+- **N2 — archetipo (differito)**: tuning NARCISO/BARONE DOPO. Vincolo invariante per OGNI archetipo:
+  niente superlativi non verificabili ("occasione unica/eccezionale" — già vietati `_LLM_BANNED_WORDS:94`),
+  **banda non punto, nessun margine promesso**.
+- **N3 — wiring**: a OK, runtime SOLO con i 3 gate tecnici verdi. Prima resta proposta.
+- **N-pick — (i) o (ii)?**: raccomando (i). Serve scelta Luke.
 
 > Nota delega (REGOLA #0): bozza scritta in main-context e non delegata a `dealer-outreach`/
 > `outreach-day1` perché deve incrociare le decisioni S277 (Azzurra) + il sostrato legale, che
