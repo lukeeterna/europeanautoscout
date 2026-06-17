@@ -1,0 +1,33 @@
+#!/bin/bash
+echo "🔍 ARGOS Pre-Commit Checks..."
+
+# Validate staged Python files
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$')
+if [ -n "$STAGED_PY" ]; then
+    echo "🐍 Validating Python syntax..."
+    for f in $STAGED_PY; do
+        python3.11 -m py_compile "$f" 2>&1
+        if [ $? -ne 0 ]; then
+            echo "❌ Syntax error in $f — commit aborted"
+            exit 1
+        fi
+    done
+    echo "✅ Python syntax OK"
+fi
+
+# Check no hardcoded secrets (assignment-style — esclude riferimenti .env doc)
+if git diff --cached | grep "^+" | grep -E "(ANTHROPIC_API_KEY|password\s*=\s*['\"][^'\"]+['\"]|api_key\s*=\s*['\"][^'\"]+['\"])" | grep -v "\.env" > /dev/null 2>&1; then
+    echo "❌ Possible hardcoded secret (assignment) — commit aborted"
+    exit 1
+fi
+
+# Check no live token prefixes — S220: token in JSON/.md/.bak non matchavano i
+# pattern assignment → leak 1a132e3 (OpenRouter sk-or, Telegram, GitHub PAT).
+TOKEN_PATTERN='sk-or-v1-[A-Za-z0-9]|sk-ant-[A-Za-z0-9]|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|[0-9]{8,10}:AA[A-Za-z0-9_-]{30,}'
+if git diff --cached | grep "^+" | grep -E "$TOKEN_PATTERN" > /dev/null 2>&1; then
+    echo "❌ Live token prefix detected (sk-/ghp_/github_pat_/AKIA/xox/Telegram) — commit aborted"
+    exit 1
+fi
+
+echo "✅ Pre-commit checks passed"
+exit 0

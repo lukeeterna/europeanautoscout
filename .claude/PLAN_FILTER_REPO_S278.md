@@ -88,6 +88,8 @@ git push origin --force --tags
 Il repo `~/Documents/combaretrovamiauto-enterprise` ha ancora la history vecchia. O:
 - ri-clona pulito da GitHub dopo il push, **oppure**
 - riallinea: `git fetch origin && git reset --hard origin/s210/audit-master-plan` (DOPO backup STEP 1).
+- **OBBLIGATORIO dopo ogni clone**: `git config core.hooksPath .githooks` (riattiva pre-commit + pre-push
+  tracciati; la config non si clona — senza, gli hook secret non girano).
 
 ## STEP 8 — Igiene residua
 - GitHub mantiene in cache i commit vecchi per un po': se il repo è/era pubblico, apri ticket
