@@ -21,6 +21,7 @@
 Luke ha (ri)generato il token bot Telegram via @BotFather e lo incolla in `~/argos_new_bot_token_S280.txt`
 (fuori repo, chmod 600). **Applicare a inizio S280 in finestra pulita** (NON fatto in S279: era context 59%,
 mutazione shared-state vietata a saturazione):
+**Token già VERIFICATO vivo in S279** (`getMe` OK → @Argosautomotivebot id 8691360619). Resta solo applicarlo.
 1. leggere il token dallo scratch (MAI stamparlo); 2. aggiornare `ARGOS_TELEGRAM_TOKEN` in iMac
    `current/wa-intelligence/.env` (consultare `reference_imac_deploy_paths.md`); 3. restart daemon tg;
    4. verificare `getMe` OK; 5. **cancellare lo scratch**.
