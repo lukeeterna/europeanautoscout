@@ -106,11 +106,20 @@ SCRATCH SECRET (fuori repo, chmod 600, NON stampati):
   NB legale: rischio GDPR cold-WA NOTO+ACCETTATO+mitigato, non sparito.
 
 
-5. NEXT STEP / PROMPT PROSSIMA SESSIONE (S281)
+5. NEXT STEP / PROMPT — SPLIT S281 / S282 (correzione Luke, additiva)
 ────────────────────────────────────────────────────────────────────
 
   Lancia CC con ARGOS_HARNESS_UNLOCK=1. Leggi: STATE.md → docs/ROADMAP.md →
   docs/briefs/BRIEF_A_e2e_67_testfounder.md. Nient'altro è istruzione.
+
+  REGOLA SCHEDULING: AZIONE 1 (apply chiavi+restart daemon) e AZIONE 3 (E2E 6-7
+  completa) sono ENTRAMBE mutazioni sostanziose che NON sopportano un finale a
+  context saturo → NON nella stessa sessione.
+    S281 = AZIONE 1 + AZIONE 2 (checklist già scritta in BRIEF_A). Chiudi a 60%.
+    S282 = AZIONE 3 (E2E 6-7) a BUDGET PIENO e dedicato — l'anello che manca da
+           settimane merita una sessione intera. PRECONDIZIONE: AZIONE 1 verde
+           (cascade LLM viva). Aprire S282 a budget già speso = rischio PARTIAL
+           sull'anello critico (stessa disciplina shared-state di S279/S280).
 
   AZIONE 1 — applica le 2 chiavi su iMac (UNA passata, finestra pulita):
     1. leggi le chiavi (MAI stamparle):

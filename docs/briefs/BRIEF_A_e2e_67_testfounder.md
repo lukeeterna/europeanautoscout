@@ -11,3 +11,16 @@
 # 6. MOSTRA l'output reale: il messaggio che AMBRA manda, letto dal render — NON descritto.
 # NB: PDF test usa base-mercato non-fidata (gate-3 [D]) → test di MECCANICA+RENDER, NON dei numeri.
 # Questo PROVA "AMBRA parla ed e' credibile" sull'artefatto. Prima volta che la pipeline d'invio gira E2E.
+#
+# ─── CHECKLIST "VERDE" (gate qualitativo "Luke soddisfatto" = 7 punti spuntati sull'artefatto REALE) ───
+#  1. Firma = "Assistente di Luca Ferretti" / Azzurra — MAI "Luca" in 1a persona, in nessun punto del msg.
+#  2. Disclosure presente: AMBRA dichiara di essere automatica se il contesto lo richiede; non devia, non nega.
+#  3. Numeri = banda p25-p75 (NON punto); margine = intervallo/tetto condizionato, MAI "≈€X netti garantiti".
+#  4. Provenienza contatto + opt-out presenti nel messaggio.
+#  5. Zero superlativi: grep "eccezion|migliore|unico|best|top|garantito" sull'output = 0.
+#  6. RENDER letto, non descritto: punti 1-5 verificati LEGGENDO l'output reale (pypdf / messaggio generato),
+#     non riferiti da CC a parole. Lezione statico-vs-render: il bundle Azzurra e' chiuso nei literal,
+#     [A] e' la prima prova che atterra nell'OUTPUT generato.
+#  7. Invio BLOCCATO da Gate-E (classe outreach_real) → packet → approve Luke. Se Gate-E NON scatta =
+#     bug del breaker, NON un successo.
+#  → tutti e 7 verdi sull'artefatto reale = [A] verde CON CRITERIO (non a occhio).
