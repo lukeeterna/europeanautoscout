@@ -34,4 +34,14 @@
 
 ---
 
+## Prerequisito operativo Modulo 2 (gate, prima del fetch-test — NON durante)
+
+Modulo 0 ha confermato: lo stack è **Selenium-based → login OBBLIGATORIO, nessuna raccolta anonima**. Quindi il fetch-test è il punto in cui il rischio-ban diventa reale, non teorico. Va nominato come gate prima che diventi un problema.
+
+- **PRE-2a — Account FB di TEST dedicato e SACRIFICABILE**: NON l'account operativo di Luke, NON quello con cui esiste nei gruppi per farsi contattare. Cookie (`c_user` + `xs`) nel `.env`, fuori dal repo. Da creare PRIMA del fetch-test.
+- **PRE-2b — FETCH-TEST UAT a volume minimo**: 1 gruppo pubblico, pochi post, IP Tailscale exit-node. Verifica che ritorni >1 post. È la prima volta che l'account tocca lo scraping = momento del rischio-ban reale. Se l'account viene limitato/bannato qui → confermato che serve rotazione-account, NON lo stack.
+- **GATE**: senza PRE-2a il Modulo 2 NON parte. Il resto della pipeline (AS24 + sintesi) gira comunque (Modulo 2 è isolato/opzionale).
+
+---
+
 *Fonti: [PyPI facebook-scraper](https://pypi.org/project/facebook-scraper/) | [GitHub kevinzg commits](https://github.com/kevinzg/facebook-scraper/commits) | [GitHub MasuRii releases](https://github.com/MasuRii/FBScrapeIdeas/releases) | [GitHub topics facebook-scraper 2026](https://github.com/topics/facebook-scraper)*

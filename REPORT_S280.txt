@@ -1,0 +1,145 @@
+════════════════════════════════════════════════════════════════════
+REPORT SESSIONE — ARGOS · S280 · 17 giugno 2026
+Branch: s210/audit-master-plan
+Tipo sessione: DEPOSITO/ALLINEAMENTO (nessun brief eseguito) + correzione di verità
+════════════════════════════════════════════════════════════════════
+
+
+1. RAGIONAMENTO (le decisioni che ho preso e perché)
+────────────────────────────────────────────────────────────────────
+
+a) SCOPO ricevuto: depositare UNA roadmap ufficiale + 3 brief-tool + una regola
+   di precedenza anti-casino. Esplicito: in S280 NON si esegue nessun brief, si
+   DEPOSITA tutto e si apre il riepilogo in TextEdit.
+
+b) Ho seguito il brief verbatim per ROADMAP + 3 brief + regola precedenza.
+   POI ho scoperto un conflitto: il GATE-0 del brief diceva "ruota 3 token", ma
+   git + i prompt S279/S280 dicevano altro. Ho applicato la MIA regola di
+   precedenza appena depositata (#1 codice+git vince sul brief) e ho corretto.
+
+c) Verifica token (fatto, non opinione):
+   - GitHub PAT: `git log -S 'ghp_zgws'` NON trova il valore intero in history
+     (matcha solo commit-message e i file che ho appena scritto = riferimento
+     troncato). Commit 82bc945: PAT "Antigravity" scaduto 11/05/2026 = morto.
+     `gh auth status`: la CLI gira con token gho_ (OAuth, keyring) SEPARATO.
+     → GitHub PAT = NESSUNA azione. Non posso "crearlo via gh" (i PAT classici
+       non si generano via API/CLI; e comunque non serve).
+   - OpenRouter sk-or-v1-…2f13: UNICO realmente da ruotare (azione Luke).
+   - Telegram @Argosautomotivebot: già rigenerato+verificato vivo (getMe OK,
+     S279). NON va ruotato → va solo APPLICATO su iMac.
+   Conclusione: il "ruota 3 token" era una REGRESSIONE vs stato verificato.
+
+d) Correzione GDPR (rilievo Luke, accolto perché il DATO lo impone):
+   il mio "niente più gate legale" divergeva da STATE.md §3 (righe 124-135), che
+   dice il vero: liceità canale CONFERMATA Luke 2026-06-16; residuo non-bloccante
+   = artefatto di difendibilità (balancing test legittimo-interesse, S249).
+   Riallineato: rischio GDPR NOTO + ACCETTATO + MITIGATO (provenienza+opt-out),
+   non "rischio sparito". Rischio accettato ≠ inesistente.
+
+e) Cosa NON ho fatto, e perché (disciplina, non dodging):
+   - Apply token TG + OpenRouter su iMac: è mutazione SHARED-STATE (edit .env +
+     restart daemon). Non si avvia a context 60%+ con margine insufficiente a
+     finire/verificare → rischio di lasciare daemon/cascade LLM rotti. S279 ha
+     parcheggiato la stessa azione a 59% per identico motivo. Le chiavi sono
+     salve negli scratch chmod-600 fuori repo.
+   - Checklist "verde" per [A]: lavoro nuovo, non aperto a saturazione.
+
+
+2. OPERAZIONI ESEGUITE
+────────────────────────────────────────────────────────────────────
+
+FILE CREATI:
+  docs/ROADMAP.md                                  (SoT unico sequenza)
+  docs/briefs/BRIEF_A_e2e_67_testfounder.md        (item [A])
+  docs/briefs/BRIEF_B_research_tool.md             (item [B])
+  docs/briefs/BRIEF_C_sourcing_monitor.md          (item [C])
+  STATO_ARGOS_S280.txt                             (riepilogo a freddo)
+  REPORT_S280.txt                                  (questo file)
+
+FILE MODIFICATI:
+  STATE.md                  → regola di precedenza AUTORITA' in testa
+                              (backup Rule 1d: STATE.md.bak-S280-pre-edit-*)
+  .claude/NEXT_PROMPT_S278/279/280.md → marcati SUPERSEDED (restano archivio)
+
+COMMIT (locali; push bloccato dal pre-push = atteso, history non ancora scrubbata):
+  4ebd50d  deposito roadmap + 3 brief + regola precedenza
+  542f520  GATE-0 corretto vs git (solo OpenRouter da ruotare)
+  3cfc875  GDPR: rischio accettato+mitigato, non "gate legale sparito"
+
+VERIFICHE PASSATE:
+  ls docs/briefs/                  → 3 brief presenti
+  grep -c "AUTORITA'" STATE.md     → 1
+  grep "docs/briefs/" ROADMAP.md   → 4 match
+  pre-commit secret-scan           → passato su tutti i commit (token troncati,
+                                      non chiavi vive)
+
+SCRATCH SECRET (fuori repo, chmod 600, NON stampati):
+  ~/argos_new_openrouter_S281.txt  (nuova chiave OpenRouter, incollata da Luke)
+  ~/argos_new_bot_token_S280.txt   (token TG, da S279)
+
+
+3. AVANZAMENTI E2E DI SESSIONE
+────────────────────────────────────────────────────────────────────
+
+  HONESTO: ZERO movimento E2E in S280. Era una sessione di deposito/filing
+  per design — nessun anello toccato.
+
+  Stato anelli (INVARIATO, SoT = STATE.md):
+    2  classifier intent (AMBRA)        VERIFIED (smoke)
+    9A approve -> send                  VERIFIED (smoke)
+    5  generazione dossier PDF          VERIFIED (smoke)
+    1  invio Day1 WA                    UNVERIFIED
+    9B reject -> abort                  UNVERIFIED
+    6-7 approve HITL -> invio PDF        UNVERIFIED   ← prossimo target ([A])
+    8  contract -> sign_url             BLOCKED (fatto esterno: firma dealer reale)
+
+  Il valore di S280 NON è un anello: è aver messo UNA sola fonte di verità per
+  la sequenza (ROADMAP) + la regola che impedisce il casino doc delle prossime
+  sessioni. L'anello si muove in [A], prossima sessione.
+
+
+4. 3 GATE TECNICI PRIMA DI UN DEALER REALE (nessuno legale: canale deciso-finale)
+────────────────────────────────────────────────────────────────────
+  (1) [A] E2E TEST_FOUNDER verde + Luke "pienamente soddisfatto"
+  (2) [E] trasparenza Azzurra LIVE in produzione (oggi solo in repo; manca sync.sh)
+  (3) [D] base-mercato fidata (scrape DEEP_PAGES≥80 + geo==IT + experiment-OFF)
+  NB legale: rischio GDPR cold-WA NOTO+ACCETTATO+mitigato, non sparito.
+
+
+5. NEXT STEP / PROMPT PROSSIMA SESSIONE (S281)
+────────────────────────────────────────────────────────────────────
+
+  Lancia CC con ARGOS_HARNESS_UNLOCK=1. Leggi: STATE.md → docs/ROADMAP.md →
+  docs/briefs/BRIEF_A_e2e_67_testfounder.md. Nient'altro è istruzione.
+
+  AZIONE 1 — applica le 2 chiavi su iMac (UNA passata, finestra pulita):
+    1. leggi le chiavi (MAI stamparle):
+       ~/argos_new_openrouter_S281.txt  → OPENROUTER_API_KEY
+       ~/argos_new_bot_token_S280.txt   → ARGOS_TELEGRAM_TOKEN
+    2. aggiorna ENTRAMBE in iMac current/wa-intelligence/.env
+       (path canonico: memoria reference_imac_deploy_paths.md)
+    3. UN solo restart daemon (copre entrambe le var)
+    4. verifica: getMe OK (TG) + probe cascade OpenRouter OK
+    5. cancella i 2 scratch
+
+  AZIONE 2 — checklist "verde" [A]: aggiungi a BRIEF_A i punti precisi da
+    spuntare nell'output (firma=Azzurra non Luca 1ª persona; disclosure presente;
+    numeri=banda p25-p75 non punto; grep superlativi=0; render letto da pypdf
+    non descritto) → così il gate "Luke soddisfatto" ha criteri, non sensazioni.
+
+  AZIONE 3 — lancia [A] E2E 6-7 su TEST_FOUNDER 393314928901:
+    scraper AS24 (experiment-OFF, geo==IT) → 1 veicolo → dossier onesto (banda,
+    margine intervallo, fonte "prezzi richiesti") → AMBRA genera Day-1 con voce +
+    disclosure Azzurra + opt-out → RENDER verificato → invio via Gate-E
+    (classe outreach_real → BLOCCA → packet → approve Luke) → MOSTRA il messaggio
+    reale letto dal render. ⚠️ base-mercato non-fidata (gate [D]): è test di
+    MECCANICA+RENDER, NON dei numeri. PRECONDIZIONE forte: voce AMBRA (BRIEF B)
+    NON ancora prodotta → in [A] si testa firma/disclosure/render, la voce piena
+    arriva con [B].
+
+  RESTANTE SEQUENZA: [B] tool-research voce → [C] monitor fonti → [D] base-mercato
+  → [E] deploy trasparenza (sync.sh) → [F] filter-repo (sblocca push).
+
+  AZIONE LUKE indipendente: ruotare OpenRouter (FATTO: chiave nello scratch).
+  GitHub PAT = niente. TG = niente (solo apply, AZIONE 1).
+════════════════════════════════════════════════════════════════════
