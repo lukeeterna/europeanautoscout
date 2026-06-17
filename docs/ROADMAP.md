@@ -1,8 +1,13 @@
 # ROADMAP.md — ARGOS · sequenza ufficiale (SoT unico). Aggiornato S280.
 #
-# GATE-0 — SICUREZZA (BRUCIA ORA, azione LUKE, indipendente da tutto):
-#   Rotazione 3 token in history pubblica (S278): GitHub PAT ghp_zgws…, OpenRouter …2f13,
-#   bot Telegram @Argosautomotivebot. Revoca + riemetti. Push bloccato NON e' il rischio; la chiave viva si'.
+# GATE-0 — SICUREZZA (CORRETTO S280, verificato vs git/S279 — NON "ruota 3 token"):
+#   - OpenRouter sk-or-v1-…2f13 = UNICO da ruotare (azione Luke, in corso).
+#   - GitHub PAT ghp_zgws… = MORTO (Expired 2026-05-11) + valore intero NON in history → NESSUNA azione.
+#     gh CLI gira con token gho_ OAuth separato (keyring); i PAT classici non si creano via API/CLI.
+#   - bot Telegram @Argosautomotivebot = già rigenerato+verificato vivo (getMe OK, S279) → NON ruotare,
+#     solo APPLICARE su iMac: ~/argos_new_bot_token_S280.txt → current/wa-intelligence/.env
+#     ARGOS_TELEGRAM_TOKEN, restart daemon tg, getMe, cancellare scratch. (shared-state: finestra pulita.)
+#   Push bloccato NON e' il rischio; scrub history = item [F] (igiene separata, non rotazione).
 #
 # STATO (verificato): motore/dossier onesto chiuso (S271, banda/margine-intervallo/no-superlativi).
 #   Trasparenza Azzurra chiusa IN-REPO a tutti i layer (S277), NON in produzione (manca sync.sh).

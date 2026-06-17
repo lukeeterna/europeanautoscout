@@ -25,7 +25,8 @@ A inizio sessione si legge: STATE.md -> ROADMAP.md -> il brief dell'item in cors
 ────────────────────────────────────────────────────────
 3. SEQUENZA UFFICIALE
 ────────────────────────────────────────────────────────
-GATE-0  Rotazione 3 token (AZIONE LUKE, brucia ora, indipendente da tutto)
+GATE-0  Token (CORRETTO vs git): solo OpenRouter da ruotare; GitHub PAT morto
+        (scaduto 11/05, non in history) = niente; Telegram gia' fatto = solo applicare su iMac
 [A]     E2E 6-7 su TEST_FOUNDER 393314928901 (scraper->dossier->AMBRA parla)
 [B]     Tool-research -> KB voce AMBRA (alimenta [A])
 [C]     Monitor fonti sourcing B2B (settimanale)
@@ -43,10 +44,11 @@ GATE-0  Rotazione 3 token (AZIONE LUKE, brucia ora, indipendente da tutto)
 ────────────────────────────────────────────────────────
 5. COSA DEVI FARE TU, LUKE
 ────────────────────────────────────────────────────────
-(a) RUOTARE ORA i 3 token (revoca + riemetti):
-    - GitHub PAT  (ghp_zgws...)
-    - OpenRouter  (chiave ...2f13)
-    - bot Telegram @Argosautomotivebot
+(a) RUOTARE solo OpenRouter (chiave ...2f13). GitHub PAT = morto (scaduto
+    11/05 + non in history) -> niente. Telegram = gia' rigenerato da te ->
+    va solo APPLICATO su iMac (token in ~/argos_new_bot_token_S280.txt).
+    NB: l'apply TG su iMac (edit .env + restart daemon) e' rinviato: e'
+    mutazione shared-state, non si avvia a context 60%. Prima azione finestra pulita.
 (b) Prima dell'item [B] modulo 2: incollare gli URL dei gruppi Facebook
     in config/fb_groups.yaml (la scoperta gruppi e' manuale, non automatica).
 
