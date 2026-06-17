@@ -1,4 +1,6 @@
 # BRIEF A — E2E REALE: scraper→dossier→AMBRA parla. TEST_FOUNDER 393314928901. CC Max. system python3.
+# PREREQ [A0] (scoperto S280, NON saltare): WA daemon connesso (NON `initializing`) + orario lavorativo +
+#   Luke fisico sulla SIM. Se daemon = initializing/qr_available:false → prima [A0] wa-daemon-ops (area S252).
 # PRECONDIZIONE: ambra_voice_profile.md prodotto (BRIEF B) + integrato in response-analyzer.py.
 # MAI dealer reale — solo TEST_FOUNDER.
 # 1. Scraper AS24 → seleziona 1 veicolo reale (config esatta, pool experiment-OFF, geo==IT).

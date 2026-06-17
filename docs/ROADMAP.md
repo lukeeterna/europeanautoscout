@@ -15,6 +15,14 @@
 #
 # SEQUENZA (ordine vincolante; ogni item → il suo brief in docs/briefs/):
 #   [A] E2E 6-7 su TEST_FOUNDER 393314928901   → docs/briefs/BRIEF_A_e2e_67_testfounder.md
+#       PREREQ (scoperto S280): WA daemon = initializing/qr_available:false = client NON connesso.
+#       [A] NON parte finche': (i) daemon initializing->connected (area S252: QR re-scan, Luke fisico
+#       sulla SIM), (ii) orario lavorativo (anti-ban gate-a fuori orario). → SPLIT:
+#         [A0] wa-daemon-ops: connetti il daemon (PRECEDE [A1]).
+#         [A1] E2E 6-7: done-condition = CHECKLIST VERDE 7 punti in BRIEF_A.
+#       FB-GROUPS SOURCING (modulo opzionale isolato): repo = MasuRii/FBScrapeIdeas (selenium, login OBBLIG.,
+#         data/research/repo_selection.md). PREREQ fetch-test: account FB TEST sacrificabile (cookie c_user+xs
+#         in .env). Senza account-test il modulo NON parte; AS24+sintesi girano lo stesso.
 #   [B] TOOL-RESEARCH → KB voce AMBRA          → docs/briefs/BRIEF_B_research_tool.md   (alimenta [A])
 #   [C] MONITOR FONTI SOURCING B2B (weekly)    → docs/briefs/BRIEF_C_sourcing_monitor.md
 #   [D] BASE-MERCATO FIDATA (gate-3 dossier reale): scrape DEEP_PAGES≥80 fino a pagina-vuota,
