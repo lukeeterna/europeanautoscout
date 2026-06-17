@@ -1,0 +1,18 @@
+ARGOS — S280 CHIUSURA (deposito finale)
+=======================================
+DEPOSITATO (commit 0bd8986, branch s210/audit-master-plan):
+- docs/ROADMAP.md     → [A] splittato in [A0] wa-daemon-ops + [A1] E2E 6-7 (GATE-0/GDPR gia' ok)
+- docs/briefs/BRIEF_A → prereq [A0] in testa + checklist verde 7 punti (gia' presente)
+- docs/HANDOFF_S280.md (indice, non SoT) + docs/RECOVERY_PROMPT_S281.md (ripartenza a freddo)
+- data/research/repo_selection.md → repo FB scelta = MasuRii/FBScrapeIdeas (+ gate PRE-2)
+
+PROSSIMA AZIONE = [A0] wa-daemon-ops
+  WA daemon iMac:9191 = initializing / qr_available:false = client NON connesso.
+  Connetterlo (QR re-scan, area S252) in orario lavorativo, Luke sulla SIM, PRIMA di [A1] E2E.
+
+LE 2 AZIONI LUKE:
+  1. OpenRouter ...2f13 = RUOTATO (fatto).
+  2. Account FB di TEST sacrificabile (cookie in .env) = creare PRIMA del fetch-test modulo FB.
+
+GATE APERTI: token bot Telegram da APPLICARE su iMac (S281 AZIONE 1) · push bloccato (pre-push,
+  45 commit, storico-secret S220) · riga-indice MEMORY.md gated (packet overwrite_sot-dc04f63aaf).
