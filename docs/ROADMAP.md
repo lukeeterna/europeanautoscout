@@ -30,6 +30,13 @@
 #   [E] DEPLOY trasparenza in PRODUZIONE: sync.sh (pre-flight symlink wa-sender/, memoria S252). Dopo [A] verde.
 #   [F] filter-repo: bonifica history (rotazione gia' in GATE-0). Sessione dedicata. Sblocca push.
 #
+# SCHEDULING SESSIONI (disciplina shared-state, S279/S280): mutazione sostanziosa + finale-verificato NON
+#   convivono a context saturo. Allocazione:
+#     S281 = AZIONE 1 (apply 2 chiavi su iMac .env + 1 restart daemon + getMe/probe) + AZIONE 2 (checklist
+#            verde gia' in BRIEF_A). Chiudi a 60%.
+#     [A0]+[A1] = SESSIONE DEDICATA, orario lavorativo, budget PIENO (l'anello E2E 6-7 che manca da settimane
+#            non va aperto a budget gia' speso = rischio PARTIAL su anello critico). Precond: daemon connesso.
+#
 # BACKLOG (gated, FUORI sequenza): ITEM-ASTE-GIUDIZIARIE (canale sourcing #2, post primo-dealer-reale) → BACKLOG.md.
 #
 # 3 GATE A INVIO DEALER REALE (tecnici): [A] verde + Luke soddisfatto · [E] trasparenza live · [D] base-mercato fidata.
