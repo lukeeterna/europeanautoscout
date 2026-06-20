@@ -469,6 +469,7 @@ def run(marca, budget, modello=None, anno_min=None, km_max=None, dealer_name=Non
     from tools.it_market_price import get_it_distribution
     from tools.margin_gate import evaluate_margin
     margin_passed = []
+    thin_pool = []  # candidati NO-VERDICT (comparabili IT < min_n): dossier DEGRADATO se nessun PASS
     for v in top:
         v_make = v.get('make') or params.get('make')
         v_model = v.get('model') or params.get('model')
@@ -499,11 +500,16 @@ def run(marca, budget, modello=None, anno_min=None, km_max=None, dealer_name=Non
             logger.info(f'Margin gate: SKIP {v.get("listing_id","?")} — 0 comparabili IT')
             continue
         # NO-VERDICT (n<min_n a trim esatto): in produzione NON deve mai PASS.
+        # Raccogliamo in thin_pool invece di scartare silenziosamente: se tutti i
+        # candidati sono NO-VERDICT generiamo un dossier DEGRADATO esplicito.
+        # VIETATO: abbassare min_n=8 (ratificato Luke S265).
         if it.get('no_verdict'):
             logger.info(
-                f'Margin gate: SKIP NO-VERDICT {v.get("listing_id","?")} '
-                f'— comparabili insufficienti (n={it.get("n")} < min_n)'
+                f'Margin gate: NO-VERDICT {v.get("listing_id","?")} '
+                f'— comparabili insufficienti (n={it.get("n")} < min_n) — thin_pool'
             )
+            v['_it_distribution'] = it
+            thin_pool.append(v)
             continue
         mr = evaluate_margin(prezzo_de=v_price, prezzo_mercato_it=it['median'])
         v['_margin_decision'] = mr.decision
@@ -524,9 +530,37 @@ def run(marca, budget, modello=None, anno_min=None, km_max=None, dealer_name=Non
             margin_passed.append(v)
     logger.info(f'Margin gate: {len(margin_passed)}/{len(top)} PASS (VETO sui REJECT)')
     if not margin_passed:
-        logger.warning('Margin gate: zero veicoli PASS — nessun dossier (affare sotto pavimento dealer)')
-        return None
-    top = margin_passed
+        if thin_pool:
+            # Tutti i candidati sono NO-VERDICT (comparabili IT < min_n), nessun REJECT-margine.
+            # Scegliamo il miglior candidato per dossier DEGRADATO:
+            # criterio 1 = n più alto (più comparabili = stima meno rumorosa);
+            # criterio 2 = CoVe score più alto (qualità veicolo);
+            # entrambi deterministici per evitare flipping tra run.
+            best_thin = max(
+                thin_pool,
+                key=lambda v: (
+                    v['_it_distribution'].get('n', 0),
+                    v.get('_cove_score', 0.0),
+                )
+            )
+            it_best = best_thin['_it_distribution']
+            n_best = it_best.get('n', 0)
+            best_thin['_degraded_thin_pool'] = True
+            best_thin['_thin_pool_n'] = n_best
+            # _it_distribution già impostato nel loop; margin_decision sarà NO_VERDICT
+            # (impostato da generate_dossier_from_data a riga 2152 del PDF generator).
+            logger.warning(
+                f'Margin gate: thin-pool — zero PASS, zero REJECT-margine. '
+                f'Dossier DEGRADATO su {best_thin.get("listing_id","?")} '
+                f'(n={n_best} comparabili, CoVe={best_thin.get("_cove_score",0):.3f}). '
+                f'Banda e margine soppressi nel PDF.'
+            )
+            top = [best_thin]
+        else:
+            logger.warning('Margin gate: zero veicoli PASS — nessun dossier (affare sotto pavimento dealer)')
+            return None
+    else:
+        top = margin_passed
 
     # Step 3: PDF
     pdf_path = generate_dossier(top, params, dealer_name)

@@ -11,53 +11,60 @@ Fee appare SOLO in OBJ_2_FEE. Mai altrove.
 TEMPLATES = {
 
     # DAY1 — 3 varianti per segmento dealer
+    # Firma: Azzurra, assistente di Luca Ferretti (S274-S277, NON negoziabile).
+    # Margine: condizionale/banda, MAI promessa secca.
+    # Opt-out: presente in ogni variante.
     "DAY1_PREMIUM": (
-        "Buongiorno, sono Luca Ferretti.\n"
+        "Buongiorno, sono Azzurra, assistente di Luca Ferretti.\n"
         "Ho visto il suo salone su {source} — lavora con {brand_focus}, giusto?\n"
-        "Seleziono auto premium in tutta Europa per concessionari italiani: "
-        "tagliandi certificati digitalmente, km tracciati dalla revisione TUV, "
-        "garanzia costruttore europea valida in Italia.\n"
-        "Auto con allestimenti che qui non arrivano — e margine netto di 3-5.000 euro per lei.\n"
-        "Ha 2 minuti per capire come funziona?"
+        "Per conto di Luca seleziono auto premium in tutta Europa: "
+        "km tracciati dalla revisione TUV, tagliandi certificati, garanzia costruttore valida in Italia.\n"
+        "Auto con allestimenti rari qui — il margine dipende dal veicolo, ma su questo segmento "
+        "i concessionari con cui lavoriamo parlano di cifre interessanti.\n"
+        "Se non e' interessato, mi scriva 'no' e non la disturbo piu'. "
+        "Altrimenti: ha 2 minuti per capire come funziona?"
     ),
 
     "DAY1_MIXED": (
-        "Buongiorno, sono Luca Ferretti.\n"
+        "Buongiorno, sono Azzurra, assistente di Luca Ferretti.\n"
         "Ho visto il suo salone su {source} — tra le altre, tratta anche {brand_focus}.\n"
         "Le capita che un cliente le chieda una {brand_focus} specifica e non la trova in Italia?\n"
-        "In Europa ci sono migliaia di auto premium con km certificati, garanzia costruttore "
-        "e margine netto di 3-5.000 euro per lei.\n"
+        "In Europa ci sono auto premium con km certificati TUV e garanzia costruttore — "
+        "il margine varia per veicolo, ma spesso vale la pena.\n"
+        "Se non e' interessato basta scrivermi 'no'. "
         "Ha 2 minuti per capire come funziona?"
     ),
 
     "DAY1_GENERALIST": (
-        "Buongiorno, sono Luca Ferretti.\n"
+        "Buongiorno, sono Azzurra, assistente di Luca Ferretti.\n"
         "Ho visto il suo salone su {source}.\n"
         "Le faccio una domanda diretta: le capita che un cliente le chieda "
         "una BMW, una Mercedes, una Porsche e lei non ce l'ha?\n"
-        "Molti concessionari stanno aggiungendo auto premium dall'Europa al loro stock: "
-        "margine 3x superiore, storico tagliandi verificabile, km certificati dalla revisione TUV tedesca, "
-        "garanzia costruttore valida in Italia.\n"
+        "Molti concessionari aggiungono auto premium dall'Europa: "
+        "storico tagliandi verificabile, km certificati dalla revisione TUV tedesca, "
+        "garanzia costruttore valida in Italia — margini che dipendono dal veicolo.\n"
+        "Se non e' il momento giusto, mi scriva 'no' e non la disturbo piu'. "
         "Ha 2 minuti per capire come funziona?"
     ),
 
-    # Alias per backward compatibility
+    # Alias per backward compatibility — identico a DAY1_PREMIUM
     "DAY1_INTRO": (
-        "Buongiorno, sono Luca Ferretti.\n"
+        "Buongiorno, sono Azzurra, assistente di Luca Ferretti.\n"
         "Ho visto il suo salone su {source} — lavora con {brand_focus}, giusto?\n"
-        "Seleziono auto premium in tutta Europa per concessionari italiani: "
-        "tagliandi certificati digitalmente, km tracciati dalla revisione TUV, "
-        "garanzia costruttore europea valida in Italia.\n"
-        "Auto con allestimenti che qui non arrivano — e margine netto di 3-5.000 euro per lei.\n"
-        "Ha 2 minuti per capire come funziona?"
+        "Per conto di Luca seleziono auto premium in tutta Europa: "
+        "km tracciati dalla revisione TUV, tagliandi certificati, garanzia costruttore valida in Italia.\n"
+        "Auto con allestimenti rari qui — il margine dipende dal veicolo, ma su questo segmento "
+        "i concessionari con cui lavoriamo parlano di cifre interessanti.\n"
+        "Se non e' interessato, mi scriva 'no' e non la disturbo piu'. "
+        "Altrimenti: ha 2 minuti per capire come funziona?"
     ),
 
     "IDENTITY_RESPONSE": (
         "Ho trovato il suo contatto su {source}.\n"
-        "Mi chiamo Luca Ferretti — seleziono auto premium in tutta Europa per concessionari italiani.\n"
+        "Scrivo per conto di Luca Ferretti — seleziona auto premium in tutta Europa per concessionari italiani.\n"
         "Km certificati TUV, storico tagliandi completo, garanzia costruttore valida in Italia.\n"
-        "Auto con km certificati dalla revisione TUV e margini netti di 3-5.000 euro per lei.\n"
-        "{dealer_name}, le capita di avere clienti che cercano {brand_focus} con allestimenti che qui non girano?"
+        "{dealer_name}, le capita di avere clienti che cercano {brand_focus} con allestimenti che qui non girano?\n"
+        "Se non e' interessato mi scriva 'no', non la contatto piu'."
     ),
 
     "VEHICLE_PROPOSAL": (
@@ -261,6 +268,32 @@ def select_day1_variant(dealer_brands: list) -> str:
         return "DAY1_MIXED"
     else:
         return "DAY1_GENERALIST"
+
+
+def generate_cold_day1(dealer_brands: list, source: str, dealer_name: str = "") -> str:
+    """Genera il messaggio cold Day-1 in modo offline, ZERO LLM, ZERO invio.
+
+    Args:
+        dealer_brands: lista brand trattati dal dealer (es. ["BMW", "Mercedes"]).
+        source: portale/canale da cui e' stato trovato il contatto (es. "AutoScout24").
+        dealer_name: nome/ragione sociale del dealer (opzionale, non usato nei template DAY1).
+
+    Returns:
+        Testo del messaggio Day-1 pronto per revisione umana.
+    """
+    template_id = select_day1_variant(dealer_brands)
+
+    # brand_focus = stringa leggibile del/dei brand premium trovati
+    brands_lower = [b.lower().strip() for b in dealer_brands]
+    premium_hits = [b for b in dealer_brands if b.lower().strip() in PREMIUM_BRANDS]
+    brand_focus = " e ".join(premium_hits[:2]) if premium_hits else "auto premium"
+
+    data = {
+        "source": source,
+        "brand_focus": brand_focus,
+        "dealer_name": dealer_name,
+    }
+    return fill_template(template_id, data)
 
 
 if __name__ == '__main__':
