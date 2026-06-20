@@ -1,4 +1,4 @@
-# ROADMAP.md — ARGOS · sequenza ufficiale (SoT unico). Aggiornato S280.
+# ROADMAP.md — ARGOS · sequenza ufficiale (SoT unico). Aggiornato S286 (integrata architettura E2E 5-fasi).
 #
 # GATE-0 — SICUREZZA (CORRETTO S280, verificato vs git/S279 — NON "ruota 3 token"):
 #   - OpenRouter sk-or-v1-…2f13 = UNICO da ruotare (azione Luke, in corso).
@@ -23,10 +23,16 @@
 #       FB-GROUPS SOURCING (modulo opzionale isolato): repo = MasuRii/FBScrapeIdeas (selenium, login OBBLIG.,
 #         data/research/repo_selection.md). PREREQ fetch-test: account FB TEST sacrificabile (cookie c_user+xs
 #         in .env). Senza account-test il modulo NON parte; AS24+sintesi girano lo stesso.
+#   [S4] DEALER PROFILING (NUOVO · Fase 1 architettura E2E) — primo item attivo dopo [A1].
+#        Layer mancante (causa "outreach alla cieca"); leva max conversione, costo min (riusa scraper AS24).
+#        Done-condition = sez.6 di docs/ARCHITETTURA_E2E.md. Mappa 5-fasi completa nel blocco in fondo.
 #   [B] TOOL-RESEARCH → KB voce AMBRA          → docs/briefs/BRIEF_B_research_tool.md   (alimenta [A])
+#       [= sottoinsieme "voce" della Fase 3: la SECTOR WIKI (S5) ESTENDE [B]. Vedi blocco ARCHITETTURA E2E.]
 #   [C] MONITOR FONTI SOURCING B2B (weekly)    → docs/briefs/BRIEF_C_sourcing_monitor.md
+#       [= seed della Fase 5 (S1 breadth 28 canali + S2 gap-filling). La Fase 5 ESTENDE [C]. Vedi blocco sotto.]
 #   [D] BASE-MERCATO FIDATA (gate-3 dossier reale): scrape DEEP_PAGES≥80 fino a pagina-vuota,
 #       experiment-OFF, geo==IT su location.countryCode + ADD-1 (config-esatta thin o artefatto del cap? min_n=8 regge?).
+#       [= Fase 2 architettura E2E (S3 Pricing/Gate D). COLLEGATO, non duplicato: la Fase 2 È questo item [D].]
 #   [E] DEPLOY trasparenza in PRODUZIONE: sync.sh (pre-flight symlink wa-sender/, memoria S252). Dopo [A] verde.
 #   [F] filter-repo: bonifica history (rotazione gia' in GATE-0). Sessione dedicata. Sblocca push.
 #
@@ -43,3 +49,21 @@
 # NB LEGALE (non "gate sparito"): il rischio GDPR del cold-WA e' NOTO e ACCETTATO da Luke (canale deciso-finale,
 #   autorita' su irreversibile), MITIGATO dalla copy con provenienza-contatto + opt-out. Difendibilita' = artefatto
 #   lungo il percorso (balancing test legittimo-interesse documentato, S249), NON un re-gate. Rischio accettato ≠ inesistente.
+#
+# ============================================================================
+# ARCHITETTURA E2E — 5 FASI DI BUILD  (blueprint: docs/ARCHITETTURA_E2E.md · integrato S286)
+# ----------------------------------------------------------------------------
+# Mappa per-DIPENDENZA sui 7 sottosistemi S1-S7. NON sostituisce la SEQUENZA [A]..[F] sopra:
+# la ESTENDE con 2 NUOVI item (S4, S6) e COLLEGA gli esistenti. Nessun item rimosso.
+#   FASE 1 = [S4] DEALER PROFILING (NUOVO) — primo item attivo dopo [A1]. Intelligence commerciale
+#            pre-outreach; leva max conversione, costo min (riusa scraper AS24). Done-condition: sez.6 blueprint.
+#   FASE 2 = item [D] BASE-MERCATO FIDATA (S3 Pricing/Gate D). COLLEGA, non duplica.
+#   FASE 3 = ESTENDE item [B]: [B] e' il sottoinsieme "voce" (tool-research -> KB); la Fase 3 lo amplia a
+#            SECTOR WIKI (S5: margini premium, gergo, obiezioni+risposte, fiscalita' reverse-charge/IPT). [B] NON cancellato.
+#   FASE 4 = [S6] MATCHING (NUOVO): dealer-profilo x supply-verificato. Dipende da S1(supply)+S4(profili).
+#   FASE 5 = ESTENDE item [C] (seed monitor fonti): S1 breadth 28 canali + S2 gap-filling agent.
+#            DECISIONE APERTA (NON risolta qui): build-vs-buy aggregatori (scraper core proprietari vs API di coda).
+#
+# ORDINE DI BUILD VINCOLANTE: 1 -> 2 -> 3 -> 4 -> 5 (dipendenza, NON preferenza). Loop-che-chiude-UN-affare
+#   prima, breadth dopo. Riordinare = rischio #1 documentato (macchina rifinita che non spedisce). NON riordinare.
+# ============================================================================

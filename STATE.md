@@ -14,6 +14,7 @@
 > "VERIFIED" = check passato in QUESTA sessione, non una frase digitata.
 > Stato cross-sessione (memorie) → `~/.claude/projects/.../memory/MEMORY.md` (scopo diverso).
 > Piano dettagliato → `PLAN.md` · Problemi parcheggiati → `BACKLOG.md`.
+> Blueprint architettura E2E (7 sottosistemi S1-S7, 5 fasi di build) → `docs/ARCHITETTURA_E2E.md` (riferimento, NON stato; la sequenza vincolante resta `docs/ROADMAP.md`).
 > Aggiornato: **S278 · 2026-06-17**
 
 > **S273-cont · base-mercato NON affidabile (cap-truncated).** La fixture
