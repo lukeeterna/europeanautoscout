@@ -1,3 +1,4 @@
+MANDATO: BUILD
 # RECOVERY_PROMPT_S284 — ripartenza a freddo ([A1] cont., DEDICATA, budget PIENO)
 
 Lancia con `ARGOS_HARNESS_UNLOCK=1`. Sessione DEDICATA a [A1] (anello E2E 6-7).
