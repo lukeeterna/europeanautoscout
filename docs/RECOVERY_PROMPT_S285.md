@@ -17,15 +17,26 @@ Se no → [A0] wa-daemon-ops. SOLO TEST_FOUNDER 393314928901, mai dealer reale. 
 - Checklist BRIEF_A 7 punti: **1-6 VERDE** letti sul render reale (pypdf + Read). Punto 7 = invio, pending.
 - Checkpoint giudice composto: `/tmp/s284_giudice_checkpoint.md` + report completo `/tmp/s284_report_completo.md` (entrambi /tmp, ephemeral).
 
-## PROBLEMA APERTO trovato in revisione S284 (DECISIONE LUKE, poi azione)
-Template Day-1 (G2, `wa-intelligence/templates.py`) contiene claim falsa: «i concessionari **con cui lavoriamo** parlano
-di cifre interessanti» — ma ARGOS ha 0 dealer reali (competitors.md "zero track record"). Difetto del template, si
-ripresenta in ogni Day-1. RACCOMANDAZIONE: correggere alla radice (rimuovere rivendicazione clientela inesistente),
-rigenerare cold msg, RI-verificare i 7 punti, poi mandare al giudice un artefatto pulito.
+## VERDETTO FASE 0 (verificato su disco fine-S284 — giudice esterno: NO-GO finché non corretto)
+Template Day-1 (G2) contiene claim falsa: «i concessionari con cui lavoriamo parlano di cifre interessanti» — ma ARGOS
+ha 0 dealer reali (competitors.md "zero track record"). FASE 0 ha accertato:
+- **La claim è su DUE righe, non una**: `wa-intelligence/templates.py:23` E `:57` (due varianti di template), verbatim
+  identiche. La FASE 1 deve correggere ENTRAMBE, sennò una variante propaga ancora la claim.
+- `generate_cold_day1` → `fill_template` = str-format **offline zero-LLM** → rigenerazione Day-1 deterministica. OK.
+- **PDF S284 esiste** (`dossiers/ARGOS_BMW_Serie 3_2022_..._163650.pdf`, 2.29MB): da FISSARE, NON rigenerare (scrape live
+  = veicolo diverso = checkpoint rotto).
+- Git fine-S284: HEAD=`e2a6d05` (commit handoff S285 di S284, non desync esterno), branch ok, tree pulito (solo breadcrumb).
+- **Candidato ADOTTABILE con 1 correzione**: il passo-1 dica "righe 23 E 57", non "la riga".
 
-## RESTANO (BLOCKED-ON-Luke fisico + giudice esterno)
-1. [DECISIONE] correggere template G2 sì/no (sopra).
-2. [LUKE] incolla checkpoint giudice (rigenerare se template corretto) a Claude AI web → GO/NO-GO. Invio SOLO con GO.
+## FASE 1 (sessione dedicata, budget pieno — NON eseguita in S284 per context >60%)
+1. CORREGGI templates.py righe 23 E 57: rimuovi la rivendicazione di clientela inesistente → condizionale onesto
+   (es. "su questo segmento il margine può essere interessante, dipende dal veicolo"). Nessun'altra modifica. Mostra diff.
+2. RIGENERA SOLO il Day-1 (offline). NON rigenerare il PDF (resta ..._163650.pdf fissato). Mostra output verbatim.
+3. RI-VERIFICA i 7 punti BRIEF_A su [PDF S284 fissato + Day-1 nuovo], leggendo il render. Atteso: claim falsa sparita,
+   punto 7 resta PENDING. Poi prepara packet RE-CHECKPOINT (7 punti + Day-1 nuovo + testo PDF + diff). NON inviare.
+
+## POI (BLOCKED-ON-Luke fisico + giudice esterno)
+1. [LUKE] incolla packet re-checkpoint a Claude AI web → GO/NO-GO. Invio SOLO con GO.
 3. [SE GO] invio Day-1 a TEST_FOUNDER → scatta **Gate-E** (classe `outreach_real`: BLOCCA → packet `pending_review/<slug>.md`).
    [LUKE] incolla verdetto giudice + `! python3 .harness/gate_e.py approve <slug>` (token one-shot, CC non auto-approva).
    Gate-E che NON scatta = bug del breaker (checklist punto 7).
