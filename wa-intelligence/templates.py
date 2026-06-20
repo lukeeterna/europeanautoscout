@@ -19,8 +19,8 @@ TEMPLATES = {
         "Ho visto il suo salone su {source} — lavora con {brand_focus}, giusto?\n"
         "Per conto di Luca seleziono auto premium in tutta Europa: "
         "km tracciati dalla revisione TUV, tagliandi certificati, garanzia costruttore valida in Italia.\n"
-        "Auto con allestimenti rari qui — il margine dipende dal veicolo, ma su questo segmento "
-        "i concessionari con cui lavoriamo parlano di cifre interessanti.\n"
+        "Auto con allestimenti rari qui — su questo segmento il margine puo' essere interessante, "
+        "ma dipende sempre dal veicolo.\n"
         "Se non e' interessato, mi scriva 'no' e non la disturbo piu'. "
         "Altrimenti: ha 2 minuti per capire come funziona?"
     ),
@@ -53,8 +53,8 @@ TEMPLATES = {
         "Ho visto il suo salone su {source} — lavora con {brand_focus}, giusto?\n"
         "Per conto di Luca seleziono auto premium in tutta Europa: "
         "km tracciati dalla revisione TUV, tagliandi certificati, garanzia costruttore valida in Italia.\n"
-        "Auto con allestimenti rari qui — il margine dipende dal veicolo, ma su questo segmento "
-        "i concessionari con cui lavoriamo parlano di cifre interessanti.\n"
+        "Auto con allestimenti rari qui — su questo segmento il margine puo' essere interessante, "
+        "ma dipende sempre dal veicolo.\n"
         "Se non e' interessato, mi scriva 'no' e non la disturbo piu'. "
         "Altrimenti: ha 2 minuti per capire come funziona?"
     ),
