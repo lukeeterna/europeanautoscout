@@ -24,10 +24,11 @@ Routing freddo: STATE.md → docs/ROADMAP.md → docs/briefs/BRIEF_A_e2e_67_test
   il secondo DEVE restare soppresso. ⚠️ NON abbassare min_n, NON usare PDF stale, NON spingere numeri non
   fidati nel layer banda (pattern-errore S268/S271 — l'artefatto [A1] diventa il template del 1° dealer reale).
 
-### G2 — Nessun generatore Day-1 COLD parametrico + sanitizzato eseguibile. BLOCCANTE per step 3.
-- `tools/outreach/send_day1_stile_car.py` = hardcoded per-dealer (X3/Stile Car) + INVIA (POST :9191/send). NON parametrico, NON usabile offline.
-- `wa-intelligence/response-analyzer.py` = AMBRA reale ma reply-oriented + LLM-cascade-gated (Groq/Gemini live).
-- Manca l'entry-point "genera cold Day-1 via AMBRA per veicolo X, passa banned-words check (`_check_banned_words` ~:530), NON invia".
+### G2 — RETTIFICATO da verifica giudice S282-bis. Il generatore parametrico ESISTE, ma in voce sbagliata.
+- `tools/outreach/send_day1_stile_car.py` = hardcoded per-dealer (Stile Car, DEALER_PHONE 393334254654) + INVIA (POST :9191/send, riga ~191). NON parametrico, NON usabile offline.
+- `wa-intelligence/response-analyzer.py` = AMBRA reale ma reply-oriented + LLM-cascade-gated (Groq/Gemini live). Banned-words check = `_validate_llm_response` ~:100-109 (NON `_check_banned_words`).
+- **ESISTE GIÀ** `wa-intelligence/templates.py`: `select_day1_variant(dealer_brands)` ~:242-263 + 3 template DAY1 (PREMIUM/MIXED/GENERALIST) ~:14-52, `str.format` puro, ZERO LLM, OFFLINE. **MA firma "sono Luca Ferretti" in 1ª persona** → viola S277/Azzurra → **fallirebbe il punto 1 dei 7**. Quindi G2 NON è "build da zero": è (a) correggere la firma di templates.py → Azzurra + disclosure/provenienza/opt-out, O (b) cablare il path AMBRA (response-analyzer) per cold-gen offline. Scelta da fare in sessione [A1].
+- **G1 nota verificata**: la distinzione thin-pool (`no_verdict`→continue, :502-507) vs REJECT-margine (`surplus<=0`→REJECT in margin_gate.py:72) ESISTE già nel codice → il fix G1 si aggancia pulito al flag `no_verdict` senza nuova logica di classificazione.
 - **S277 Azzurra CONFERMATO in repo:** `response-analyzer.py:67 ARGOS_PERSONA='Luca Ferretti'`, `:68 ARGOS_ASSISTANT='Azzurra'`.
 - **G2-bis:** lo scrape non persiste i top listing su file (return None prima di ogni dump) → numeri del
   candidato non isolabili dal log. Il fix G1 (dossier degradato) o un dump-top pre-margin-gate risolve anche questo.
