@@ -19,7 +19,10 @@
 #       [A] NON parte finche': (i) daemon initializing->connected (area S252: QR re-scan, Luke fisico
 #       sulla SIM), (ii) orario lavorativo (anti-ban gate-a fuori orario). → SPLIT:
 #         [A0] wa-daemon-ops: connetti il daemon (PRECEDE [A1]).
-#         [A1] E2E 6-7: done-condition = CHECKLIST VERDE 7 punti in BRIEF_A.
+#         [A1] E2E 6-7: CHIUSO S286 (7a meccanica d'invio VERDE commit 40a5d1e msg_id out_1781986351333_evd8h
+#              + 7b breaker DEFERITO a gate-pre-dealer-reale, già nei 3 gate). Done-condition = CHECKLIST BRIEF_A.
+#              NB: anello 6-7 nella tabella GENERATA resta UNVERIFIED (check_cmd=null, consegna WA non re-runnabile
+#              in-sessione + 7b deferito) — [A1] item chiuso ≠ ring flip. [S4] è ora l'item attivo corrente.
 #       FB-GROUPS SOURCING (modulo opzionale isolato): repo = MasuRii/FBScrapeIdeas (selenium, login OBBLIG.,
 #         data/research/repo_selection.md). PREREQ fetch-test: account FB TEST sacrificabile (cookie c_user+xs
 #         in .env). Senza account-test il modulo NON parte; AS24+sintesi girano lo stesso.
