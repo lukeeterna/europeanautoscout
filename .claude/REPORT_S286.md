@@ -65,3 +65,55 @@ serve un nuovo punto d'ingresso URL-pagina-dealer → lista-inventario.
 - **Fase 1 [S4] fattibile: SÌ-CON-ADATTAMENTO** — manca lo scrape pagina-dealer (il perno);
   GDPR rispettabile coi campi che lo scraper estrarrebbe.
 - **Build S4**: 5 item sopra. Nessun build eseguito in S286 (solo scoping verificato).
+
+---
+
+## PROBE PRE-BUILD [S4] (read-only, delegato a sub-agent — S286)
+
+Verifica di 2 fatti terminali su AS24.it reale prima di autorizzare il build del collector
+pagina-dealer. Nessun file scritto, nessun DB, nessun codice di produzione. Fetch in sola lettura.
+
+**FASE 0 — codice**
+- `build_search_url` confermato (`tools/scrapers/autoscout_scraper.py:403`): solo make/model/params,
+  nessun `dealer_url`/`scrape_dealer`.
+- Data path veicoli: `__NEXT_DATA__` → `props.pageProps.listings[]` via `_parse_next_data` (riga 742);
+  conteggio annunci da `get_total_pages` (riga 503, legge `pageProps.numberOfResults`).
+- Fetch reale: `BaseScraper._fetch` (riga 147), curl_cffi `impersonate="chrome120"` — supera l'anti-bot
+  AS24.it (HTTP 200 su tutte le richieste del probe).
+- ⚠️ 2 CORREZIONI NOTE prima del build:
+  1. `AutoScoutScraper.fetch` (riga 486) è codice morto/rotto (`super().fetch` non esiste in BaseScraper)
+     e `build_search_url` fa solo `/lst/` → il collector dealer deve usare `_fetch(dealer_url)` +
+     `_parse_next_data`/`get_total_pages` as-is.
+  2. Prezzo pagina-dealer in `listing.prices.public.priceRaw` / `prices.dealer.priceRaw`, NON in
+     `price.priceFormatted` (chiave della ricerca, riga 828) → serve un ramo-prezzo aggiuntivo nel collector.
+
+**[A] PARSING-PATH = SÌ (binario)**
+L'inventario del dealer è nello STESSO `__NEXT_DATA__` → `props.pageProps.listings[]` + `numberOfResults`
+della pagina di ricerca. `_parse_next_data`/`get_total_pages` funzionano senza modifiche strutturali.
+URL pagina-dealer derivabile dai dati di ricerca (`seller.links.infoPage` → `/concessionari/{slug}`).
+Campione reale (`ariel-car-bologna`, numberOfResults=50): BMW X1 10/2021 92.273 km · BMW i4 06/2023 ·
+Kia Sportage 01/2023 €16.550 pubblico/€15.950 dealer. Brand-mix pag.1: BMW 6, VW 3, Ford 3, Audi 1,
+Mercedes 1 + altri (multimarca, premium tedesco presente).
+
+**[B] SEGNALE-ICP — fascia <20 PRESENTE (ma campione dominato da 50+)**
+
+| Dealer | n_annunci |
+|---|---|
+| ag-auto-srl | 10 |
+| autofriuli-srl | 23 |
+| rossettomotors-srl | 28 |
+| ariel-car-bologna | 50 |
+| rivoltella-spa | 58 |
+| pluricar | 69 |
+| car-village-pomponesco | 143 |
+| nanni-nember-brescia | 352 |
+
+Range 10→352 → filtro-taglia necessario nel matching.
+
+**SINTESI PROBE**: stima S286 "adattamento medio-contenuto" = **RATIFICATA**. Il perno (parsing inventario
+pagina-dealer) riusa lo stesso `__NEXT_DATA__`/`pageProps.listings` già implementato; gli unici adattamenti
+reali sono ramo-prezzo (`prices.public/dealer.priceRaw`) + discovery URL dealer (banale, già nei dati di
+ricerca). Due correzioni note (sopra). Nessun blocco anti-bot in sola lettura.
+
+⚠️ **DIVERGENZA HEAD**: il probe ha riportato HEAD=`19bf4de` (non `9e76158`, il commit A) → probabile
+commit auto-close hook successivo, da verificare a inizio prossima sessione.
