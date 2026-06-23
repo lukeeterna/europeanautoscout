@@ -45,14 +45,28 @@ PARTE A (completamento) — 3 LETTURE MIRATE, poi verdetto. Per ciascuno cita le
     istruzione, o lo scrive/ignora soltanto? Cita il punto.
 (c) `~/.claude/hooks/global_session_end.sh` + hook `Stop` in `.claude/settings.json` — chi invoca
     global_session_end (scrive NEXT_SESSION_PROMPT + commit "auto-close")?
-    [CC-ADD] In (c) mappa TUTTI i consumatori del nome `NEXT_SESSION_PROMPT.md` (grep su ~/.claude/
-    e sul repo), non solo SessionStart: serve per non rompere lettori esterni alla rinomina.
+    [CC-ADD] In (c) mappa TUTTI i consumatori (LETTORI) del nome `NEXT_SESSION_PROMPT.md` (grep su
+    ~/.claude/ e sul repo), non solo SessionStart: serve per non rompere lettori esterni alla rinomina.
+    [GIUDICE-ADD] In (c) mappa anche gli SCRITTORI: global_session_end.sh scrive NEXT_SESSION_PROMPT.md
+    ANCHE sul path auto-close (hook Stop) quando la sessione satura senza chiusura ordinata? E il commit
+    "auto-close" è la fonte del rumore-HEAD (gli hash divergenti S286/S288)? Riporta dal CODICE:
+    (i) sì/no se l'auto-close scrive il file-auto-mandato per conto suo;
+    (ii) sì/no se committa rumore a ogni Stop, e se è CONDIZIONALE (memoria s246: hook reso condizionale
+        → riverifica se il rumore-HEAD è sistematico o solo su saturazione).
+    → [LETTORI]+[SCRITTORI] = grafo read+write completo prima di toccare il file. Se gli scrittori sono
+      DUE (combine/chiusura ordinata + auto-close Stop), la PROPOSTA 2 va applicata a ENTRAMBI, altrimenti
+      la nota-non-mandato copre solo la chiusura ordinata e l'auto-close continua a generare auto-mandato
+      + rumore-HEAD. NON costruire fix-2 su un solo punto finché il conteggio non è verificato dal codice:
+      se emergono due punti, riportalo nel verdetto e proponi se coprirli entrambi qui o spaccare in due.
 
 VERDETTO PARTE A (obbligatorio):
 - PROPOSTA 1 (handoff 1-file fisso, header SESSION_ID/HEAD/git-status + done-condition con output
   grezzo, NON il dump combinato): CONFERMO / CORREGGO (sul codice letto) / SCONSIGLIO.
 - PROPOSTA 2 (proposta-next declassata a NOTA: rinomina + header "NON è un mandato" + SessionStart
   che NON la legge come istruzione): CONFERMO / CORREGGO / SCONSIGLIO.
+  [GIUDICE-ADD] Il verdetto PROPOSTA 2 deve dichiarare il N° di PUNTI DI SCRITTURA emersi dalla
+  lettura (c): se 1 (solo chiusura ordinata) → fix su un punto; se 2 (anche auto-close Stop) → fix su
+  entrambi, oppure split motivato. Verdetto su un solo punto senza aver contato gli scrittori = NULLO.
 - RISCHIO-AVVIO: cosa si rompe rinominando/cambiando combine.sh; quali hook dipendono dai
   nomi/percorsi vecchi; come lo eviti.
 Se una richiede correzione STRUTTURALE o è sconsigliata → FERMATI dopo il verdetto, non costruire.
