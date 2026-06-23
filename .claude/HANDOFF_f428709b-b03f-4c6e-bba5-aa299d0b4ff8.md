@@ -29,7 +29,8 @@ NB: la chiusura DI QUESTA sessione è già il 1° run reale del nuovo codice →
 
 ### B. Costruire PROPOSTA 1 (`session_reports_combine.sh`) — DECISIONE APERTA prima di build
 Riscrivere l'output: invece di concatenare REPORT_*.md, scrivere `HANDOFF_<SESSION_ID>.md` (estrai `.session_id` da INPUT JSON; SessionEnd lo espone) con header fisso SESSION_ID+HEAD+git-status+done-condition. Stop dump storico.
-**INTERAZIONE DA RISOLVERE (perché DEFERRED, non rushato)**: con 2b attivo, `git add -A` committa OGNI file non-prompt → ogni `HANDOFF_<uuid>.md` verrebbe committato → proliferazione 1 file/sessione (lo stesso problema-pattern che PROPOSTA 1 vuole chiudere). Decidere PRIMA del build: (i) gitignore `HANDOFF_*.md` + `NEXT_SESSION_PROMPT.md`, o (ii) escluderli anche dallo staging come il prompt, o (iii) un solo `HANDOFF_CURRENT.md` sovrascritto. Non costruire finché non scelto.
+**INTERAZIONE DA RISOLVERE (perché DEFERRED, non rushato)**: con 2b attivo, `git add -A` committa OGNI file non-prompt → ogni `HANDOFF_<uuid>.md` verrebbe committato → proliferazione 1 file/sessione (lo stesso problema-pattern che PROPOSTA 1 vuole chiudere).
+**RACCOMANDAZIONE (singola)**: estendere il `git reset` di 2b per de-stagiare anche `.claude/HANDOFF_*.md`, stesso meccanismo del prompt. È già il pattern provato per "artefatto di sessione generato che non va committato": un solo concetto, zero codice nuovo, mantiene il file taggato `HANDOFF_<SESSION_ID>.md` su disco (commit manuale se il founder ne vuole tenere uno). Scartate perché perdono dati: gitignore toglie il file da `git status` e blocca il commit intenzionale; `HANDOFF_CURRENT.md` sovrascritto butta storia per-sessione + naming SESSION_ID (CC-ADD).
 
 ## RISCHIO chiusura
 2b gira alla chiusura di QUESTA sessione (hook .sh letto a runtime, non a SessionStart). `set -u` no `-e` → non fallisce la sessione. Sintassi validata. Se l'auto-close fallisse, backup `*.bak-2b-*` ripristina in 1 cp.
