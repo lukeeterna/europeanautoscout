@@ -80,6 +80,22 @@ def init_db(conn: sqlite3.Connection) -> None:
             status            TEXT NOT NULL DEFAULT 'PRESENT',   -- PRESENT | GONE
             PRIMARY KEY (dealer_id, vehicle_key)
         );
+
+        -- GAP-ANALYSIS [S4] — dato RELATIVO, mai assoluto. PK dealer_id = idempotente
+        -- (re-run = stesso gap, zero duplicati). GDPR: zero colonne personali.
+        CREATE TABLE IF NOT EXISTS dealer_gaps (
+            dealer_id        TEXT PRIMARY KEY,
+            segment          TEXT,    -- es. 'premium-tedesco (BMW/Mercedes/Audi)'
+            segment_count    INTEGER, -- N veicoli del segmento nell'inventario
+            total_count      INTEGER, -- N totale inventario (denominatore del relativo)
+            segment_share    REAL,    -- segment_count / total_count (il valore RELATIVO)
+            comparator       TEXT,    -- comparatore ESPLICITO (brand-leader del dealer stesso)
+            comparator_share REAL,    -- share del comparatore (stesso denominatore)
+            under_weight     INTEGER, -- 1 se segment_share < comparator_share (sotto-pesato)
+            stale_signal     TEXT,    -- JSON: veicoli segmento con days_observed alto (stock-fermo)
+            computed_at      TEXT,
+            FOREIGN KEY (dealer_id) REFERENCES dealers(dealer_id)
+        );
         """
     )
     conn.commit()
@@ -405,10 +421,125 @@ def read_dealer(conn: sqlite3.Connection, dealer_id: str) -> Optional[Tuple]:
     return cur.fetchone()
 
 
+# ──────────────────────────────────────────────────────────────────────
+# GAP-ANALYSIS [S4] — peso RELATIVO del premium-tedesco nel mix del dealer
+# ──────────────────────────────────────────────────────────────────────
+# Segmento target ARGOS. Normalizzato lower per match robusto su 'Mercedes-Benz'/'Mercedes'.
+GERMAN_PREMIUM = {"bmw", "mercedes-benz", "mercedes", "audi"}
+STALE_DAYS_THRESHOLD = 60  # days_observed oltre cui un veicolo segnala stock-fermo
+
+
+def gap_analysis(conn: sqlite3.Connection, dealer_id: str) -> Optional[Dict[str, Any]]:
+    """Calcola il gap RELATIVO premium-tedesco vs il brand-leader DELLO STESSO dealer.
+
+    Relativo, mai assoluto: il valore e' la SHARE del segmento sul totale inventario,
+    confrontata col comparatore esplicito = share del brand piu' presente del dealer.
+    NON 'manca Ferrari': si misura quanto il premium-tedesco pesa rispetto a cio' che il
+    dealer gia' vende di piu'. Pesa di piu' se c'e' stock-fermo (days_observed alto) nel segmento.
+    Persiste idempotente su PK dealer_id (ON CONFLICT -> update). Zero colonne personali (GDPR).
+    """
+    row = conn.execute(
+        "SELECT inventory_snapshot FROM dealers WHERE dealer_id=?", (dealer_id,)
+    ).fetchone()
+    if not row or not row[0]:
+        return None
+    inventory = json.loads(row[0])
+    total = len(inventory)
+    if total == 0:
+        return None
+
+    # conteggio per make (comparatore = brand-leader del dealer)
+    brand_counts: Dict[str, int] = {}
+    seg_keys: List[str] = []
+    for v in inventory:
+        make = (v.get("make") or "").strip()
+        if not make:
+            continue
+        brand_counts[make] = brand_counts.get(make, 0) + 1
+        if make.lower() in GERMAN_PREMIUM:
+            if v.get("vehicle_key"):
+                seg_keys.append(v["vehicle_key"])
+
+    seg_count = sum(c for b, c in brand_counts.items() if b.lower() in GERMAN_PREMIUM)
+    seg_share = round(seg_count / total, 4)
+    leader_brand, leader_count = max(brand_counts.items(), key=lambda kv: kv[1])
+    leader_share = round(leader_count / total, 4)
+    under_weight = 1 if seg_share < leader_share else 0
+    comparator = f"brand-leader del dealer = {leader_brand} ({leader_count}/{total})"
+
+    # stock-fermo: days_observed dei veicoli del segmento sopra soglia
+    stale: List[Dict[str, Any]] = []
+    if seg_keys:
+        placeholders = ",".join("?" * len(seg_keys))
+        for vk, days in conn.execute(
+            f"SELECT vehicle_key, "
+            f"CAST(julianday(last_observed_at)-julianday(first_observed_at) AS INT) AS d "
+            f"FROM vehicle_observations WHERE dealer_id=? AND vehicle_key IN ({placeholders})",
+            (dealer_id, *seg_keys),
+        ).fetchall():
+            if days is not None and days >= STALE_DAYS_THRESHOLD:
+                stale.append({"vehicle_key": vk, "days_observed": days})
+
+    computed_at = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        """
+        INSERT INTO dealer_gaps (
+            dealer_id, segment, segment_count, total_count, segment_share,
+            comparator, comparator_share, under_weight, stale_signal, computed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(dealer_id) DO UPDATE SET
+            segment          = excluded.segment,
+            segment_count    = excluded.segment_count,
+            total_count      = excluded.total_count,
+            segment_share    = excluded.segment_share,
+            comparator       = excluded.comparator,
+            comparator_share = excluded.comparator_share,
+            under_weight     = excluded.under_weight,
+            stale_signal     = excluded.stale_signal,
+            computed_at      = excluded.computed_at
+        """,
+        (
+            dealer_id, "premium-tedesco (BMW/Mercedes/Audi)", seg_count, total,
+            seg_share, comparator, leader_share, under_weight,
+            json.dumps(stale, ensure_ascii=False), computed_at,
+        ),
+    )
+    conn.commit()
+    return {
+        "dealer_id": dealer_id,
+        "segment": "premium-tedesco (BMW/Mercedes/Audi)",
+        "segment_count": seg_count,
+        "total_count": total,
+        "segment_share": seg_share,
+        "comparator": comparator,
+        "comparator_share": leader_share,
+        "under_weight": bool(under_weight),
+        "stale_signal": stale,
+    }
+
+
 def main() -> int:
     if len(sys.argv) < 2:
-        print("uso: dealer_collector.py <dealer_url>")
+        print("uso: dealer_collector.py <dealer_url> | gap <dealer_id>")
         return 2
+
+    # sub-comando gap: gap-analysis su un dealer GIA' raccolto (no fetch di rete)
+    if sys.argv[1] == "gap":
+        if len(sys.argv) < 3:
+            print("uso: dealer_collector.py gap <dealer_id>")
+            return 2
+        conn = sqlite3.connect(DB_PATH)
+        try:
+            init_db(conn)
+            res = gap_analysis(conn, sys.argv[2])
+        finally:
+            conn.close()
+        if res is None:
+            print(f"[gap] nessun inventario per {sys.argv[2]}", file=sys.stderr)
+            return 1
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        return 0
+
     dealer_url = sys.argv[1]
     os.makedirs(DB_PATH.parent, exist_ok=True)
 
