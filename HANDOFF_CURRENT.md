@@ -1,76 +1,78 @@
-# HANDOFF — S4-OPS sessione 2 — collector social FB + IG
+# HANDOFF — S4-OPS sessione 3 — riconciliazione DB dealer (VALUTA-poi-BUILD)
 
-**FB COLLECTOR = VERDE (5/5)**
-**IG web_profile_info DA QUI = SÌ (4/4 a 200, control @nasa=200) → IG collector COSTRUITO**
+**DB DEALER = DISGIUNTI (decisione a monte necessaria) — gate NON dà via libera a FASE 2**
 
-> Nota: in DB solo 4 dealer hanno handle IG (non 5). Probe e collector girati sui 4 → 4/4.
-> Gate richiesto ≥3/5: superato con margine (4/4, control @nasa=200 → endpoint vivo, HTTP/3 negoziato).
+> 0 dealer in comune tra commerciale e social. Non è un problema di plumbing: i due rami
+> hanno profilato negozi DIVERSI. La join non va costruita finché non si decide a monte
+> COME le due popolazioni si incontrano (scelta di discovery, non di riconciliazione DB).
 
 ---
 
-## FASE 0 — re-ground (riportato, non costruito)
-- `pwd` = root, `git HEAD` = b9f614f, status = solo rumore-hook (NEXT_SESSION_PROMPT/STATE/rings.json). OK.
-- `resilient_fetcher.py` espone `ResilientFetcher` con `IMPERSONATE="chrome120"` + curl_cffi + HTTP/2/3. VERIFICATO.
-- Tabelle FASE 1 `dealer_operational_profile`/`operational_anchors`: **NON esistevano** (né DB né codice).
-  Schema (ri)creato in questa sessione — `tools/social_collectors/schema.py`.
-- curl_cffi da questa macchina: `chrome120` → status 200, http_version 3. VERIFICATO.
+## FASE 1 — VALUTA (read-only, nessuna modifica)
 
-## PARTE A — collector Facebook (provato sul campo → costruito)
-Modulo: `tools/social_collectors/fb_collector.py`. Fetch HTML pubblico (curl_cffi) →
-og:title/og:description/og:url + body (`category_name`, +39 phone, email/website se pubblici).
-Degradazione: email/website/data-post login-gated → vuoti (non errore); og: assente → `source=js_only`.
+### Punto 1 — store, tabelle, PK (sono TRE, non due)
 
-| dealer_id | fb_category | fb_likes | fb_talking | fb_phone | email | website | data-post | source |
-|---|---|---|---|---|---|---|---|---|
-| 2f_motors_cs | Automotive Dealership | 1922 | 21 | — (gated) | — | — | — (gated) | ok |
-| auto_carfora_ce | Automotive Wholesaler | 13952 | 271 | +39 392 921 4946 | — | — | — | ok |
-| autoline_av | Motor vehicle company | 4666 | 129 | +39 345 899 0088 | — | — | — | ok |
-| de_cicco_cs | Automotive Store | 504 | — | +39 335 148 0797 | — | — | — | ok |
-| gp_cars_ta | Automotive Store | 37888 | 339 | — (gated) | — | — | — | ok |
-
-- og: SEMPRE presenti (5/5 ok, 0 js_only). Categoria 5/5, likes 5/5, telefono 3/5 (2 login-gated → vuoto, degradazione mostrata).
-- email/website/data-ultimo-post: login-gated su tutte e 5 → vuote per design (non errore).
-- **Idempotenza: 0 duplicati** (re-run → profile resta 5 righe; upsert su dealer_id).
-
-## PARTE B — Instagram (probe → build)
-**B1 PROBE** (`tools/social_collectors/ig_probe.py`, read-only): web_profile_info via curl_cffi+HTTP/2,
-header `x-ig-app-id:936619743392459` + UA mobile + Accept-Language it-IT, cookie-stripping.
-VERDETTO: **4/4 a 200** (HTTP/3). Control `@nasa`=200 → endpoint vivo lato macchina.
-
-**B2 BUILD** (≥3/5 → costruito): `tools/social_collectors/ig_collector.py`, persiste bio/link-in-bio/
-categoria/follower/recency. Stessa degradazione + idempotenza.
-
-| dealer_id | @handle | ig_category | follower | link-in-bio | ultimo post |
+| Store | File | Tabella dealer | PK | N dealer | Ruolo |
 |---|---|---|---|---|---|
-| 2f_motors_cs | @2fmotors | Concessionario di auto | 4230 | http://www.2fmotors.com/ | 0 gg fa |
-| auto_carfora_ce | @autocarforasrl | Concessionario di automobili | 13536 | http://www.autocarfora.it/ | 1 gg fa |
-| de_cicco_cs | @decicco_automobili | (none) | 1011 | impresapiu.subito.it/shops/21445… | 1 gg fa |
-| gp_cars_ta | @gpcars.concessionarioauto | Automobili | 6951 | https://wa.me/393283132484/ | 0 gg fa |
+| Commerciale S4 | `data/dealers.db` | `dealers` | `dealer_id TEXT` | **1** | gap/observations/profiles (AS24) |
+| Social + CRM | `dealer_network.sqlite` | `dealers` | `dealer_id TEXT` | **18** | anagrafica + `dealer_operational_profile` (FB/IG) |
+| CRM lead | `data/db/dealer_network.duckdb` | `dealer_leads` | `id INTEGER` | **1** | 1 sola riga MOCK di test (S26) |
 
-- **Idempotenza: 0 duplicati** (profile 5 righe, anchors 20 righe = 4×5, stabili su re-run).
+Tabelle collegate (PK):
+- `data/dealers.db`: `dealer_profiles(dealer_id)`, `dealer_gaps(dealer_id)`, `vehicle_observations(dealer_id, vehicle_key)`.
+- `dealer_network.sqlite`: `dealer_operational_profile(dealer_id)`, `operational_anchors`, `market_listings`...
 
-## Copertura 4 anchor (`operational_anchors`, dati REALI)
-| dealer | qualifica | canale | vivo | volume |
-|---|---|---|---|---|
-| 2f_motors_cs | auto:Automotive Dealership (fb) | web:2fmotors.com (ig) | ig_post 0gg (ig) | ig_foll:4230 (ig) |
-| auto_carfora_ce | auto:Automotive Wholesaler (fb) | tel:+39 392 921 4946 (fb) | ig_post 1gg (ig) | ig_foll:13536 (ig) |
-| autoline_av | auto:Motor vehicle company (fb) | tel:+39 345 899 0088 (fb) | fb_talking:129 (fb) | fb_likes:4666 (fb) |
-| de_cicco_cs | auto:Automotive Store (fb) | tel:+39 335 148 0797 (fb) | ig_post 1gg (ig) | ig_foll:1011 (ig) |
-| gp_cars_ta | auto:Automotive Store (fb) | whatsapp:wa.me/393283132484 (ig) | ig_post 0gg (ig) | ig_foll:6951 (ig) |
+### Punto 2 — la chiave-dealer è la STESSA tra i DB? → NO, identificatori DIVERSI
 
-- **qualifica** 5/5 (FB/IG category). **canale** 5/5 (tel-FB o wa.me/web-IG). **vivo** 5/5 (recency IG, fallback fb_talking). **volume** 5/5 (IG followers, fallback fb_likes).
-- autoline_av (solo FB) coperto 100% da soli dati FB → FB sufficiente come fonte unica quando IG manca.
+5 chiavi-esempio per DB:
+
+| `data/dealers.db` (slug-AS24) | `dealer_network.sqlite` (social_id) |
+|---|---|
+| `rossettomotors-srl` | `stile_car_fg` |
+| *(unico dealer presente)* | `2f_motors_cs` |
+| | `gp_cars_ta` |
+| | `samy_auto_cs` |
+| | `auto_carfora_ce` |
+
+Schema chiave diverso: commerciale = slug-URL AS24 (`<ragsoc>-srl`); social = `<nome>_<provincia>` o
+`<NOME>_AUTO_001`. Non confrontabili come stringa.
+
+### Punto 3 — OVERLAP? → ZERO
+
+Criterio di match testato: **nome** (`name LIKE '%ossetto%'`) e **sito** (`website LIKE`).
+- `rossettomotors-srl` (l'unico dealer commerciale) **NON** è in `dealer_network.sqlite`: 0 match su nome/sito.
+- Nessuno dei 18 social (`stile_car`, `gp_cars`, `2f_motors`...) compare in `data/dealers.db`.
+- Il lead DuckDB è `TEST DEALER - Centro BMW Premium` (Napoli, id 300) — mock, disgiunto da entrambi.
+
+**Dealer in comune: 0** (intersezione vuota anche al massimo teorico: 1 commerciale × 18 social).
+
+## Verdetto gate: **DISGIUNTI**
+
+Le tre popolazioni profilano negozi diversi:
+- ramo **commerciale S4** → 1 solo dealer profilato via AS24 (`rossettomotors-srl`): ha gap
+  premium-tedesco 10/28, 28 observations PRESENT, brand BMW/Volvo/VW;
+- ramo **social** → 18 dealer del CRM originario, di cui 5 con profilo FB/IG popolato;
+- non si sono mai incrociati sullo stesso negozio reale.
+
+Per mandato (gate): **STOP — NON costruire join.** FASE 2 NON eseguita. Nessun DB modificato,
+nessun backup necessario (read-only). Nessuna tabella-ponte: con 0 match certi sarebbe una mappa vuota.
+
+## Cosa serve a monte (decisione di Luke, non plumbing)
+
+La fonte unica Day-1 è impossibile finché i due rami non puntano agli STESSI dealer. Due strade
+(scelta di scope, non tecnica):
+- **(A)** girare il profiling commerciale AS24 sui 18 dealer del social → riempie `data/dealers.db`
+  con le stesse chiavi-negozio, e a quel punto serve una mappa slug-AS24 ↔ social_id sui match certi;
+- **(B)** girare i collector social sui dealer commerciali man mano che il ramo AS24 ne profila di nuovi.
+
+In entrambi i casi la chiave d'incontro reale è **nome+sito** o **nome+telefono** (gli unici campi
+condivisibili). Ma è una decisione di discovery: quali dealer sono il bersaglio comune.
 
 ## Garanzie
-- **0 colonne personali (PII)**: schema verificato, nessuna colonna titolare/cf/piva/owner.
-- FUORI SCOPE rispettato: niente pain-da-commenti, niente post oltre i 12, niente proxy/dongle/Docker, niente repo terzi (SSujitX confermato morto: 5/5 import error nello scratch).
-- Dipendenza unica: curl_cffi (già nel repo via resilient_fetcher).
+- **0 colonne PII** lette/scritte (solo conteggi, chiavi, nomi-negozio e categorie già pubbliche).
+- Read-only integrale: nessun `Write`/`Edit`/`>` su DB. Solo `SELECT`/`.schema`/`DESCRIBE`.
+- Additivo: CoVe e ramo scraper non toccati.
+- Idempotenza FASE 2: N/A (non eseguita).
 
-## File nominati (commit, no push)
-- `tools/social_collectors/schema.py`
-- `tools/social_collectors/fb_collector.py`
-- `tools/social_collectors/ig_probe.py`
-- `tools/social_collectors/ig_collector.py`
-- `tools/social_collectors/anchors.py`
+## File nominati (solo questo report; commit locale, no push)
 - `HANDOFF_CURRENT.md`
-- (dati persistiti in `dealer_network.sqlite` — non committato)
