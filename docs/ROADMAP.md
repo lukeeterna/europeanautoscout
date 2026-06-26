@@ -29,6 +29,15 @@
 #   [S4] DEALER PROFILING (NUOVO · Fase 1 architettura E2E) — primo item attivo dopo [A1].
 #        Layer mancante (causa "outreach alla cieca"); leva max conversione, costo min (riusa scraper AS24).
 #        Done-condition = sez.6 di docs/ARCHITETTURA_E2E.md. Mappa 5-fasi completa nel blocco in fondo.
+#        S289: gap_analysis RELATIVO FATTO (commit 7f10e2a, tabella dealer_gaps + CLI `gap`, idempotente,
+#          GDPR-clean). Evidenza rossettomotors-srl: tedesco-premium 10/28=35.71% vs leader BMW 28.57%.
+#        PROSSIMA IMPL IDEMPOTENTE (S290, non speculativa): raffina il COMPARATORE. Oggi = brand-leader
+#          singolo → circolare quando il leader e' in-segmento (BMW e' german-premium), under_weight quasi
+#          mai true. Fix = comparatore vs AGGREGATO non-segmento (share segmento vs share resto-mix), stesso
+#          denominatore. VALUTAZIONE FINALE PRE-IMPL: usa SOLO dati gia' in data/dealers.db (inventory_snapshot),
+#          nessuna sorgente nuova, re-run idempotente su PK dealer_id; il numero relativo 35.71% resta valido,
+#          cambia solo il flag derivato. Il confronto "vs supply ARGOS" NON ora: la tabella supply non esiste
+#          ancora = dipendenza, non questo item. Poi estendi generate_cold_day1 (templates.py:273) col gap osservato.
 #   [B] TOOL-RESEARCH → KB voce AMBRA          → docs/briefs/BRIEF_B_research_tool.md   (alimenta [A])
 #       [= sottoinsieme "voce" della Fase 3: la SECTOR WIKI (S5) ESTENDE [B]. Vedi blocco ARCHITETTURA E2E.]
 #   [C] MONITOR FONTI SOURCING B2B (weekly)    → docs/briefs/BRIEF_C_sourcing_monitor.md
