@@ -70,5 +70,6 @@
   "cdn.autotrack.nl": "curl_cffi",
   "ireland.apollo.olxcdn.com": "curl_cffi",
   "www.autoscout24.de": "selenium_chrome",
-  "www.subito.it": "curl_cffi"
+  "www.subito.it": "curl_cffi",
+  "www.facebook.com": "curl_cffi"
 }
