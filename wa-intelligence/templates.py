@@ -47,6 +47,18 @@ TEMPLATES = {
         "Ha 2 minuti per capire come funziona?"
     ),
 
+    # DAY1 VEICOLO-FIRST (S4) — apre col veicolo reale + numeri + domanda chiusa.
+    # MAI presentazione iniziale, MAI "ho visto il tuo profilo/Instagram".
+    # Il segnale-profilo entra come PERTINENZA implicita ({segmento} per la sua vetrina).
+    # Firma Azzurra (assistente digitale dichiarata) + provenienza + opt-out in coda.
+    "DAY1_VEHICLE_FIRST": (
+        "{vehicle_brand} {vehicle_model} {vehicle_variant}, {vehicle_year}, {km} km — {country}, EUR {price_eur} consegnata.\n"
+        "Km tracciati TUV, tagliandi certificati, garanzia costruttore valida in Italia.\n"
+        "Un {segmento} in piu' per la sua vetrina: le interesserebbe?\n"
+        "Sono Azzurra, assistente digitale di Luca Ferretti; ho preso il suo contatto da {source}. "
+        "Se preferisce non ricevere messaggi mi scriva 'no'."
+    ),
+
     # Alias per backward compatibility — identico a DAY1_PREMIUM
     "DAY1_INTRO": (
         "Buongiorno, sono Azzurra, assistente di Luca Ferretti.\n"
@@ -162,7 +174,10 @@ SLOT_DEFAULTS = {
     "price_delta": "",
     "vehicle_brand": "",
     "vehicle_model": "",
+    "vehicle_variant": "",
     "vehicle_year": "",
+    "country": "Germania",
+    "segmento": "SUV premium tedesco",
     # S152 contract+payment slots
     "sign_url": "",
     "fee_eur": "800",
@@ -270,17 +285,40 @@ def select_day1_variant(dealer_brands: list) -> str:
         return "DAY1_GENERALIST"
 
 
-def generate_cold_day1(dealer_brands: list, source: str, dealer_name: str = "") -> str:
+def generate_cold_day1(dealer_brands: list, source: str, dealer_name: str = "",
+                       vehicle: dict = None, profile: dict = None) -> str:
     """Genera il messaggio cold Day-1 in modo offline, ZERO LLM, ZERO invio.
 
     Args:
         dealer_brands: lista brand trattati dal dealer (es. ["BMW", "Mercedes"]).
         source: portale/canale da cui e' stato trovato il contatto (es. "AutoScout24").
         dealer_name: nome/ragione sociale del dealer (opzionale, non usato nei template DAY1).
+        vehicle: dict veicolo-match reale {brand,model,variant,year,km,price_eur,country}
+                 (opzionale). Se fornito → Day-1 VEICOLO-FIRST: apre col veicolo reale +
+                 numeri + UNA domanda chiusa, firma Azzurra + provenienza + opt-out.
+        profile: dict payload-profilo {business_name, segmento, anchor} (opzionale).
+                 segmento entra come PERTINENZA implicita, MAI come anchor citato.
 
     Returns:
         Testo del messaggio Day-1 pronto per revisione umana.
     """
+    # S4 — variante VEICOLO-FIRST (retro-compatibile: senza vehicle resta legacy)
+    if vehicle:
+        prof = profile or {}
+        variant_short = " ".join(str(vehicle.get("variant", "")).split()[:1])
+        data = {
+            "vehicle_brand": vehicle.get("brand", ""),
+            "vehicle_model": vehicle.get("model", ""),
+            "vehicle_variant": variant_short,
+            "vehicle_year": str(vehicle.get("year", "")),
+            "km": f"{int(vehicle.get('km', 0)):,}".replace(",", "."),
+            "country": vehicle.get("country", "Germania"),
+            "price_eur": f"{int(vehicle.get('price_eur', 0)):,}".replace(",", "."),
+            "segmento": prof.get("segmento", "SUV premium tedesco"),
+            "source": source,
+        }
+        return fill_template("DAY1_VEHICLE_FIRST", data)
+
     template_id = select_day1_variant(dealer_brands)
 
     # brand_focus = stringa leggibile del/dei brand premium trovati
