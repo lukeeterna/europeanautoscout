@@ -1,85 +1,63 @@
-# HANDOFF_CURRENT — S290 · PROBE PVP/aste giudiziarie + roadmap supply
+# HANDOFF_CURRENT — S291 CHIUSURA VOLUME ASTE
 
-Branch: s210/audit-master-plan · no push · CC-MAIN (no sub-agent) · READ-ONLY probe + docs roadmap.
-Data: 2026-06-26. Infra fetch: curl_cffi chrome120 (tools/scrapers/resilient_fetcher.py). Nessun proxy installato.
+**VOLUME PREMIUM ASTE = ~12 lotti ≥€25k in tutta Italia (di cui ~1 sola auto passeggeri premium europea) → canale SCARTATO**
 
-═══════════════════════════════════════════════════════
-PARTE A — PROBE (5 esiti)
-═══════════════════════════════════════════════════════
+Fonte: astegiudiziarie.it · Metodo: cattura XHR reale (Playwright) + replica curl_cffi chrome120 · No proxy · 2026-06-26
 
-## 1. VERDETTO STEALTH — "stealth pesante NON serve; anzi controproducente"
-Evidenza diretta, stesso IP casa (151.26.11.207):
-- **curl_cffi chrome120 → HTTP 200 PULITO** su `https://pvp.giustizia.it/pvp/` (7.596 byte) e su
-  `https://www.astegiudiziarie.it/` (224.574 byte). Nessun captcha / challenge / 403.
-- **Browser headless reale (Playwright/Chrome) → BLOCCATO** su PVP: pagina WAF di rete
-  "Web Page Blocked! ... Attack ID: 20000051 ... Client IP: 151.26.11.207" (Palo Alto-style).
-- CONCLUSIONE: la singola richiesta HTTP impersonata passa; è il **browser pesante** (raffica di
-  risorse: maps API, fonts, bundle JS) che fa scattare il WAF. Per un collector futuro → curl_cffi
-  leggero, NON undetected-chromedriver/selenium. Fallback noto se mai servisse (NON ora): Scrapfly
-  asp=true free-tier, valutazione in sessione separata.
+---
 
-## 2. DATA-PATH
-**PVP (pvp.giustizia.it)** — OSTILE:
-- SPA Entando. I dati arrivano dal microservizio backend `/bo-5897bc47-986a1b71/bo-ms`.
-- Tutti gli endpoint bo-ms testati → **HTTP 401** (Bearer token richiesto). Front-end SPA serve JS,
-  ma il browser che lo eseguirebbe è bloccato dal WAF. Doppia barriera (token + WAF-su-browser).
+## 1. La chiamata 200 + cosa mancava al 500 (S290)
 
-**astegiudiziarie.it (portale ministeriale autorizzato n.1)** — PULITO e PARSABILE:
-- Form server-side `POST /results` (CSRF `__RequestVerificationToken` estratto dall'home) → shell HTML
-  + app Vue `/assets/scripts/vuejs/ricerca.js`.
-- L'app Vue chiama la **Web API JSON**: base `https://webapi.astegiudiziarie.it/api/` (definita in
-  `/JSVariable`), endpoint risultati = **`search/Data`** (POST JSON), mappa = `search/map`.
-- Campi filtro ricchi nell'oggetto `searchParameters` (60+ campi): `idGenere` (**2 = beni Mobili**),
-  `idTipologie`/`idTipologiaBene`, `idCategorie`, **`prezzoDa`/`prezzoA`**, `idTribunale`, `descrizione`,
-  `regione`/`provincia`/`comune`, `hasFoto`, `inScadenza`, `dataVenditaDa/A`, `orderBy`. → filtro per
-  categoria-veicolo e per prezzo ESISTE nativamente.
+L'ipotesi S290 era SBAGLIATA sull'endpoint. Il flusso reale è a 2 fasi:
 
-## 3. VOLUME — ⚠️ NON CONFERMATO (BLOCKED-ON: chiamata webapi search/Data)
-- Endpoint esatto identificato (`POST https://webapi.astegiudiziarie.it/api/search/Data`) ma le chiamate
-  fatte in sessione → **HTTP 500 `<Error>`** anche inviando l'oggetto `searchParameters` completo con
-  `idGenere=2`. Manca un dettaglio (probabile header `Authorization: Bearer` anonimo, o casing
-  `search/data`, o campo richiesto specifico) che non ho chiuso entro il budget context.
-- **Per vincolo #10 NON invento un numero.** Volume auto totali + stima premium (>€25k o brand premium
-  europei) = DA CONFERMARE. Questa è la metrica che decide il canale: finché il numero non c'è, il
-  canale aste resta marcato "PROBE IN CORSO" in roadmap (coerente col mandato).
-- NEXT STEP secco (1 chiamata): replicare in DevTools la XHR reale di una ricerca "Mobili + prezzo≥25.000"
-  su astegiudiziarie.it/results, copiare header+body esatti di `search/Data`, e rieseguirli con curl_cffi.
-  Il `total` nella risposta JSON È il volume.
+- **`POST https://webapi.astegiudiziarie.it/api/search/map`** → endpoint-VOLUME. Body = `searchParameters`
+  completi (JSON). Ritorna **l'INTERA lista** dei lotti che matchano (ogni elemento: `idLotto`,
+  `prezzoBase`, lat/long, date). **Il totale = lunghezza dell'array.** HTTP **200** con curl_cffi.
+- **`POST .../api/search/Data`** → NON è l'endpoint-volume. Body = **array di ~20 `idLotto`**
+  (es. `[2327566,2327529,...]`). Hydrata solo i dettagli di UNA pagina. HTTP **200**.
 
-## 4. CAMPIONE LOTTI-AUTO — non estratto (dipende da #3, stessa chiamata bloccata)
-Campi estraibili previsti dallo schema `search/Data` + pagine lotto (`/vendita-asta-...-lNNN-pNNN`):
-marca/modello (in `descrizione`/titolo), prezzo-base d'asta, tribunale (`idTribunale`),
-data scadenza offerte (`dataVendita`), link perizia/allegati nella pagina-lotto. Estrazione reale =
-appena sbloccata la #3.
+**Cosa mancava al 500 in S290**: a `search/Data` venivano passati i `searchParameters` invece di un
+array di ID → 500 (body type sbagliato). Il volume non era MAI ottenibile da `search/Data`: va preso
+da `search/map`. Header minimi che bastano per il 200 (curl_cffi `impersonate=chrome120`):
+`content-type: application/json`, `accept: application/json, text/plain, */*`,
+`referer: https://www.astegiudiziarie.it/`, `x-referer: https://www.astegiudiziarie.it/mobili`.
+Nessun Authorization/Bearer, nessun token, nessun cookie richiesto. Endpoint pubblico.
 
-## 5. PVP vs astegiudiziarie.it — quale fonte per il collector
-**astegiudiziarie.it VINCE nettamente.**
-- PVP: SPA + API token-gated (401) + WAF che blocca il browser → richiederebbe reverse del token Entando
-  o esecuzione browser (proprio ciò che il WAF blocca). Costo alto, fragile.
-- astegiudiziarie: HTTP 200 con curl_cffi, API JSON pubblica `search/Data` con filtri nativi
-  (genere/tipologia/prezzo/tribunale) + URL-lotto SEO server-side. Stesso bacino aste, struttura
-  pulita. → **collector futuro su astegiudiziarie.it/webapi, NON su PVP.**
+Body chiave (mobili): `tipoRicerca:2` (=Mobili), `idTipologie:[6]` (=Autoveicoli e cicli),
+`prezzoDa:<n>`, `orderBy:6`. Tutti gli altri campi `null`/`false`.
 
-═══════════════════════════════════════════════════════
-PARTE B — ROADMAP (diff)
-═══════════════════════════════════════════════════════
-docs/ROADMAP.md — aggiunto blocco "DECISIONI FOUNDER S290" dopo la riga BACKLOG aste:
-+ SEGMENTO premium ALLARGATO → "premium europeo" (tedesco + Porsche/Volvo/Land Rover/Jaguar), coerente gap S289b.
-+ SUPPLY PRIVATI → annunci privati sotto-mercato, canale supply S1.
-+ SUPPLY ASTE GIUDIZIARIE (PVP/astegiudiziarie.it) → canale supply S1, STATO "PROBE IN CORSO — volume da
-  confermare" (NON confermato finché #3 non dà il numero).
+## 2. VOLUMI grezzi (stock attivo, 2026-06-26)
 
-═══════════════════════════════════════════════════════
-DONE-CONDITION
-═══════════════════════════════════════════════════════
-1. STEALTH ............... OK  curl_cffi 200 pulito (PVP+astegiudiziarie); browser headless = WAF block PVP.
-2. DATA-PATH ............. OK  PVP=bo-ms 401 token-gated; astegiudiziarie=POST webapi/api/search/Data (JSON, filtri).
-3. VOLUME ................ BLOCKED-ON: search/Data → 500; endpoint noto, numero NON inventato (vincolo #10).
-4. CAMPIONE 2-3 lotti .... dipende da #3 (stessa chiamata); schema campi documentato.
-5. PVP vs astegiudiziarie  OK  astegiudiziarie.it = fonte scelta per il collector.
-6. ROADMAP 3 righe ....... OK  blocco DECISIONI FOUNDER S290 aggiunto.
-7. commit file nominati ... docs/ROADMAP.md + HANDOFF_CURRENT.md, no push, nessun proxy installato.
+| Filtro (search/map) | Totale lotti |
+|---|---|
+| Mobili — tutte le categorie (`idTipologie:[]`) | **914** |
+| Autoveicoli e cicli (`idTipologie:[6]`) | **174** |
+| Autoveicoli `prezzoDa:25000` (server-side) | **12** |
+| Autoveicoli `prezzoBase>=25000` (filtro client, conferma) | **12 / 174** |
 
-NEXT SESSION (1 mossa): catturare la XHR reale `search/Data` (header+body da DevTools su ricerca
-Mobili+prezzo≥25k) → rieseguire con curl_cffi → leggere `total` = VOLUME, poi 2-3 lotti campione.
-Solo allora il canale aste può passare da "PROBE IN CORSO" a confermato/scartato.
+## 3. CAMPIONE — cosa sono davvero i 12 "premium" (hydrate search/Data, campi reali)
+
+| idLotto | prezzoBase | Cosa è (descrizione reale) | Tribunale/Comune |
+|---|---|---|---|
+| 2314075 | €642.625 | **20 veicoli INDUSTRIALI** (autocarri, piattaforme, gru) — lotto cumulativo | Grosseto |
+| 2319870 | €267.750 | **Porsche 911 Carrera RS 3.6 (964) 1992, 18.937 km** — unica vera auto premium | Catania |
+| 2319145 | €105.500 | **9 trattori stradali + motrice + furgone + rimorchi** — industriale | Cuneo / Andezeno (TO) |
+| 2324263 | €86.400 | Lotto **misto** (mobili + miniescavatore + automezzi) | Nocera Inferiore (SA) |
+| 2326394 | €66.000 | **Autocarro MAN** (targa EK733HA) | Nuoro |
+
+Link pagina-lotto ricostruibile dallo slug `urlSchedaDettagliata` presente nel record search/Data.
+
+## VERDETTO
+
+Canale **SCARTATO**. Il bucket ≥€25k (12 lotti su tutta Italia) è dominato da **veicoli
+industriali / lotti cumulativi**, non da auto passeggeri premium europee target ARGOS
+(BMW/Mercedes/Audi/Porsche di gamma). Nello stock attivo c'è **~1 sola** auto premium reale
+(Porsche 911 classica da collezione, fuori dal profilo scout EU→IT). Non giustifica un collector.
+
+## Cosa estrarrebbe un futuro collector (NON costruito, per memoria)
+Endpoint `search/map` (volume+prezzi+geo, 1 chiamata) → poi `search/Data` a batch di ID per
+descrizione/tribunale/date/foto. Zero token, zero proxy, curl_cffi chrome120. Parametri:
+`tipoRicerca:2, idTipologie:[6], prezzoDa, orderBy`.
+
+## Stato
+PROBE CHIUSA. Numero ottenuto, non inventato. Nessun collector, nessuna persistenza DB. No push.
