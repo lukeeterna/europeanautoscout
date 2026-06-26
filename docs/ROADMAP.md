@@ -57,6 +57,13 @@
 #
 # BACKLOG (gated, FUORI sequenza): ITEM-ASTE-GIUDIZIARIE (canale sourcing #2, post primo-dealer-reale) → BACKLOG.md.
 #
+# DECISIONI FOUNDER S290 (supply + segmento — registrate, NON ridisegnano le fasi; estendono S1/Fase5):
+#   - SEGMENTO premium ALLARGATO: da "tedesco (BMW/Mercedes/Audi)" a "PREMIUM EUROPEO" = premium tedesco
+#     + Porsche, Volvo, Land Rover, Jaguar. Coerente col fix gap S289b (comparatore di segmento).
+#   - SUPPLY PRIVATI: annunci di privati sotto-mercato = canale supply aggiuntivo lato S1.
+#   - SUPPLY ASTE GIUDIZIARIE (PVP/astegiudiziarie.it): nuovo canale supply S1 — STATO "PROBE IN CORSO —
+#     volume da confermare" (probe S290: stealth+data-path OK; volume premium NON ancora confermato → non confermato).
+#
 # 3 GATE A INVIO DEALER REALE (tecnici): [A] verde + Luke soddisfatto · [E] trasparenza live · [D] base-mercato fidata.
 # NB LEGALE (non "gate sparito"): il rischio GDPR del cold-WA e' NOTO e ACCETTATO da Luke (canale deciso-finale,
 #   autorita' su irreversibile), MITIGATO dalla copy con provenienza-contatto + opt-out. Difendibilita' = artefatto
