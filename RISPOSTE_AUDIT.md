@@ -49,7 +49,21 @@ Fonte autorevole più recente: **docs/ROADMAP.md (S286 · 2026-06-26)** — più
 - **Posizione veicolo** → nel report COMPLETO, **rivelata solo dopo pagamento** (report parziale Day-1 = prezzo visibile come gancio, posizione/venditore/URL nascosti). Coerente con feedback pipeline TEST_FOUNDER.
 - **Import automatizzato per nazione/casistica** → `tools/import_checklist.py` (365 righe): `generate_checklist(origin_country, is_b2b, dealer_city)`. Documenti country-specific per DE/NL/BE/AT/FR/SE/DK/NO… (Fahrzeugbrief, Kentekenbewijs+NAP, Car-Pass BE, Carte grise FR…), **reverse charge art.17 DPR 633/72**, ACI immatricolazione, distinzione B2B vs privato.
 
-→ STATO: **IMPLEMENTATO in codice** (fee + checklist import + template contratto/IBAN). Da verificare il wiring E2E nel flusso conversazione (moduli presenti, collaudo runtime non fatto in questa sessione). NB: questo layer **manca dal doc ARCHITETTURA_E2E.md** → gap di documentazione, non di codice.
+### STATO IMPLEMENTAZIONE VERIFICATO (wiring sul disco, non solo "il file esiste")
+| Pezzo | Stato | Evidenza wiring |
+|---|---|---|
+| **Calcolo fee** | ✅ IMPLEMENTATO + AGGANCIATO | `fee_calculator.py` referenziato da `pdf_generator_enterprise.py` (la fee finisce nel dossier) |
+| **State machine post-accettazione** | ✅ IMPLEMENTATO | `comm-broker/deal_state_machine.py`: `DealStateMachine`, `Deal`, `create_deal()`, stato `payment_confirmed` |
+| **Posizione veicolo nascosta finché non paga** | ✅ IMPLEMENTATO + CABLATO | `deal_state_machine.py:235` *"La fonte rimane nascosta finché current_state != 'payment_confirmed'"* |
+| **Contratto + IBAN (DAY_INTEREST→IBAN_SEND)** | 🟡 PARZIALE | creazione contratto/`sign_url` via argos-proxy cablata (`response-analyzer.py:115`); **l'INVIO di DAY_INTEREST è delegato al caller/HITL** (response-analyzer.py:151), non automatico |
+| **Import automatizzato per nazione/casistica** | 🔴 MODULO PRESENTE, **NON AGGANCIATO** | `import_checklist.py` (365 righe, completo per DE/NL/BE/AT/FR…, reverse charge art.17) — ma `grep generate_checklist` in comm-broker/wa-intelligence/src = **0 chiamanti**. Nessuno lo invoca dopo `payment_confirmed`. È codice scritto ma **scollegato dal flusso**. |
+
+**VERDETTO: NON è tutto implementato E2E.** Cosa manca concretamente:
+1. **Aggancio import_checklist → state machine**: dopo `payment_confirmed`, nessun codice chiama `generate_checklist(origin_country, is_b2b, dealer_city)`. Il disbrigo per nazione è una funzione orfana. → serve il wiring nel ramo post-pagamento di `deal_state_machine.py`.
+2. **Invio automatico contratto/IBAN**: oggi DAY_INTEREST/IBAN_SEND partono via caller HITL (Telegram), non come transizione automatica della state machine.
+3. **Collaudo E2E runtime**: i pezzi 1-3 (fee, state machine, posizione-nascosta) esistono e sono cablati ma NON girati end-to-end in questa sessione (TEST_FOUNDER).
+
+NB: questo intero layer **manca dal doc `ARCHITETTURA_E2E.md`** (si ferma a "success-fee") → gap di documentazione sul progetto + 1 gap reale di codice (l'aggancio import_checklist).
 
 ---
 
