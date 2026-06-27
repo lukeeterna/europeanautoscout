@@ -47,16 +47,29 @@ TEMPLATES = {
         "Ha 2 minuti per capire come funziona?"
     ),
 
-    # DAY1 VEICOLO-FIRST (S4) — apre col veicolo reale + numeri + domanda chiusa.
-    # MAI presentazione iniziale, MAI "ho visto il tuo profilo/Instagram".
-    # Il segnale-profilo entra come PERTINENZA implicita ({segmento} per la sua vetrina).
-    # Firma Azzurra (assistente digitale dichiarata) + provenienza + opt-out in coda.
+    # DAY1 VEICOLO-FIRST (S4) — DEPRECATED S4-CRED (2026-06-27).
+    # NON usare: apriva col veicolo+prezzo+affondo = offerta nel Day-1, viola
+    # CRED-SEQUENCE-001/NO-OFFER-DAY1-001 (decisione founder: vince la sequenza-credibilita').
+    # Stringa conservata solo per backward-reference; NESSUN percorso di generazione
+    # deve piu' produrla. Il motore pesca-veicolo/inietta-profilo resta riusabile
+    # (vedi generate_cold_day1 → DAY1_CREDIBILITY).
     "DAY1_VEHICLE_FIRST": (
         "{vehicle_brand} {vehicle_model} {vehicle_variant}, {vehicle_year}, {km} km — {country}, EUR {price_eur} consegnata.\n"
         "Km tracciati TUV, tagliandi certificati, garanzia costruttore valida in Italia.\n"
         "Un {segmento} in piu' per la sua vetrina: le interesserebbe?\n"
         "Sono Azzurra, assistente digitale di Luca Ferretti; ho preso il suo contatto da {source}. "
         "Se preferisce non ricevere messaggi mi scriva 'no'."
+    ),
+
+    # DAY1 CREDIBILITY-SEQUENCE (S4-CRED, 2026-06-27) — formula APPROVATA founder.
+    # Filosofia: il primo messaggio stabilisce chi-siamo + competenza; il veicolo reale
+    # compare come PROVA di competenza, SENZA prezzo. L'offerta (prezzo + meccanismo
+    # success-fee) arriva SOLO al 2o scambio. Provenienza = "online" (vera), MAI il portale.
+    # "tutta Italia" / "tutta Europa": testuali. Opt-out ('no') in coda.
+    "DAY1_CREDIBILITY": (
+        "Buongiorno, sono Azzurra, l'assistente digitale di Luca Ferretti. Ho trovato la sua attività online tra i concessionari italiani.\n\n"
+        "Lavoriamo in tutta Italia e i nostri scout in tutta Europa individuano auto premium recenti a prezzi sotto il mercato italiano. Le faccio un esempio concreto di cosa intercettiamo in questo periodo: una {veicolo_marca} {veicolo_modello} del {anno}, {km} km, dalla {paese_origine}.\n\n"
+        "Se è il tipo di vettura che può interessarle per il piazzale, le mando volentieri i dettagli, senza impegno. Se preferisce non essere contattata, basta che mi scriva 'no'."
     ),
 
     # Alias per backward compatibility — identico a DAY1_PREMIUM
@@ -178,6 +191,11 @@ SLOT_DEFAULTS = {
     "vehicle_year": "",
     "country": "Germania",
     "segmento": "SUV premium tedesco",
+    # S4-CRED — slot DAY1_CREDIBILITY (veicolo come prova, MAI prezzo)
+    "veicolo_marca": "",
+    "veicolo_modello": "",
+    "anno": "",
+    "paese_origine": "Germania",
     # S152 contract+payment slots
     "sign_url": "",
     "fee_eur": "800",
@@ -293,31 +311,29 @@ def generate_cold_day1(dealer_brands: list, source: str, dealer_name: str = "",
         dealer_brands: lista brand trattati dal dealer (es. ["BMW", "Mercedes"]).
         source: portale/canale da cui e' stato trovato il contatto (es. "AutoScout24").
         dealer_name: nome/ragione sociale del dealer (opzionale, non usato nei template DAY1).
-        vehicle: dict veicolo-match reale {brand,model,variant,year,km,price_eur,country}
-                 (opzionale). Se fornito → Day-1 VEICOLO-FIRST: apre col veicolo reale +
-                 numeri + UNA domanda chiusa, firma Azzurra + provenienza + opt-out.
-        profile: dict payload-profilo {business_name, segmento, anchor} (opzionale).
-                 segmento entra come PERTINENZA implicita, MAI come anchor citato.
+        vehicle: dict veicolo-match reale {brand,model,year,km,country} (opzionale).
+                 Se fornito → Day-1 CREDIBILITY-SEQUENCE: chi-siamo + competenza, il
+                 veicolo reale come PROVA SENZA prezzo (price_eur ignorato by-design),
+                 provenienza "online" (vera, NON il portale), opt-out in coda.
+                 DEPRECATED: la forma VEICOLO-FIRST (veicolo+prezzo in testa) e' ritirata.
+        profile: dict payload-profilo {business_name, segmento, anchor} (opzionale, non
+                 usato dalla credibility-sequence — il veicolo basta come prova).
 
     Returns:
         Testo del messaggio Day-1 pronto per revisione umana.
     """
-    # S4 — variante VEICOLO-FIRST (retro-compatibile: senza vehicle resta legacy)
+    # S4-CRED — credibility-sequence (retro-compatibile: senza vehicle resta legacy).
+    # Il prezzo NON entra nel Day-1: e' l'offerta del 2o scambio. La provenienza e'
+    # "online" (baked nel template), MAI il portale-inventario (source ignorato qui).
     if vehicle:
-        prof = profile or {}
-        variant_short = " ".join(str(vehicle.get("variant", "")).split()[:1])
         data = {
-            "vehicle_brand": vehicle.get("brand", ""),
-            "vehicle_model": vehicle.get("model", ""),
-            "vehicle_variant": variant_short,
-            "vehicle_year": str(vehicle.get("year", "")),
+            "veicolo_marca": vehicle.get("brand", ""),
+            "veicolo_modello": vehicle.get("model", ""),
+            "anno": str(vehicle.get("year", "")),
             "km": f"{int(vehicle.get('km', 0)):,}".replace(",", "."),
-            "country": vehicle.get("country", "Germania"),
-            "price_eur": f"{int(vehicle.get('price_eur', 0)):,}".replace(",", "."),
-            "segmento": prof.get("segmento", "SUV premium tedesco"),
-            "source": source,
+            "paese_origine": vehicle.get("country", "Germania"),
         }
-        return fill_template("DAY1_VEHICLE_FIRST", data)
+        return fill_template("DAY1_CREDIBILITY", data)
 
     template_id = select_day1_variant(dealer_brands)
 
