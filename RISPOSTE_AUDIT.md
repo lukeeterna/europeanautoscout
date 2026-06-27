@@ -1,0 +1,43 @@
+# RISPOSTE AUDIT — basate su filesystem + doc più recente
+Fonte autorevole più recente: **docs/ROADMAP.md (S286 · 2026-06-26)** — più nuovo di docs/ARCHITETTURA_E2E.md (2026-06-20). Dove disco e ROADMAP divergono, prevale ROADMAP S286.
+
+---
+
+## 1. GATE [E] — TRASPARENZA AZZURRA → **NO (non deployata in produzione)**
+- Firma trasparente "Azzurra, l'assistente digitale di Luca Ferretti" + opt-out ('no') → presente SOLO nel REPO: `wa-intelligence/templates.py` (template DAY1_*) e `wa-intelligence/response-analyzer.py:68` (`ARGOS_ASSISTANT='Azzurra'`).
+- Daemon LIVE (iMac) = release `20260527_083951`, `templates.py` del 1 Mag → firma vecchia: **"Buongiorno, sono Luca Ferretti."** (impersonificazione, niente Azzurra, niente opt-out).
+- Il daemon (`wa-daemon.js`) NON firma da sé: invia testo già composto dalla coda `bridge_outbound`.
+- Conferma doc più recente (ROADMAP S286): *"Trasparenza Azzurra chiusa IN-REPO a tutti i layer (S277), NON in produzione (manca sync.sh)."*
+- Sblocco = item **[E]**: `bash deploy/sync.sh` (pre-flight symlink wa-sender/, memoria S252), dopo [A] verde.
+
+## 2. RATE-LIMIT WhatsApp (`wa-intelligence/wa-daemon.js`)
+- Tetto nominale `DAILY_LIMIT = 30` (riga 46).
+- Limite EFFETTIVO = warm-up dinamico `getDailyLimit()` (righe 85-97): settimana ≤1 → **10**, ≤3 → **15**, oltre → **20** (cap 20 hard, API non ufficiale).
+- Delay anti-ban tra invii: **30–90s random** (`BRIDGE_ANTI_BAN_DELAY_MS_MIN=30000 / MAX=90000`, righe 201-202) → jitter SÌ.
+- Cap risposte per dealer: `MAX_REPLIES_PER_DEALER = 10`/giorno (riga 643).
+- Auto-stop: block-rate > 2% → Telegram alert + stop (riga 1937).
+
+## 3. SECOND BRAIN / OBSIDIAN → **NON ESISTE**
+- `grep -rni obsidian .` = 0 match. Nessuna cartella `.obsidian`, nessun vault `.md`. Assente, netto.
+
+## 4. FEATURE PIANIFICATO vs REALE (allineato a ROADMAP S286 — 5 fasi)
+- **S1 Supply** → IMPLEMENTATO il core: scraper AS24 (`tools/scrapers/autoscout_scraper.py`, E2E ok). Breadth 28 canali + `config/channels.yaml` = **Fase 5, PIANIFICATO** (estende item [C]).
+- **S2 Verification** → PARZIALE: CoVe v4 (`src/cove/cove_engine_v4.py`) esiste. `config/argos_standard.yaml` + gap-filling agent = **Fase 5, PIANIFICATO** (mancano su disco).
+- **S3 Pricing/Dossier** → motore/dossier onesto **CHIUSO (S271)**: banda p25-p75, margine-intervallo, no-superlativi. **Gate [D]** base-mercato fidata = APERTO (Fase 2 = item [D]): il margine non è ancora credibile davanti a dealer reale.
+- **S4 Dealer Profiling** → **ATTIVO ORA** (item corrente dopo [A1], ROADMAP). `data/dealers.db` reale: dealers=1, dealer_profiles=1, dealer_gaps=1, vehicle_observations=28. gap_analysis relativo FATTO (S289, commit 7f10e2a, CLI `gap`, GDPR-clean); raffinamento comparatore di segmento in corso (S290).
+- **S5 Azzurra** → PARZIALE: Day-1 generator + AMBRA classifier esistono; trasparenza chiusa in-repo (S277). **Sector wiki `kb/azzurra/` MANCA** = Fase 3 (estende [B]); sequencer multi-touch = PIANIFICATO.
+- **S6 Matching dealer↔veicolo** → secondo ROADMAP S286 è **Fase 4 = NUOVO / da costruire** (dipende da S1 supply + S4 profili). Su disco esiste un modulo **legacy/seed** `src/cove/dealer_matcher.py` (331 righe: compute_match_score brand×fascia×gap, match_vehicle_to_dealers, freshness_check) → NON è il matching della nuova architettura. Stato per doc più recente: **PIANIFICATO (Fase 4), con modulo legacy preesistente da riusare/rifare.**
+- **S7 Control Plane** → IMPLEMENTATO: VOS, Gate-E (`.harness/gate_e.py`), state machine anelli, scheduler.
+
+### Stato anelli E2E (ROADMAP S286, più recente)
+- VERIFIED-smoke: 2 · 9A · 5 — UNVERIFIED: 1 · 9B · 6-7 — BLOCKED (esterno): 8.
+- [A1] meccanica d'invio 7a = VERDE chiusa S286 (commit 40a5d1e); ring 6-7 resta UNVERIFIED (consegna WA non re-runnabile in-sessione + breaker 7b deferito ai 3 gate pre-dealer).
+
+### Risposte ai due punti espliciti
+- **Matching serve al primo invio?** No, non come prerequisito. Per doc più recente è Fase 4 (dopo profiling + supply). Per UN dealer il Day-1 si genera già con profilo S4 + veicolo scelto; il matching automatico serve alla SCALA, non al primo invio singolo.
+- **Messaggio-due (risposta al "sì") esiste?** SÌ, già presente: template `DAY_INTEREST` (`wa-intelligence/templates.py:149`) → manda link contratto + fee "paghi solo dopo consegna documenti". Non è solo annotato.
+
+---
+
+## 3 GATE TECNICI A INVIO DEALER REALE (ROADMAP S286)
+[A] E2E verde + Luke soddisfatto · **[E] trasparenza live (= NO oggi)** · [D] base-mercato fidata.
