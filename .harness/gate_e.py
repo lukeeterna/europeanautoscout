@@ -114,6 +114,11 @@ SEND_SIGNATURES = (":9191/send", "send_message.js", "/send-doc", "/send-multi",
 # non nel cmd shell -> SEND_SIGNATURES non li vede). Classe outreach = meglio FP che FN.
 OUTREACH_SCRIPT_SIGNATURES = ("tools/outreach/", "send_day1", "outreach_scheduler",
                               "wa-intelligence/scheduler.py")
+# Verbi di SOLA LETTURA: un comando i cui segmenti hanno TUTTI uno di questi come
+# verbo di testa non esegue mai un invio -> la substring 'tools/outreach/' e' un
+# operando di ispezione (ls/grep/cat su quei file), non un entrypoint eseguito.
+READ_ONLY_VERBS = frozenset({"ls", "grep", "egrep", "fgrep", "wc", "find", "cat",
+                             "head", "tail", "less", "file", "stat", "tree"})
 PHONE_RE = re.compile(r"\b(?:39)?3\d{8,9}\b")
 
 # --- estrazione operandi lossy (S248) ---------------------------------------------
@@ -331,6 +336,27 @@ def strip_git_invocations(cmd):
     return " ".join(out)
 
 
+def _is_read_only_inspection(cmd):
+    """True sse OGNI segmento del comando ha come verbo di testa un comando di SOLA
+    LETTURA (READ_ONLY_VERBS). Serve a NON flaggare come outreach_real un'ispezione
+    innocua (`ls/grep/cat tools/outreach/...`): li' 'tools/outreach/' e' operando di
+    lettura, non un invio eseguito. ZERO rischio FN: se UN SOLO segmento ha un verbo
+    esecutore (python/node/bash/sh/./script o qualunque non-whitelist) ritorna False
+    e il blocco resta intatto. Stessa segmentazione di lossy_operands (S248)."""
+    saw_segment = False
+    for seg in SEGSPLIT_RE.split(cmd):
+        toks = _split_segment_tokens(seg)
+        i = 0
+        while i < len(toks) and re.match(r"^\w+=", toks[i]):
+            i += 1  # salta assegnazioni env iniziali (VAR=val cmd ...)
+        if i >= len(toks):
+            continue
+        saw_segment = True
+        if os.path.basename(toks[i]) not in READ_ONLY_VERBS:
+            return False
+    return saw_segment
+
+
 def classify_bash(cmd):
     """Ritorna (action_class, target, detail) o (None, None, None)."""
     # --- outreach_real (BROAD by design: classe piu' critica) ---
@@ -341,7 +367,8 @@ def classify_bash(cmd):
     # entrypoint outreach per FILENAME: --dry-run escluso (non invia). Se lo script gira
     # senza numero esplicito -> ramo "no-number" -> DENY (il numero e' hardcoded nel .py).
     hit_script = (any(sig in scan for sig in OUTREACH_SCRIPT_SIGNATURES)
-                  and "--dry-run" not in scan)
+                  and "--dry-run" not in scan
+                  and not _is_read_only_inspection(scan))
     if hit_sig or hit_script:
         all_nums = set(PHONE_RE.findall(scan))
         non_test = [n for n in all_nums if n not in TEST_FOUNDER]
