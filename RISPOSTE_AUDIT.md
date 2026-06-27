@@ -39,5 +39,19 @@ Fonte autorevole più recente: **docs/ROADMAP.md (S286 · 2026-06-26)** — più
 
 ---
 
+## 5. FLUSSO POST-ACCETTAZIONE: FEE + DOCUMENTI + IMPORT (esiste in CODICE, assente dal blueprint ARCHITETTURA_E2E.md)
+> Layer che il blueprint S286 NON modella (si ferma a "success-fee sulla transazione") ma che è già implementato su disco. Catena: **dealer accetta → paga fee → riceve documenti + posizione veicolo → ARGOS cura import automatizzato per nazione/casistica.**
+
+- **Fee** → `tools/fee_calculator.py` (167 righe) + `src/bot/handlers/fee.py`: fee **€800–1.200 success-only** (paga solo a transazione), a tier sul prezzo veicolo (`fee_min=800`, `fee_max=1200`, default 800).
+- **Sequenza post-"sì" (template `wa-intelligence/templates.py`)**:
+  - `DAY_INTEREST` → dealer accetta: invia link contratto + fee, "paghi solo dopo consegna documenti auto".
+  - `IBAN_SEND` → post-firma, a documenti consegnati (status AWAITING_DELIVERY → IBAN_SENT): saldo.
+- **Posizione veicolo** → nel report COMPLETO, **rivelata solo dopo pagamento** (report parziale Day-1 = prezzo visibile come gancio, posizione/venditore/URL nascosti). Coerente con feedback pipeline TEST_FOUNDER.
+- **Import automatizzato per nazione/casistica** → `tools/import_checklist.py` (365 righe): `generate_checklist(origin_country, is_b2b, dealer_city)`. Documenti country-specific per DE/NL/BE/AT/FR/SE/DK/NO… (Fahrzeugbrief, Kentekenbewijs+NAP, Car-Pass BE, Carte grise FR…), **reverse charge art.17 DPR 633/72**, ACI immatricolazione, distinzione B2B vs privato.
+
+→ STATO: **IMPLEMENTATO in codice** (fee + checklist import + template contratto/IBAN). Da verificare il wiring E2E nel flusso conversazione (moduli presenti, collaudo runtime non fatto in questa sessione). NB: questo layer **manca dal doc ARCHITETTURA_E2E.md** → gap di documentazione, non di codice.
+
+---
+
 ## 3 GATE TECNICI A INVIO DEALER REALE (ROADMAP S286)
 [A] E2E verde + Luke soddisfatto · **[E] trasparenza live (= NO oggi)** · [D] base-mercato fidata.
