@@ -1,4 +1,9 @@
 # NORTH STAR — ARGOS Automotive
+
+> ⚠️ **SUPERSEDED da docs/ROADMAP.md (S292)** — fonte autoritativa per segmento/geografia/anni/stock/supply.
+> Doc NON auto-caricato (nessun @-ref in CLAUDE.md). I 4 valori-chiave inline sotto sono stati corretti
+> al modello founder S292; in caso di conflitto vince docs/ROADMAP.md.
+
 **Ultimo aggiornamento**: 2026-04-24 (S143)
 **Versione**: v1 (evidence-based, con 3 gap strutturali dichiarati)
 **Framework**: `PROMPT_CC_ENTERPRISE_UNIVERSALE.md` Sessione B
@@ -7,7 +12,7 @@
 
 ## Chi e' il cliente
 
-**Profilo**: concessionari **family-business** del **Sud Italia** (Puglia, Campania, Basilicata, Calabria, Sicilia), stock **30-80 auto**, proprietario unico decisore.
+**Profilo**: concessionari **family-business** di **TUTTA ITALIA**, micro-dealer **<20 auto**, proprietario unico decisore. [S292: ex "Sud Italia, stock 30-80" — vedi docs/ROADMAP.md]
 
 **TAM dimensionato**:
 - 3.264 concessionari totali 5 regioni Sud (Federauto/UNRAE via Perplexity Q1 2026)
@@ -57,7 +62,7 @@
 - **Unit economics**: €800-1.200 per operazione conclusa (success fee)
 - **Frequency target**: 4-8 operazioni/mese per dealer convertito a regime
 - **Break-even operativo**: 10 dealer attivi = **~€10k/mese ricorrente**
-- **Fascia veicoli**: €25k-€90k (BMW/Mercedes/Audi/Porsche/Range Rover 2018-2025)
+- **Fascia veicoli**: €25k-€90k (BMW/Mercedes/Audi/Porsche/Range Rover 2018-2023, no supercar/esotico, no BEV) [S292: ex "2018-2025"]
 - **Pagamento**: solo post-consegna nel piazzale dealer. Nessun anticipo, nessuna penale se dealer rifiuta auto proposta.
 
 *Evidence*: MEMORY S141 + `rules/identity.md`.

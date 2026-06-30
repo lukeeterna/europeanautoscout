@@ -1,4 +1,4 @@
-# ROADMAP.md — ARGOS · sequenza ufficiale (SoT unico). Aggiornato S286 (integrata architettura E2E 5-fasi).
+# ROADMAP.md — ARGOS · sequenza ufficiale (SoT unico). Aggiornato S292 (integrato MODELLO ARGOS: segmento dati-reali / geografia / anni / iter 8-passi / posizionamento / enablement / PVP canale attivo — vedi blocco S292 in fondo).
 #
 # GATE-0 — SICUREZZA (CORRETTO S280, verificato vs git/S279 — NON "ruota 3 token"):
 #   - OpenRouter sk-or-v1-…2f13 = UNICO da ruotare (azione Luke, in corso).
@@ -63,6 +63,83 @@
 #   - SUPPLY PRIVATI: annunci di privati sotto-mercato = canale supply aggiuntivo lato S1.
 #   - SUPPLY ASTE GIUDIZIARIE (PVP/astegiudiziarie.it): nuovo canale supply S1 — STATO "PROBE IN CORSO —
 #     volume da confermare" (probe S290: stealth+data-path OK; volume premium NON ancora confermato → non confermato).
+#
+# ============================================================================
+# MODELLO ARGOS — INTEGRAZIONE FOUNDER (S292)  [additivo; SUPERSEDED esplicito in fondo al blocco]
+# ----------------------------------------------------------------------------
+# Riconcilia geografia/stock/anni/segmento/iter/posizionamento col modello deciso dal founder.
+# NON ridisegna le fasi S1-S7 né la sequenza [A]..[F]: le ancora al cliente e al prodotto reali.
+#
+#   GEOGRAFIA: target dealer = TUTTA ITALIA (non solo Sud). [SUPERSEDED "Sud Italia"]
+#   TARGET DEALER: micro-dealer <20 auto, family-business proprietario-decisore. ARGOS lo gradua
+#     da forfettario a ordinario e lo fidelizza. [SUPERSEDED "stock 30-80"]
+#   CLIENTELA FINALE DEL DEALER: altospendente di provincia (professionista/imprenditore);
+#     NON collezionista, NON neopatentato.
+#
+#   SEGMENTO AUTO (derivato da dati reali mercato IT usato/lusso Q1 2026 — ESTENDE e RAFFINA il
+#     "premium europeo" S290, che resta valido come ombrello; qui il fuoco data-driven):
+#    - TIER A core — SUV premium aspirazionali: Porsche Macan/Cayenne, Range Rover Sport/Velar/Evoque,
+#      Audi Q7/Q8, BMW X5, Mercedes GLE/GLC (allestimenti alti). Razionale: Macan = 2° SUV premium
+#      usato più cercato IT (domanda usato sproporzionata vs quota nuovo); Range Rover Sport = 1°
+#      venduto >100k€; SUV >50% mercato lusso EU. Porsche+Range Rover = alta-domanda-usato + status
+#      affluente senza essere trappole-capitale.
+#    - TIER B secondario — berline executive: Audi A6, BMW Serie 5, Mercedes Classe E, Porsche Panamera.
+#    - ESCLUSI: premium-compatto (A3/Serie1/ClasseA/Q3/A1 = margine sottile, non altospendente);
+#      Maserati/esotico (Ferrari/Lambo/McLaren = bassa liquidità, capitale fermo); lusso-BEV
+#      (domanda usato marginale, ~8/10 non ricomprano). [SUPERSEDED "supercar incluse"]
+#    - FASCIA €25k-90k. ANNI 2018-2023 [SUPERSEDED "2018-2025"]. CARBURANTE diesel/benzina/mild-hybrid (no BEV).
+#    - AGGANCIO VALUE-PROP: i Tier-A più liquidi sono tra i più colpiti da frode-km (Range Rover 2°
+#      per discrepanze chilometriche, ~3,2%) → scheda-ARGOS verificata + dichiarazione firmata risolve
+#      il dolore massimo proprio sul nostro segmento.
+#
+#   ITER OPERATIVO (8 passi, flusso canonico):
+#    1 contatto → 2 scraping profilo dealer (= [S4] DEALER PROFILING) per canale/modo giusto →
+#    3 contatto credibile (Azzurra, assistente virtuale di Luca Ferretti + motivazione credibilità) →
+#    4 IL DEALER commissiona un veicolo → 5 scheda ARGOS sul veicolo richiesto →
+#    6 richiesta automatica foto HD + dati mancanti = scheda completa che nessun altro sistema produce →
+#    7 dealer paga la fee → 8 supporto pratiche/importazione/burocrazia → tracking fino all'arrivo in salone.
+#    PUNTO CHIAVE: la richiesta nasce DAL dealer DOPO che il contatto è diventato credibile (non outreach alla cieca).
+#
+#   POSIZIONAMENTO: ARGOS = FACILITATORE (non responsabile dell'auto). Protezione dealer = verifica
+#     pre-invio + dichiarazione FIRMATA e specifica del venditore (km/storico/condizioni/regime IVA) →
+#     rivalsa diretta sul venditore. Leva = confronto col marketplace (scatola chiusa, km scalati) vs
+#     verifica+firma+dati reali PRIMA del pagamento.
+#
+#   VALORE TRIPLO (supply + ENABLEMENT): 1 TROVA · 2 ABILITA · 3 FORNISCE (+pratiche+trasporto).
+#     ENABLEMENT (concretizzato — era il buco): formare il dealer a vendere/relazionarsi con
+#     l'altospendente di provincia (diverso dal vendere un'utilitaria) + contenuti gratuiti di
+#     fidelizzazione. Primo artefatto: guida "vendere premium a un benestante di provincia".
+#     SEQUENZA: l'enablement è layer di RETENTION/differenziazione, si attiva DOPO che il loop-che-
+#     chiude-un-affare funziona. NON è prerequisito del primo invio (anti-scope-creep, coerente con
+#     ORDINE DI BUILD VINCOLANTE 1→2→3→4→5).
+#
+#   SUPPLY — CANALI:
+#    - Privati sotto-mercato EU (micrositi locali EU, non solo DE). [già S290, qui ribadito]
+#    - PVP / ASTE GIUDIZIARIE = canale supply ATTIVO che DEVE FUNZIONARE (decisione founder S292),
+#      accanto ai privati-EU. Portale Vendite Pubbliche / aste giudiziarie italiane = supply premium
+#      domestico a sconto. [SUPERSEDED il framing "PROBE IN CORSO" come stato terminale: l'intento è
+#      canale-attivo; lo STATO IMPLEMENTAZIONE resta però onesto sotto.]
+#      STATO IMPLEMENTAZIONE REALE (verità del disco, FASE 0 S292): SOLO-PIANIFICATO. Nessun modulo/
+#      scraper PVP o aste è git-tracked (zero file). FASE-0 research (BACKLOG #S273-ASTE) ha concluso
+#      NON-FATTIBILE-ORA sul canale-veicoli: astagiudiziaria.com/robots.txt = Disallow:/ ; PVP =
+#      token-gated + WAF (browser headless BLOCCATO). Pivot S290→S291: fonte = astegiudiziarie.it,
+#      endpoint volume POST webapi.astegiudiziarie.it/api/search/Data IDENTIFICATO ma torna HTTP 500;
+#      VOLUME PREMIUM ancora BLOCKED-ON (mai confermato). GAP "deve funzionare" ↔ realtà = il volume
+#      che decide il canale non è ancora misurato. L'implementazione del collector PVP/aste, se si
+#      procede, è SESSIONE WRITE-CODE separata (questa è DOCS-ONLY): qui si registra solo la strategia
+#      e il gap, non si scrive codice.
+#
+#   DAY-1: sequenza-credibilità (CRED-SEQUENCE / NO-OFFER-DAY1) GIÀ ATTIVA — Azzurra identifica,
+#     nomina il veicolo senza prezzo, invita interesse. Veicolo-first RITIRATO. [SUPERSEDED "veicolo-first"]
+#
+#   SUPERSEDED — LEDGER ESPLICITO (S292):
+#     Sud Italia → tutta Italia · stock 30-80 → micro <20 · 2018-2025 → 2018-2023 ·
+#     supercar incluse (Ferrari/Lambo/McLaren) → ESCLUSE · veicolo-first → sequenza-credibilità ·
+#     PVP "probe" come stato terminale → canale ATTIVO (intento founder) con stato-impl onesto SOLO-PIANIFICATO.
+#     + .claude/NORTH_STAR.md e .claude/rules/identity.md marcati SUPERSEDED → puntano a docs/ROADMAP.md (S292).
+#
+#   NON CAMBIA: gate [A][E][D], sequenza-anelli E2E, ORDINE DI BUILD 1→2→3→4→5, supply privati-EU.
+# ============================================================================
 #
 # 3 GATE A INVIO DEALER REALE (tecnici): [A] verde + Luke soddisfatto · [E] trasparenza live · [D] base-mercato fidata.
 # NB LEGALE (non "gate sparito"): il rischio GDPR del cold-WA e' NOTO e ACCETTATO da Luke (canale deciso-finale,

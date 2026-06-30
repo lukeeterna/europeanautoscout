@@ -1,10 +1,13 @@
 # ARGOS — Identita' Business
 
+> ⚠️ **SUPERSEDED da docs/ROADMAP.md (S292)** — fonte autoritativa per segmento/geografia/anni/stock/supply.
+> I valori inline sotto sono stati corretti al modello founder S292; in caso di conflitto vince docs/ROADMAP.md.
+
 **Brand**: ARGOS Automotive | **Persona**: Luca Ferretti
 **Business**: B2B vehicle scouting EU→IT | **Fee**: €800-1.200 success-fee
-**Target**: Concessionari family-business Sud Italia, 30-80 auto
+**Target**: Concessionari family-business TUTTA ITALIA, micro-dealer <20 auto
 **Mercati**: DE/NL/BE/AT/FR/SE + tutti EU (19 paesi coperti)
-**Veicoli**: BMW/Mercedes/Audi + Porsche/Lambo/Ferrari/McLaren/Range Rover 2018-2025
+**Veicoli**: BMW/Mercedes/Audi + Porsche/Range Rover 2018-2023 (no supercar/esotico, no BEV)
 
 **Landing**: https://argos-automotive.pages.dev
 **Dashboard**: iMac:8080 | **WA Business**: 3281536308
