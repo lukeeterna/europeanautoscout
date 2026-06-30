@@ -1,52 +1,52 @@
-# HANDOFF — 9cd35bf2-00be-44f5-8c26-8f3d5daa9f93 — 2026-06-30 UTC
+# HANDOFF — d3a57c2c-213c-4614-aabf-d04119c6b06e — 2026-06-30T20:58Z
 > Render dello stato su disco. Autorità = git/disco, NON questo testo. Rigenerabile con chiudi-ordinatamente.
 
 ### SESSIONE
-- Tipo: WRITE (mutazioni su iMac PRODUZIONE via SSH; ZERO file repo modificati da me)
-- Mandato: OPERATIVO — completare rotazione GROQ + deploy [E] trasparenza (Azzurra) su daemon iMac. Niente outreach.
-- Esito: **GROQ ruotato e VERIFICATO live**. Restart ha innescato un **incidente ABI better-sqlite3** (daemon crash-loop) → **recuperato** via `npm rebuild`. **[E] RINVIATO** (context budget + post-incidente; LIVE confermato vecchio, deploy non eseguito).
+- Tipo: WRITE-CODE (deploy-only su iMac; repo locale INVARIATO — il fix era già committato a HEAD)
+- Mandato: deploy mirato [E] trasparenza Azzurra su iMac ROOT, zero invii
+- Esito: [E] deployato in PRODUZIONE (rsync 2 .py HEAD→ROOT + pm2 restart); flip verificato grezzo su LIVE ROOT; zero invii attraverso il restart; coda bridge_outbound intatta; ABI non ricaduta
 
 ### VERITÀ GIT
-- branch s210/audit-master-plan · HEAD d606725 2026-06-30 · working-tree dirty: `.claude/NEXT_SESSION_PROMPT.md` (non mio — breadcrumb auto-hook).
-- commit di questa sessione (miei): **nessuno** (lavoro tutto su iMac, fuori dal repo).
+- branch s210/audit-master-plan · HEAD 2d48d04 2026-06-30 22:45:35 · working-tree dirty: STATE.md, state/rings.json, .claude/NEXT_SESSION_PROMPT.md
+- commit di questa sessione: nessuno (il deploy non ha prodotto modifiche al repo; i 3 file dirty sono SOLO churn del refresh hook a SessionStart — bump di timestamp/session-id, zero cambio semantico, NON miei)
 
 ### CATENA DI AUTORITÀ
 codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED)
 
 ### STATO E2E (da STATE.md, verbatim — non re-narrare)
+| # | Anello | Stato | Tier |
+|---|--------|-------|------|
 | 1 | invio Day1 WA | UNVERIFIED | full |
 | 2 | classifier intent (AMBRA) | VERIFIED | smoke |
 | 9A | approve -> send | VERIFIED | smoke |
 | 9B | reject -> abort | UNVERIFIED | full |
 | 5 | generazione dossier PDF | VERIFIED | smoke |
 | 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED | full |
-| 8 | contract -> sign_url | BLOCKED (sign_url firmato dal dealer reale — fatto esterno) |
+| 8 | contract -> sign_url | BLOCKED (sign_url firmato dal dealer reale — esterno) | full |
 
 ### GATE A DEALER REALE
-[A] daemon = **CONNECTED** (`/status` wa_status:connected, daily_sent:0, no QR; post-recovery ABI) · [E] trasparenza in PRODUZIONE = **NO, ancora vecchia** (LIVE ROOT: `templates.py` "sono Luca Ferretti" r.15/25/34/46; `response-analyzer.py` NESSUN `ARGOS_ASSISTANT`). HEAD MacBook ha il fix (Azzurra) clean — deploy [E] PENDING. · [D] base-mercato = NON affidabile (cap-truncated, S273-cont).
-
-### FATTO QUESTA SESSIONE (verificato)
-- **GROQ ruotato:** `.env` ROOT/wa-intelligence riga 9 = chiave NUOVA `gsk_ytZn…len56` (bare). Vecchia `"gsk_oRF…len58"` (quotata) revocata da Luke su console.groq.com (fatto esterno confermato). Consumer reale `response-analyzer.py:_load_dotenv()` fa force-override da `.env` (strip-quote) → chiave effettiva NUOVA verificata 2× (sed riga9 + simulazione loader). `.bak` 1d: `.env.20260630T202850Z.bak` (1076B, 0600, in ROOT/wa-intelligence). Restart mirato `argos-wa-daemon`+`argos-tg-bot --update-env`. File scratch `~/.argos_groq_new.key` **shred+rm** (assente).
-- **INCIDENTE + RECOVERY:** il restart ha esposto un mismatch latente `better-sqlite3.node` NODE_MODULE_VERSION 115 (Node 20) vs Node attuale v22.14.0 (ABI 127) → `ERR_DLOPEN_FAILED` → daemon crash-loop (↺10, waiting). Il daemon girava da 7gg in RAM sotto il vecchio node → mismatch latente. Fix: `npm rebuild better-sqlite3` in ROOT/wa-intelligence (Xcode CLT presente, exit 0, ABI load OK) → `pm2 restart` → **connected, daily_sent:0, no QR**. Terza occorrenza del bug (S189/S197/ora).
+- [A] liceità canale primo contatto = CONFERMATO LUKE 2026-06-16 (cold WA autorizzato; residuo difendibilità non-bloccante)
+- [E] trasparenza in PRODUZIONE = **FATTO QUESTA SESSIONE**. Prova grezza LIVE ROOT iMac (`~/Documents/app-antigravity-auto/wa-intelligence`): `response-analyzer.py:68 ARGOS_ASSISTANT='Azzurra'` PRESENTE; `templates.py` firma = "sono Azzurra, assistente di Luca Ferretti" (righe 18/29/39/70/77), nessun residuo "sono Luca Ferretti". `/status`: wa_status=connected, daily_sent=0, qr_available=false. pm2 restart 10→11 (unstable=0, single non-loop). Coda bridge_outbound: total=6 sent=6 not_sent=0 (intatta). Backup 1d: `templates.py.bak.20260630_225226` (10425B) + `response-analyzer.py.bak.20260630_225226` (116083B) in ROOT/wa-intelligence.
+- [D] base-mercato fidata = UNVERIFIED (scrape esaustivo + geo==IT + experiment-OFF — non affrontato)
 
 ### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
-**PART 2 [E] deploy mirato:** `.bak` 1d di ROOT/wa-intelligence/{templates.py,response-analyzer.py} → rsync MIRATO SOLO quei 2 file da HEAD MacBook → ROOT iMac (no --delete) → `pm2 restart argos-wa-daemon --update-env` (auth ROOT intatta → no QR). Falsificabile: `ssh imac grep ARGOS_ASSISTANT response-analyzer.py` = presente + `grep "sono Azzurra|sono Luca Ferretti" templates.py` = Azzurra (non Luca) + `/status` connected, daily_sent ANCORA 0. Pre-cond zero-invio: daily_sent=0, is_business_hours=false, HITL ON, coda bridge_outbound intatta. Chiude il gate produzione (2) trasparenza.
+E2E TEST_FOUNDER 393314928901 verde (anelli 1 invio Day1 + 6-7 PDF al dealer + 9B reject) → fatto esterno = Luke fisicamente riceve/risponde WA sulla SIM e dichiara "pienamente soddisfatto".
 
 ### BLOCKED-ON (fatti esterni irraggiungibili in sessione)
-- E2E TEST_FOUNDER 393314928901 verde (anelli 1 / 6-7 / 9B UNVERIFIED) + Luke "pienamente soddisfatto" — gate a dealer reale.
-- Anello 8: sign_url firmato dal dealer reale. Gate legale (a) liceità canale = CONFERMATO Luke 2026-06-16 (non più bloccante).
+- Anello 8 contract→sign_url: sign_url firmato dal dealer reale (HITL fisico Luke o terzo).
+- E2E TEST_FOUNDER (anelli 1/6-7/9B): richiede Luke fisico su SIM 393314928901.
 
 ### BACKLOG (differito, NON prerequisito del primo invio)
-- **pm2 jlist cache GROQ ancora vecchia** (`"gsk_oRF…len58`): `--update-env` non rilegge ecosystem.config.js → cosmetico (consumer force-legge .env). Allineare: `pm2 restart ecosystem.config.js --only argos-wa-daemon,argos-tg-bot --update-env` (= 1 bounce extra; non fatto per non ribaltare daemon appena recuperato).
-- **better-sqlite3 ABI recidiva:** ogni deploy/rsync che ripristina `node_modules` ABI115 rompe al prossimo restart → rebuild nel deploy o pin interpreter node v20. Root = node iMac aggiornato v20→v22 senza rebuild.
-- **split-brain DB:** `ARGOS_DB_PATH` (cached) → `releases/20260527_083951/dealer_network.sqlite` mentre cwd daemon = ROOT (S227). Verificare DB canonico via symlink prima di leggere.
-- **sync.sh deploia nel vuoto:** daemon gira da ROOT, sync.sh tocca releases/+current → [E] via sync.sh = falso-verde. Usare rsync mirato in ROOT.
-- image_sanitizer (D-32) + landing CONGELATI finché anelli E2E non risalgono.
+- Base-mercato [D]: scrape esaustivo (DEEP_PAGES fino a pagina vuota + experiment-OFF + geo==IT).
+- Aggiornare narrativa STATE.md righe 144/155-156/163: ora STALE — dicono "daemon live nega ancora"/"NON deployato su iMac", ma [E] è chiuso-in-produzione da questa sessione.
 
 ### NOTE PER IL GIUDICE (osservazioni da segnalare a Luke)
-- **DISCORDANZA done-cond GROQ (onesta):** `pm2 jlist` mostra ancora la chiave VECCHIA in cache (pm2 non rilegge ecosystem su `--update-env`). NON è un fallimento della rotazione: il consumer `response-analyzer.py` force-legge `.env` → effettiva = nuova (verificata). `jlist` è la superficie di verifica sbagliata per questo storage. Allineamento cache = BACKLOG cosmetico.
-- **Il restart "innocuo" NON era innocuo:** ha trasformato un mismatch ABI latente (7gg uptime in RAM) in un crash-loop di produzione. Lezione: ogni restart del daemon è un'azione a rischio finché il rebuild non è nel deploy.
-- **[E] rinviato deliberatamente** (non dimenticato): context budget 60%+ e cautela post-incidente; nessun messaggio esce stanotte comunque (daily_sent:0, off-hours, HITL ON). Resume prompt completo in `.claude/NEXT_SESSION_PROMPT.md`.
+- [E] flip verificato GREZZO su LIVE ROOT (non solo repo): il daemon non impersona più — firma "Azzurra, assistente di Luca Ferretti".
+- Discordanza disco vs STATE.md: righe 144/155-156/163 affermano "trasparenza NON deployata / daemon live nega ancora" → ora FALSE. NON ho editato STATE.md (è generato + protetto Rule 1d + budget context ~54%): aggiornamento narrativo rinviato a prossima sessione.
+- 3 file dirty (STATE.md, rings.json, NEXT_SESSION_PROMPT.md) = puro churn timestamp del refresh hook a SessionStart, NON miei → NON committati.
+- Pre-check ABI: better-sqlite3 carica OK sotto Node v22.14.0; `node_modules/better-sqlite3` mtime invariato dal rsync (27 Mag) → l'incidente ABI115 non poteva ricadere (rsync ha toccato SOLO i 2 .py).
+- Discordanza line-number F1/F2 del mandato: vecchio LIVE = 15/25/34/46; nuovo HEAD/ora-LIVE = 18/29/39/70/77 (contenuto corretto, righe diverse).
+- GROQ: NON ritoccato (già ruotato sessione precedente, come da mandato).
 
 ### DOVE STA LA STRATEGIA (puntatori, non ri-sintetizzare)
-docs/ROADMAP.md (S292) · STATE.md §3 (gate legale/trasparenza) · memoria `reference_imac_deploy_paths.md` · memoria `s252_e2e67_blocked_deploy_authdir.md`
+docs/ROADMAP.md · docs/briefs/ · .claude/S274_AMBRA_TRANSPARENCY_AUTHORIZED.md · memoria `reference_imac_deploy_paths.md`
