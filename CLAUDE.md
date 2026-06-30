@@ -39,9 +39,11 @@ Scrape: `python3 tools/on_demand_runner.py --marca BMW --budget 40000 --dealer "
 Status: `ssh gianlucadistasi@192.168.1.2 "curl -s localhost:9191/status"`
 
 ## Fine sessione
-1. Aggiorna `~/.claude/projects/.../memory/MEMORY.md` (fuori dal repo — Write tool)
-2. Crea `prompts/s{N+1}_*.md` + aggiorna `HANDOFF.md` (dentro il repo)
-3. `git add HANDOFF.md prompts/s{N+1}_*.md && git commit && git push`
+Esegui `/chiudi-ordinatamente` (`.claude/commands/chiudi-ordinatamente.md`): protocollo
+idempotente che rigenera l'handoff canonico `HANDOFF_CURRENT.md` (root) da git/disco,
+propone il commit dei soli file toccati (conferma y/n) e stampa il render per il giudice.
+Lo stato vivo resta in `STATE.md` (GENERATO, non editare a mano) + `state/rings.json`;
+le memorie cross-sessione in `~/.claude/projects/.../memory/MEMORY.md` (Write tool, fuori dal repo).
 
 ## Rules
 @.claude/rules/identity.md
