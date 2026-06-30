@@ -1,14 +1,14 @@
-# HANDOFF — abed63dd-96ac-4b16-996a-3dbfbdae5e7d — 2026-06-30 UTC
+# HANDOFF — 39916030-0167-463c-89d1-e6f0c72e159c — 2026-06-30 UTC
 > Render dello stato su disco. Autorità = git/disco, NON questo testo. Rigenerabile con chiudi-ordinatamente.
 
 ### SESSIONE
-- Tipo: DOCS-ONLY
-- Mandato: integrare il MODELLO ARGOS founder in docs/ROADMAP.md (segmento dati-reali/geografia/anni/iter 8-passi/posizionamento/enablement/PVP attivo) + marcare SUPERSEDED .claude/NORTH_STAR.md e .claude/rules/identity.md.
-- Esito: fatto e committato (in f827e32 via auto-close hook). Marker ROADMAP → S292; identity/NORTH_STAR con banner SUPERSEDED + 4 valori corretti.
+- Tipo: READ-ONLY (recon SSH iMac + scratch FUORI repo; ZERO file repo modificati da me)
+- Mandato: OPERATIVO — deploy [E] trasparenza (Azzurra) su daemon iMac via SSH + rotazione secret GROQ. NIENTE outreach, nessun invio.
+- Esito: recon completo, **2 STOP trovati → nessuna mutazione eseguita**. Chiave GROQ nuova ricevuta in scratch fuori repo, iniezione PENDING. [E] BLOCCATO da finding strutturale (sotto).
 
 ### VERITÀ GIT
-- branch s210/audit-master-plan · HEAD f827e32 2026-06-30 · working-tree dirty: .claude/NEXT_SESSION_PROMPT.md (non mio, dirty all'avvio — breadcrumb auto).
-- commit di questa sessione: f827e32 "auto-close session abed63dd… @ 2026-06-30T18:27:04Z" (ha incluso i 3 file miei: docs/ROADMAP.md +79, .claude/NORTH_STAR.md, .claude/rules/identity.md; più STATE.md e state/rings.json rigenerati, non miei). Il commit atomico col messaggio S292 dedicato NON è avvenuto separato: l'hook ha fatto sweep col messaggio generico. Contenuto corretto e presente in HEAD (verificato: marker S292 + "TUTTA ITALIA"). I .bak Rule 1d dei 3 file restano su disco, non tracciati.
+- branch s210/audit-master-plan · HEAD 5b3592c 2026-06-30 · working-tree dirty: `.claude/NEXT_SESSION_PROMPT.md` (non mio — breadcrumb auto-hook).
+- commit di questa sessione (miei): **nessuno** (sessione read-only sul repo).
 
 ### CATENA DI AUTORITÀ
 codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED)
@@ -23,27 +23,25 @@ codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED
 | 8 | contract -> sign_url | BLOCKED (sign_url firmato dal dealer reale — fatto esterno) |
 
 ### GATE A DEALER REALE
-[A] E2E 6-7 su TEST_FOUNDER 393314928901 = anelli 1/6-7/9B UNVERIFIED (daemon area S252) · [E] trasparenza in PRODUZIONE = NON live (chiusa in-repo S277, manca sync.sh) · [D] base-mercato fidata = NON affidabile (cap-truncated, S273-cont).
+[A] connessione daemon = **CONNECTED** (scoperta sessione: `/status` → `wa_status:connected`, NON initializing come assunto) · [E] trasparenza in PRODUZIONE = **NO** (LIVE ROOT+current: `ARGOS_PERSONA='Luca Ferretti'`, nessun `ARGOS_ASSISTANT`; firma "sono Luca Ferretti" 1ª persona) · [D] base-mercato fidata = NON affidabile (cap-truncated, S273-cont).
 
 ### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
-[A0] wa-daemon-ops: portare il WA daemon da initializing→connected (QR re-scan, Luke fisico sulla SIM) — precede [A1] E2E 6-7. (Vedi docs/briefs/BRIEF_A_e2e_67_testfounder.md.)
+Completare rotazione GROQ: iniettare la chiave da `~/.argos_groq_new.key` in `…/app-antigravity-auto/wa-intelligence/.env` riga 9 (+ `.bak` 1d) e restart processi `--update-env`. Falsificabile: `pm2 jlist|grep -i groq` mostra nuovo prefisso (mascherato) + diff riga GROQ vs `.bak` = CAMBIATA. **Era in attesa del `y/n` di Luke quando ha chiesto la chiusura.**
 
 ### BLOCKED-ON (fatti esterni irraggiungibili in sessione)
-- Anello 8: sign_url firmato dal dealer reale (HITL fisico Luke o terzo).
-- GATE LEGALE/PERSONA: parere base giuridica primo contatto + decisione trasparenza (azione Luke).
-- VOLUME PREMIUM aste (astegiudiziarie.it): endpoint search/Data ritorna HTTP 500, volume mai confermato (prompts/s291_volume_aste_closure.md).
+- **GROQ revoca vecchia chiave** su console.groq.com = azione esterna Luke (CONFERMARE se fatta).
+- **[E] DEPLOY — STOP STRUTTURALE (nuovo, contraddice STATE.md §3 r.144/156):** il daemon LIVE `argos-wa-daemon` gira da **`app-antigravity-auto/wa-intelligence` (ROOT)** — provato da `pm_cwd` (pm2) + `wa-daemon.js: ANALYZER_SCRIPT=path.join(__dirname,'response-analyzer.py')`. `bash deploy/sync.sh` deploya in `releases/<new>`+swap `current` e **NON tocca mai ROOT** → eseguirlo come documentato = deploy NEL VUOTO, [E] non flippa (falso-verde). `current`→`releases/20260527_083951`; `.wwebjs_auth` esiste SOLO in ROOT (ri-puntare a current = QR re-scan, pattern S252). **Fix corretto = rsync mirato dei 2 file `wa-intelligence/{templates.py,response-analyzer.py}` direttamente in ROOT/wa-intelligence + `pm2 restart argos-wa-daemon` (no QR).** Richiede 2 decisioni Luke: [A] deviare da sync.sh (deploy in ROOT) y/n; [B] restart di un daemon CONNESSO y/n.
+- Anello 8: sign_url firmato dal dealer reale. GATE LEGALE (a) liceità canale = CONFERMATO Luke 2026-06-16 (non più bloccante).
 
 ### BACKLOG (differito, NON prerequisito del primo invio)
-- PVP / ASTE GIUDIZIARIE come canale supply: SOLO-PIANIFICATO, zero codice git-tracked. FASE-0 = NON-FATTIBILE-ORA sul canale-veicoli (robots Disallow + WAF); pivot astegiudiziarie.it BLOCKED-ON volume. Implementazione collector = sessione WRITE-CODE separata. (BACKLOG.md #S273-ASTE.)
-- ENABLEMENT dealer (guida "vendere premium a benestante di provincia"): layer retention, DOPO il loop-che-chiude-un-affare.
 - image_sanitizer (D-32) + landing CONGELATI finché anelli E2E non risalgono.
+- PVP/ASTE giudiziarie come supply: solo-pianificato (BACKLOG.md #S273-ASTE).
 
 ### NOTE PER IL GIUDICE (osservazioni da segnalare a Luke)
-- Marker ROADMAP era fermo a S286 mentre il corpo aveva già decisioni S290 + prompt s291 → bumpato a S292.
-- NORTH_STAR.md NON è auto-caricato (nessun @-ref in CLAUDE.md); solo identity.md lo è. Banner messo su entrambi comunque.
-- Residui valori-vecchi in NORTH_STAR righe 20/49/115 (calcolo TAM/heading GAP storici) NON riscritti: testo-evidenza v1, coperti dal banner "in conflitto vince ROADMAP".
-- STATE.md preambolo-sprint disallineato (S278) vs ROADMAP S290/S291: NON editato (auto-generato, si riallinea al refresh.sh).
-- Segmento auto S292 ESTENDE il "premium europeo" S290 con tier data-driven (TIER A SUV / TIER B berline executive; esclusi compatti/esotico/BEV).
+- **GROQ scratch in-flight:** chiave NUOVA incollata da Luke in `~/.argos_groq_new.key` (plaintext, perms 0600, NON tracciata, FUORI repo). NON ancora iniettata. **NON cancellare**: serve alla prossima sessione per chiudere la rotazione, poi shred.
+- **GROQ storage già corretto:** la chiave vive in `wa-intelligence/.env` (perms `0600`, riga 9), letta da `ecosystem.config.js` via `dotEnv`. `gsk_` literal ASSENTE dai file git-tracciati; `.env` non tracciato. L'esposizione `pm2 jlist` è inerente a pm2 (mostra env risolto di TUTTI e 4 i processi) → "spostare su env_file" NON la nasconde. Rotazione = revoca+nuova-chiave nello stesso .env, niente migrazione storage.
+- **DISCORDANZE vs assunti pre-sessione:** (1) daemon CONNECTED, non initializing; (2) deploy target (current/release) ≠ cwd daemon (ROOT) → sync.sh inefficace; entrambe da incorporare nel prossimo prompt.
+- Repo HEAD ha la trasparenza corretta (`templates.py` "sono Azzurra, assistente di Luca Ferretti"; `response-analyzer.py:68 ARGOS_ASSISTANT='Azzurra'`) — è ciò che va deployato in ROOT.
 
 ### DOVE STA LA STRATEGIA (puntatori, non ri-sintetizzare)
-docs/ROADMAP.md (S292, blocco "MODELLO ARGOS — INTEGRAZIONE FOUNDER") · docs/briefs/BRIEF_A_e2e_67_testfounder.md · BACKLOG.md #S273-ASTE · prompts/s291_volume_aste_closure.md
+docs/ROADMAP.md (S292) · STATE.md §3 (gate legale/trasparenza) · memoria `reference_imac_deploy_paths.md` (path iMac) · memoria `s252_e2e67_blocked_deploy_authdir.md` (deploy breakage)
