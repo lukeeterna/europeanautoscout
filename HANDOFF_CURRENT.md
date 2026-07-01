@@ -1,14 +1,14 @@
-# HANDOFF — d3a57c2c-213c-4614-aabf-d04119c6b06e — 2026-06-30T20:58Z
+# HANDOFF — 0dd97f27-ee00-4c6f-9748-e933f1dad534 — 2026-07-01 UTC
 > Render dello stato su disco. Autorità = git/disco, NON questo testo. Rigenerabile con chiudi-ordinatamente.
 
 ### SESSIONE
-- Tipo: WRITE-CODE (deploy-only su iMac; repo locale INVARIATO — il fix era già committato a HEAD)
-- Mandato: deploy mirato [E] trasparenza Azzurra su iMac ROOT, zero invii
-- Esito: [E] deployato in PRODUZIONE (rsync 2 .py HEAD→ROOT + pm2 restart); flip verificato grezzo su LIVE ROOT; zero invii attraverso il restart; coda bridge_outbound intatta; ABI non ricaduta
+- Tipo: DOCS-ONLY
+- Mandato: correggere righe STALE in STATE.md (144/155-156/163) dopo il deploy [E] trasparenza Azzurra di ieri; nessun codice, nessun tocco iMac.
+- Esito: righe corrette da "daemon nega / NON deployato" → "[E] DEPLOYATA in produzione 2026-06-30 (LIVE ROOT ARGOS_ASSISTANT='Azzurra'), commit 118343b". Correzioni in HEAD (d17c1d5); backup 1d rimosso dal tree (6dd3eaa).
 
 ### VERITÀ GIT
-- branch s210/audit-master-plan · HEAD 2d48d04 2026-06-30 22:45:35 · working-tree dirty: STATE.md, state/rings.json, .claude/NEXT_SESSION_PROMPT.md
-- commit di questa sessione: nessuno (il deploy non ha prodotto modifiche al repo; i 3 file dirty sono SOLO churn del refresh hook a SessionStart — bump di timestamp/session-id, zero cambio semantico, NON miei)
+- branch s210/audit-master-plan · HEAD 6dd3eaa 2026-07-01 · working-tree dirty: .claude/NEXT_SESSION_PROMPT.md (M, già dirty all'avvio, NON mio) · STATE.md.bak.20260701_173149 (?? untracked, backup 1d lasciato su disco di proposito)
+- commit di questa sessione: d17c1d5 (auto-close hook — ha inglobato le mie correzioni STATE.md + churn rings.json + backup) · 6dd3eaa (docs: rimuovi backup 1d dal tree)
 
 ### CATENA DI AUTORITÀ
 codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED)
@@ -22,31 +22,30 @@ codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED
 | 9B | reject -> abort | UNVERIFIED | full |
 | 5 | generazione dossier PDF | VERIFIED | smoke |
 | 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED | full |
-| 8 | contract -> sign_url | BLOCKED (sign_url firmato dal dealer reale — esterno) | full |
+| 8 | contract -> sign_url | BLOCKED | full |
 
-### GATE A DEALER REALE
-- [A] liceità canale primo contatto = CONFERMATO LUKE 2026-06-16 (cold WA autorizzato; residuo difendibilità non-bloccante)
-- [E] trasparenza in PRODUZIONE = **FATTO QUESTA SESSIONE**. Prova grezza LIVE ROOT iMac (`~/Documents/app-antigravity-auto/wa-intelligence`): `response-analyzer.py:68 ARGOS_ASSISTANT='Azzurra'` PRESENTE; `templates.py` firma = "sono Azzurra, assistente di Luca Ferretti" (righe 18/29/39/70/77), nessun residuo "sono Luca Ferretti". `/status`: wa_status=connected, daily_sent=0, qr_available=false. pm2 restart 10→11 (unstable=0, single non-loop). Coda bridge_outbound: total=6 sent=6 not_sent=0 (intatta). Backup 1d: `templates.py.bak.20260630_225226` (10425B) + `response-analyzer.py.bak.20260630_225226` (116083B) in ROOT/wa-intelligence.
-- [D] base-mercato fidata = UNVERIFIED (scrape esaustivo + geo==IT + experiment-OFF — non affrontato)
+### GATE A DEALER REALE (3 gate tecnici da STATE.md, non più blocco legale)
+[1] E2E TEST_FOUNDER verde + Luke "pienamente soddisfatto" = APERTO (anelli 1/6-7/9B UNVERIFIED)
+[E] trasparenza in PRODUZIONE = CHIUSO (deployata 2026-06-30, LIVE ROOT ARGOS_ASSISTANT='Azzurra', commit 118343b)
+[3] base-mercato fidata (scrape esaustivo + geo==IT + experiment-OFF) = APERTO (finding cont3)
+[A]/[D] label espliciti = ASSENTI in STATE.md
 
 ### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
-E2E TEST_FOUNDER 393314928901 verde (anelli 1 invio Day1 + 6-7 PDF al dealer + 9B reject) → fatto esterno = Luke fisicamente riceve/risponde WA sulla SIM e dichiara "pienamente soddisfatto".
+E2E TEST_FOUNDER 393314928901: eseguire il ciclo invio Day1 → reply → approve/reject → dossier reale, con Luke fisico che riceve/risponde su WA (chiude anelli 1/9B/6-7).
 
 ### BLOCKED-ON (fatti esterni irraggiungibili in sessione)
-- Anello 8 contract→sign_url: sign_url firmato dal dealer reale (HITL fisico Luke o terzo).
-- E2E TEST_FOUNDER (anelli 1/6-7/9B): richiede Luke fisico su SIM 393314928901.
+- anello 8 contract->sign_url: sign_url firmato dal dealer reale (HITL fisico Luke o terzo)
+- gate [1]: dichiarazione esplicita Luke "pienamente soddisfatto" dopo E2E
 
 ### BACKLOG (differito, NON prerequisito del primo invio)
-- Base-mercato [D]: scrape esaustivo (DEEP_PAGES fino a pagina vuota + experiment-OFF + geo==IT).
-- Aggiornare narrativa STATE.md righe 144/155-156/163: ora STALE — dicono "daemon live nega ancora"/"NON deployato su iMac", ma [E] è chiuso-in-produzione da questa sessione.
+- gate [3] base-mercato: scrape esaustivo DEEP_PAGES>=80 + filtro geo==IT + experiment-OFF (calibrazione 330i invalida finché non rifatta)
+- .claude/NEXT_SESSION_PROMPT.md dirty all'avvio (churn hook, non mio) — non committato
 
 ### NOTE PER IL GIUDICE (osservazioni da segnalare a Luke)
-- [E] flip verificato GREZZO su LIVE ROOT (non solo repo): il daemon non impersona più — firma "Azzurra, assistente di Luca Ferretti".
-- Discordanza disco vs STATE.md: righe 144/155-156/163 affermano "trasparenza NON deployata / daemon live nega ancora" → ora FALSE. NON ho editato STATE.md (è generato + protetto Rule 1d + budget context ~54%): aggiornamento narrativo rinviato a prossima sessione.
-- 3 file dirty (STATE.md, rings.json, NEXT_SESSION_PROMPT.md) = puro churn timestamp del refresh hook a SessionStart, NON miei → NON committati.
-- Pre-check ABI: better-sqlite3 carica OK sotto Node v22.14.0; `node_modules/better-sqlite3` mtime invariato dal rsync (27 Mag) → l'incidente ABI115 non poteva ricadere (rsync ha toccato SOLO i 2 .py).
-- Discordanza line-number F1/F2 del mandato: vecchio LIVE = 15/25/34/46; nuovo HEAD/ora-LIVE = 18/29/39/70/77 (contenuto corretto, righe diverse).
-- GROQ: NON ritoccato (già ruotato sessione precedente, come da mandato).
+- Il hook auto-close (SessionEnd) ha pre-emptato il mio commit-con-nome: le correzioni STATE.md sono finite in d17c1d5 ("auto-close session ...") invece che in un commit "docs: allinea STATE...". Contenuto corretto e verificato in HEAD; nessun rewrite/amend fatto.
+- L'auto-close ha inglobato anche state/rings.json (churn timestamp) e il backup .bak; il backup è stato poi rimosso dal tracking (6dd3eaa), resta su disco.
+- Discordanza risolta: STATE.md è GENERATO solo alle righe 40-53 (blocco anelli, marker GENERATED:rings). Le righe 144/155-156/163 corrette sono prosa fuori dai marker → edit a mano legittimo. La nota di ieri (HANDOFF "STATE è generato") era over-broad.
+- Verifica [E] su LIVE ROOT iMac NON ri-eseguita oggi (vietato dal mandato): è un fatto registrato ieri (118343b + HANDOFF precedente), non re-testato in questa sessione.
 
 ### DOVE STA LA STRATEGIA (puntatori, non ri-sintetizzare)
-docs/ROADMAP.md · docs/briefs/ · .claude/S274_AMBRA_TRANSPARENCY_AUTHORIZED.md · memoria `reference_imac_deploy_paths.md`
+docs/ROADMAP.md · docs/briefs/ · STATE.md (righe 138-164 gate/trasparenza) · commit 118343b (deploy [E])
