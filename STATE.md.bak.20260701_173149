@@ -141,7 +141,7 @@ irreversibile + verifica con professionista legale — CC non è un legale) non 
      in S277 — si produce lungo il percorso, NON è un re-gate.
      **→ Il blocco a un invio a dealer REALE NON è più legale. Restano TRE gate tecnici/verificabili:
      (1) E2E TEST_FOUNDER verde + Luke "pienamente soddisfatto" (anelli 1/6-7/9B UNVERIFIED);
-     (2) trasparenza [E] DEPLOYATA in produzione 2026-06-30 (LIVE ROOT ARGOS_ASSISTANT='Azzurra'), commit 118343b — gate CHIUSO;
+     (2) trasparenza in PRODUZIONE (Azzurra+firma S277 → sync.sh) — daemon live nega ancora;
      (3) base-mercato fidata (scrape esaustivo + geo==IT + experiment-OFF, finding cont3).**
  (b) **trasparenza AMBRA — meccanismo runtime di impersonificazione (NON "istruzione KB
      eventuale")**: `response-analyzer.py:341-377` impersona Luca in prima persona, vieta le
@@ -151,16 +151,16 @@ irreversibile + verifica con professionista legale — CC non è un legale) non 
      canale resta BLOCKED-ON-LUKE.
 >     **S275 (commit 86e8fff): impersonificazione rimossa in REPO a TUTTI i layer** — prompt
 >     (identity/hard_rules) + validator (`_LLM_BANNED_WORDS`:96, `FORBIDDEN_WORDS_EXACT`:1528,
->     bannavano "automatico" → strisciavano la disclosure) + retry-prompt (2427) + KB. **DEPLOYATO
->     su iMac (2026-06-30, commit 118343b)**: flip verificato grezzo su LIVE ROOT (il daemon non
->     impersona più) → (b) è chiuso-in-repo E chiuso-in-produzione (distinzione S271 codice-verde vs artefatto-verde).
+>     bannavano "automatico" → strisciavano la disclosure) + retry-prompt (2427) + KB. **NON
+>     deployato su iMac**: il daemon live continua a negare finché `bash deploy/sync.sh` → (b)
+>     è chiuso-in-repo, NON chiuso-in-produzione (distinzione S271 codice-verde vs artefatto-verde).
 >     **RESIDUO firma — CHIUSO IN REPO (S277, commit ee0694f)**: l'output WA del bot non firma più
 >     "Luca" in 1ª persona. Costante `ARGOS_ASSISTANT='Azzurra'` (response-analyzer.py:68); firma→Azzurra
 >     a tutti i punti (format_prompt 386, istruzione LLM 835, reply contratto 2099, TEMPLATE_FALLBACK
 >     2378/2382, retry auto-id 2429, broker 2478). `ARGOS_PERSONA='Luca Ferretti'` INVARIATO (persona
 >     reale, voce/tel). test_ambra_5scenarios.py 5/5. Verifica = statica sui literal (il render LLM vero
 >     si vede nell'E2E TEST_FOUNDER, deferito). Seam: testo WA → Azzurra; Day-10 voce/Day-30 tel → Luca reale.
->     **DEPLOYATO su iMac (2026-06-30, commit 118343b)** → in PRODUZIONE il daemon firma "Azzurra, assistente di Luca Ferretti" (flip verificato grezzo su LIVE ROOT, zero invii, coda bridge_outbound intatta).
+>     **NON deployato su iMac** (gated C2, dopo E2E verde) → in PRODUZIONE il daemon firma ancora vecchio.
 La E2E contro TEST_FOUNDER 393314928901 procede comunque (non è un dealer).
 
 ---
