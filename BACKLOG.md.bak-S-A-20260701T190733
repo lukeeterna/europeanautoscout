@@ -2,22 +2,6 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
-## S-A 2026-07-01 — #DOSSIER-FIRMA-TRASPARENZA [BLOCCANTE PRE-LOTTO-PILOTA]
-
-### ⛔ Il footer del PDF dossier firma "Luca Ferretti + email personale", "Azzurra" assente
-**Trigger**: durante test [A] E2E anelli 6-7 su TEST_FOUNDER, render-verify pypdf del PDF
-`ARGOS_BMW_X3_2020_TEST_FOUNDER_20260701_182750.pdf` → footer = "ARGOS Automotive | Luca
-Ferretti — ferretti.argosautomotive@gmail.com" (`tools/scripts/pdf_generator_enterprise.py:1394`).
-La stringa "Azzurra" NON compare nel dossier.
-**Problema (Luke)**: è lo STESSO problema di trasparenza che [E] (commit 118343b) ha chiuso sui
-messaggi WA (`templates.py` firma "Azzurra, assistente di Luca Ferretti"). Il dossier PDF è un
-canale SCOPERTO: firma come persona reale con email personale mentre il messaggio si dichiara
-assistente automatica → incoerenza di trasparenza tra i due canali.
-**Fix richiesto PRIMA del lotto-pilota (dealer reali)**: il footer del PDF deve firmare
-"Azzurra, assistente di Luca Ferretti" coerente con [E]. Editare `_create_footer`
-(pdf_generator_enterprise.py:1383-1399) + occorrenze "ARGOS Automotive | Luca Ferretti" (1445, 1754).
-**Oggi**: accettato SOLO perché test tecnico sul numero di Luke, zero dealer reali.
-
 ## S-A 2026-07-01 — #COPY-DAY1-GARANZIA [BLOCCANTE PRE-LOTTO-PILOTA]
 
 ### ⛔ Copy Day1 promette garanzia/certificazioni non mantenibili a priori
