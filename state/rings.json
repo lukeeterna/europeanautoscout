@@ -19,8 +19,8 @@
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "PASS",
-    "last_run_ts": "2026-07-01T17:15:39Z",
-    "last_run_session": "auto-20260701T191539Z",
+    "last_run_ts": "2026-07-01T17:27:26Z",
+    "last_run_session": "S-A-20260701-live",
     "note": "Smoke offline: 5 scenari intent su fixture DB, zero LLM zero msg reali."
   },
   {
@@ -31,8 +31,8 @@
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "PASS",
-    "last_run_ts": "2026-07-01T17:15:39Z",
-    "last_run_session": "auto-20260701T191539Z",
+    "last_run_ts": "2026-07-01T17:27:26Z",
+    "last_run_session": "S-A-20260701-live",
     "note": "Smoke offline: approve_reply runtime con SQLite fixtures schema produzione. Gate '5/5 PASS'."
   },
   {
@@ -55,8 +55,8 @@
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "PASS",
-    "last_run_ts": "2026-07-01T17:15:39Z",
-    "last_run_session": "auto-20260701T191539Z",
+    "last_run_ts": "2026-07-01T17:27:26Z",
+    "last_run_session": "S-A-20260701-live",
     "note": "Smoke offline: generate_dossier_from_data produce PDF reale su disco (magic %PDF, no rete no immagini). Lo stesso check esercita anche il gate HITL dossier (anello 6) come best-effort SE fastapi presente (iMac/CI); su MacBook fastapi assente -> 6 SKIP non-gating."
   },
   {
@@ -69,7 +69,7 @@
     "last_status": "UNVERIFIED",
     "last_run_ts": null,
     "last_run_session": null,
-    "note": "Tier full. Gate HITL (app.py _update_dossier_status, fastapi-coupled) E2E via dashboard:8080; invio PDF (wa-daemon.js /send-doc) richiede client WA reale -> TEST_FOUNDER 393314928901, mai dealer reale. Lo smoke anello 5 esercita il gate HITL su iMac/CI ma la consegna WA resta full."
+    "note": "Tier full. Gate HITL (app.py _update_dossier_status, fastapi-coupled) E2E via dashboard:8080; invio PDF (wa-daemon.js /send-doc) richiede client WA reale -> TEST_FOUNDER 393314928901, mai dealer reale. Lo smoke anello 5 esercita il gate HITL su iMac/CI ma la consegna WA resta full. VERIFICATO LIVE E2E 2026-07-01 (sessione S-A): dossier_id:5 dealer=TEST_FOUNDER auto-registrato PENDING via /send-doc (403), Luke ha approvato su dashboard:8080/pending-dossiers (approval_status=APPROVED), 2a /send-doc identica -> 200 {status:sent, msg_id:doc_1782926553055_26fzu, daily_sent 1->2}, Luke ha CONFERMATO ricezione PDF (2.5MB, BMW X3 2020) sulla SIM. Display resta UNVERIFIED by-design (check_cmd null: invio WA reale non ri-eseguibile offline, stesso pattern 9B). Il verde e' questo fatto, non la cella."
   },
   {
     "id": "8",
