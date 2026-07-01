@@ -2,6 +2,20 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
+## S-A 2026-07-01 — #COPY-DAY1-GARANZIA [BLOCCANTE PRE-LOTTO-PILOTA]
+
+### ⛔ Copy Day1 promette garanzia/certificazioni non mantenibili a priori
+**Trigger**: durante test [A] E2E su TEST_FOUNDER, il testo `DAY1_PREMIUM` (templates.py)
+recita "km tracciati dalla revisione TUV, tagliandi certificati, garanzia costruttore valida
+in Italia" come claim GENERICO pre-veicolo.
+**Problema (Luke)**: contraddice il posizionamento FACILITATORE (garanzia NON formale di ARGOS)
+e non è mantenibile a priori — è una promessa fatta prima di avere il veicolo reale.
+**Fix richiesto PRIMA del lotto-pilota (dealer reali)**: revisione copy Day1 in
+`wa-intelligence/templates.py` (tutte le varianti DAY1_*): rimuovere promesse di
+garanzia/certificazioni non mantenibili, allineare a modello facilitatore + spostare ogni
+claim di garanzia sotto dichiarazione firmata / 2° scambio, non nel cold Day1.
+**Oggi**: accettato SOLO perché test tecnico sul numero di Luke, zero dealer reali.
+
 ## S273 2026-06-13 — #S273-ASTE [ICEBOX — canale SOURCING #2, NON PLAN item]
 
 ### 🧊 Aste giudiziarie IT come canale ACQUISTO — parcheggiato (esito FASE 0: NON-FATTIBILE-ORA senza autorizzazione)
