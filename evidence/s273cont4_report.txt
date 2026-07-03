@@ -1,0 +1,65 @@
+======================================================================
+S273-cont4 — SCRAPE ESAUSTIVO GEO-PURO
+======================================================================
+Data: 2026-07-03
+
+[STEP 0] DAILY_LIMIT check
+  wa-daemon.js CONFIG.DAILY_LIMIT=30 = messaggi WA dealer (NON scraper)
+  PortalConfig autoscout24_it.daily_request_cap=2000 (base_scraper._check_daily_cap)
+  sleep(15) tra pagine: invariato (vincolo immutabile)
+  Stimato: 80 pagine × 15s = 1200s = 20 min. Entro cap 2000. FEASIBLE.
+
+[SCRAPE] BMW Serie 3 2019-2023, DEEP_PAGES=80, sleep=15s
+  AS24 dichiara: numberOfResults=369, numberOfPages=20
+  PAG   1: raw= 19 IT= 19 non-IT=  0 ab=False cc_dist={'IT': 19} med_IT=30900.0
+  PAG   2: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=30695.0
+  PAG   3: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=26950.0
+  PAG   4: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=34250.0
+  PAG   5: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=35475.0
+  PAG   6: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=37950.0
+  PAG   7: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=34945.0
+  PAG   8: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=36200.0
+  PAG   9: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=32250.0
+  PAG  10: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=30450.0
+  PAG  11: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=33150.0
+  PAG  12: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=35400.0
+  PAG  13: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=31500.0
+  PAG  14: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=36975.0
+  PAG  15: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=36266.0
+  PAG  16: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=34450.0
+  PAG  17: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=34325.0
+  PAG  18: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=33750.0
+  PAG  19: raw= 20 IT= 20 non-IT=  0 ab=False cc_dist={'IT': 20} med_IT=30750.0
+  PAG  20: raw=  5 IT=  5 non-IT=  0 ab=False cc_dist={'IT': 5} med_IT=34999.0
+  PAG 21: 0 listing in pagina — PAGINA VUOTA (terminatore reale raggiunto)
+
+[PROVA 1 — COMPLETEZZA]
+  Pagine percorse: 21
+  Terminato da pagina VUOTA: True
+
+[PROVA 3 — EXPERIMENT isEuWideCountExperimentActive]
+  Pagine con flag=True  (A/B ON) : 0 — []
+  Pagine con flag=False (A/B OFF): 21 — [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  Pagine con flag=None  (assente): 0 — []
+  Baseline valida (flag sempre OFF/None): True
+
+[PROVA 2 — PUREZZA GEO]
+  Totale listing grezzi processati: 384
+  Distribuzione countryCode globale: {'IT': 384}
+  IT (IT+I): 384
+  non-IT (scartati): 0
+  senza countryCode (NONE): 0
+  Pool geo-puro IT dedup: 332 listing
+
+[FIXTURE] Raw IT dedup: 332
+  Listing con prezzo post-parse: 0 (parse fail: 332)
+  !! SOLO 0 listing con prezzo — fixture NON scritta.
+
+[LEVELING 330i — N per livello L0-L3]
+  Fixture non scritta (n_priced < 20) — leveling saltato.
+
+======================================================================
+VERDETTO GATE [3]
+======================================================================
+  N_L0=?  N_L1=?  N_L2=?  N_L3=?
+  NO DATI (fixture non prodotta)
