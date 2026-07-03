@@ -241,60 +241,17 @@ def run_exhaustive_scrape(log_lines: list) -> tuple[list, dict]:
 # ---------------------------------------------------------------------------
 
 def raw_to_listing(item: dict, scraper: AutoScoutScraper) -> Optional[Listing]:
-    """Converte un raw NEXT_DATA item in Listing via il parser scraper."""
-    # Usa parse_listings su un HTML sintetico? No: usiamo il parser interno
-    # _parse_next_data_item se esiste, altrimenti costruiamo dalla struct grezza.
-    # Metodo sicuro: wrappare in una lista e chiamare il parser diretto.
+    """Converte un raw NEXT_DATA item in Listing via il parser CANONICO scraper.
+
+    FIX S294: il metodo `_parse_next_data_listing` NON esiste (reale = quello sotto),
+    quindi la vecchia chiamata lanciava sempre AttributeError -> fallback fragile che
+    (a) crashava e (b) non settava mai power_hp/variant, rendendo il leveling 330i
+    vuoto a prescindere dal prezzo. Usiamo `_next_data_item_to_listing`, lo STESSO
+    parser di produzione (S157): legge price via item.price.priceFormatted/tracking.price
+    + variant/year/km/fuel/power_hp dai campi vehicle.* — allineato al probe che funziona.
+    """
     try:
-        # Il parser NEXT_DATA del scraper accetta il raw listing come item
-        # Chiamiamo il metodo interno che processa singoli item
-        parsed = scraper._parse_next_data_listing(item, "IT", MAKE, MODEL)
-        return parsed
-    except AttributeError:
-        pass
-    # Fallback: costruiamo Listing dai campi noti del raw NEXT_DATA
-    try:
-        price = price_of(item)
-        if not price:
-            return None
-        tracking = item.get("tracking", {}) or {}
-        listing_id = listing_id_of(item) or ""
-        km_raw = tracking.get("mileage") or item.get("mileage") or 0
-        year_raw = tracking.get("firstRegistration", "")[:4] if tracking.get("firstRegistration") else ""
-        try:
-            year = int(year_raw) if year_raw else 0
-        except ValueError:
-            year = 0
-        try:
-            km = int(str(km_raw).replace(".", "").replace(",", "").strip() or 0)
-        except ValueError:
-            km = 0
-        url = item.get("url", "") or ""
-        if url and not url.startswith("http"):
-            url = f"https://www.autoscout24.it{url}"
-        variant = (tracking.get("model_version") or
-                   item.get("vehicleDetails", {}).get("trim") or "")
-        from tools.scrapers.models import FuelType, Transmission
-        fuel_raw = (tracking.get("fuel_type") or "").lower()
-        fuel_map = {"diesel": FuelType.DIESEL, "petrol": FuelType.PETROL,
-                    "gasoline": FuelType.PETROL, "electric": FuelType.ELECTRIC,
-                    "hybrid": FuelType.HYBRID}
-        fuel = fuel_map.get(fuel_raw, FuelType.UNKNOWN)
-        listing = Listing(
-            listing_id=listing_id,
-            portal="autoscout24_it",
-            country="IT",
-            make=MAKE,
-            model=MODEL,
-            year=year,
-            km=km,
-            price_eur=price,
-            fuel_type=fuel,
-            transmission=Transmission.UNKNOWN,
-            variant=variant,
-            listing_url=url,
-        )
-        return listing
+        return scraper._next_data_item_to_listing(item, "IT", MAKE, MODEL)
     except Exception:
         return None
 
@@ -316,6 +273,15 @@ def main() -> int:
 
     # Scrape esaustivo
     all_raw_it, summary = run_exhaustive_scrape(log_lines)
+
+    # FIX S294 (root-cause): persisti il pool RAW geo-puro su disco SUBITO, prima
+    # di qualsiasi parse. Motivo del blocco S293: i 332 raw non erano mai salvati
+    # (solo il report), quindi ri-assemblare la fixture imponeva un ri-scrape.
+    # Con questo dump, il prossimo scrape autorizzato e' l'ULTIMO necessario.
+    OUT_RAW = ROOT / "tests" / "fixtures" / "it_dist_bmw_serie3_2021_s273cont4_RAW.json"
+    OUT_RAW.parent.mkdir(parents=True, exist_ok=True)
+    OUT_RAW.write_text(json.dumps(all_raw_it, ensure_ascii=False), encoding="utf-8")
+    log_lines.append(f"\n[RAW POOL] Salvati {len(all_raw_it)} raw item geo-puri: {OUT_RAW}")
 
     # Prova COMPLETEZZA
     log_lines.append("\n[PROVA 1 — COMPLETEZZA]")
