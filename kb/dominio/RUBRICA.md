@@ -55,3 +55,12 @@ FATTO: <claim placeholder> | FONTE: https://esempio.tld/documento | DATA: 2026-0
 ```
 
 > `RUBRICA.md` è escluso dalla validazione: è lo standard, non un file di fatti.
+
+## TIER FONTI (obbligatorio su ogni fatto)
+
+- T1 = primaria/istituzionale (ministeri, GU, decreti, registri statali, Parlamento EU)
+- T2 = indipendente non-interessata (associazioni consumatori, club automobilistici, testate con dati propri)
+- T3 = commerciale-interessata (venditori di report/servizi: carVertical, autoDNA, ecc.)
+
+Regola: fatti T3 = solo ordine di grandezza, MAI citati come certi nel copy pubblico.
+Ogni riga-fatto termina con [T1]/[T2]/[T3].

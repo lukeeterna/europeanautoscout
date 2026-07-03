@@ -121,6 +121,9 @@ def parse_fact(line):
     return tags
 
 
+TIER_RE = re.compile(r"\[T[123](?:/T[123])*\]\s*$")
+
+
 def validate_fact(line):
     """Ritorna lista di violazioni (vuota = ok)."""
     problems = []
@@ -137,6 +140,9 @@ def validate_fact(line):
         ok, msg = FIELD_CHECKS[tag](tags[tag])
         if not ok:
             problems.append(msg)
+    # tier fonte obbligatorio a fine riga (RUBRICA "## TIER FONTI")
+    if not TIER_RE.search(line.rstrip()):
+        problems.append("manca tier fonte [T1]/[T2]/[T3] a fine riga (RUBRICA TIER FONTI)")
     return problems
 
 
