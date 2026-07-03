@@ -1,46 +1,52 @@
-# HANDOFF — s210/audit-master-plan — 2026-07-03 UTC
+# HANDOFF — 93779222-f3ba-429a-8e9d-4bdae54463fb — 2026-07-03 UTC
 > Render dello stato su disco. Autorità = git/disco, NON questo testo. Rigenerabile con chiudi-ordinatamente.
 
 ### SESSIONE
-- Tipo: WRITE-CODE (KB, 1 file) + READ-ONLY (diagnosi STATE)
-- Mandato: (1) KB-update matrice-EU su frode_km_verifica.md da payload gradato dal giudice; (2) diagnosi read-only discordanza STATE.md anelli 1 e 6-7.
-- Esito: (1) VERDE — validate_kb.py EXIT=0, 9 fatti conformi, commit 3d6491c. (2) VERDETTO (ii): re-run 6-7 necessario; UNVERIFIED è by-design, NON bug da riconciliare.
+- Tipo: WRITE-CODE (runtime E2E + refresh substrato stato; nessun sorgente modificato)
+- Mandato: re-run E2E anelli 6-7 su TEST_FOUNDER 393314928901 attraversando Gate E attivo (S247), riguadagnare VERIFIED in-sessione
+- Esito: 6-7 VERIFICATO LIVE (403 PENDING → approve umano Luke → 200 sent → ricezione PDF confermata su SIM); Gate E ATTRAVERSATO (allow su solo-TEST_FOUNDER)
 
 ### VERITÀ GIT
-- branch s210/audit-master-plan · HEAD 3d6491c 2026-07-03 · working-tree dirty: STATE.md, state/rings.json, .claude/NEXT_SESSION_PROMPT.md (riscritti dal SessionStart hook al boot — NON toccati in questa sessione)
-- commit di questa sessione: 3d6491c "kb: matrice-EU accesso-per-paese GRADED-BY-GIUDICE-MATRICE-EU (payload giudice 2026-07-03)"
+- branch s210/audit-master-plan · HEAD a33969a 2026-07-03 · working-tree dirty: STATE.md, state/rings.json (miei, da refresh.sh) + .claude/NEXT_SESSION_PROMPT.md (dirty all'avvio, breadcrumb hook, NON mio)
+- commit di questa sessione: a33969a (auto-close hook, mid-sessione) + commit di chiusura proposto per STATE.md/rings.json (attende y/n)
 
 ### CATENA DI AUTORITÀ
 codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED)
 
 ### STATO E2E (da STATE.md, verbatim — non re-narrare)
-| 1 | invio Day1 WA | UNVERIFIED | full | — | — |
-| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | auto-20260703T190305Z |
-| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | auto-20260703T190305Z |
-| 9B | reject -> abort | UNVERIFIED | full | — | — |
-| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | auto-20260703T190305Z |
-| 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED | full | — | — |
-| 8 | contract -> sign_url | BLOCKED | full | freeze: sign_url firmato dal dealer reale (HITL fisico) | — |
+| # | Anello | Stato |
+|---|--------|-------|
+| 1 | invio Day1 WA | UNVERIFIED |
+| 2 | classifier intent (AMBRA) | VERIFIED |
+| 9A | approve -> send | VERIFIED |
+| 9B | reject -> abort | UNVERIFIED |
+| 5 | generazione dossier PDF | VERIFIED |
+| 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED (by-design: check_cmd null, invio WA non ri-eseguibile offline; verde live nel record cross-sessione, pattern 9B/S241) |
+| 8 | contract -> sign_url | BLOCKED |
 
 ### GATE A DEALER REALE
-[A] E2E verde su TEST_FOUNDER 393314928901 = FALSE (anelli 1/6-7/9B UNVERIFIED)
-[E] Gate E attivo (S247/S249 selftest 33/33) = TRUE
-[D] Luke "pienamente soddisfatto" = FALSE (non dichiarato)
+[A] liceità canale primo contatto = CONFERMATO Luke 2026-06-16 (cold WA autorizzato)
+[E] trasparenza AMBRA/persona = CHIUSO, deployato iMac 2026-06-30 commit 118343b (ARGOS_ASSISTANT='Azzurra')
+[D] base-mercato fidata = NON soddisfatto (fixture cap-truncated, finding cont3/S273) — UNICO blocco tecnico residuo al primo dossier REALE
 
 ### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
-Re-run E2E anelli 6-7 su TEST_FOUNDER (403 PENDING -> approve -> 200 sent -> PDF ricevuto da Luke), attraversando Gate E attivo. Riguadagna VERIFIED in-sessione. NON riconciliare il generatore.
+Base-mercato fidata: scrape esaustivo BMW Serie3 con DEEP_PAGES>=80 fino a pagina vuota (fatto terminale "Nessun listing in pagina K") sotto isEuWideCountExperimentActive=OFF + filtro comp geo==IT su location.countryCode, poi ricomputo N_L0..L3 e ri-falsifica 330i.
 
 ### BLOCKED-ON (fatti esterni irraggiungibili in sessione)
-- Anelli 1, 6-7, 9B = tier full, check_cmd:null -> VERIFIED solo con re-run in-sessione + Luke fisico su TEST_FOUNDER.
-- Anello 8 = sign_url firmato dal dealer reale (freeze Gate D).
+- Anello 8 (contract -> sign_url): firma dealer reale (HITL fisico Luke o terzo) — non raggiungibile in-sessione
+- Primo dossier a dealer REALE: gated su [D] base-mercato fidata (tecnico, raggiungibile) + E2E test verde (6-7 fatto oggi)
 
 ### BACKLOG (differito, NON prerequisito del primo invio)
-- BELGIO Car-Pass costo ~7,3€ (dato 2018) = RI-CORROBORARE prezzo corrente prima di copy pubblico (flag già nel FATTO KB).
+- Anello 9B (reject -> abort) live su TEST_FOUNDER (UNVERIFIED)
+- Anello 1 (invio Day1 WA) live su TEST_FOUNDER (UNVERIFIED)
+- Hardening /send: far rispettare approved_ts all'endpoint stesso o instradare ogni invio reale nel bridge (gated su autonomia-invio, NON ora)
 
 ### NOTE PER IL GIUDICE (osservazioni da segnalare a Luke)
-- KB: GERMANIA e Implicazione ARGOS del payload TENUTE come note ">" (non FATTO): Germania non coperta come fatto numerato; Implicazione ha FONTE="sintesi delle righe sopra" [T1-derivato] non citabile -> non passerebbero il gate RUBRICA. Zero fatti/numeri/fonti aggiunti oltre il payload.
-- DIAGNOSI STATE: STATE.md è generato da state/refresh.py da state/rings.json. Regola: check_cmd==null -> UNVERIFIED forzato; PASS -> VERIFIED solo se last_run_session==sessione corrente, else STALE. Anelli 1 e 6-7 hanno check_cmd:null -> UNVERIFIED by-design.
-- Discordanza handoff-storici (6-7 "verdi con test [A]") vs STATE UNVERIFIED = APPARENTE: il test [A] avvenne in sessione passata (memoria s_a_20260701), è tier full fisico non-ri-eseguibile, non persistito in campi che il generatore legge (rings.json 6-7: last_run_ts/session=null). VERDETTO (ii): re-run necessario; riconciliare il generatore VIOLEREBBE l'invariante anti-stale.
+- 6-7 re-verificato oggi ATTRAVERSANDO Gate E (S247), che il 01/07 non esisteva: prova che il control-plane nuovo non ostacola l'E2E-canale su TEST_FOUNDER (curl con numero esplicito -> ramo solo-TEST_FOUNDER -> allow, gate_e.py:381-382; selftest 33/33 PASS).
+- Payload = dossier X3 reale del 01/07 riusato su file_path fresco (..._20260703_rerun.pdf) per ottenere un 403 PENDING pulito: anello 5 (byte PDF) verificato a parte, 6-7 verifica invio+HITL+consegna, non i byte.
+- /send-doc richiede X-API-Key (ARGOS_API_KEY in current/wa-intelligence/.env) — non era nella memoria 01/07, ora annotato nel topic memory.
+- Cella STATE 6-7 resta UNVERIFIED per design (check_cmd null): NON è regressione. Il verde vive nel record cross-sessione + rings.json note, come 9B.
+- daily_sent 1/20 sul daemon dopo l'invio (nessun invio a dealer reale).
 
 ### DOVE STA LA STRATEGIA (puntatori, non ri-sintetizzare)
-docs/ROADMAP.md (fonte autoritativa segmento/geografia/anni/stock) · kb/dominio/frode_km_verifica.md (matrice-EU) · ~/.claude/projects/.../memory/MEMORY.md (s_a_20260701_rings67_live_verified)
+docs/ROADMAP.md (segmento/geografia/anni/stock/supply autoritativi) · docs/briefs/ (istruzioni operative per item) · STATE.md §3 (gate legale/trasparenza + prossimi step) · memory s_a_20260701_rings67_live_verified.md (record live 6-7)
