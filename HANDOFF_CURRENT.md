@@ -1,14 +1,14 @@
-# HANDOFF — 93779222-f3ba-429a-8e9d-4bdae54463fb — 2026-07-03 UTC
+# HANDOFF — a56a2bd0 — 2026-07-03 UTC
 > Render dello stato su disco. Autorità = git/disco, NON questo testo. Rigenerabile con chiudi-ordinatamente.
 
 ### SESSIONE
-- Tipo: WRITE-CODE (runtime E2E + refresh substrato stato; nessun sorgente modificato)
-- Mandato: re-run E2E anelli 6-7 su TEST_FOUNDER 393314928901 attraversando Gate E attivo (S247), riguadagnare VERIFIED in-sessione
-- Esito: 6-7 VERIFICATO LIVE (403 PENDING → approve umano Luke → 200 sent → ricezione PDF confermata su SIM); Gate E ATTRAVERSATO (allow su solo-TEST_FOUNDER)
+- Tipo: WRITE-CODE
+- Mandato: scrape esaustivo base-mercato IT (BMW Serie 3 / target 330i) per sciogliere Gate [3] — pool affidabile = completezza + purezza geo + experiment-OFF
+- Esito: 3 vincoli affidabilità TUTTI PASS (prova grezza); leveling 330i BLOCCATO da bug price-parse nel nuovo script (0/332 priced) → N_L0-L3 non prodotto, banda NON emessa
 
 ### VERITÀ GIT
-- branch s210/audit-master-plan · HEAD a33969a 2026-07-03 · working-tree dirty: STATE.md, state/rings.json (miei, da refresh.sh) + .claude/NEXT_SESSION_PROMPT.md (dirty all'avvio, breadcrumb hook, NON mio)
-- commit di questa sessione: a33969a (auto-close hook, mid-sessione) + commit di chiusura proposto per STATE.md/rings.json (attende y/n)
+- branch s210/audit-master-plan · HEAD 62a1a91 2026-07-03 · working-tree dirty: `.claude/NEXT_SESSION_PROMPT.md` (già dirty all'avvio, breadcrumb auto — NON mio)
+- commit di questa sessione: 62a1a91 (script s273cont4_exhaustive_geo.py + evidence/s273cont4_report.txt)
 
 ### CATENA DI AUTORITÀ
 codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED)
@@ -17,36 +17,29 @@ codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED
 | # | Anello | Stato |
 |---|--------|-------|
 | 1 | invio Day1 WA | UNVERIFIED |
-| 2 | classifier intent (AMBRA) | VERIFIED |
-| 9A | approve -> send | VERIFIED |
+| 2 | classifier intent (AMBRA) | VERIFIED (smoke) |
+| 9A | approve -> send | VERIFIED (smoke) |
 | 9B | reject -> abort | UNVERIFIED |
-| 5 | generazione dossier PDF | VERIFIED |
-| 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED (by-design: check_cmd null, invio WA non ri-eseguibile offline; verde live nel record cross-sessione, pattern 9B/S241) |
-| 8 | contract -> sign_url | BLOCKED |
+| 5 | generazione dossier PDF | VERIFIED (smoke) |
+| 6-7 | approve HITL dossier -> invio PDF dealer | UNVERIFIED |
+| 8 | contract -> sign_url | BLOCKED (fatto esterno: firma dealer reale) |
 
-### GATE A DEALER REALE
-[A] liceità canale primo contatto = CONFERMATO Luke 2026-06-16 (cold WA autorizzato)
-[E] trasparenza AMBRA/persona = CHIUSO, deployato iMac 2026-06-30 commit 118343b (ARGOS_ASSISTANT='Azzurra')
-[D] base-mercato fidata = NON soddisfatto (fixture cap-truncated, finding cont3/S273) — UNICO blocco tecnico residuo al primo dossier REALE
+### GATE A DEALER REALE (STATE.md righe 144-145)
+[A] fonte affidabile = base-mercato — **NON fidata** (blocco reale) · [E] trasparenza = DEPLOYATA prod 2026-06-30 (commit 118343b, gate CHIUSO) · [D] base-mercato fidata (scrape esaustivo + geo==IT + experiment-OFF) = **PARZIALE**: pool ora completo+puro+experiment-OFF (332 IT) ma banda 330i non emessa per bug parse
 
 ### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
-Base-mercato fidata: scrape esaustivo BMW Serie3 con DEEP_PAGES>=80 fino a pagina vuota (fatto terminale "Nessun listing in pagina K") sotto isEuWideCountExperimentActive=OFF + filtro comp geo==IT su location.countryCode, poi ricomputo N_L0..L3 e ri-falsifica 330i.
+Fixare il price-extraction in `tools/scripts/s273cont4_exhaustive_geo.py` (allineare a `price_of`/tracking.price dei probe s273cont2/3, dove le mediane per-pagina uscivano giuste) → riscrivere fixture geo-pura → `get_it_distribution(target_variant="330i", fuel="petrol", fixture_path=<nuova>)` → leggere N_L0-L3. Fatto terminale: N_L2 330i ≥ 8 SÌ/NO.
 
 ### BLOCKED-ON (fatti esterni irraggiungibili in sessione)
-- Anello 8 (contract -> sign_url): firma dealer reale (HITL fisico Luke o terzo) — non raggiungibile in-sessione
-- Primo dossier a dealer REALE: gated su [D] base-mercato fidata (tecnico, raggiungibile) + E2E test verde (6-7 fatto oggi)
+- Anello 8: sign_url firmato da dealer reale (HITL fisico)
 
 ### BACKLOG (differito, NON prerequisito del primo invio)
-- Anello 9B (reject -> abort) live su TEST_FOUNDER (UNVERIFIED)
-- Anello 1 (invio Day1 WA) live su TEST_FOUNDER (UNVERIFIED)
-- Hardening /send: far rispettare approved_ts all'endpoint stesso o instradare ogni invio reale nel bridge (gated su autonomia-invio, NON ora)
+- Anelli 1 / 9B / 6-7 E2E su TEST_FOUNDER 393314928901
 
 ### NOTE PER IL GIUDICE (osservazioni da segnalare a Luke)
-- 6-7 re-verificato oggi ATTRAVERSANDO Gate E (S247), che il 01/07 non esisteva: prova che il control-plane nuovo non ostacola l'E2E-canale su TEST_FOUNDER (curl con numero esplicito -> ramo solo-TEST_FOUNDER -> allow, gate_e.py:381-382; selftest 33/33 PASS).
-- Payload = dossier X3 reale del 01/07 riusato su file_path fresco (..._20260703_rerun.pdf) per ottenere un 403 PENDING pulito: anello 5 (byte PDF) verificato a parte, 6-7 verifica invio+HITL+consegna, non i byte.
-- /send-doc richiede X-API-Key (ARGOS_API_KEY in current/wa-intelligence/.env) — non era nella memoria 01/07, ora annotato nel topic memory.
-- Cella STATE 6-7 resta UNVERIFIED per design (check_cmd null): NON è regressione. Il verde vive nel record cross-sessione + rings.json note, come 9B.
-- daily_sent 1/20 sul daemon dopo l'invio (nessun invio a dealer reale).
+- Il pool base-mercato Serie 3 2019-23 IT è **332 annunci unici** (scrape esaustivo terminato da PAGINA VUOTA reale pag.21), NON ">770" come temuto S273: STATE.md riga 20-23 da aggiornare (era CAP-truncation, ora il vero terminatore è raggiunto).
+- Purezza: 384 raw, cc_dist {'IT': 384}, 0 non-IT. Experiment: A/B=False su tutte le 21 pagine. Prova grezza in `evidence/s273cont4_report.txt`.
+- Il "NO banda 330i" di oggi NON è scarsità mercato: è un bug di parse-prezzo (0/332 priced nonostante le mediane per-pagina calcolate dal raw). Non dichiarare fallback config-adiacente finché il leveling non gira sul pool vero.
 
 ### DOVE STA LA STRATEGIA (puntatori, non ri-sintetizzare)
-docs/ROADMAP.md (segmento/geografia/anni/stock/supply autoritativi) · docs/briefs/ (istruzioni operative per item) · STATE.md §3 (gate legale/trasparenza + prossimi step) · memory s_a_20260701_rings67_live_verified.md (record live 6-7)
+docs/ROADMAP.md · STATE.md (Gate [3], righe 20-32 + 144-145) · evidence/s273cont4_report.txt · memoria s293_scrape_esaustivo_geopuro_serie3.md
