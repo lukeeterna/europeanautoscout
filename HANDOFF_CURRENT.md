@@ -13,8 +13,14 @@
 ### CATENA DI AUTORITÀ
 codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED)
 
-### STATO E2E (da STATE.md a session-start, verbatim)
-1 UNVERIFIED · 2 VERIFIED · 9A VERIFIED · 9B UNVERIFIED · 5 VERIFIED · 6-7 UNVERIFIED · 8 BLOCKED
+### STATO E2E (da STATE.md, verbatim — GENERATED:rings)
+| 1 | invio Day1 WA | UNVERIFIED | full |
+| 2 | classifier intent (AMBRA) | VERIFIED | smoke |
+| 9A | approve -> send | VERIFIED | smoke |
+| 9B | reject -> abort | UNVERIFIED | full |
+| 5 | generazione dossier PDF | VERIFIED | smoke |
+| 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED | full |
+| 8 | contract -> sign_url | BLOCKED | full (sign_url firmato dal dealer reale — fatto esterno) |
 (nessun anello E2E toccato in questa sessione)
 
 ### GATE A DEALER REALE
