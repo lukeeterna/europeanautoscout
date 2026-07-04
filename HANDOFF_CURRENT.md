@@ -7,9 +7,8 @@
 - Esito: 330i passato attraverso `gate_it_band` deterministico. **VERDICT** con banda **25.349,75 – 32.775,00 EUR**, `fallback_declared=true` (source=adjacent, trim droppato). Banda emessa SOLO dal gate.
 
 ### VERITÀ GIT
-- branch `s210/audit-master-plan` · HEAD `7f44d33` (2026-07-04, "session-close S295: handoff STATE E2E verbatim") · working-tree dirty (4 file, tutti generati da hook SessionStart, non miei)
-- dirty non-miei: `.claude/NEXT_SESSION_PROMPT.md` (M, breadcrumb) · `.claude/scheduled_tasks.lock` (D) · `STATE.md` (M, rings refresh) · `state/rings.json` (M, refresh)
-- commit di questa sessione: nessuno (READ-ONLY)
+- branch `s210/audit-master-plan` · HEAD `1645dcf` (2026-07-04 16:33Z, "auto-close session 617cfc39…") · working-tree dirty solo `.claude/NEXT_SESSION_PROMPT.md` (breadcrumb hook, non mio)
+- commit di questa sessione: `1645dcf` — l'hook auto-close ha spazzato il mio `HANDOFF_CURRENT.md` rigenerato (render Gate [3]) + 3 file generati (scheduled_tasks.lock, STATE.md, rings.json). Contenuto corretto; messaggio è "auto-close", non il mio "session-close S295 Unità C" (il mio commit esplicito è fallito exit 1 perché l'hook aveva già committato). Non pushato: branch bloccato al push per secret in history (S220/S278).
 
 ### FIXTURE CONFERMATA (autorità = disco)
 - path: `tests/fixtures/it_dist_bmw_serie3_2021_s273cont4.json` (740.851 byte, 4 Lug 18:08)
