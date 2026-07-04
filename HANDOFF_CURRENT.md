@@ -4,7 +4,7 @@
 ### SESSIONE
 - Tipo: WRITE-CODE
 - Mandato: cablare validate_band.py (gate-soglia-N deterministico) + test sintetico, poi re-scrape pool IT BMW Serie3 2021 e instradare 330i nel gate. Chiude Gate [3].
-- Esito: Unità A DONE e committata (gate + suite 3/3 verde). Unità B/C NON completate — chiusura forzata da context budget (vincolo #7 @60%) col re-scrape ancora in corso.
+- Esito: Unità A DONE+committata (gate + suite 3/3 verde). Unità B PASS (re-scrape completato: n_priced=323, parse fail=0 → fix S294 verificato E2E). Unità C (330i nel gate) NON eseguita — chiusura da context budget @67% + "chiudi" esplicito. Fixture committate.
 
 ### VERITÀ GIT
 - branch s210/audit-master-plan · HEAD 90919c7 (auto-close hook) · sopra d586f03 (Unità A) · working-tree dirty: .claude/NEXT_SESSION_PROMPT.md
@@ -22,13 +22,14 @@ codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED
 [E] E2E 6-7 = UNVERIFIED (non toccato)
 [D] Day-1 reale = BLOCKED (invariato: gate qualitativo Luke + E2E verde)
 
-### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
-Unità B: `python3 -m tools.scripts.s273cont4_exhaustive_geo` (NO `timeout`, non esiste su Big Sur) → verifica falsificabile `n_priced ≈ 332`. Se ~0 = fix S294 fallito, STOP. Se ok, fixture in `tests/fixtures/it_dist_bmw_serie3_2021_s273cont4.json`.
-
-### UNITÀ C (dopo B, falsificabile)
+### PROSSIMO PASSO (singolo, falsificabile — chiude Gate [3])
+Unità C, UNA chiamata (fixture GIÀ su disco+committata, NO re-scrape):
 `from tools.validate_band import gate_it_band` →
-`gate_it_band("BMW","Serie 3",2021,km,"petrol",target_variant="330i",fixture_path=<fixture>)`
-→ incolla `n_by_level` (L0-L3) + `verdict` + `band_low/band_high` + `fallback_declared`. La banda esce SOLO dal gate.
+`gate_it_band("BMW","Serie 3",2021,40000,"petrol",target_variant="330i",fixture_path="tests/fixtures/it_dist_bmw_serie3_2021_s273cont4.json")`
+→ incolla `n_by_level` (L0-L3) + `verdict` + `band_low/band_high` + `fallback_declared`. La banda esce SOLO dal gate. Questo chiude Gate [3].
+
+### UNITÀ B — DONE (verificata)
+Re-scrape geo-puro completato 2026-07-04: n_priced=323, parse fail=0, terminated_by_empty=True, 21 pagine. Fix S294 verificato E2E (vecchio bug=0/332, ora 323/323). Fixture: `tests/fixtures/it_dist_bmw_serie3_2021_s273cont4.json` (+ `_RAW.json`), committate.
 
 ### BLOCKED-ON (fatti esterni irraggiungibili in sessione)
 - Nessuno tecnico. Unità B/C interrotte da context budget, NON da blocco esterno: riprendibili subito in sessione fresca.
