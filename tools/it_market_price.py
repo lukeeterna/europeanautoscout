@@ -387,12 +387,14 @@ def get_it_distribution(
             0, min_n, relaxation_level, None, spread_infra_trim, None,
             spec_aware=spec_aware,
         )
+        fallback_declared = bool((relaxation_level == 3) and not no_verdict)
         out.update(
             no_verdict=no_verdict,
             median=None, p25=None, p75=None, min=None, max=None,
             band_low=None, band_high=None, band_width_pct=None,
             spread_pool=None, width_nature=width_nature,
             confidence=confidence,
+            fallback_declared=fallback_declared,
         )
         logger.warning(
             "[it_market_price] %s %s %s trim=%s: 0 comparabili (raw=%d pool=%d)",
@@ -421,6 +423,7 @@ def get_it_distribution(
         spec_aware=spec_aware,
     )
 
+    fallback_declared = bool((relaxation_level == 3) and not no_verdict)
     out.update(
         no_verdict=no_verdict,
         median=round(median, 2),
@@ -434,6 +437,7 @@ def get_it_distribution(
         spread_pool=spread_pool,
         width_nature=width_nature,
         confidence=confidence,
+        fallback_declared=fallback_declared,
     )
     return out
 

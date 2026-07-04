@@ -143,6 +143,9 @@ class VehicleData:
     it_is_floor: bool = True                       # DELTA-2: N e' PAVIMENTO (campione cap), non totale mercato
     margine_netto_low: Optional[float] = None     # margine dealer al band_low (IT prezzo basso)
     margine_netto_high: Optional[float] = None    # margine dealer al band_high (IT prezzo alto)
+    country_code: str = ""
+    fraud_doc_obtained: bool = False
+    fallback_declared: bool = False
 
     @classmethod
     def from_opportunity(cls, opp, dealer_city: str = "Eboli") -> "VehicleData":
@@ -256,6 +259,28 @@ def _band_verdict(price_eu, band_low, band_high):
     return m_low, m_high, breakeven, status, label
 
 
+def _fraud_source_certainty(country_code, doc_obtained=False):
+    """Classe-regime + grado certezza A/B/C sulla verifica km alla fonte.
+    OUTPUT country/register-free (C-GATE-FONTE-001 mode b): mai nominare
+    paese o registro nel PDF pre-pagamento. Ritorna (grade, status, note)."""
+    regime = {
+        "NL": ("A", "autonomo"),
+        "FR": ("B", "su richiesta"),
+        "BE": ("B", "contrattuale"),
+        "DE": ("C", "commerciale"),
+    }.get((country_code or "").upper(), ("C", "da confermare"))
+    grade, regime_word = regime
+    if grade == "A":
+        base_note = "documento km ufficiale del paese d'origine, consultazione autonoma"
+    elif grade == "B":
+        base_note = f"documento km ufficiale del paese d'origine, rilascio {regime_word}"
+    else:
+        base_note = "nessun registro pubblico nazionale nel paese d'origine; verifica via report tecnico indipendente"
+    if doc_obtained:
+        return (grade, f"Certezza {grade}", f"Documento ottenuto — {base_note}")
+    return ("—", "Documento non ancora ottenuto", base_note)
+
+
 def _margin_verdict_rows(vehicle):
     """Righe pure della sezione VERDETTO AFFARE (testabili senza reportlab).
 
@@ -271,7 +296,7 @@ def _margin_verdict_rows(vehicle):
             ['VERDETTO AFFARE', 'VALORE', 'NOTE'],
             ['Prezzo acquisto EU', _eur_fmt(vehicle.price_eu), 'Annuncio estero reale'],
             ['Verdetto', 'NO-VERDICT',
-             f'Comparabili insufficienti (N={floor}{n}, livello L{lvl}) — nessuna banda emessa'],
+             'Campione insufficiente per una banda affidabile — nessuna banda emessa'],
         ]
         return rows, "NO_VERDICT", None
 
@@ -281,12 +306,17 @@ def _margin_verdict_rows(vehicle):
     def _rng(a, b):
         return f"{_eur_fmt(a)} – {_eur_fmt(b)}"
 
+    _nbl = vehicle.it_n_by_level or {}
+    _n_exact = _nbl.get(2, _nbl.get('2', 0))
+    _prov = (f"banda su configurazione adiacente, campione trim N={_n_exact}"
+             if vehicle.fallback_declared else "banda a configurazione esatta")
+
     rows = [
         ['VERDETTO AFFARE', 'INTERVALLO (banda IT)', 'NOTE'],
         ['Prezzo acquisto EU', _eur_fmt(vehicle.price_eu), 'Annuncio estero reale'],
         ['Costo chiavi in mano', _eur_fmt(m_low.chiavi_in_mano), 'Incl. trasporto + immatricolazione'],
         ['Prezzo mercato Italia', _rng(vehicle.it_band_low, vehicle.it_band_high),
-         f'Banda p25-p75, {floor}{n} comparabili (non esaustivo)'],
+         f'Banda p25-p75, {floor}{n} comparabili — {_prov}'],
         ['Spread lordo', _rng(m_low.spread_lordo, m_high.spread_lordo), 'Mercato IT meno chiavi in mano'],
         ['Pavimento dealer (12%)', _rng(m_low.dealer_floor_amount, m_high.dealer_floor_amount),
          'Minimo garantito al dealer'],
@@ -401,6 +431,9 @@ class ARGOSPDFGenerator:
 
         # Executive summary — key numbers (V2: uses grade_data for market price)
         story.append(self._create_executive_summary(vehicle, grade_data=grade_data))
+        story.append(Spacer(1, 6*mm))
+
+        story.append(self._create_fraud_leva_section(vehicle))
         story.append(Spacer(1, 6*mm))
 
         # C-GATE-FONTE-001: sezione fonte veicolo (venditore/URL/contatti) renderizzata
@@ -1083,8 +1116,12 @@ class ARGOSPDFGenerator:
             n_note = (f"{floor}{n} comparabili (campione cap 20 pagine / "
                       f"325 annunci AS24.it, non esaustivo)")
             band = f"{_eur(vehicle.it_band_low)} - {_eur(vehicle.it_band_high)}"
+            _nbl2 = vehicle.it_n_by_level or {}
+            _n_exact2 = _nbl2.get(2, _nbl2.get('2', 0))
+            _prov2 = (f"banda su configurazione adiacente, campione trim N={_n_exact2}"
+                      if vehicle.fallback_declared else "banda a configurazione esatta")
             row1 = ['Banda prezzo IT (p25-p75)', band,
-                    f'Rifai il conto: {floor}{n} comparabili, livello L{lvl}']
+                    f'Rifai il conto: {floor}{n} comparabili, livello L{lvl} — {_prov2}']
 
         data = [
             ['MERCATO ITALIA — BANDA PREZZO', 'VALORE', 'NOTE'],
@@ -1335,6 +1372,8 @@ class ARGOSPDFGenerator:
         else:
             tempo_detail = "14-21 gg lavorativi (trasporto + immatricolazione)"
 
+        cert_grade, cert_status, cert_note = _fraud_source_certainty(vehicle.country_code, vehicle.fraud_doc_obtained)
+
         verification_data = [
             ['VERIFICA ARGOS 100 PUNTI', 'STATUS', 'DETTAGLI'],
             ['VIN Decode', vin_status, vin_detail],
@@ -1343,7 +1382,9 @@ class ARGOSPDFGenerator:
             ['Annuncio originale', 'Verificato', 'Portale EU certificato'],
             ['Prezzo aggiornato', 'Verificato', datetime.now().strftime('%d/%m/%Y')],
             ['Foto veicolo', 'Disponibili' if vehicle.local_image_paths else 'Al ritiro', f'{len(vehicle.local_image_paths)} foto HD verificate' if vehicle.local_image_paths else 'Foto disponibili al ritiro'],
-            ['Check frodi ARGOS', 'Superato' if vin_consistent else 'ALERT', 'Nessun alert frode rilevato' if vin_consistent else vin_alerts[0][:50] if vin_alerts else 'Analisi completata'],
+            ['Coerenza dati/VIN', 'Coerente' if vin_consistent else 'ALERT',
+             'Nessuna incoerenza interna' if vin_consistent else (vin_alerts[0][:50] if vin_alerts else 'Verifica manuale')],
+            ['Verifica km alla fonte', cert_status, cert_note],
             ['Stima trasporto', transport_status, transport_detail],
             ['Tempistica consegna', 'Stimata', tempo_detail],
         ]
@@ -1351,12 +1392,16 @@ class ARGOSPDFGenerator:
         verification_table = Table(verification_data, colWidths=[55*mm, 35*mm, 50*mm])
         # Colori condizionali per status
         alert_color = HexColor('#DC2626')  # rosso per ALERT/ATTENZIONE
+        amber_color = HexColor('#B45309')
         status_styles = []
         for row_idx, row in enumerate(verification_data[1:], start=1):
-            status = str(row[1]).upper()
-            if status in ('ATTENZIONE', 'ALERT'):
+            status = str(row[1])
+            status_upper = status.upper()
+            if status_upper in ('ATTENZIONE', 'ALERT'):
                 status_styles.append(('TEXTCOLOR', (1, row_idx), (1, row_idx), alert_color))
                 status_styles.append(('TEXTCOLOR', (2, row_idx), (2, row_idx), alert_color))
+            elif status.startswith('Documento non') or status == '—':
+                status_styles.append(('TEXTCOLOR', (1, row_idx), (1, row_idx), amber_color))
 
         verification_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
@@ -1380,6 +1425,45 @@ class ARGOSPDFGenerator:
         ]))
         return verification_table
 
+    def _create_fraud_leva_section(self, vehicle: "VehicleData") -> Table:
+        """Sezione leva anti-frode km — copy SOLO da KB, country/register-free (C-GATE-FONTE-001 mode b)."""
+        _, cert_status, cert_note = _fraud_source_certainty(vehicle.country_code, vehicle.fraud_doc_obtained)
+
+        _note_style = ParagraphStyle('FraudNote', fontName='Helvetica', fontSize=8,
+                                     leading=10, textColor=self.text_dark)
+        _label_style = ParagraphStyle('FraudLabel', fontName='Helvetica-Bold', fontSize=8,
+                                      leading=10, textColor=self.text_secondary)
+
+        rows = [
+            [Paragraph('<b>VERIFICA ANTI-FRODE ALLA FONTE</b>', ParagraphStyle(
+                'FraudHeader', fontName='Helvetica-Bold', fontSize=9,
+                textColor=self.brand_gold))],
+            [Paragraph(
+                'Rischio km import: le auto di importazione presentano circa 3x il tasso di anomalie '
+                'contachilometri rispetto alle domestiche (6,3% vs 2,1%, fonte commerciale dic 2025 — '
+                'ordine di grandezza, non certificato).',
+                _note_style)],
+            [Paragraph(
+                f'Documento richiesto: {cert_note}.',
+                _note_style)],
+            [Paragraph(
+                'Regola certezza: il livello di certezza A/B/C si assegna sul documento effettivamente '
+                'ottenuto, non sul paese di origine.',
+                _note_style)],
+        ]
+
+        table = Table(rows, colWidths=[180*mm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
+            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
+            ('BACKGROUND', (0, 1), (-1, -1), self.brand_light_bg),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('LINEBELOW', (0, 1), (-1, -1), 0.3, HexColor('#E5E7EB')),
+        ]))
+        return table
+
     def _create_footer(self, dealer: DealerInfo = None) -> Paragraph:
         """Professional footer with brand styling"""
         footer_style = ParagraphStyle(
@@ -1391,7 +1475,7 @@ class ARGOSPDFGenerator:
         footer_text = f"""
         <font size="9" color="#1A1A1A"><b>ARGOS Automotive</b></font>
         <font size="8" color="#C8A446"> | </font>
-        <font size="8">Luca Ferretti — ferretti.argosautomotive@gmail.com</font><br/>
+        <font size="8">Azzurra — assistente di Luca Ferretti | ferretti.argosautomotive@gmail.com</font><br/>
         <font size="7" color="#9CA3AF">Generato il {datetime.now().strftime('%d/%m/%Y')} |
         {watermark}</font><br/>
         <font size="7" color="#BABABA">Dati verificati al momento della creazione. Prezzi e disponibilita soggetti a variazione.</font>
@@ -1751,7 +1835,7 @@ def generate_combined_dossier(
     # ═══ FOOTER ═══
     story.append(Spacer(1, 10*mm))
     story.append(Paragraph(
-        f"<b>ARGOS Automotive</b> | Luca Ferretti | Scouting EU esclusivo<br/>"
+        f"<b>ARGOS Automotive</b> | Azzurra — assistente di Luca Ferretti<br/>"
         f"<font size='8' color='#9CA3AF'>"
         f"Dossier generato il {datetime.now().strftime('%d/%m/%Y alle %H:%M')} — "
         f"Dati verificati da {len(opportunities)} annunci analizzati su 28+ portali EU, 19 paesi"
@@ -2084,6 +2168,9 @@ def generate_dossier_from_data(
     # NON piu' il falso prezzo_de x1.15. Fallback ×1.15 solo se il margin gate
     # non e' stato eseguito (es. --listing mode, dati IT assenti).
     it_dist = best.get('_it_distribution') or {}
+    _it_fallback = it_dist.get('fallback_declared')
+    if _it_fallback is None:
+        _it_fallback = (it_dist.get('relaxation_level') == 3) and not bool(it_dist.get('no_verdict'))
     it_median = it_dist.get('median')
     if it_median:
         market_it = int(round(it_median))
@@ -2146,6 +2233,9 @@ def generate_dossier_from_data(
         it_is_floor=bool(it_dist.get('is_floor', True)),
         margine_netto_low=margine_netto_low,
         margine_netto_high=margine_netto_high,
+        country_code=best.get('country', '') or '',
+        fraud_doc_obtained=bool(best.get('_fraud_doc_obtained', False)),
+        fallback_declared=bool(_it_fallback),
     )
     # NO-VERDICT (comparabili insufficienti a trim esatto): il verdetto affare NON
     # e' ne' PASS ne' REJECT — il PDF deve dirlo esplicitamente col numero reale.
