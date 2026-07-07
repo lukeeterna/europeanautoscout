@@ -17,19 +17,7 @@
 > Blueprint architettura E2E (7 sottosistemi S1-S7, 5 fasi di build) → `docs/ARCHITETTURA_E2E.md` (riferimento, NON stato; la sequenza vincolante resta `docs/ROADMAP.md`).
 > Aggiornato: **S278 · 2026-06-17**
 
-> **S273-cont · base-mercato NON affidabile (cap-truncated).** La fixture
-> `tests/fixtures/it_dist_bmw_serie3_2021.json` (n=325, meta "esaustiva") era TRONCATA dal cap
-> `DEEP_PAGES=20` (build_it_fixture.py): la verification scrape ha raccolto 770 listing terminando
-> AL CAP (pagina 50 ancora piena, nessun "Nessun listing") → pool reale >770, oltre 2× la fixture.
-> La calibrazione (320d n=13 verdetto / 330i n=5 NO_VERDICT) gira su mezzo mercato → il NO_VERDICT
-> del 330i è probabilmente CAP, non scarsità reale. **Dossier reale BLOCKED** su pool che soddisfi DUE
-> garanzie SEPARATE (cont3, riga 128-129): **(i) COMPLETEZZA** = scrape esaustiva `DEEP_PAGES≥80` fino a
-> pagina vuota (fatto terminale "Nessun listing in pagina K") sotto `isEuWideCountExperimentActive`=OFF;
-> **(ii) PUREZZA** = filtro comp `geo==IT` su `location.countryCode` (NON `country`, forzato IT in
-> base_scraper = falsa sicurezza). Il geo-filter NON copre la completezza e viceversa. Poi ricomputo
-> N_L0..L3, ri-falsifica 330i. ⚠️ ADD-1 fatta solo più profonda (senza geo-filter + experiment-OFF) =
-> altro pool falso-pulito = pattern Frankenstein/pool-325 di nuovo. Ring 5 "VERIFIED (smoke)" = il PDF SI
-> GENERA, NON che la base-mercato sotto sia fidata — la fondazione-dati è il blocco reale, non la macchina d'invio.
+> Stato gate = tabella generata sotto (`state/refresh.py`). Non scrivere stato a mano in questo file.
 
 ---
 
@@ -39,18 +27,18 @@ Rigenera con: `bash state/refresh.sh <SESSION_ID>` · sorgente: `state/rings.jso
 
 <!-- GENERATED:rings:start -->
 <!-- NON modificare a mano: rigenerato da `bash state/refresh.sh`. VERIFIED = check passato in QUESTA sessione. -->
-_Rigenerato 2026-07-07T20:56:47Z · sessione `S298`_
+_Rigenerato 2026-07-07T21:13:52Z · sessione `S299`_
 
 | # | Anello | Stato | Tier | Check | Ultima sessione |
 |---|--------|-------|------|-------|-----------------|
 | 1 | invio Day1 WA | UNVERIFIED | full | — | — |
-| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | S298 |
-| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | S298 |
+| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | S299 |
+| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | S299 |
 | 9B | reject -> abort | UNVERIFIED | full | — | — |
-| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | S298 |
+| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | S299 |
 | 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED | full | — | — |
 | 8 | contract -> sign_url | BLOCKED | full | freeze: sign_url firmato dal dealer reale (HITL fisico Luke o terzo) — fatto esterno non raggiungibile in-sessione | — |
-| BM | base-mercato IT fidata (scrape esaustivo + gate banda) | VERIFIED | smoke | `python3 tools/tests/test_base_mercato_gate.py` | S298 |
+| BM | base-mercato IT fidata (scrape esaustivo + gate banda) | VERIFIED | smoke | `python3 tools/tests/test_base_mercato_gate.py` | S299 |
 <!-- GENERATED:rings:end -->
 
 Legenda: **VERIFIED** = check PASS in questa sessione · **STALE** = PASS ma in sessione

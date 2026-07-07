@@ -227,7 +227,7 @@ def _decide(
     return no_verdict, width_nature, confidence
 
 
-def _load_fixture(path: str) -> tuple[list, str]:
+def _load_fixture(path: str) -> tuple[list, str, dict]:
     """Carica una fixture reale committata (S266) -> (raw_listings, scrape_date).
 
     La fixture e' l'output di UNA scrape profonda (results_per_page=1 override,
@@ -241,8 +241,9 @@ def _load_fixture(path: str) -> tuple[list, str]:
     with open(path, encoding="utf-8") as fh:
         blob = json.load(fh)
     raw = [Listing.from_row(r) for r in blob.get("listings", [])]
-    scrape_date = (blob.get("meta") or {}).get("scrape_date") or date.today().isoformat()
-    return raw, scrape_date
+    meta = blob.get("meta") or {}
+    scrape_date = meta.get("scrape_date") or date.today().isoformat()
+    return raw, scrape_date, meta
 
 
 def get_it_distribution(
@@ -279,8 +280,9 @@ def get_it_distribution(
         # Chiude il debito S264 (fatto fondante buttato): DoD/test riproducibili
         # su dato vero su disco, NON ri-scrapando ogni sessione. scrape_date viene
         # dalla fixture (la banda e' una FOTOGRAFIA di QUEL giorno, non di oggi).
-        raw, scrape_date = _load_fixture(fixture_path)
+        raw, scrape_date, fix_meta = _load_fixture(fixture_path)
     else:
+        fix_meta = {}
         scraper = AutoScoutScraper("autoscout24_it")
         # spec-aware: pool largo (anno+-2) filtrato in memoria. Legacy: anno+-year_span.
         scrape_span = 2 if spec_aware else year_span
@@ -363,6 +365,13 @@ def get_it_distribution(
         "n": n,
         "n_raw": len(raw),
         "n_pool": len(pool),
+        # Provenienza campione (S299): il PDF DEVE parlare della fonte, non
+        # ricalcolarla. Da fixture -> n_priced/pages/terminated reali della
+        # scrape esaustiva; live -> n_priced = pool prezzato, pagine/terminazione
+        # ignote (template ricade su "campione non esaustivo").
+        "n_priced": fix_meta.get("n_priced", len(pool)),
+        "pages_scraped": fix_meta.get("pages_scraped"),
+        "terminated_by_empty": bool(fix_meta.get("terminated_by_empty", False)),
         "n_by_level": n_by_level,                   # GAP-1: N_L0..N_L3 per riga onesta'
         "relaxation_level": relaxation_level,
         "trim_family": target["key"] if spec_aware else None,

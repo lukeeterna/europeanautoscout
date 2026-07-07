@@ -134,7 +134,7 @@ def level_prices_from_pool(
     from .scrapers.autoscout_scraper import AutoScoutScraper
 
     if fixture_path:
-        raw, _scrape_date = _load_fixture(fixture_path)
+        raw, _scrape_date, _meta = _load_fixture(fixture_path)
     else:
         scraper = AutoScoutScraper("autoscout24_it")
         raw = scraper.scrape_model(

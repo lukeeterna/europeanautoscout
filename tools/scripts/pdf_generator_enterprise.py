@@ -141,6 +141,9 @@ class VehicleData:
     it_n_by_level: Optional[dict] = None          # {0:N0,1:N1,2:N2,3:N3} riga d'onesta'
     it_scrape_date: Optional[str] = None          # GAP-2: data fotografia mercato
     it_is_floor: bool = True                       # DELTA-2: N e' PAVIMENTO (campione cap), non totale mercato
+    it_n_priced: Optional[int] = None              # S299: annunci prezzati raccolti (fonte, NON ricalcolo)
+    it_pages_scraped: Optional[int] = None         # S299: pagine reali della scrape
+    it_terminated_by_empty: bool = False           # S299: True = scrape esaustivo (pagina vuota reale)
     margine_netto_low: Optional[float] = None     # margine dealer al band_low (IT prezzo basso)
     margine_netto_high: Optional[float] = None    # margine dealer al band_high (IT prezzo alto)
     country_code: str = ""
@@ -1090,9 +1093,10 @@ class ARGOSPDFGenerator:
             return "EUR " + f"{int(round(n)):,}".replace(",", ".")
 
         # S268: la BANDA (p25-p75) e' il PRODOTTO ("rifai-il-conto"), non la mediana
-        # puntuale con asterisco. N e' un PAVIMENTO (campione AS24 cap 20 pagine,
-        # NON esaustivo): dichiarato col ">=" per non perdere credibilita' quando il
-        # dealer trova piu' auto di quante ne dichiariamo (DELTA-2).
+        # puntuale con asterisco. N e' un PAVIMENTO: dichiarato col ">=" per non
+        # perdere credibilita' quando il dealer trova piu' auto di quante ne
+        # dichiariamo (DELTA-2). S299: la provenienza del campione (annunci/pagine/
+        # esaustivita') VIENE DALLA FONTE (dist), non da stringhe hardcoded.
         n = vehicle.it_n or 0
         lvl = vehicle.relaxation_level if vehicle.relaxation_level is not None else '-'
         floor = ">=" if vehicle.it_is_floor else ""
@@ -1108,13 +1112,23 @@ class ARGOSPDFGenerator:
         if nbl:
             nbl_str = " ".join(f"L{k}:{v}" for k, v in sorted(nbl.items(), key=lambda x: int(x[0])))
             wn_label = f"{wn_label} · {nbl_str}"
+        # S299: descrizione campione dai campi FONTE (get_it_distribution), non hardcoded.
+        _np = vehicle.it_n_priced
+        _pg = vehicle.it_pages_scraped
+        if vehicle.it_terminated_by_empty and _np:
+            _sample = (f"scrape esaustivo: {_np} annunci IT"
+                       + (f" su {_pg} pagine" if _pg else "")
+                       + ", terminato a pagina vuota")
+        elif _np:
+            _sample = f"campione {_np} annunci AS24.it, non esaustivo"
+        else:
+            _sample = "campione non esaustivo"
         if no_verdict:
             n_note = (f"{floor}{n} comparabili a config esatta sotto-rappresentata "
-                      f"(campione non esaustivo)")
+                      f"({_sample})")
             row1 = ['Verdetto banda', 'NO-VERDICT', f'Config esatta sotto-rappresentata (livello L{lvl})']
         else:
-            n_note = (f"{floor}{n} comparabili (campione cap 20 pagine / "
-                      f"325 annunci AS24.it, non esaustivo)")
+            n_note = f"{floor}{n} comparabili ({_sample})"
             band = f"{_eur(vehicle.it_band_low)} - {_eur(vehicle.it_band_high)}"
             _nbl2 = vehicle.it_n_by_level or {}
             _n_exact2 = _nbl2.get(2, _nbl2.get('2', 0))
@@ -1444,7 +1458,7 @@ class ARGOSPDFGenerator:
                 'ordine di grandezza, non certificato).',
                 _note_style)],
             [Paragraph(
-                f'Documento richiesto: {cert_note}.',
+                f'{cert_note}.',
                 _note_style)],
             [Paragraph(
                 'Regola certezza: il livello di certezza A/B/C si assegna sul documento effettivamente '
@@ -2231,6 +2245,9 @@ def generate_dossier_from_data(
         it_n_by_level=it_dist.get('n_by_level'),
         it_scrape_date=it_dist.get('scrape_date'),
         it_is_floor=bool(it_dist.get('is_floor', True)),
+        it_n_priced=it_dist.get('n_priced'),
+        it_pages_scraped=it_dist.get('pages_scraped'),
+        it_terminated_by_empty=bool(it_dist.get('terminated_by_empty', False)),
         margine_netto_low=margine_netto_low,
         margine_netto_high=margine_netto_high,
         country_code=best.get('country', '') or '',

@@ -1,37 +1,44 @@
-# HANDOFF — S298 (UNITÀ B done · C deferita) — 2026-07-07 UTC
+# HANDOFF — S299 (UNITÀ C + D done, verdi) — 2026-07-07 UTC
 > Render dello stato su disco. Autorità = git/disco, NON questo testo. Rigenerabile con chiudi-ordinatamente.
 
 ### SESSIONE
-- Tipo: STATE-SUBSTRATE (aggiunto gate base-mercato al substrato generato) + coda S297
-- Mandato: (B) riconciliare riga stale gate base-mercato in STATE.md VIA GENERATORE · (C) provenienza numeri PDF dossier (consumare fonte, non ricalcolare)
-- Esito: **B VERDE** (anello `BM` VERIFIED via generatore) · **C NON ESEGUITA** (deferita per context budget 60%, come da CHECKPOINT del mandato — B ha priorità)
+- Tipo: coda S298 leggera — (C) provenienza numeri PDF dal template + (D) rimozione blockquote stale STATE.md
+- Esito: **C VERDE** · **D VERDE**. Nessun blocker nuovo.
 
 ### VERITÀ GIT
-- branch `s210/audit-master-plan` · HEAD atteso = commit di chiusura S298 (successivo a `cac70b4`)
-- dirty MIEI committati: `tools/tests/test_base_mercato_gate.py` (nuovo) · `state/rings.json` (+ring BM) · `STATE.md` (tabella rigenerata) · `HANDOFF_CURRENT.md`
-- dirty NON-miei: `.claude/NEXT_SESSION_PROMPT.md` (timestamp auto SessionStart)
-- backup 1d NON committato (untracked): `state/rings.json.bak-S298-20260707T205604Z`
+- branch `s210/audit-master-plan` · HEAD atteso = commit di chiusura S299 (successivo a `58b0875`)
+- committati (file nominati, MAI `git add -A`): `tools/it_market_price.py` · `tools/validate_band.py` ·
+  `tools/scripts/pdf_generator_enterprise.py` · `tests/dossiers_s296/ARGOS_DEMO_S296_a_330i_REAL_fallback.pdf` ·
+  `STATE.md` · `state/rings.json`
+- NON committati (untracked, restore-point Rule 1d): `*.bak-S299-*` (it_market_price/validate_band/pdf_generator/STATE)
+- NON committato: `.claude/NEXT_SESSION_PROMPT.md` (timestamp auto SessionStart)
+- NON pushato (regola S278: push bloccato finché scrub history secret non fatto).
 
-### UNITÀ B — FATTA (verde)
-- **Discordanza col mandato** (blind-guess falsificato su disco): NON esisteva alcun gate `[D]/[3]` base-mercato in `state/rings.json` — c'erano solo gli anelli E2E. La riga stale vive come PROSA hand-written nel blockquote di testa di STATE.md (righe 20-32), FUORI dal blocco GENERATED.
-- Fatti S295-C VERIFICATI su git: `ebe422e` (fixture geo-pura 323, n_priced=323 parse-fail=0), `d586f03` (validate_band.py gate deterministico). Fixture `tests/fixtures/it_dist_bmw_serie3_2021_s273cont4.json` (740KB) e `tools/validate_band.py` presenti.
-- Azione: nuovo anello `BM` in rings.json (solo config-field → Gate B permette) con check_cmd DETERMINISTICO `python3 tools/tests/test_base_mercato_gate.py` (fixture esiste + n_priced==323 + `gate_it_band(330i)` emette verdict senza eccezioni). Backup 1d pre-edit. `refresh.py S298` → tabella STATE.md §1 rigenerata: `BM = VERIFIED`.
-- Falsificabilità PROVATA: fixture presente → exit 0 (PASS); FIXTURE→path inesistente → exit 1 (FAIL). NON sempre-verde.
-- Dati reali gate sul 330i: verdict=VERDICT, fallback_declared=True, `n_by_level {L0:2, L1:3, L2:4, L3:20}`, banda 25.349–32.775.
+### UNITÀ C — TEMPLATE BEVE DALLA FONTE (verde)
+- Il copy "325 annunci / cap 20 pagine / non esaustivo" era HARDCODED in `pdf_generator_enterprise.py::_create_it_distribution_section`.
+- Fix a catena (fonte→template, nessun ricalcolo parallelo):
+  1. `it_market_price.py::_load_fixture` ora ritorna anche `meta` (era `(raw, scrape_date)` → `(raw, scrape_date, meta)`).
+  2. `get_it_distribution` propaga in `dist`: `n_priced` (fixture meta o `len(pool)` live), `pages_scraped`, `terminated_by_empty`.
+  3. `tools/validate_band.py::level_prices_from_pool` aggiornato all'unpack a 3 (era il 2° caller di `_load_fixture`, si era rotto → fixato).
+  4. `VehicleData` + mapping `generate_dossier_from_data`: nuovi campi `it_n_priced/it_pages_scraped/it_terminated_by_empty`.
+  5. Template: `_sample` costruito dai campi fonte → esaustivo="scrape esaustivo: N annunci IT su P pagine, terminato a pagina vuota".
+  6. Doppia etichetta rimossa: riga 1447 `f'Documento richiesto: {cert_note}.'` → `f'{cert_note}.'` (`cert_note` già porta "Documento ottenuto —").
+- Rigenerato SOLO `tests/dossiers_s296/ARGOS_DEMO_S296_a_330i_REAL_fallback.pdf`. **Done-C verificato (estratto pypdf, verbatim)**:
+  `323` PRESENTE · `325`/`cap 20 pagine`/`non esaustivo` ASSENTI · `scrape esaustivo` PRESENTE ·
+  `Documento richiesto: Documento ottenuto` (doppia label) ASSENTE. Riga PDF:
+  `>=20 comparabili (scrape esaustivo: 323 annunci IT su 21 pagine, terminato a pagina vuota)`.
+- Regressione BM: `python3 tools/tests/test_base_mercato_gate.py` exit 0 (n_priced=323 pages=21 terminated=True, n_by_level={0:2,1:3,2:4,3:20}).
+- Rule 1d: backup `.bak-S299-*` per i 3 .py toccati (verificati size>0, fuori /tmp).
 
-### RESIDUO B (discordanza da chiudere — NON hand-edito, VIETATO da mandato)
-Il blockquote stale STATE.md righe 20-32 ("S273-cont base-mercato NON affidabile (cap-truncated)") è PROSA non-generata: `refresh.py` tocca solo il blocco tra i marker GENERATED (la tabella), non il blockquote. Ora la tabella dice `BM=VERIFIED` mentre il blockquote dice il contrario → STATE.md internamente incoerente. Il generatore NON può rimuovere quel testo. Serve decisione Luke: (opzione) rimuovere/aggiornare il blockquote a mano sotto `ARGOS_HARNESS_UNLOCK=1` (state_guard Gate A LO PERMETTE — protegge solo il blocco marker, "le sezioni narrative fuori dal blocco restano editabili"), oppure spostare quella prosa dentro una regione generata.
-
-### UNITÀ C — NON ESEGUITA (deferita, causa già localizzata)
-Causa PRE-individuata (letta, non ancora fixata): il PDF demo (a) è generato da `tools/scripts/build_s296_dossier.py::payload_a_real_fallback` che consuma `get_it_distribution` (tools/it_market_price.py) e passa `dist` a `generate_dossier_from_data`. Il copy stale "325 annunci / cap 20 pagine / non esaustivo" viene dal template `tools/scripts/pdf_generator_enterprise.py` (S273 vecchia fixture n=325), NON dalla fonte cont4 (323). Numeri reali fonte: L0:2/L1:3/L2:4/L3:20, n_priced=323, 21 pagine, terminated_by_empty. Fix minimo C: template consuma i numeri da `dist`/fixture (non ricalcolo parallelo) + rimuove copy stale "325/cap/non esaustivo" + etichetta doppia "Documento richiesto: Documento ottenuto —" + rigenera SOLO il PDF (a). Rule 1d sui file toccati.
+### UNITÀ D — BLOCKQUOTE STALE (verde)
+- STATE.md righe 20-32 (prosa "S273-cont base-mercato NON affidabile (cap-truncated)") RIMOSSA — contraddiceva la tabella generata (BM=VERIFIED).
+- Sostituita con UNA riga: "> Stato gate = tabella generata sotto (`state/refresh.py`). Non scrivere stato a mano in questo file."
+- `python3 state/refresh.py S299` exit 0 → 8 anelli invariati, **BM=VERIFIED** confermato. Backup 1d STATE.md pre-edit.
 
 ### BLOCKED-ON (invariati, fatti esterni)
 - E2E TEST_FOUNDER (anelli 1/6-7/9B) — Luke fisico su WA/HITL.
 - Anello 8 (sign_url firmato dal dealer reale) — freeze fisico.
 - Parità gate/runtime `/send` `approved_ts` — gated su autonomia-invio.
-
-### PROSSIMO PASSO (singolo, falsificabile)
-UNITÀ C in sessione fresca: in `pdf_generator_enterprise.py` far consumare al template i campi da `dist` (get_it_distribution) invece di stringhe hardcoded "325 annunci/cap 20 pagine"; rigenerare SOLO `tests/dossiers_s296/ARGOS_DEMO_S296_a_330i_REAL_fallback.pdf`; done = estratto testo del PDF con L0/L1/L2/L3 e count = fonte (323, non 325) e copy stale assente.
 
 ### CATENA DI AUTORITÀ
 codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/handoff (SUPERSEDED)
