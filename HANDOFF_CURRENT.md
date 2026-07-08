@@ -1,28 +1,24 @@
-# HANDOFF — S300 (UNITÀ A.1 verde · A.2/B bloccati su input Luke) — 2026-07-07 UTC
+# HANDOFF — S301 — 2026-07-08 UTC
 > Render dello stato su disco. Autorità = git/disco, NON questo testo. Rigenerabile con chiudi-ordinatamente.
 
 ### SESSIONE
 - Tipo: WRITE-CODE
-- Mandato: capability Day-1 personalizzato — (A) dealer_profile da scrape pubblico → (B) generatore+gate anti-invenzione → (C) E2E TEST_FOUNDER.
-- Esito: **UNITÀ A.1 VERDE** (estrattore deterministico + selftest 3/3 PASS). A.2 e B fermati su DUE input esterni di Luke non forniti (URL dealer + testo esatto scheletro ratificato). C non iniziata (per mandato defer a sessione fresca).
+- Mandato: (B) `validate_day1.py` + suite sintetica = artefatto di produzione del Day-1, self-contained, zero dati live; poi (A.2-prep) solo piano-scrape pool ICP se budget regge; C non toccata.
+- Esito: **UNITÀ B VERDE** — gate anti-invenzione `validate_day1.py` + suite `test_validate_day1.py` 5/5 PASS (exit-code verbatim verificati), commit `5537743`. **A.2-PREP NON FATTO** (checkpoint context >65% → chiusura per mandato). C non iniziata.
 
 ### VERITÀ GIT
-- branch `s210/audit-master-plan` · HEAD `44c877e` 2026-07-07 · working-tree dirty (solo file auto-refresh SessionStart)
-- commit di questa sessione: `44c877e` "session-close: UNITÀ A.1 — estrattore profilo dealer AS24 deterministico (selftest 3/3 PASS)"
-- dirty NON mio (auto-refresh SessionStart, non committato): `STATE.md` · `state/rings.json` · `.claude/NEXT_SESSION_PROMPT.md`
+- branch `s210/audit-master-plan` · HEAD `5537743` 2026-07-08 · working-tree dirty (solo file auto-refresh SessionStart, NON miei): `.claude/NEXT_SESSION_PROMPT.md` · `STATE.md` · `state/rings.json`
+- commit di questa sessione: `5537743` "UNITÀ B: validate_day1.py gate anti-invenzione Day-1 + suite 5/5 PASS" (3 file, +415)
 - NON pushato (regola S278: push bloccato finché scrub history secret non fatto).
 
-### UNITÀ A.1 — ESTRATTORE PROFILO DEALER (verde)
-- `tools/dealer_profile.py` (nuovo, 204 righe). Due livelli:
-  - `aggregate_profile(listings, declared_total)` — FUNZIONE PURA testabile, dove vive la disciplina anti-invenzione.
-  - `extract_profile(url)` — glue su `AutoScoutScraper.fetch + get_total_pages + parse_listings` (scraper VERIFICATO, non reimplementato). Limiti scraper IMMUTABILI non toccati.
-- Regola ferrea implementata: campo assente = `null`, MAI stimato.
-  - `stock_count` = SOLO `numberOfResults` dichiarato da AS24; `len(listings)` di una pagina = floor parziale → NON usato come stima; assente → null.
-  - `top_segment` = `null` (AS24 Listing non espone campo segmento → nessuna fonte, no euristica). `top_models` porta il fatto presente.
-  - `example_vehicles` = solo annunci con marca+modello+anno+prezzo TUTTI presenti (max 2).
-- Prova (grezzo): `python3 tools/dealer_profile.py --selftest` → `SELFTEST PASS (3 casi: aggregazione, null-discipline, no-stima stock_count)`.
-- CLI: `--url` (live) · `--html-file --country` (offline) · `--out` · `--selftest`.
-- Distinzione da `tools/profile_dealers_s106.py` (che STIMA archetipo/premium_pct): qui NESSUNA stima — è il punto.
+### UNITÀ B — validate_day1.py (verde)
+- `validate_day1.py` (root, 276 righe) — gate di FORMA deterministico, pattern `validate_kb.py` (riusa `parse_fact`/`FACT_RE`/`TIER_RE`). Funzione pura `validate_day1(message, profile, kb_lines)->list[violazioni]` + CLI `--message --profile --kb-dir`.
+- Fonti di verità = SOLO `dealer_profile.json` (da `tools/dealer_profile.py`) + `kb/dominio/*.md` (FATTI [T1/T2/T3]). Checks: (i) numeri+marche-stock tracciabili → claim orfano = exit 1 nominato; (ii) lessico vietato `garanzia|garantit*|certificato costruttore|assicuriamo` = 0 match; (iii) opt-out + identità "Azzurra" presenti; (iv) numero che traccia SOLO a [T3] mai nella stessa frase di parola di certezza.
+- `tools/tests/test_validate_day1.py` (132 righe, fixture INLINE, zero dati live): (a) pulito→exit0, (b) numero inventato 45→exit1, (c) T3-come-certo→exit1, (d) opt-out assente→exit1, (e) **CASO-COLPEVOLE** stile batch_generator (BMW+~20 da archetipo/fallback su profilo Audi/Mercedes)→exit1. Prova grezza: `SUITE PASS (5/5)`.
+- `batch_generator.py` marcato `DEPRECATED-S301` (commento in testa + pointer al path grounded). Non è file SoT-protetto → Gate E non ha bloccato; `ast.parse` OK.
+
+### CATENA DI AUTORITÀ
+codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED)
 
 ### STATO E2E (da STATE.md, verbatim — non re-narrare)
 | # | Anello | Stato |
@@ -36,33 +32,24 @@
 | 8 | contract -> sign_url | BLOCKED (freeze esterno) |
 | BM | base-mercato IT fidata | VERIFIED |
 
-### GATE A DEALER REALE (da STATE.md §3)
-- [A] liceità canale primo contatto = CONFERMATO LUKE 2026-06-16 (non più bloccante)
-- [E] trasparenza AMBRA deployata = CHIUSO (commit 118343b, ARGOS_ASSISTANT='Azzurra')
-- [D] base-mercato fidata = VERIFIED (BM smoke PASS)
-- Residuo bloccante invio reale = E2E TEST_FOUNDER verde (anelli 1/6-7/9B UNVERIFIED) + Luke "pienamente soddisfatto".
+### GATE A DEALER REALE
+[A] liceità canale primo contatto = CONFERMATO LUKE 2026-06-16 · [E] trasparenza AMBRA (Azzurra) = CHIUSO (commit 118343b) · [D] base-mercato fidata = VERIFIED. Residuo bloccante = E2E TEST_FOUNDER verde (1/6-7/9B) + Luke "pienamente soddisfatto".
 
 ### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
-Luke fornisce i DUE input mancanti → poi A.2 (`python3 tools/dealer_profile.py --url <URL> --out <profilo>.json`) + costruzione UNITÀ B (generatore + `validate_day1.py`).
-1. **URL AS24 pubblico del dealer** su cui girare A.2 (Done-A = JSON profilo verbatim + path).
-2. **Testo esatto dello scheletro ratificato** per B (claim fissi: leva anti-frode "circa 3x, fonte commerciale"; opt-out "no grazie"; slot {dealer_name},{stock_hint},{vehicle_hook}). NON inventabile da CC senza violare il gate anti-invenzione stesso.
+A.2-PREP (solo carta, zero scrape): scrivere in `docs/briefs/` il piano-scrape del pool dealer ICP (fonte pagine concessionari AS24, query/percorso, stima richieste vs `daily_request_cap`, criteri stop, output atteso N profili → filtro ICP <20/TIER). NESSUNA richiesta parte.
 
 ### BLOCKED-ON (fatti esterni irraggiungibili in sessione)
-- Input Luke: URL dealer + testo scheletro ratificato (sopra).
-- E2E TEST_FOUNDER (anelli 1/6-7/9B) — Luke fisico su WA/HITL (UNITÀ C, defer a sessione fresca per mandato).
-- Anello 8 (sign_url firmato dal dealer reale) — freeze fisico.
+- Pool dealer ICP reale = scrape fresco rate-limited (sessione dedicata con budget) — su disco 1 solo dealer (RossettoMotors, 28 listing → NON ICP micro-<20).
+- Input Luke: URL AS24 dealer per A.2 live + testo esatto scheletro Day-1 ratificato (claim fissi: leva "circa 3x, fonte commerciale"; opt-out; slot {dealer_name}/{stock_hint}/{vehicle_hook}).
+- E2E TEST_FOUNDER (anelli 1/6-7/9B) — Luke fisico WA/HITL. Anello 8 sign_url — freeze fisico.
 
 ### BACKLOG (differito, NON prerequisito del primo invio)
 - Parità gate/runtime `/send` `approved_ts` (gated su autonomia-invio, STATE.md §3).
 
 ### NOTE PER IL GIUDICE (osservazioni da segnalare a Luke)
-- Il generatore Day-1 ESISTENTE (`.claude/skills/human-first-outreach/scripts/batch_generator.py::generate_day1_message` + `get_dealer_stock_from_db` fallback "assume stock generico {total:20,BMW:4...}") **INVENTA**: scrive "Ho visto il suo stock, tratta BMW e premium" da mappa archetipo, non da dati reali. È esattamente l'anti-pattern che UNITÀ B deve rendere impossibile. Da NON riusare per B; B parte da `aggregate_profile` (campi verificati) + gate di forma.
-- `tools/profile_dealers_s106.py` NON riusabile per A: stima archetipo/premium_pct (opposto della regola A).
-- `tools/validate_band.py` e altri 4 file usano pattern `validate_*` → riferimento di forma per `validate_day1.py` (UNITÀ B.3).
-- FASE 0 reality-check tutta verde: HEAD atteso, wa_status=connected (0/20), limiti scraper presenti+intatti (rate_limit_min/max_s, daily_request_cap=1000/2000, max_workers=3).
+- Il gate `validate_day1.py` è la RETE, non il generatore: cattura l'invenzione a valle di qualunque compositore (LLM incluso). Il caso-colpevole (e) dimostra che avrebbe bloccato il bug reale di `batch_generator.py`.
+- Limite onesto del gate (deterministico, per FORMA): traccia NUMERI (canonicalizzati IT: '.'=migliaia, ','=decimale) e MARCHE-in-contesto-stock. NON valida claim testuali liberi senza numero/marca (es. un aggettivo qualitativo inventato passa) — è un gate di forma, non un fact-checker semantico. Con KB ricca il rischio è falso-match numerico (numero inventato coincide con una cifra KB): mitigato perché le marche-stock devono tracciare al PROFILO, non alla KB.
+- A.2-prep NON eseguito: mandato ha CHECKPOINT >65% → chiudi; context ha superato la soglia durante UNITÀ B. È SOLO carta, riprende a costo nullo la prossima sessione.
 
 ### DOVE STA LA STRATEGIA (puntatori, non ri-sintetizzare)
-STATE.md §3 (gate dealer reale) · docs/ROADMAP.md · .claude/rules/communication.md (CRED-SEQUENCE-001 / NO-OFFER-DAY1-001: prezzo NON nel Day-1) · MEMORY.md (feedback_cold_message_honest_as_dossier, s4_day1_vehicle_first_compositore)
-
-### CATENA DI AUTORITÀ
-codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/handoff (SUPERSEDED)
+docs/ROADMAP.md (ICP S292: micro <20, TIER A/B, €25-90k, 2018-2023, no BEV) · STATE.md §3 (gate dealer reale) · .claude/rules/communication.md (CRED-SEQUENCE-001 / NO-OFFER-DAY1-001) · memory/s300_day1_capability_recon.md (pattern validate_day1 + colpevole) · validate_kb.py + kb/dominio/frode_km_verifica.md (fatto >3x [T3])
