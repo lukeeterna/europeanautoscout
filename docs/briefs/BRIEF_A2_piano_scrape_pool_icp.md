@@ -34,19 +34,19 @@ Costruire un POOL di dealer candidati e filtrarlo all'ICP, per alimentare UNITÀ
 
 ## Stima richieste vs cap
 - Cap: `daily_request_cap` — il blocco `autoscout24_it` NON lo ridefinisce → **default ereditato
-  da `PortalConfig` (atteso 1000, cf. altri portali; VERIFICARE a runtime con `get_stats()['daily_cap']`)**.
+  da `PortalConfig` = **2000** (verificato S302/S303 su config.py:104; leggere a runtime con `stats['daily_cap']`, property)**.
 - FASE 1: 13 modelli ICP (9 TIER A + 4 TIER B) × fino a `max_pages=10` = **≤130 richieste**.
   Realistico meno (molte query esauriscono prima di pagina 10 con i filtri anno+prezzo).
 - FASE 2: 1 fetch per candidato (`extract_profile` fa una `fetch`) → **N richieste = N candidati**.
   Con ~50–150 candidati distinti attesi → **≤150 richieste**.
-- **Totale ≤ ~280 richieste << cap 1000**. Rate 4–10s → runtime ordine ~30–60 min. Margine ampio;
+- **Totale ≤ ~280 richieste << cap 2000**. Rate 4–10s → runtime ordine ~30–60 min. Margine ampio;
   resta sotto cap anche raddoppiando i modelli.
 
 ## Criteri di stop (falsificabili)
 1. Per query modello: STOP a pagina vuota o a `max_pages=10` (il minore).
 2. DISCOVERY: STOP quando i dealer candidati distinti ≥ **60** (pool sufficiente al primo batch),
    oppure quando tutti i 13 modelli sono esauriti.
-3. GLOBALE: STOP se `get_stats()['daily_count']` raggiunge **80% del cap** (guard, mai forzare oltre).
+3. GLOBALE: STOP se `stats['daily_count']` (property) raggiunge **80% del cap (1600)** (guard, mai forzare oltre).
 4. PROFILING: salta candidato se `fetch` ≠ 200 o `stock_count` null (dealer non profilabile → log, non ritentare in loop).
 
 ## Output atteso
@@ -59,7 +59,7 @@ Costruire un POOL di dealer candidati e filtrarlo all'ICP, per alimentare UNITÀ
 ## Pre-requisiti / rischi da chiudere PRIMA dell'esecuzione (flag, non assunti)
 - [ ] URL/slug concessionario presente nel `__NEXT_DATA__` del listing (verificare; se no, estendere parser).
 - [ ] Filtri anno/prezzo supportati nella query AS24 dallo scraper attuale (verificare `build query`/params).
-- [ ] `daily_request_cap` effettivo del portale IT (leggere `get_stats()`), non assumere 1000.
+- [x] `daily_request_cap` effettivo del portale IT = **2000** (property `stats['daily_cap']`, verificato S302/S303).
 - [ ] Scrivere `data/pool_icp/` (mkdir) e gitignore se i JSON non vanno versionati.
 
 ## NON in questo brief (defer)
