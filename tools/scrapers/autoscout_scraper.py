@@ -86,6 +86,42 @@ MAKE_SLUG: Dict[str, str] = {
     "Maserati": "maserati",
 }
 
+# ─── Derivazione brand DALL'ITEM (dealer-page, make query assente) ───────────
+# Quando parse_listings è invocato con make="" (dealer_profile.py sulla dealer-page),
+# il brand NON viene dalla query ma va derivato dall'item. Regola ANTI-INVENZIONE:
+# solo campi strutturati reali dell'item o match ESATTO del title contro la lista
+# chiusa MAKE_SLUG. Mai fuzzy, mai stima → nessuna fonte = "" (brand null).
+_MAKE_CANON: Dict[str, str] = {}
+for _cn, _sl in MAKE_SLUG.items():
+    _MAKE_CANON.setdefault(_cn.lower(), _cn)
+    _MAKE_CANON.setdefault(_sl.lower(), _cn)
+
+
+def _canonical_make(raw: Any) -> str:
+    """Normalizza un valore brand strutturato (name/label/slug) al canonico MAKE_SLUG
+    se riconosciuto; altrimenti ritorna la stringa pulita (dato reale dell'item, non
+    stimato). Vuoto / non-stringa / puramente numerico (es. makeId) → ""."""
+    if isinstance(raw, dict):
+        raw = raw.get("name", raw.get("label", ""))
+    s = str(raw).strip() if raw is not None else ""
+    if not s or s.isdigit():
+        return ""
+    return _MAKE_CANON.get(s.lower(), s)
+
+
+def _make_from_title(title: str) -> str:
+    """Ultimo fallback: match ESATTO (word-boundary, no fuzzy) del title contro la
+    lista chiusa dei brand ICP (MAKE_SLUG). Brand più lunghi prima (Range Rover
+    prima di Rover). Nessun match → ""."""
+    if not title:
+        return ""
+    low = str(title).lower()
+    for name in sorted(MAKE_SLUG, key=len, reverse=True):
+        if re.search(r"(?<![a-z0-9])" + re.escape(name.lower()) + r"(?![a-z0-9])", low):
+            return name
+    return ""
+
+
 # Model slug per paese — key: model generico, value: {country: slug}
 # Se il country non e' presente, usa "universal" come fallback.
 MODEL_SLUG: Dict[str, Dict[str, str]] = {
@@ -717,11 +753,21 @@ class AutoScoutScraper(BaseScraper):
                 except (ValueError, TypeError):
                     pass
 
+        # Brand: query-param se presente (comportamento INVARIATO); su dealer-page
+        # (make="") deriva DALL'ITEM — JSON-LD brand/manufacturer, poi title esatto.
+        make_out = make
+        if not (make and make.strip()):
+            make_out = (
+                _canonical_make(item.get("brand"))
+                or _canonical_make(item.get("manufacturer"))
+                or _make_from_title(name)
+            )
+
         return Listing(
             listing_id=lid,
             portal=self.portal_key,
             country=country,
-            make=make,
+            make=make_out,
             model=model,
             variant=str(variant)[:200] if variant else name[:200] if name else "",
             year=year or 0,
@@ -898,11 +944,24 @@ class AutoScoutScraper(BaseScraper):
             st = seller_data.get("type", seller_data.get("sellerType", ""))
             seller_type = _extract_seller_type(str(st))
 
+        # Brand: query-param se presente (comportamento INVARIATO); su dealer-page
+        # (make="") deriva DALL'ITEM — vehicle.make/makeId, poi title esatto (lista chiusa).
+        make_out = make
+        if not (make and make.strip()):
+            make_out = (
+                _canonical_make(vehicle.get("make"))
+                or _canonical_make(vehicle.get("makeName"))
+                or _canonical_make(vehicle.get("makeId"))
+                or _canonical_make(item.get("make"))
+                or _canonical_make((tracking or {}).get("make"))
+                or _make_from_title(f"{item.get('title', '')} {variant or ''}")
+            )
+
         return Listing(
             listing_id=lid,
             portal=self.portal_key,
             country=country,
-            make=make,
+            make=make_out,
             model=model,
             variant=str(variant)[:200] if variant else "",
             year=year or 0,
