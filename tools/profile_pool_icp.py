@@ -23,6 +23,7 @@ Output:
 
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -43,6 +44,34 @@ TARGET_ICP = 10
 # (AS24 espone "Mercedes-Benz", "Land Rover" ecc.). Lista chiusa, no fuzzy.
 TIER_AB = ["porsche", "audi", "bmw", "mercedes", "land rover", "range rover"]
 
+# Concessionari UFFICIALI di rete (filiali brand) — NON target ARGOS, che cerca
+# family-business INDIPENDENTI/multimarca. Lista CHIUSA di pattern (label, regex),
+# word-boundary, case-insensitive. Un match sul company_name => is_icp:false con
+# reason NOMINATA ("OFFICIAL_NETWORK:<label>"), mai esclusione silenziosa.
+OFFICIAL_NETWORK_PATTERNS = [
+    ("Centro Porsche",              r"\bcentro\s+porsche\b"),
+    ("Porsche Zentrum",             r"\bporsche\s+zentrum\b"),
+    ("Centro BMW",                  r"\bcentro\s+bmw\b"),
+    ("BMW <City>",                  r"\bbmw\s+\w+\b"),
+    ("Mercedes-Benz <City>",        r"\bmercedes[-\s]benz\s+\w+\b"),
+    ("Audi Zentrum",                r"\baudi\s+zentrum\b"),
+    ("Centro Audi",                 r"\bcentro\s+audi\b"),
+    ("Land Rover <City> ufficiale", r"\bland\s+rover\s+\w+\s+ufficiale\b"),
+    ("concessionaria ufficiale",    r"\bconcessionari[ao]\s+ufficiale\b"),
+]
+
+
+def official_network_match(company_name):
+    """Ritorna il LABEL del primo pattern di rete ufficiale che matcha
+    company_name, altrimenti None. Word-boundary, case-insensitive, lista chiusa
+    (no fuzzy). company_name None/"" → None."""
+    if not company_name:
+        return None
+    for label, pat in OFFICIAL_NETWORK_PATTERNS:
+        if re.search(pat, company_name, re.IGNORECASE):
+            return label
+    return None
+
 
 def is_tier_ab(top_brands):
     """True se ALMENO un brand del profilo è TIER A/B. top_brands None/[] → False."""
@@ -60,8 +89,15 @@ def is_tier_ab(top_brands):
 
 def icp_verdict(profile):
     """Ritorna (is_icp: bool, reason: str, tier_hits: list)."""
-    stock = profile.get("stock_count")
     tier_hits = is_tier_ab(profile.get("top_brands")) or []
+
+    # Hard-exclude PRIORITARIO: concessionario ufficiale di rete → mai ICP,
+    # indipendentemente da stock/tier. Motivazione nominata.
+    onet = official_network_match(profile.get("company_name"))
+    if onet:
+        return False, f"OFFICIAL_NETWORK:{onet}", tier_hits
+
+    stock = profile.get("stock_count")
 
     reasons = []
     if stock is None:
@@ -123,11 +159,12 @@ def main():
             continue
 
         profiled += 1
-        is_icp, reason, tier_hits = icp_verdict(profile)
         # arricchisce il profilo con identità stabile del candidato (dealer_id per C-select)
+        # PRIMA del verdetto: icp_verdict legge company_name per il check OFFICIAL_NETWORK.
         profile["seller_id"] = sid
         profile["company_name"] = cname
         profile["phones"] = cand.get("phones")
+        is_icp, reason, tier_hits = icp_verdict(profile)
         profile["_icp"] = {"is_icp": is_icp, "reason": reason, "tier_hits": tier_hits}
 
         tag = "✅ICP" if is_icp else "  ──"

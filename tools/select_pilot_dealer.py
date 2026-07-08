@@ -25,12 +25,19 @@ SELECTED_OUT = os.path.join(POOL_DIR, "SELECTED.json")
 
 
 def load_icp_profiles():
-    """Carica i profili ICP-validi (dealer_<seller_id>.json), ordinati per seller_id."""
+    """Carica i profili ICP-validi (dealer_<seller_id>.json), ordinati per seller_id.
+
+    Il flag `_icp.is_icp` del file è AUTORITATIVO: un profilo non-ICP (es. escluso
+    come OFFICIAL_NETWORK) NON entra nel pool di selezione anche se il file resta su
+    disco. Senza questo gate la scelta seed=42 poteva cadere su un dealer escluso.
+    """
     paths = sorted(glob.glob(os.path.join(POOL_DIR, "dealer_*.json")))
     profiles = []
     for p in paths:
         with open(p, encoding="utf-8") as f:
             prof = json.load(f)
+        if not (prof.get("_icp") or {}).get("is_icp"):
+            continue
         profiles.append(prof)
     # ordine stabile per dealer_id (seller_id come stringa → chiave canonica)
     profiles.sort(key=lambda x: str(x.get("seller_id", "")))
