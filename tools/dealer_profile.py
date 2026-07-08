@@ -106,9 +106,12 @@ def extract_profile(url: str, *, html: Optional[str] = None, country: str = "IT"
     scraper = AutoScoutScraper(portal)
 
     if html is None:
-        status, html = scraper.fetch(url)
-        if status != 200 or not html:
-            raise RuntimeError(f"fetch fallito: status={status} url={url}")
+        # NB S303: AutoScoutScraper.fetch è rotto (super().fetch inesistente dopo il
+        # refactor base→_fetch). L'API reale rate-limited è _fetch(url)->str ("" su 404,
+        # raise su 403/429/5xx persistenti). Limiti scraper INVARIATI.
+        html = scraper._fetch(url)
+        if not html:
+            raise RuntimeError(f"fetch fallito (vuoto/404): url={url}")
 
     declared_total = None
     scraper.get_total_pages(html)  # popola _last_declared_results dal __NEXT_DATA__
