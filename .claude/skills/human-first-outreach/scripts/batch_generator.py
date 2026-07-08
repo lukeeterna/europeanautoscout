@@ -1,3 +1,10 @@
+# DEPRECATED-S301 — NON usare generate_day1_message: INVENTA i claim sullo stock.
+#   perche_lui_map (righe ~144) genera "tratta BMW e premium" da ARCHETIPO, non da dati;
+#   get_dealer_stock_from_db (riga ~109) ha fallback {"total":20,"BMW":4,...} → "~20 auto"
+#   inventato. È l'anti-pattern che il gate anti-invenzione blocca (vedi test caso-colpevole).
+#   PATH GROUNDED SOSTITUTIVO: tools/dealer_profile.py (fatti reali, null-discipline)
+#   + validate_day1.py (gate di forma) + tools/tests/test_validate_day1.py.
+#   Rif: memory/s300_day1_capability_recon.md.
 """
 batch_generator.py — ARGOS human-first-outreach Phase 2
 Batch generation + digest Telegram | S128
