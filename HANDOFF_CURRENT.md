@@ -1,21 +1,20 @@
-# HANDOFF — S301 — 2026-07-08 UTC
+# HANDOFF — S303 — 2026-07-08 UTC
 > Render dello stato su disco. Autorità = git/disco, NON questo testo. Rigenerabile con chiudi-ordinatamente.
 
 ### SESSIONE
 - Tipo: WRITE-CODE
-- Mandato: (B) `validate_day1.py` + suite sintetica = artefatto di produzione del Day-1, self-contained, zero dati live; poi (A.2-prep) solo piano-scrape pool ICP se budget regge; C non toccata.
-- Esito: **UNITÀ B VERDE** — gate anti-invenzione `validate_day1.py` + suite `test_validate_day1.py` 5/5 PASS (exit-code verbatim verificati), commit `5537743`. **A.2-PREP NON FATTO** (checkpoint context >65% → chiusura per mandato). C non iniziata.
+- Mandato: sbloccare pre-req 4a e completare BRIEF_A2 emendato — harvest dealer-URL → profiling (stop 10 ICP) → select seed=42. Zero invii.
+- Esito: **UNITÀ A VERDE** (pre-req 4a RISOLTO + harvester `discover_dealers.py`, 45 candidati/3 richieste) + **bug B fixato** (`dealer_profile.fetch` rotto → `_fetch`, selftest 3/3). UNITÀ B (profiling) e C-select NON eseguite: chiusura per context-budget (60%→63%, vincolo #7). commit `f4761b6`.
 
 ### VERITÀ GIT
-- branch `s210/audit-master-plan` · HEAD `5537743` 2026-07-08 · working-tree dirty (solo file auto-refresh SessionStart, NON miei): `.claude/NEXT_SESSION_PROMPT.md` · `STATE.md` · `state/rings.json`
-- commit di questa sessione: `5537743` "UNITÀ B: validate_day1.py gate anti-invenzione Day-1 + suite 5/5 PASS" (3 file, +415)
+- branch `s210/audit-master-plan` · HEAD `f4761b6` 2026-07-08 17:33 · working-tree dirty (solo file auto-refresh SessionStart, NON miei): `.claude/NEXT_SESSION_PROMPT.md` · `STATE.md` · `state/rings.json`
+- commit di questa sessione: `f4761b6` "S303 UNITÀ A: harvester dealer-URL (pre-req 4a risolto) + fix bug fetch dealer_profile" (3 file, +963/−3)
 - NON pushato (regola S278: push bloccato finché scrub history secret non fatto).
 
-### UNITÀ B — validate_day1.py (verde)
-- `validate_day1.py` (root, 276 righe) — gate di FORMA deterministico, pattern `validate_kb.py` (riusa `parse_fact`/`FACT_RE`/`TIER_RE`). Funzione pura `validate_day1(message, profile, kb_lines)->list[violazioni]` + CLI `--message --profile --kb-dir`.
-- Fonti di verità = SOLO `dealer_profile.json` (da `tools/dealer_profile.py`) + `kb/dominio/*.md` (FATTI [T1/T2/T3]). Checks: (i) numeri+marche-stock tracciabili → claim orfano = exit 1 nominato; (ii) lessico vietato `garanzia|garantit*|certificato costruttore|assicuriamo` = 0 match; (iii) opt-out + identità "Azzurra" presenti; (iv) numero che traccia SOLO a [T3] mai nella stessa frase di parola di certezza.
-- `tools/tests/test_validate_day1.py` (132 righe, fixture INLINE, zero dati live): (a) pulito→exit0, (b) numero inventato 45→exit1, (c) T3-come-certo→exit1, (d) opt-out assente→exit1, (e) **CASO-COLPEVOLE** stile batch_generator (BMW+~20 da archetipo/fallback su profilo Audi/Mercedes)→exit1. Prova grezza: `SUITE PASS (5/5)`.
-- `batch_generator.py` marcato `DEPRECATED-S301` (commento in testa + pointer al path grounded). Non è file SoT-protetto → Gate E non ha bloccato; `ast.parse` OK.
+### FATTO CHIAVE — pre-req 4a RISOLTO (fetch-di-prova reale, 1 richiesta)
+- L'oggetto `seller` del `__NEXT_DATA__` AS24 ESPONE l'URL concessionario: `seller.links.infoPage` = `https://www.autoscout24.it/concessionari/<slug>?atype=C`. Anche `seller.id` (dealer_id stabile), `companyName`, `type`, `phones[]`.
+- `daily_cap` `autoscout24_it` = **2000** (BRIEF_A2 dice 1000 = SBAGLIATO). BMW X5 ICP → 233 risultati/13 pagine; Porsche Macan → 789/42.
+- Bug scoperto: `AutoScoutScraper.fetch()` è rotto (`super().fetch` inesistente post-refactor base→`_fetch`). Il path `--url` di `dealer_profile.py` crashava → fix a `_fetch`. Limiti scraper INVARIATI.
 
 ### CATENA DI AUTORITÀ
 codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED)
@@ -36,20 +35,20 @@ codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED
 [A] liceità canale primo contatto = CONFERMATO LUKE 2026-06-16 · [E] trasparenza AMBRA (Azzurra) = CHIUSO (commit 118343b) · [D] base-mercato fidata = VERIFIED. Residuo bloccante = E2E TEST_FOUNDER verde (1/6-7/9B) + Luke "pienamente soddisfatto".
 
 ### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
-A.2-PREP (solo carta, zero scrape): scrivere in `docs/briefs/` il piano-scrape del pool dealer ICP (fonte pagine concessionari AS24, query/percorso, stima richieste vs `daily_request_cap`, criteri stop, output atteso N profili → filtro ICP <20/TIER). NESSUNA richiesta parte.
+UNITÀ B — profiling: per ogni candidato in `data/pool_icp/_candidates.json` eseguire `python3 tools/dealer_profile.py --url "<info_page>" --out data/pool_icp/<slug>.json`; arbitro filtro = `stock_count` (=numberOfResults); STOP a 10 ICP validi (stock<20 ∧ top_brands⊆premium ∧ no BEV) o guard 80% (1600). PRIMA verificare che la pagina `/concessionari/<slug>` esponga `numberOfResults` nel `__NEXT_DATA__` (path `--url` NON E2E-verificato su pagina dealer reale in S303: solo ast+selftest; `_fetch` provato live).
 
 ### BLOCKED-ON (fatti esterni irraggiungibili in sessione)
-- Pool dealer ICP reale = scrape fresco rate-limited (sessione dedicata con budget) — su disco 1 solo dealer (RossettoMotors, 28 listing → NON ICP micro-<20).
-- Input Luke: URL AS24 dealer per A.2 live + testo esatto scheletro Day-1 ratificato (claim fissi: leva "circa 3x, fonte commerciale"; opt-out; slot {dealer_name}/{stock_hint}/{vehicle_hook}).
+- UNITÀ C: `tools/select_pilot_dealer.py` NON esiste ancora — da scrivere (ordine stabile per dealer_id, random seed=42 → SELECTED.json, idempotente).
 - E2E TEST_FOUNDER (anelli 1/6-7/9B) — Luke fisico WA/HITL. Anello 8 sign_url — freeze fisico.
 
 ### BACKLOG (differito, NON prerequisito del primo invio)
 - Parità gate/runtime `/send` `approved_ts` (gated su autonomia-invio, STATE.md §3).
+- `AutoScoutScraper.fetch()` override morto: pulire/rimuovere (oggi aggirato da `_fetch`, non urgente).
 
 ### NOTE PER IL GIUDICE (osservazioni da segnalare a Luke)
-- Il gate `validate_day1.py` è la RETE, non il generatore: cattura l'invenzione a valle di qualunque compositore (LLM incluso). Il caso-colpevole (e) dimostra che avrebbe bloccato il bug reale di `batch_generator.py`.
-- Limite onesto del gate (deterministico, per FORMA): traccia NUMERI (canonicalizzati IT: '.'=migliaia, ','=decimale) e MARCHE-in-contesto-stock. NON valida claim testuali liberi senza numero/marca (es. un aggettivo qualitativo inventato passa) — è un gate di forma, non un fact-checker semantico. Con KB ricca il rischio è falso-match numerico (numero inventato coincide con una cifra KB): mitigato perché le marche-stock devono tracciare al PROFILO, non alla KB.
-- A.2-prep NON eseguito: mandato ha CHECKPOINT >65% → chiudi; context ha superato la soglia durante UNITÀ B. È SOLO carta, riprende a costo nullo la prossima sessione.
+- Il fetch-di-prova mai fatto in S302 era il vero sblocco: bastava 1 richiesta. Fatta → pre-req 4a risolto, harvester scritto, 45 candidati reali in 3 richieste (cap 2000, margine enorme).
+- Bug latente su UNITÀ B: `dealer_profile --url` sarebbe crashato al primo uso reale (fetch rotto). Scoperto e fixato PRIMA di sprecare richieste; ma il path `--url` end-to-end su una pagina dealer NON è ancora verificato live (deferito B): rischio residuo = la pagina `/concessionari/<slug>` potrebbe NON esporre `numberOfResults` come la pagina di ricerca. Da verificare al 1° profiling.
+- Discovery limitata a `--max-dealers 40` per budget: pool completo (13-14 modelli, guard 1600) si ottiene con `--max-dealers 0`.
 
 ### DOVE STA LA STRATEGIA (puntatori, non ri-sintetizzare)
-docs/ROADMAP.md (ICP S292: micro <20, TIER A/B, €25-90k, 2018-2023, no BEV) · STATE.md §3 (gate dealer reale) · .claude/rules/communication.md (CRED-SEQUENCE-001 / NO-OFFER-DAY1-001) · memory/s300_day1_capability_recon.md (pattern validate_day1 + colpevole) · validate_kb.py + kb/dominio/frode_km_verifica.md (fatto >3x [T3])
+docs/ROADMAP.md (ICP S292: micro <20, TIER A/B, €25-90k, 2018-2023, no BEV) · docs/briefs/BRIEF_A2_piano_scrape_pool_icp.md (correggere cap 1000→2000) · STATE.md §3 (gate dealer reale) · memory/s303_a2_unblocked_harvester_fetch_bug.md
