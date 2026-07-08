@@ -25,7 +25,9 @@ import sys
 from collections import Counter
 from typing import List, Optional
 
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scrapers"))
+sys.path.insert(0, _REPO_ROOT)  # abilita import package-qualified tools.scrapers.* (import relativi .base_scraper)
 from models import Listing  # noqa: E402
 
 
@@ -100,7 +102,7 @@ def aggregate_profile(
 
 def extract_profile(url: str, *, html: Optional[str] = None, country: str = "IT") -> dict:
     """Fetch (o html offline) + parse via scraper verificato + aggregate."""
-    from autoscout_scraper import AutoScoutScraper
+    from tools.scrapers.autoscout_scraper import AutoScoutScraper
 
     portal = f"autoscout24_{country.lower()}"
     scraper = AutoScoutScraper(portal)
