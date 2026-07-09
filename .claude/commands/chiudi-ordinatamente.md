@@ -7,6 +7,7 @@ Esegui SEMPRE questi passi in ordine. Sovrascrivi gli artefatti per intero; mai 
 - VIETATO dichiarare "verde/done/passa" senza prova git o output di test grezzo.
 - Autorità = git/disco. Questo handoff è un RENDER, non una fonte.
 - Dato mancante su disco → "ASSENTE", non inventare. No sub-agent. CC-MAIN.
+- CAMPI GATE/ANELLI = OUTPUT VERBATIM di comando (`last_status` da `state/rings.json`; riga gate via `grep` da `HANDOFF_CURRENT.md`). MAI prosa riformulata. Il falso-verde `[A]=CHIUSO` (S310) nacque da re-narrazione nel RENDER, non dal disco: il render è la superficie da cablare.
 
 ## PASSI
 1. FASE 0: pwd (=root) · git branch · git log -1 · git status --short · git diff --stat.
@@ -32,10 +33,11 @@ Esegui SEMPRE questi passi in ordine. Sovrascrivi gli artefatti per intero; mai 
 ### CATENA DI AUTORITÀ
 codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED)
 
-### STATO E2E (da STATE.md, verbatim — non re-narrare)
-<stati anelli copiati>
+### STATO E2E (OUTPUT VERBATIM da `state/rings.json` last_status — non re-narrare)
+<incolla last_status di ogni anello letto da state/rings.json; output di comando, MAI prosa>
 
-### GATE A DEALER REALE
+### GATE A DEALER REALE (OUTPUT VERBATIM — non re-narrare)
+<riga gate via grep da HANDOFF_CURRENT.md. Un gate NON raggiunto = "= APERTO/BLOCKED-ON", MAI "= CHIUSO">
 [A] <cond>=<valore> · [E] <cond>=<valore> · [D] <cond>=<valore>
 
 ### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
