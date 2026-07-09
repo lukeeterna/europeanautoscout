@@ -31,19 +31,32 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 
 from validate_day1 import (  # noqa: E402
     validate_day1, load_kb_lines, kb_facts_from_lines,
-    profile_brands, profile_numbers,
+    profile_brands, profile_numbers, FORBIDDEN_PROVENANCE,
 )
 import llm_cascade as L  # noqa: E402
 
 
 # ── grounding: fatti KB in forma leggibile per il prompt ──────────────────────
 
+def _fact_is_provenance(line):
+    """True se il FATTO tocca la provenienza estera/import (riusa la rete del gate)."""
+    return any(rx.search(line) for rx, _ in FORBIDDEN_PROVENANCE)
+
+
 def kb_grounding_block(kb_lines):
-    """Rende i FATTI KB (FATTO+NUMERO+tier) come elenco compatto per il prompt."""
+    """Rende i FATTI KB provenienza-NEUTRI (FATTO+NUMERO+tier) come elenco per il prompt.
+
+    Scarta deterministicamente i FATTI che toccano la provenienza estera/import
+    (es. 'importate 6,3% vs domestiche 2,1%', registri esteri Car-Pass/RDW/Histovec):
+    la regola geo (CLAUDE.md:17 / communication.md:21) PREVALE, quindi il compositore
+    non deve nemmeno vederli. Il gancio km resta un problema del mercato usato IT.
+    """
     facts = kb_facts_from_lines(kb_lines)
     out = []
     for f in facts:
         line = f["text"]
+        if _fact_is_provenance(line):
+            continue
         # estrai FATTO: ... e NUMERO: ... in forma breve
         mfat = re.search(r"FATTO:\s*(.+?)\s*\|", line)
         mnum = re.search(r"NUMERO:\s*(.+?)\s*\|", line)
@@ -61,6 +74,12 @@ Componi il PRIMO messaggio WhatsApp a un concessionario auto italiano. Obiettivo
 credibilita' + competenza, breve (max ~5 righe), tono professionale e diretto.
 Chiudi con UNA domanda chiusa (risposta si'/no).
 
+GANCIO (l'angolo del messaggio): la frode sui chilometri e' un problema diffuso del
+mercato dell'usato IN ITALIA, che danneggia i CLIENTI del concessionario (chi compra
+paga troppo per un'auto con storia falsata). Ti presenti come chi aiuta a verificare i
+km PRIMA dell'acquisto. NON e' un discorso sull'origine/provenienza delle auto: e' un
+problema del mercato italiano e dei suoi acquirenti, punto.
+
 REGOLE INVIOLABILI (il messaggio viene passato a un validatore automatico):
 1. IDENTITA': il testo DEVE contenere il nome "Azzurra" e dichiararti "assistente di
    Luca Ferretti". Non firmarti come Luca in prima persona.
@@ -69,8 +88,13 @@ REGOLE INVIOLABILI (il messaggio viene passato a un validatore automatico):
 3. MARCHE: puoi citare come stock del concessionario SOLO le sue marche reali, che ti
    verranno date. NON inventare altre marche.
 4. NUMERI: NON scrivere alcuna cifra, percentuale, prezzo, anno o numero di telefono,
-   con UNA SOLA eccezione: puoi dire "circa 3 volte" riferito al maggior rischio di km
-   non veritieri (dato di ordine di grandezza, fonte commerciale). Nessun altro numero.
+   con UNA SOLA eccezione: puoi citare AL MASSIMO UN dato di ordine di grandezza,
+   provenienza-neutro, scelto tra questi (fonte commerciale):
+     - "chi compra un'auto con i km non veritieri paga circa il 25-30% in piu' del
+       valore reale"; OPPURE
+     - "in Italia quasi una BMW Serie 5 usata controllata su dieci ha i km scalati".
+   Nessun altro numero. VIETATO il dato "circa 3 volte"/"3x": deriva dal confronto
+   auto-importate-vs-domestiche ed e' fuori dalla regola #7.
 5. VIETATE le parole: "garanzia", "garantito", "certificato costruttore", "assicuriamo".
    Non promettere alcuna garanzia.
 6. Le statistiche sono ORDINE DI GRANDEZZA (fonte commerciale): NON usare parole di
@@ -80,6 +104,8 @@ REGOLE INVIOLABILI (il messaggio viene passato a un validatore automatico):
    "reimportazione", "veicolo EU", "premium", "cerco auto" E ogni perifrasi equivalente
    ("fuori mercato italiano", "fuori dall'Italia", "oltre confine", "provenienza estera",
    "non nazionale", "da altri paesi/mercati"). Un validatore automatico le rifiuta.
+   Non citare registri/documenti esteri (Car-Pass, Histovec, RDW) ne' paesi di origine:
+   il Day-1 resta sul mercato italiano.
 8. Nessun prezzo, nessuna offerta economica: questo e' solo il primo contatto.
 
 Rispondi SOLO col testo del messaggio, senza virgolette, senza intestazioni, senza note.
@@ -97,9 +123,13 @@ def build_user_message(profile, kb_block, prev_msg=None, violations=None):
         f"MARCHE REALI (le UNICHE citabili come suo stock): {', '.join(brands)}",
         f"MARCHE DI RILIEVO da valorizzare: {focus}",
         "",
-        "FATTI KB DI DOMINIO (grounding statistico; [T3]=commerciale=ordine di grandezza):",
+        "FATTI KB DI DOMINIO — provenienza-NEUTRI (grounding statistico; "
+        "[T3]=commerciale=ordine di grandezza). Usa SOLO questi, per il gancio-frode-km "
+        "come problema del mercato usato ITALIANO che colpisce i clienti del dealer:",
         kb_block,
         "",
+        f"PERSONALIZZA: rivolgiti a '{company}' e valorizza le sue marche di rilievo "
+        f"({focus}). Il gancio km NON deve mai parlare di origine/import: solo mercato IT.",
         "Componi ora il messaggio Day-1 rispettando TUTTE le regole inviolabili.",
     ]
     if prev_msg is not None and violations:

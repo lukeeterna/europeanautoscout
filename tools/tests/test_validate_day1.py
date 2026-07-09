@@ -36,22 +36,24 @@ PROFILE = {
     "_provenance": {"note": "campo null = assente dai dati, non stimato"},
 }
 
-# KB inline: un solo FATTO grounding, [T3] puro (la leva anti-frode "circa 3x").
+# KB inline: un solo FATTO grounding, [T3] puro, PROVENIENZA-NEUTRO (sovrapprezzo 25-30%
+# pagato da chi compra un'usata coi km falsati: problema del mercato IT, non dell'origine).
+# Il vecchio FATTO "importate vs domestiche = 3x" è import-based → fuori per regola geo.
 KB_LINES = [
-    "- FATTO: auto importate = 6,3% con km non veritieri vs 2,1% delle sempre-circolate "
-    "in IT -> rischio oltre 3x | FONTE: carVertical, dic 2025 | DATA: 2025-12-01 | "
-    "NUMERO: 6,3% vs 2,1% = rischio >3x | VERIFICA: confronta il tasso su campione "
-    "importate vs domestiche via report VIN [T3]\n",
+    "- FATTO: chi compra auto con km manomessi paga il 25-30% sopra il valore reale "
+    "(25% e 29,3% in due studi) | FONTE: carVertical, 2025 | DATA: 2025-01-01 | "
+    "NUMERO: +25-30% sul valore reale (25% e 29,3% in due studi) | VERIFICA: confronta "
+    "il prezzo col valore di mercato reale del modello [T3]\n",
 ]
 
-# (a) PULITO: marca dal profilo, leva 3x onesta (KB), opt-out + identità Azzurra.
+# (a) PULITO: marca dal profilo, leva 25-30% onesta (KB, neutra), opt-out + identità Azzurra.
 MSG_CLEAN = (
     "Buongiorno Auto Esempio SRL, sono Azzurra, assistente di Luca Ferretti.\n"
     "Seguo alcuni concessionari a Bari e ho notato il vostro lavoro sulle Audi.\n"
-    "Un dato che uso nel mio lavoro: le auto importate risultano circa 3x più a "
-    "rischio di km non veritieri (fonte commerciale, ordine di grandezza).\n"
-    "Le capita di valutare auto dall'estero? Se non le interessa, un \"no grazie\" "
-    "e non la disturbo più.\n"
+    "Un dato che uso nel mio lavoro: in Italia chi compra un'usata coi km non veritieri "
+    "paga circa il 25-30% in più del valore reale (fonte commerciale, ordine di grandezza).\n"
+    "Le capita di dover verificare i km di un'usata prima di valutarla? Se non le "
+    "interessa, un \"no grazie\" e non la disturbo più.\n"
     "Azzurra, per conto di Luca Ferretti"
 )
 
@@ -59,16 +61,16 @@ MSG_CLEAN = (
 MSG_INVENTED_NUMBER = (
     "Buongiorno Auto Esempio SRL, sono Azzurra, assistente di Luca Ferretti.\n"
     "Ho notato il vostro lavoro sulle Audi a Bari; nel suo parco ho contato 45 auto pronte.\n"
-    "Le capita di valutare auto dall'estero? Un \"no grazie\" e non la disturbo più.\n"
+    "Le capita di verificare i km delle usate prima di valutarle? Un \"no grazie\" e non la disturbo più.\n"
     "Azzurra, per conto di Luca Ferretti"
 )
 
-# (c) T3 SPACCIATO PER CERTO: la leva 3x (fonte solo T3) presentata come "dimostrato/certificato".
+# (c) T3 SPACCIATO PER CERTO: la leva 25-30% (fonte solo T3) presentata come "dimostrato/certificato".
 MSG_T3_AS_CERTAIN = (
     "Buongiorno Auto Esempio SRL, sono Azzurra, assistente di Luca Ferretti.\n"
-    "Ho notato il vostro lavoro sulle Audi. È dimostrato e certificato che le auto "
-    "importate hanno un rischio 3x di km truccati.\n"
-    "Le capita di valutare auto dall'estero? Un \"no grazie\" e non la disturbo più.\n"
+    "Ho notato il vostro lavoro sulle Audi. È dimostrato e certificato che chi compra "
+    "un'usata coi km truccati paga il 25-30% sopra il valore reale.\n"
+    "Le capita di verificare i km prima di valutare? Un \"no grazie\" e non la disturbo più.\n"
     "Azzurra, per conto di Luca Ferretti"
 )
 
@@ -76,7 +78,7 @@ MSG_T3_AS_CERTAIN = (
 MSG_NO_OPTOUT = (
     "Buongiorno Auto Esempio SRL, sono Azzurra, assistente di Luca Ferretti.\n"
     "Ho notato il vostro lavoro sulle Audi a Bari.\n"
-    "Le capita di valutare auto dall'estero?\n"
+    "Le capita di verificare i km delle usate prima di valutarle?\n"
     "Azzurra, per conto di Luca Ferretti"
 )
 
@@ -84,7 +86,7 @@ MSG_NO_OPTOUT = (
 MSG_GUILTY_BATCH = (
     "Buongiorno, sono Azzurra, assistente di Luca Ferretti.\n"
     "Ho visto il suo stock, tratta BMW e premium, circa 20 auto.\n"
-    "Le capita di cercare questi modelli all'estero? Un \"no grazie\" e non la disturbo più.\n"
+    "Le capita di verificare i km delle usate prima di valutarle? Un \"no grazie\" e non la disturbo più.\n"
     "Azzurra"
 )
 
