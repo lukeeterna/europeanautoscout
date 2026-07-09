@@ -69,6 +69,27 @@ FORBIDDEN_LEXICON = (
     (re.compile(r"\bassicuriamo\b", re.IGNORECASE), "assicuriamo"),
 )
 
+# PROVENIENZA ESTERA/IMPORT vietata nel Day-1. Rete deterministica del vincolo geo:
+#   communication.md:21  → MAI "veicolo EU" … "reimportazione"
+#   CLAUDE.md:17 (progetto) → Day 1: MAI "Germania", "import", … "estero"
+# Copre i termini DIRETTI e le PERIFRASI eufemistiche (il gate non deve poter essere
+# aggirato con un sinonimo: "auto che arrivano da fuori mercato italiano" ≡ estero/import).
+FORBIDDEN_PROVENANCE = (
+    (re.compile(r"fuori\s+mercato\s+italiano", re.IGNORECASE), "fuori mercato italiano"),
+    (re.compile(r"fuori\s+dall['\u2019\s]*italia", re.IGNORECASE), "fuori dall'Italia"),
+    (re.compile(r"oltre\s+confine", re.IGNORECASE), "oltre confine"),
+    (re.compile(r"provenienza\s+ester[ae]", re.IGNORECASE), "provenienza estera"),
+    (re.compile(r"\bnon\s+nazional[ei]\b", re.IGNORECASE), "non nazionale"),
+    (re.compile(r"\bda\s+altri\s+(paesi|mercati)\b", re.IGNORECASE), "da altri paesi/mercati"),
+    (re.compile(r"\bester[oaie]\b", re.IGNORECASE), "estero"),
+    (re.compile(r"\bimport\b", re.IGNORECASE), "import"),
+    (re.compile(r"\bimportat[oaei]\b", re.IGNORECASE), "importate"),
+    (re.compile(r"\bimportazion[ei]\b", re.IGNORECASE), "importazione"),
+    (re.compile(r"\breimportazion[ei]\b", re.IGNORECASE), "reimportazione"),
+    (re.compile(r"\bgermania\b", re.IGNORECASE), "Germania"),
+    (re.compile(r"\bveicol[oi]\s+eu\b", re.IGNORECASE), "veicolo EU"),
+)
+
 NUM_RE = re.compile(r"\d[\d.,]*")
 
 
@@ -236,6 +257,13 @@ def validate_day1(message, profile, kb_lines):
     for rx, label in FORBIDDEN_LEXICON:
         if rx.search(message):
             problems.append(f"(ii) lessico vietato: '{label}' presente")
+
+    # (v) PROVENIENZA ESTERA/IMPORT — termini diretti + perifrasi eufemistiche
+    for rx, label in FORBIDDEN_PROVENANCE:
+        if rx.search(message):
+            problems.append(
+                f"(v) provenienza estera/import vietata (Day-1): '{label}' presente"
+            )
 
     # (iii) OPT-OUT + IDENTITÀ
     if not any(mk in low for mk in OPT_OUT_MARKERS):

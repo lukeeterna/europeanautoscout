@@ -70,14 +70,16 @@ REGOLE INVIOLABILI (il messaggio viene passato a un validatore automatico):
    verranno date. NON inventare altre marche.
 4. NUMERI: NON scrivere alcuna cifra, percentuale, prezzo, anno o numero di telefono,
    con UNA SOLA eccezione: puoi dire "circa 3 volte" riferito al maggior rischio di km
-   non veritieri sulle auto che arrivano da fuori mercato italiano (dato di ordine di
-   grandezza, fonte commerciale). Nessun altro numero.
+   non veritieri (dato di ordine di grandezza, fonte commerciale). Nessun altro numero.
 5. VIETATE le parole: "garanzia", "garantito", "certificato costruttore", "assicuriamo".
    Non promettere alcuna garanzia.
 6. Le statistiche sono ORDINE DI GRANDEZZA (fonte commerciale): NON usare parole di
    certezza come "certificato", "dimostrato", "provato", "certo".
-7. NON usare le parole "Germania", "import", "importate", "estero", "premium",
-   "cerco auto". Se serve, di' "auto che arrivano da fuori mercato italiano".
+7. PROVENIENZA: non riferirti in ALCUN MODO alla provenienza estera o import dei veicoli.
+   VIETATE le parole "Germania", "import", "importate", "importazione", "estero",
+   "reimportazione", "veicolo EU", "premium", "cerco auto" E ogni perifrasi equivalente
+   ("fuori mercato italiano", "fuori dall'Italia", "oltre confine", "provenienza estera",
+   "non nazionale", "da altri paesi/mercati"). Un validatore automatico le rifiuta.
 8. Nessun prezzo, nessuna offerta economica: questo e' solo il primo contatto.
 
 Rispondi SOLO col testo del messaggio, senza virgolette, senza intestazioni, senza note.
