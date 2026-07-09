@@ -19,8 +19,8 @@
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "PASS",
-    "last_run_ts": "2026-07-09T14:58:14Z",
-    "last_run_session": "auto-20260709T165811Z",
+    "last_run_ts": "2026-07-09T15:24:27Z",
+    "last_run_session": "auto-20260709T172427Z",
     "note": "Smoke offline: 5 scenari intent su fixture DB, zero LLM zero msg reali."
   },
   {
@@ -31,8 +31,8 @@
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "PASS",
-    "last_run_ts": "2026-07-09T14:58:14Z",
-    "last_run_session": "auto-20260709T165811Z",
+    "last_run_ts": "2026-07-09T15:24:27Z",
+    "last_run_session": "auto-20260709T172427Z",
     "note": "Smoke offline: approve_reply runtime con SQLite fixtures schema produzione. Gate '5/5 PASS'."
   },
   {
@@ -55,8 +55,8 @@
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "PASS",
-    "last_run_ts": "2026-07-09T14:58:14Z",
-    "last_run_session": "auto-20260709T165811Z",
+    "last_run_ts": "2026-07-09T15:24:27Z",
+    "last_run_session": "auto-20260709T172427Z",
     "note": "Smoke offline: generate_dossier_from_data produce PDF reale su disco (magic %PDF, no rete no immagini). Lo stesso check esercita anche il gate HITL dossier (anello 6) come best-effort SE fastapi presente (iMac/CI); su MacBook fastapi assente -> 6 SKIP non-gating."
   },
   {
@@ -91,8 +91,8 @@
     "blocked_on": null,
     "revalidation_forbidden": false,
     "last_status": "PASS",
-    "last_run_ts": "2026-07-09T14:58:14Z",
-    "last_run_session": "auto-20260709T165811Z",
+    "last_run_ts": "2026-07-09T15:24:27Z",
+    "last_run_session": "auto-20260709T172427Z",
     "note": "Chiude la riga stale S273 'cap-truncated' (SUPERSEDED). S295-C: fixture geo-pura esaustiva 323 listing (21 pagine, terminated_by_empty; commit ebe422e) + gate banda deterministico validate_band.py (d586f03). Check offline: fixture esiste + n_priced==323 + gate_it_band(330i reale) emette verdict senza eccezioni. FALLISCE se la fixture sparisce o il gate si rompe."
   }
 ]
