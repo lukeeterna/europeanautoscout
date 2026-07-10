@@ -1,14 +1,14 @@
-# HANDOFF — auto-20260710T173320Z — 2026-07-10 UTC
+# HANDOFF — auto-20260710T175856Z — 2026-07-10 UTC
 > Render dello stato su disco. Autorità = git/disco, NON questo testo. Rigenerabile con chiudi-ordinatamente.
 
 ### SESSIONE
-- Tipo: WRITE-CODE (gate validate_day1 + suite; nessun anello E2E toccato)
-- Mandato: cablare la rete direzione-servizio (check (vi) + fixture colpevole v2) e rigenerare Day-1 Visauto v3.
-- Esito: UNITÀ 1 CHIUSA verde e committata (0fbd672). UNITÀ 2 (rigenerazione v3) NON iniziata — rinviata a sessione fresca per context budget (chiusura a 60%, checkpoint UNITÀ 1 rispettato).
+- Tipo: WRITE-CODE (ROADMAP docs + compositore Day-1; nessun anello E2E toccato)
+- Mandato: ROADMAP decisioni ratificate Luke (pricing misto + differenziatore dossier-di-margine) + chiudere rigenerazione Day-1 v3 (correzione compositore a monte + generazione + gate).
+- Esito: UNITÀ 1 CHIUSA verde (dc9b3cd). UNITÀ 2 CHIUSA verde (d5aa984): v3 generato provider=groq 1 tentativo 0 violazioni, gate (vi) attivo exit 0, suite 8/8 no-regress.
 
 ### VERITÀ GIT
-- branch s210/audit-master-plan · HEAD 0fbd672 2026-07-10 · working-tree dirty (NON miei: STATE.md, state/rings.json, .claude/NEXT_SESSION_PROMPT.md = auto-hook; data/pool_icp/_backup_reapply_20260708T171250Z/ = artefatto pre-esistente all'avvio)
-- commit di questa sessione: 0fbd672 "UNITÀ1: check (vi) direzione-servizio in validate_day1 — v2 = fixture colpevole" (solo validate_day1.py + tools/tests/test_validate_day1.py)
+- branch s210/audit-master-plan · HEAD d5aa984 2026-07-10 · working-tree dirty (NON miei: STATE.md, state/rings.json, .claude/NEXT_SESSION_PROMPT.md = auto-hook; data/pool_icp/_backup_reapply_20260708T171250Z/ = artefatto pre-esistente all'avvio)
+- commit di questa sessione: dc9b3cd "UNITÀ1: ROADMAP orizzonti post-pilota — pricing misto + differenziatore dossier-di-margine (ratificati Luke 2026-07-10)" (solo docs/ROADMAP.md) · d5aa984 "UNITÀ2: compositore Day-1 direzione-servizio + rigenerazione v3 (gate exit 0)" (tools/generate_day1.py + data/day1/visauto_treviso_day1_v3.txt + .gate.txt)
 
 ### CATENA DI AUTORITÀ
 codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED)
@@ -30,22 +30,23 @@ codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED
 [A] = APERTO/BLOCKED-ON — E2E TEST_FOUNDER mai eseguito (anelli 1/6-7/9B UNVERIFIED); glue Day-1→queue_outbound(phase='DAY1') inesistente · [E] trasparenza deployata = CHIUSO ('Azzurra', 118343b) · [D] base-mercato = VERIFIED
 
 ### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
-UNITÀ 2 — correggere PRIMA il compositore `tools/generate_day1.py` SYSTEM_PROMPT (righe ~78-81 dicono ancora "danneggia i CLIENTI del concessionario": genererebbe un v3 colpevole che il nuovo check (vi) boccia). Nuovi vincoli: gancio = proteggere gli ACQUISTI/permute del dealer dalla frode km; marche dal profilo come FATTO senza aggettivi di pregio/valore; opt-out come istruzione al dealer. Poi `python3 tools/generate_day1.py --profile data/pool_icp/SELECTED.json --out data/day1/visauto_treviso_day1_v3.txt` (max 3 retry). Done = gate exit 0 sul v3 CON check (vi) attivo. Provider LLM giù → BLOCKED onesto, nessun v3 su disco.
+Cablare il glue Day-1 → queue_outbound(phase='DAY1'): oggi generate_day1.py salva il v3 su disco ma non esiste l'aggancio al canale d'invio (wa_bridge.queue_outbound). Fatto terminale = una riga in coda bridge_outbound con phase='DAY1' verso TEST_FOUNDER 393314928901 (non dealer reale). BLOCKED-ON: OK esplicito di Luke sul testo v3 prima di qualunque invio.
 
 ### BLOCKED-ON (fatti esterni irraggiungibili in sessione)
 - Gate [A]: E2E TEST_FOUNDER 393314928901 verde + Luke "pienamente soddisfatto" (anelli 1/6-7/9B UNVERIFIED).
 - Anello 8: sign_url firmato dal dealer reale.
-- OK esplicito di Luke sul testo Day-1 prima di qualunque invio.
-- UNITÀ 2 runtime AMBRA: generazione v3 richiede un provider non-Anthropic raggiungibile (GROQ/cascata). Se giù → BLOCKED onesto (pattern S307).
+- OK esplicito di Luke sul testo Day-1 v3 prima di qualunque invio.
+- Generazione futura Day-1: richiede provider non-Anthropic raggiungibile (GROQ/cascata). Oggi GROQ up (v3 generato). Se giù → BLOCKED onesto, nessun testo su disco (pattern S307).
 
 ### BACKLOG (differito, NON prerequisito del primo invio)
 - `/send` non impone `approved_ts` (garanzia HITL nel caller) — gated su autonomia-invio.
 - 6-7 E2E su iMac (gate HITL fastapi + PDF a TEST_FOUNDER 393314928901).
 
 ### NOTE PER IL GIUDICE (osservazioni da segnalare a Luke)
-- UNITÀ 1 VERDE VERIFICATA (output grezzo): suite `test_validate_day1` 8/8 (puliti a/h→exit0, vi-a/vi-b→exit1); `test_day1_provenance_gate` 15/15 no-regress; gate CLI su `visauto_treviso_day1_v2.txt` ora FAIL con 2 (vi) nominate ('auto in vendita' + 'danno ai clienti del concessionario'), exit 1. Baseline pre-modifica era v2 PASS (exit 0) — flip atteso.
-- FASE 0 lessico [A]: NESSUNA micro-azione di riformulazione eseguita. La riga-gate (30) dice già `[A] = APERTO/BLOCKED-ON`; il `= CHIUSO` su quella riga è legato a [E], non ad [A]. Le uniche righe con "CHIUSO" vicino ad [A] (7, 45) lo NEGANO/documentano il falso-verde S310 — sono verbale d'incidente, non asserzioni di stato. Riformularle avrebbe corrotto il verbale (over-reach del "in qualunque senso"). Disco già univoco sull'asse-asserzione.
-- ROOT del falso-verde v2: il compositore in `generate_day1.py` (righe 78-81) contiene proprio il gancio vietato ("danneggia i CLIENTI del concessionario"). Finché non lo si corregge (UNITÀ 2), ogni rigenerazione rinasce colpevole. Il gate (vi) ora lo intercetta a valle.
+- UNITÀ 1 VERDE (output grezzo): diff verbatim = 2 righe aggiunte in docs/ROADMAP.md, nuova sezione "ORIZZONTI POST-PILOTA" (pricing misto trigger ≥10 CLOSED_WON + 20 clienti fidelizzati; differenziatore dossier-di-margine + verifica-km-permuta standalone). Additivo, nessuna riga rimossa. Backup Rule 1d `docs/ROADMAP.md.bak-S311-*` (gitignored *.bak).
+- UNITÀ 2 VERDE (output grezzo): compositore corretto a monte a 3 punti — SYSTEM_PROMPT gancio (frode km espone gli ACQUISTI del dealer: permute/approvvigionamento/valutazioni; MAI stock/auto-in-vendita, MAI danno ai clienti) + nuova regola inviolabile #9 direzione-servizio + build_user_message allineato. v3 generato provider=groq, 1 tentativo, 0 violazioni → nessun log-retry. Gate standalone su v3 exit 0 con check (vi) attivo (suite 8/8 casi f/g coprono i due sotto-check (vi)). Suite test_validate_day1 8/8 no-regress.
+- ROOT falso-verde v2 CHIUSA: il gancio vietato viveva nel compositore (generate_day1.py) — ora riscritto; il gate (vi) di S310 restava la rete a valle. v2 resta su disco come fixture-colpevole del test (gate v2 tuttora FAIL 2×(vi), atteso).
+- Il testo v3 attende OK esplicito di Luke prima di qualunque invio (BLOCKED-ON, mai auto-eseguibile).
 
 ### DOVE STA LA STRATEGIA (puntatori, non ri-sintetizzare)
-docs/ROADMAP.md · docs/briefs/ · .claude/rules/communication.md · kb/dominio/frode_km_verifica.md · STATE.md §3 · tools/generate_day1.py (compositore) · validate_day1.py (gate (vi))
+docs/ROADMAP.md (S292 + ORIZZONTI POST-PILOTA 2026-07-10) · docs/briefs/ · .claude/rules/communication.md · kb/dominio/frode_km_verifica.md · STATE.md §3 · tools/generate_day1.py (compositore) · validate_day1.py (gate (vi)) · data/day1/visauto_treviso_day1_v3.txt (v3 verde)
