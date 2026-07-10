@@ -1,20 +1,20 @@
-# HANDOFF — auto-20260710T2039Z — 2026-07-10 UTC
+# HANDOFF — recon-leve-day1-FASE0 — 2026-07-10 UTC
 > Render dello stato su disco. Autorità = git/disco, NON questo testo. Rigenerabile con chiudi-ordinatamente.
 
 ### SESSIONE
-- Tipo: WRITE-CODE (rigenerazione Day-1 Visauto v4 dal compositore ratificato; nessun anello E2E toccato)
-- Mandato: rigenerare data/day1/visauto_treviso_day1_v4.txt dal compositore (generate_day1.py) con gate (vi)+(vii) attivi.
-- Esito: UNITÀ 1 CHIUSA verde. v4 generato al tentativo 1 (provider=groq, 0 violazioni, nessun retry), gate exit 0 con (vi)+(vii) attivi; no-regress suite 11/11 + provenance 15/15.
+- Tipo: READ-ONLY (nessun file creato/modificato; solo letture disco + 1 decisione di scope a Luke)
+- Mandato: ricognizione leve Day-1 su ~20 dealer ICP (solo GET pubblici, ZERO contatto) → dati per chiusura messaggio Day-1.
+- Esito: STOP a FASE 0 per BLOCCO-DISCORDANZA su 2 premesse (falsificate dal disco) + budget context. Scope ratificato da Luke: "7 ICP + scrape nuova". UNITÀ 1/2 NON iniziate (nessuno stato PARTIAL).
 
 ### VERITÀ GIT
-- branch s210/audit-master-plan · HEAD 0217530 2026-07-10 · working-tree dirty (NON miei: STATE.md, state/rings.json, .claude/NEXT_SESSION_PROMPT.md = auto-hook; data/pool_icp/_backup_reapply_20260708T171250Z/ = artefatto pre-esistente all'avvio)
-- commit di questa sessione: <in attesa conferma y/n — 2 file: data/day1/visauto_treviso_day1_v4.txt + data/day1/visauto_treviso_day1_v4.gate.txt>
-- PUSH STATUS VERBATIM: `git rev-list --count origin/s210/audit-master-plan..HEAD` = 222 · push NON eseguito (VIETATO S278)
+- branch s210/audit-master-plan · HEAD 15897f0 2026-07-10 · working-tree dirty (NON miei: STATE.md + state/rings.json + .claude/NEXT_SESSION_PROMPT.md = auto-hook; data/pool_icp/_backup_reapply_20260708T171250Z/ = artefatto pre-esistente all'avvio)
+- commit di questa sessione: nessuno (READ-ONLY: niente da committare)
+- PUSH STATUS VERBATIM: `git rev-list --count origin/s210/audit-master-plan..HEAD` = 224 · `## s210/audit-master-plan...origin/s210/audit-master-plan [ahead 224]` · push NON eseguito (VIETATO S278)
 
 ### CATENA DI AUTORITÀ
 codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED)
 
-### STATO E2E (OUTPUT VERBATIM da state/rings.json last_status — non re-narrare)
+### STATO E2E (OUTPUT VERBATIM da `state/rings.json` last_status — non re-narrare)
 | # | last_status |
 |---|-------------|
 | 1 | UNVERIFIED |
@@ -30,26 +30,36 @@ codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED
 [A] = APERTO/BLOCKED-ON — E2E TEST_FOUNDER mai eseguito (anelli 1/6-7/9B UNVERIFIED); glue Day-1→queue_outbound(phase='DAY1') inesistente · [E] trasparenza deployata = CHIUSO ('Azzurra', 118343b) · [D] base-mercato = VERIFIED
 
 ### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
-Glue Day-1 → queue_outbound(phase='DAY1') per far entrare v4 nella pipeline di invio (oggi inesistente), poi E2E TEST_FOUNDER 393314928901. Fatto terminale = invio v4 alla SIM TEST_FOUNDER + Luke conferma ricezione. BLOCKED-ON: OK esplicito di Luke sul testo v4 prima di qualunque invio.
+UNITÀ 1 recon-leve su 7 dealer ICP-VALID (scope Luke): scrivere estensione estrazione per-annuncio (km + timestamp + testo-segnali-fiducia + canali-contatto — oggi assenti nel parser) → scrape fresca dei 7 a rate-limit invariato → 7 JSON in data/recon/dealer_levers/{seller_id}.json + conteggio copertura campi. Fatto terminale = 7 JSON su disco con copertura dichiarata (fetch falliti nominati, MAI riempiti a mano).
 
 ### BLOCKED-ON (fatti esterni irraggiungibili in sessione)
-- Gate [A]: E2E TEST_FOUNDER 393314928901 verde + Luke "pienamente soddisfatto" (anelli 1/6-7/9B UNVERIFIED).
+- Gate [A]: E2E TEST_FOUNDER 393314928901 verde + Luke "pienamente soddisfatto" (anelli 1/6-7/9B UNVERIFIED). [invariato, fuori scope recon]
 - Anello 8: sign_url firmato dal dealer reale.
 - OK esplicito di Luke sul testo Day-1 v4 prima di qualunque invio.
 
 ### BACKLOG (differito, NON prerequisito del primo invio)
+- Portare il pool ICP da 7 a 20 richiede NUOVA discovery (discover_dealers.py) = più richieste portale (aumento aggressività di rete che il mandato recon VIETA). Deferito: Luke ha scelto "7 ICP + scrape nuova", non l'espansione a 20.
 - `/send` non impone `approved_ts` (garanzia HITL nel caller) — gated su autonomia-invio.
 - 6-7 E2E su iMac (gate HITL fastapi + PDF a TEST_FOUNDER 393314928901).
 
 ### NOTE PER IL GIUDICE (osservazioni da segnalare a Luke)
-- UNITÀ 1 VERDE (prove grezze):
-  - BASELINE (inizio): suite 11/11 exit 0 · provenance 15/15 exit 0 · gate v3 FAIL exit 1 (4 viol: vii-a + vii-b×2 'utilizziamo i nostri servizi'/'collaborazione' + vii-c 'ARGOS') · gate v2 FAIL exit 1 (3 viol: vi×2 stock+danno-clienti + vii-a). Tutte coincidenti con le attese.
-  - GENERAZIONE v4: `python3 tools/generate_day1.py --profile data/pool_icp/SELECTED.json --out data/day1/visauto_treviso_day1_v4.txt` → tentativo 1/3, provider=groq, violazioni=0, exit 0. NESSUN retry.
-  - GATE ESPLICITO su v4 salvato: OK exit 0 (ogni claim tracciato, lessico pulito, opt-out+identità, (vi)+(vii) attivi).
-  - NO-REGRESS post-generazione: suite 11/11 exit 0 · provenance 15/15 exit 0.
-- v4 (VERBATIM): «Sono Azzurra, assistente di Luca Ferretti. La frode sui chilometri è un problema diffuso del mercato dell'usato in Italia, dove chi compra un'auto con i km non veritieri paga circa il 25-30% in più del valore reale. Per un concessionario come Visauto Treviso Srl, che vanta un'offerta di qualità con marche come Audi, Porsche e BMW, il rischio sta negli acquisti, come permute e valutazioni d'acquisto. La nostra esperienza può aiutare a verificare i km prima dell'acquisto, proteggendo così i vostri investimenti. Se non è interessato, mi risponda "no grazie" e non la disturbo più. È interessato a ricevere informazioni su come possiamo aiutarla a prevenire questo tipo di rischi?»
-- v2/v3 restano su disco come fixture-colpevoli dei test; NON sovrascritte. v4 è un file NUOVO (nessun overwrite, Rule 1d non innescata).
-- Il testo v4 NON è ancora stato inviato né glue-ato alla pipeline: gate [A] resta APERTO/BLOCKED-ON, serve OK esplicito Luke prima di qualunque invio reale.
+- **BLOCCO-DISCORDANZA #1 (numerosità)**: la premessa "20 dealer dall'indice/pool esistente" è FALSA sul disco. `data/pool_icp/_profiling_run.json` → `icp_valid: 7`, `stopped_reason: CANDIDATES_EXHAUSTED` (45 candidati profilati, 7 ICP-VALID). SELECTED = 5. Non esistono 20 dealer nel pool. → Luke ha ratificato scope "7 ICP + scrape nuova".
+- **BLOCCO-DISCORDANZA #2 (dato per-annuncio assente)**: anche per i 7 esistenti il dettaglio che il mandato vuole (annunci con modello/anno/km/prezzo + timestamp + segnali-fiducia + contatti) NON è persistito. I `dealer_*.json` hanno `example_vehicles: []`, `top_models: null`. `tools/dealer_profile.py:aggregate_profile` estrae solo make/model/year/price (max 2 example) e NON estrae km-per-annuncio / timestamp / testo-annuncio / canali-contatto. → UNITÀ 1 richiede CODICE NUOVO (dichiarato PRIMA di scriverlo, FASE 0.3) + scrape fresca.
+- **I 7 ICP-VALID (unico universo disponibile)** — tutti stock ≤20 ✓, tutti ≥1 tier-hit ✓ · location=null in tutti (NON persistita → "geografia Italia intera" NON verificabile dal pool; i nomi suggeriscono Treviso/Trento/Latina ma è inferenza, non dato):
+  1. 13099 Visauto Treviso Srl — stock 12 — Audi/Porsche/BMW  [SELECTED]
+  2. 13287560 Bernabei Automobili — stock 10 — Porsche/BMW  [SELECTED]
+  3. 29628436 Eurocar Tech/Centro Porsche Trento — stock 12 — Porsche  [non-SELECTED]
+  4. 30777412 Auto Postumia — stock 13 — Mercedes/Audi/Porsche/BMW  [SELECTED]
+  5. 34208 Scotti Srl — stock 15 — Porsche/Mercedes/BMW/Audi  [SELECTED]
+  6. 43994037 Centro Porsche Latina — stock 11 — Porsche/BMW/Audi  [non-SELECTED]
+  7. 50677798 Auto Giannini — stock 13 — Porsche/BMW/Audi  [SELECTED]
+- **Chiusura per budget**: context 55% al momento della decisione (vincolo #7 chiude a 60%; CHECKPOINT mandato: >60% → chiudi UNITÀ 1 da sola). UNITÀ 1 = codice-nuovo + 7 scrape + copertura = non compibile sotto soglia senza sforare o rischiare implementazione non verificata (#10/#1). Chiuso al confine di decisione, non a metà scrape → nessun PARTIAL.
+
+### INVENTARIO RIUSO (per UNITÀ 1 prossima sessione — paths verbatim)
+- Scrape pagina-dealer: `tools/dealer_profile.py` → `extract_profile(url)` riusa `tools/scrapers/autoscout_scraper.py:AutoScoutScraper._fetch(url)` + `parse_listings` + `get_total_pages`. Rate-limit interno di `_fetch()` IMMUTABILE (nessun aumento aggressività).
+- Accesso bande prezzo: `tools/it_market_price.py` → `get_it_distribution(make, model, year, km, target_variant=..., fixture_path=...)`. Percentili p25/p75 ratificati (banda), gate composto no_verdict.
+- Pool ICP: `data/pool_icp/` (SELECTED.json · dealer_*.json · _profiling_run.json · _candidates.json).
+- CODICE NUOVO da scrivere (dichiarato): estensione estrazione per-annuncio (km + timestamp/data-pubblicazione DOVE il portale lo espone [copertura da MISURARE] + testo-annuncio per match segnali-fiducia lista-chiusa + canali contatto) — il `Listing`/`parse_listings` attuale NON porta timestamp né testo-descrizione né trust-signals.
 
 ### DOVE STA LA STRATEGIA (puntatori, non ri-sintetizzare)
-docs/ROADMAP.md (S292 + ORIZZONTI POST-PILOTA 2026-07-10) · docs/briefs/ · .claude/rules/communication.md · kb/dominio/frode_km_verifica.md · STATE.md §3 · tools/generate_day1.py (compositore) · validate_day1.py (gate (vi)+(vii)) · tools/tests/test_validate_day1.py (suite 11/11) · data/day1/visauto_treviso_day1_v4.txt (nuovo, conforme) · data/day1/visauto_treviso_day1_v3.txt (fixture colpevole FORMA) · data/day1/visauto_treviso_day1_v2.txt (fixture colpevole (vi))
+docs/ROADMAP.md (S292 + ORIZZONTI POST-PILOTA) · docs/briefs/ · .claude/rules/communication.md · tools/dealer_profile.py · tools/it_market_price.py · data/pool_icp/_profiling_run.json · STATE.md §3
