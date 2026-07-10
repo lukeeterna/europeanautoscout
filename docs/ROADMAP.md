@@ -163,3 +163,10 @@
 # ORDINE DI BUILD VINCOLANTE: 1 -> 2 -> 3 -> 4 -> 5 (dipendenza, NON preferenza). Loop-che-chiude-UN-affare
 #   prima, breadth dopo. Riordinare = rischio #1 documentato (macchina rifinita che non spedisce). NON riordinare.
 # ============================================================================
+#
+# ============================================================================
+# ORIZZONTI POST-PILOTA (decisioni founder ratificate 2026-07-10 · additivo, NON tocca la sequenza [A]..[F])
+# ----------------------------------------------------------------------------
+# Pricing misto abbonamento + success-fee — trigger: ≥10 CLOSED_WON E primi 20 clienti fidelizzati. Fino ad allora: solo success-fee.
+# Differenziatore ratificato: 'dossier di margine garantito dal registro' (banda IT p25-p75 live + verifica su fonti di registro ufficiali + REJECT reso visibile) + 'verifica-km permuta' come prodotto d'ingresso standalone — attivazione post-pilota. ARGOS garantisce la verifica documentale/di registro, MAI le condizioni meccaniche del veicolo.
+# ============================================================================
