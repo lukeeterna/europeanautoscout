@@ -90,6 +90,33 @@ FORBIDDEN_PROVENANCE = (
     (re.compile(r"\bveicol[oi]\s+eu\b", re.IGNORECASE), "veicolo EU"),
 )
 
+# (vi) DIREZIONE-SERVIZIO — il gancio km protegge gli ACQUISTI del dealer (permute,
+# approvvigionamento, valutazioni d'acquisto), MAI lo stock / le "auto in vendita" del
+# destinatario; ed è VIETATO affermare o implicare danno ai SUOI clienti. Riferire la
+# verifica km allo stock del dealer lo accusa implicitamente di vendere auto frodate;
+# il servizio va rivolto a monte (quando il dealer COMPRA), non a valle.
+# Liste chiuse word-boundary (stile FORBIDDEN_PROVENANCE), CONSERVATIVE: beccano le forme
+# letterali evidenti — la semantica fine (implicazioni sfumate) resta al grader LLM.
+
+# (vi-a) verifica km riferita allo STOCK / "auto in vendita" del destinatario
+FORBIDDEN_STOCK_TARGET = (
+    (re.compile(r"\bauto\s+in\s+vendita\b", re.IGNORECASE), "auto in vendita"),
+    (re.compile(r"\bvetture\s+in\s+vendita\b", re.IGNORECASE), "vetture in vendita"),
+    (re.compile(r"\bmacchine\s+in\s+vendita\b", re.IGNORECASE), "macchine in vendita"),
+    (re.compile(r"\busat[oe]\s+in\s+vendita\b", re.IGNORECASE), "usato in vendita"),
+    (re.compile(r"\b(?:auto|vetture|macchine|usat[ae])\s+che\s+(?:vende|vendete|rivende|rivendete)\b", re.IGNORECASE), "auto che vende"),
+    (re.compile(r"\bkm\s+(?:del(?:la|le|lo)?|dei|degli|di)\s+(?:suo\s+|vostro\s+|proprio\s+)?stock\b", re.IGNORECASE), "km dello stock"),
+    (re.compile(r"\b(?:suo|vostro|proprio)\s+stock\s+in\s+vendita\b", re.IGNORECASE), "stock in vendita"),
+)
+
+# (vi-b) claim di DANNO ai clienti del destinatario (possessivo/specifico, NON il mercato in generale)
+FORBIDDEN_CLIENT_HARM = (
+    (re.compile(r"\b(?:danneggia|danneggiano|penalizza|penalizzano|colpisce|colpiscono|truffa|truffano|raggira|raggirano|frega|fregano|inganna|ingannano)\s+i\s+(?:suoi|vostri)\s+client", re.IGNORECASE), "danno ai suoi clienti"),
+    (re.compile(r"\b(?:danneggia|danneggiano|penalizza|penalizzano|colpisce|colpiscono)\s+i\s+client[ie]\s+d(?:ei|egli|el|elle)\s+concessionar", re.IGNORECASE), "danno ai clienti del concessionario"),
+    (re.compile(r"\bdann[oi]\s+(?:ai|per\s+i)\s+(?:suoi|vostri)\s+client", re.IGNORECASE), "danno ai suoi clienti"),
+    (re.compile(r"\ba\s+scapito\s+d(?:ei|elle)\s+(?:suoi\s+|vostri\s+)?client", re.IGNORECASE), "a scapito dei suoi clienti"),
+)
+
 NUM_RE = re.compile(r"\d[\d.,]*")
 
 
@@ -263,6 +290,22 @@ def validate_day1(message, profile, kb_lines):
         if rx.search(message):
             problems.append(
                 f"(v) provenienza estera/import vietata (Day-1): '{label}' presente"
+            )
+
+    # (vi) DIREZIONE-SERVIZIO — verifica km = ACQUISTI del dealer, MAI il suo stock;
+    #      niente claim di danno ai suoi clienti (forme letterali; semantica → grader).
+    for rx, label in FORBIDDEN_STOCK_TARGET:
+        if rx.search(message):
+            problems.append(
+                f"(vi) direzione-servizio: verifica km riferita allo stock/auto-in-vendita "
+                f"del destinatario ('{label}') — il gancio km riguarda SOLO gli acquisti del "
+                f"dealer (permute/approvvigionamento/valutazioni), mai le sue auto in vendita"
+            )
+    for rx, label in FORBIDDEN_CLIENT_HARM:
+        if rx.search(message):
+            problems.append(
+                f"(vi) direzione-servizio: claim di danno ai clienti del destinatario "
+                f"('{label}') — vietato affermare o implicare danno ai suoi clienti"
             )
 
     # (iii) OPT-OUT + IDENTITÀ

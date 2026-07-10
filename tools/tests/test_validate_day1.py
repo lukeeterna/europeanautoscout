@@ -90,6 +90,32 @@ MSG_GUILTY_BATCH = (
     "Azzurra"
 )
 
+# (f) DIREZIONE-SERVIZIO (vi-a): verifica km riferita allo STOCK / "auto in vendita" del destinatario.
+MSG_STOCK_TARGET = (
+    "Buongiorno Auto Esempio SRL, sono Azzurra, assistente di Luca Ferretti.\n"
+    "Ho notato il vostro lavoro sulle Audi a Bari.\n"
+    "Posso aiutarla a verificare i km delle auto in vendita nel suo salone? "
+    "Un \"no grazie\" e non la disturbo più.\n"
+    "Azzurra, per conto di Luca Ferretti"
+)
+
+# (g) DIREZIONE-SERVIZIO (vi-b): claim di DANNO ai clienti del destinatario.
+MSG_CLIENT_HARM = (
+    "Buongiorno Auto Esempio SRL, sono Azzurra, assistente di Luca Ferretti.\n"
+    "La frode sui km danneggia i suoi clienti quando comprano un'usata.\n"
+    "Le va di verificare i km prima di un acquisto? Un \"no grazie\" e non la disturbo più.\n"
+    "Azzurra, per conto di Luca Ferretti"
+)
+
+# (h) PULITO DIREZIONE-ACQUISTI: verifica km sugli ACQUISTI del dealer (permute/valutazione) → PASS.
+MSG_CLEAN_BUY = (
+    "Buongiorno Auto Esempio SRL, sono Azzurra, assistente di Luca Ferretti.\n"
+    "Seguo alcuni concessionari a Bari e ho notato il vostro lavoro sulle Audi.\n"
+    "Quando ritira un'usata in permuta o valuta un acquisto, le capita di dover verificare "
+    "i km prima? Se non le interessa, un \"no grazie\" e non la disturbo più.\n"
+    "Azzurra, per conto di Luca Ferretti"
+)
+
 # (case_label, message, exit_atteso, substring_violazione_attesa|None)
 CASES = [
     ("a) pulito e tracciato", MSG_CLEAN, 0, None),
@@ -97,6 +123,9 @@ CASES = [
     ("c) T3 spacciato per certo", MSG_T3_AS_CERTAIN, 1, "[T3] spacciato"),
     ("d) opt-out assente", MSG_NO_OPTOUT, 1, "opt-out assente"),
     ("e) CASO-COLPEVOLE (batch: BMW+20)", MSG_GUILTY_BATCH, 1, "BMW"),
+    ("f) DIREZIONE-SERVIZIO stock/auto-in-vendita (vi-a)", MSG_STOCK_TARGET, 1, "(vi)"),
+    ("g) DIREZIONE-SERVIZIO danno-ai-clienti (vi-b)", MSG_CLIENT_HARM, 1, "(vi)"),
+    ("h) PULITO direzione-acquisti (permuta/valutazione)", MSG_CLEAN_BUY, 0, None),
 ]
 
 
@@ -125,8 +154,9 @@ def run():
         for f in fails:
             print("  -", f)
         return 1
-    print("SUITE PASS (5/5: pulito→exit0, inventato→exit1, T3-certo→exit1, "
-          "opt-out→exit1, colpevole-batch→exit1)")
+    print("SUITE PASS (8/8: pulito→exit0, inventato→exit1, T3-certo→exit1, "
+          "opt-out→exit1, colpevole-batch→exit1, vi-a-stock→exit1, "
+          "vi-b-danno-clienti→exit1, pulito-acquisti→exit0)")
     return 0
 
 
