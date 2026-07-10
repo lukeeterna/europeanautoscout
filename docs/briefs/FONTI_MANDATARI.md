@@ -108,3 +108,23 @@ Con i numeri di §2–§6, l'anagrafe per-riga gratuita è bloccata. Le strade (
 - **C) Ridefinire la fonte-primaria dei mandatari**: non partire dall'anagrafe ATECO ma dallo scraping già in casa (i portali auto ARGOS già mappati) per identificare intermediari attivi sul web — allineato a UNITÀ 2 "classificazione mandatario-attivo-web", ma cambia il punto di partenza.
 
 Nessuna delle tre è tecnica: è scope. Non procedo oltre senza decisione.
+
+---
+
+## 8. PILOTA per-riga — esiti provincia (aggiornato per provincia lavorata)
+
+> Enrichment P.IVA via lookup pubblici per-nome (reportaziende.it / ufficiocamerale.it / directory Infocamere-derivate). Validazione checksum con python-stdnum. Verifica-campione seed dichiarato. ZERO contatto, ZERO costi, ZERO bypass 403/Cloudflare.
+
+### 8a. Potenza (PZ) — 2026-07-10 — **PROMOSSA ad anagrafe**
+- **Righe**: 42 · **con P.IVA**: 22 (4 pre-esistenti + 18 nuove da subagent research, tetto 45 fetch)
+- **P.IVA valide (checksum stdnum it.iva)**: **22/22** (0 invalide, 0 duplicati)
+- **NON-ARRICCHIBILI**: 20 righe (motivi per-riga nel JSON: nessun match / tetto fetch / franchising senza P.IVA propria / solo sito aziendale)
+- **Verifica-campione** (seed=42, 10 righe): **9 SI / 0 NO / 1 NON-VERIFICABILE** (Quality Cars — nessun match PZ). Soglia ≥8/10 **RAGGIUNTA**.
+  - **CAVEAT**: cross-check eseguito su `ufficiocamerale.it` (dati Infocamere, stessa base Registro Imprese) perché la ricerca gratuita `registroimprese.it` è JS-only, non GET-fetchabile → NON aggirata. Fonte-proxy equivalente, da ratificare Luke.
+- **Distribuzione classi** (euristica dichiarata: fuori-target=officina/carrozzeria/moto/ricambi/noleggio · probabile-agente=brand ufficiale/franchising · solo-anagrafe=P.IVA valida senza footprint web · non-classificabile=no P.IVA):
+  - solo-anagrafe: **19** · fuori-target: **3** (Sanza Motors 47.83.10 moto · Carrieri Sandro carrozzeria · Officina & Service) · non-classificabile: **20** · probabile-agente-di-concessionaria: 0
+  - **Footprint linguistico** ("su commissione"/"cerchiamo per te"/"su ordinazione"): NESSUNO raccolto — il testo dei siti per-riga NON è stato harvest-ato in questa passata → classe "mandatario-attivo-web" non assegnata (assenza dato, non assenza fenomeno).
+- **File**: `data/recon/mandatari/potenza.json` (campi nuovi: piva · piva_valida · stato · ateco_rilevato · fonte_enrichment · classificazione · status)
+
+### 8b. Treviso (TV) — PENDING (40 righe, 0 con P.IVA) — prossima sessione
+### 8c. Roma (RM) — PENDING (28 righe, 0 con P.IVA) — prossima sessione
