@@ -20,6 +20,12 @@ Checks (tutti deterministici):
   (iii) OPT-OUT presente · FIRMA/IDENTITÀ "Azzurra" presente.
   (iv)  FATTI [T3] mai spacciati per certi: nessuna parola di certezza
         (certificato/provato/dimostrato/certo…) attaccata a un numero che traccia SOLO a [T3].
+  (v)   PROVENIENZA estera/import vietata (Day-1): termini diretti + perifrasi.
+  (vi)  DIREZIONE-SERVIZIO: verifica km = ACQUISTI del dealer, mai il suo stock; niente danno ai clienti.
+  (vii) FORMA-FINALE ratificata (liste chiuse, conservative):
+          (vii-a) opt-out = ISTRUZIONE ("no grazie" + verbo 'risponda'/'scriva'/'mi dica' nella stessa frase);
+          (vii-b) frase FINALE senza commitment-ask (utilizziamo i nostri servizi/iniziamo/procediamo/attiviamo/collaborazione);
+          (vii-c) identità ESATTA "Azzurra, assistente di Luca Ferretti" presente + token "ARGOS" assente.
 
 Uso:
   python3 validate_day1.py --message msg.txt --profile profilo.json [--kb-dir kb/dominio]
@@ -116,6 +122,37 @@ FORBIDDEN_CLIENT_HARM = (
     (re.compile(r"\bdann[oi]\s+(?:ai|per\s+i)\s+(?:suoi|vostri)\s+client", re.IGNORECASE), "danno ai suoi clienti"),
     (re.compile(r"\ba\s+scapito\s+d(?:ei|elle)\s+(?:suoi\s+|vostri\s+)?client", re.IGNORECASE), "a scapito dei suoi clienti"),
 )
+
+# (vii) FORMA-FINALE ratificata del Day-1 — rete deterministica CONSERVATIVA (liste chiuse
+# word-boundary; la semantica fine resta al grader LLM):
+#   (vii-a) OPT-OUT = ISTRUZIONE al dealer: se compare "no grazie", nella STESSA frase deve
+#           comparire un verbo di risposta ("risponda"/"scriva"/"mi dica") — modello ratificato:
+#           «Se non è interessato, mi risponda "no grazie" e non la disturbo più.»
+#   (vii-b) CHIUSURA a costo-zero: la frase FINALE non contiene un commitment-ask (richiesta di
+#           usare i servizi / avviare collaborazioni / commitment): vietati nel Day-1.
+#   (vii-c) IDENTITÀ ESATTA ratificata: contiene la stringa "Azzurra, assistente di Luca Ferretti"
+#           e NON contiene il token aziendale "ARGOS" (nessuna denominazione aziendale nel Day-1).
+
+# (vii-a) verbi che rendono l'opt-out un'ISTRUZIONE (una basta, nella frase del "no grazie")
+OPTOUT_INSTRUCTION_VERBS = (
+    re.compile(r"\brisponda\b", re.IGNORECASE),
+    re.compile(r"\bscriva\b", re.IGNORECASE),
+    re.compile(r"\bmi\s+dica\b", re.IGNORECASE),
+)
+OPTOUT_PHRASE_RE = re.compile(r"no\s+grazie", re.IGNORECASE)
+
+# (vii-b) commitment-ask vietati nella frase FINALE
+FORBIDDEN_COMMITMENT_ASK = (
+    (re.compile(r"utilizziamo\s+i\s+nostri\s+servizi", re.IGNORECASE), "utilizziamo i nostri servizi"),
+    (re.compile(r"\biniziamo\b", re.IGNORECASE), "iniziamo"),
+    (re.compile(r"\bprocediamo\b", re.IGNORECASE), "procediamo"),
+    (re.compile(r"\battiviamo\b", re.IGNORECASE), "attiviamo"),
+    (re.compile(r"\bcollaborazione\b", re.IGNORECASE), "collaborazione"),
+)
+
+# (vii-c) identità esatta + divieto denominazione aziendale
+IDENTITY_EXACT = "Azzurra, assistente di Luca Ferretti"
+COMPANY_TOKEN_RE = re.compile(r"\bargos\b", re.IGNORECASE)
 
 NUM_RE = re.compile(r"\d[\d.,]*")
 
@@ -313,6 +350,41 @@ def validate_day1(message, profile, kb_lines):
         problems.append("(iii) opt-out assente: manca una via d'uscita esplicita ('no grazie'…)")
     if IDENTITY_TOKEN not in low:
         problems.append("(iii) firma/identità 'Azzurra' assente")
+
+    # (vii) FORMA-FINALE ratificata (forme letterali; semantica → grader).
+    sentences = [s for s in re.split(r"[.\n!?]+", message) if s.strip()]
+
+    # (vii-a) se "no grazie" compare, la SUA frase deve contenere un verbo-istruzione.
+    for sent in sentences:
+        if not OPTOUT_PHRASE_RE.search(sent):
+            continue
+        if not any(rx.search(sent) for rx in OPTOUT_INSTRUCTION_VERBS):
+            problems.append(
+                "(vii-a) opt-out non-istruzione: 'no grazie' senza un verbo di risposta "
+                "('risponda'/'scriva'/'mi dica') nella stessa frase — l'opt-out va dato come "
+                "istruzione al dealer (es. «mi risponda \"no grazie\"»)"
+            )
+
+    # (vii-b) la frase FINALE non deve contenere un commitment-ask.
+    final = sentences[-1] if sentences else ""
+    for rx, label in FORBIDDEN_COMMITMENT_ASK:
+        if rx.search(final):
+            problems.append(
+                f"(vii-b) chiusura non a costo-zero: la frase finale contiene un commitment-ask "
+                f"('{label}') — il Day-1 chiude con UNA domanda a costo-zero, mai una richiesta di "
+                f"usare i servizi/avviare collaborazioni"
+            )
+
+    # (vii-c) identità ESATTA presente + nessuna denominazione aziendale.
+    if IDENTITY_EXACT not in message:
+        problems.append(
+            f"(vii-c) identità non esatta: manca la stringa esatta '{IDENTITY_EXACT}'"
+        )
+    if COMPANY_TOKEN_RE.search(message):
+        problems.append(
+            "(vii-c) denominazione aziendale vietata: token 'ARGOS' presente — il Day-1 usa solo "
+            "'Azzurra, assistente di Luca Ferretti', nessun nome d'azienda"
+        )
 
     return problems
 

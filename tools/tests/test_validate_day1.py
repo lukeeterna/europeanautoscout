@@ -53,7 +53,7 @@ MSG_CLEAN = (
     "Un dato che uso nel mio lavoro: in Italia chi compra un'usata coi km non veritieri "
     "paga circa il 25-30% in più del valore reale (fonte commerciale, ordine di grandezza).\n"
     "Le capita di dover verificare i km di un'usata prima di valutarla? Se non le "
-    "interessa, un \"no grazie\" e non la disturbo più.\n"
+    "interessa, mi risponda \"no grazie\" e non la disturbo più.\n"
     "Azzurra, per conto di Luca Ferretti"
 )
 
@@ -112,7 +112,32 @@ MSG_CLEAN_BUY = (
     "Buongiorno Auto Esempio SRL, sono Azzurra, assistente di Luca Ferretti.\n"
     "Seguo alcuni concessionari a Bari e ho notato il vostro lavoro sulle Audi.\n"
     "Quando ritira un'usata in permuta o valuta un acquisto, le capita di dover verificare "
-    "i km prima? Se non le interessa, un \"no grazie\" e non la disturbo più.\n"
+    "i km prima? Se non le interessa, mi risponda \"no grazie\" e non la disturbo più.\n"
+    "Azzurra, per conto di Luca Ferretti"
+)
+
+# (i) FORMA-FINALE (vii-a): opt-out NON-istruzione ("no grazie" senza verbo risponda/scriva/mi dica).
+MSG_OPTOUT_NO_VERB = (
+    "Buongiorno Auto Esempio SRL, sono Azzurra, assistente di Luca Ferretti.\n"
+    "Seguo alcuni concessionari a Bari e ho notato il vostro lavoro sulle Audi.\n"
+    "Quando valuta un acquisto, le capita di dover verificare i km prima? "
+    "Se non le interessa, un \"no grazie\" e non la disturbo più.\n"
+    "Azzurra, per conto di Luca Ferretti"
+)
+
+# (j) FORMA-FINALE (vii-b): la frase FINALE contiene un commitment-ask ('procediamo').
+MSG_COMMITMENT_ASK = (
+    "Buongiorno Auto Esempio SRL, sono Azzurra, assistente di Luca Ferretti.\n"
+    "Seguo alcuni concessionari a Bari e ho notato il vostro lavoro sulle Audi.\n"
+    "Se non le interessa, mi risponda \"no grazie\" e non la disturbo più.\n"
+    "Se le va, procediamo insieme?"
+)
+
+# (k) FORMA-FINALE (vii-c): denominazione aziendale 'ARGOS' presente.
+MSG_COMPANY_NAME = (
+    "Buongiorno Auto Esempio SRL, sono Azzurra, assistente di Luca Ferretti di ARGOS Automotive.\n"
+    "Seguo alcuni concessionari a Bari e ho notato il vostro lavoro sulle Audi.\n"
+    "Se non le interessa, mi risponda \"no grazie\" e non la disturbo più.\n"
     "Azzurra, per conto di Luca Ferretti"
 )
 
@@ -126,6 +151,9 @@ CASES = [
     ("f) DIREZIONE-SERVIZIO stock/auto-in-vendita (vi-a)", MSG_STOCK_TARGET, 1, "(vi)"),
     ("g) DIREZIONE-SERVIZIO danno-ai-clienti (vi-b)", MSG_CLIENT_HARM, 1, "(vi)"),
     ("h) PULITO direzione-acquisti (permuta/valutazione)", MSG_CLEAN_BUY, 0, None),
+    ("i) FORMA-FINALE opt-out non-istruzione (vii-a)", MSG_OPTOUT_NO_VERB, 1, "(vii-a)"),
+    ("j) FORMA-FINALE commitment-ask in chiusura (vii-b)", MSG_COMMITMENT_ASK, 1, "(vii-b)"),
+    ("k) FORMA-FINALE denominazione aziendale ARGOS (vii-c)", MSG_COMPANY_NAME, 1, "(vii-c)"),
 ]
 
 
@@ -154,9 +182,10 @@ def run():
         for f in fails:
             print("  -", f)
         return 1
-    print("SUITE PASS (8/8: pulito→exit0, inventato→exit1, T3-certo→exit1, "
+    print("SUITE PASS (11/11: pulito→exit0, inventato→exit1, T3-certo→exit1, "
           "opt-out→exit1, colpevole-batch→exit1, vi-a-stock→exit1, "
-          "vi-b-danno-clienti→exit1, pulito-acquisti→exit0)")
+          "vi-b-danno-clienti→exit1, pulito-acquisti→exit0, vii-a-optout-non-istruzione→exit1, "
+          "vii-b-commitment-ask→exit1, vii-c-denominazione-argos→exit1)")
     return 0
 
 
