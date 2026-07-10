@@ -1,0 +1,5 @@
+✅ validate_day1: OK — messaggio conforme (gate exit 0)
+provider    : groq
+tentativi   : 1
+profilo     : data/pool_icp/SELECTED.json
+claim: ogni numero/marca tracciato al profilo o ai FATTI KB; lessico pulito; opt-out + identita' 'Azzurra' presenti.

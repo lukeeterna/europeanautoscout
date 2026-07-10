@@ -75,10 +75,13 @@ credibilita' + competenza, breve (max ~5 righe), tono professionale e diretto.
 Chiudi con UNA domanda chiusa (risposta si'/no).
 
 GANCIO (l'angolo del messaggio): la frode sui chilometri e' un problema diffuso del
-mercato dell'usato IN ITALIA, che danneggia i CLIENTI del concessionario (chi compra
-paga troppo per un'auto con storia falsata). Ti presenti come chi aiuta a verificare i
-km PRIMA dell'acquisto. NON e' un discorso sull'origine/provenienza delle auto: e' un
-problema del mercato italiano e dei suoi acquirenti, punto.
+mercato dell'usato IN ITALIA. Chi COMPRA un'auto con i km falsati paga troppo per una
+storia manomessa. Per un concessionario il rischio sta negli ACQUISTI: le permute che
+ritira, l'approvvigionamento e le valutazioni d'acquisto. Ti presenti come chi aiuta a
+verificare i km PRIMA che il concessionario acquisti o ritiri un'auto — a protezione dei
+SUOI acquisti. MAI riferirti alle auto che il concessionario ha in vendita, e MAI dire o
+implicare un danno ai suoi clienti. NON e' un discorso sull'origine/provenienza delle
+auto: e' un problema del mercato usato italiano, punto.
 
 REGOLE INVIOLABILI (il messaggio viene passato a un validatore automatico):
 1. IDENTITA': il testo DEVE contenere il nome "Azzurra" e dichiararti "assistente di
@@ -107,6 +110,10 @@ REGOLE INVIOLABILI (il messaggio viene passato a un validatore automatico):
    Non citare registri/documenti esteri (Car-Pass, Histovec, RDW) ne' paesi di origine:
    il Day-1 resta sul mercato italiano.
 8. Nessun prezzo, nessuna offerta economica: questo e' solo il primo contatto.
+9. DIREZIONE DEL SERVIZIO: la verifica km riguarda SOLO gli ACQUISTI del concessionario
+   (permute, approvvigionamento, valutazioni d'acquisto). VIETATO riferire la verifica km
+   allo stock / alle "auto in vendita" del destinatario, e VIETATO affermare o implicare
+   un danno ai suoi clienti. Un validatore automatico rifiuta entrambe.
 
 Rispondi SOLO col testo del messaggio, senza virgolette, senza intestazioni, senza note.
 """
@@ -125,11 +132,14 @@ def build_user_message(profile, kb_block, prev_msg=None, violations=None):
         "",
         "FATTI KB DI DOMINIO — provenienza-NEUTRI (grounding statistico; "
         "[T3]=commerciale=ordine di grandezza). Usa SOLO questi, per il gancio-frode-km "
-        "come problema del mercato usato ITALIANO che colpisce i clienti del dealer:",
+        "come problema del mercato usato ITALIANO che espone il dealer sugli ACQUISTI "
+        "(permute/approvvigionamento/valutazioni), MAI sulle sue auto in vendita:",
         kb_block,
         "",
         f"PERSONALIZZA: rivolgiti a '{company}' e valorizza le sue marche di rilievo "
-        f"({focus}). Il gancio km NON deve mai parlare di origine/import: solo mercato IT.",
+        f"({focus}). Il gancio km NON deve mai parlare di origine/import (solo mercato IT), "
+        "NE' delle auto che il dealer ha in vendita o dei suoi clienti: riguarda SOLO i "
+        "suoi acquisti (permute/valutazioni).",
         "Componi ora il messaggio Day-1 rispettando TUTTE le regole inviolabili.",
     ]
     if prev_msg is not None and violations:
