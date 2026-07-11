@@ -1,37 +1,46 @@
-# NEXT SESSION — anagrafe mandatari ATECO (recon fonti gratuite)
+════════════════════════════════════════════════════════════
+NEXT SESSION — ARGOS — HARVESTER DEALER FB: DEEP-EXTRACT (fix INCERTA→IN-TARGET)
+════════════════════════════════════════════════════════════
 
-## STATO (2026-07-10, chiuso per context 75%)
-Mandato: anagrafe nazionale mandatari auto ATECO 45.11.02 + 45.19.02, SOLO fonti gratuite, zero contatto, zero costi.
+STATO CHIUSURA (sessione 2026-07-11, context 60%)
+- UNITÀ 1 = CANDIDATI (non PROMOSSO). Harvester scritto, Big-Sur-verificato,
+  RUN eseguito su account Profile 12. 0 IN-TARGET su 3 province.
+- Commit: a2f50da (modulo) + commit output pilota + questo handoff.
 
-### FATTO E VERIFICATO
-- **Mapping ATECO 2007→2025 (VERIFICATO live)**: 45.11.02 e 45.19.02 sono OBSOLETI in ATECO 2025, mappati 1→3 (NON 1:1):
-  - 45.11.02 → 46.18.41 (ingrosso), 47.92.21 (dett. usato), 47.92.31 (dett. nuovo)
-  - 45.19.02 → 46.18.42, 47.92.21, 47.92.31
-  - Fonte letta: codiceateco2025.it. Conteggi naz. apr-2025: 45.11.02 ≈5.175, 45.19.02 ≈166.
-- **Brief fonti**: `docs/briefs/FONTI_MANDATARI.md` (mappa fonti, accessibilità, limiti, verdetto).
-- **Pilota 3 province — JSON su disco** (deliverable): `data/recon/mandatari/{potenza,treviso,roma}.json`
-  - Potenza: 42 righe (4 con P.IVA reale da reportaziende.it)
-  - Treviso: 39 righe (0 P.IVA — directory non le espongono nel listing)
-  - Roma (PROVINCIA PIÙ DENSA, >200 su PagineGialle): 28 righe (0 P.IVA)
-  - Totale ~109 righe reali, ogni riga tracciabile a URL-fonte.
+FIX BIG SUR RIUSABILE (già nel modulo, VERIFICATO):
+- Playwright node bundlato = minos 13.5 → dyld crash su macOS 11.7.
+- Soluzione: PLAYWRIGHT_NODEJS_PATH=/usr/local/bin/node (system node minos 11.0)
+  + channel="chrome" (no download Chromium). NON ri-litigare.
 
-### FONTI (esito verificato)
-- ACCESSIBILI per-riga (nome/comune, NO P.IVA nel listing): paginegialle.it, paginebianche.it, misterimprese.it, automobile.it, autoscout24.it
-- P.IVA esposta SOLO su schede per-nome: **reportaziende.it** (accessibile, 1 lookup/nome)
-- BLOCCATE (Cloudflare/paywall): registroaziende.it (403), ufficiocamerale.it (403), autosupermarket.it (403), opencorporates.com (403 CAPTCHA senza API key), tuttodati (404)
-- Open data dati.gov.it/ISTAT: solo granularità sezione/2-cifre → NON isola 6 cifre. Bulk gratuito 6-cifre per-provincia NON esiste in open data.
+AUTH FB (VERIFICATO):
+- Account scraping = FB uid 61582178245756 (account bare, sacrificabile).
+- Loggato in Chrome "Profile 12" (google=ilcombeeretrasher). NB: STESSO uid del
+  profilo Default → l'identità FB è la stessa a prescindere dal profilo Chrome.
+- Lanciare con: --chrome-profile "Profile 12".
 
-## PROSSIMI STEP (delegare a subagent — NON bruciare context)
-1. **Enrichment P.IVA per-riga** dei 3 JSON via reportaziende.it + registroimprese.it (ricerca gratuita per denominazione+comune). 1 lookup/candidato, rate-limit invariato. Aggiornare i JSON in place.
-2. **python-stdnum** (pip, puro-Python Big Sur-OK): validare checksum P.IVA + dedup cross-fonte. Marcare righe mono-fonte.
-3. **VERIFICA CAMPIONE enterprise-grade**: 10 righe casuali/provincia vs registroimprese.it ricerca gratuita → esito VERBATIM match/mismatch. <8/10 = fonte non affidabile.
-4. **Classificazione euristica**: mandatario-attivo-web / solo-anagrafe / probabile-agente-di-concessionaria (1 ricerca web/candidato → presenza sito/Google Business/social + footprint "su commissione"/"cerchiamo per te" VERBATIM).
+DIAGNOSI ONESTA (perché 0 IN-TARGET — NON è il canale):
+- Il canale TROVA dealer: 49 Pagine concessionarie a cap basso (Milano13/Roma15/
+  Napoli21), categoria confermata 27/30.
+- IL COLLO è il detail-scraper: legge solo /about (body 333-1434 char = scarno)
+  → telefono 4/30, città 0/30, sito 1/30, modelli 0/30 → tutto INCERTA.
+- CAUSE: (a) modelli Tier A/B stanno nei POST/foto, non in /about;
+         (b) telefono/sito/indirizzo stanno nel blocco Contatti/Intro (DOM profondo
+            o vista m.facebook.com), non nel testo /about letto ora.
 
-## BLOCCO-DECISIONE / ESCALATION AL GIUDICE (richiesta di Luke: "trova il modo di far accettare la richiesta, è legittima e legale")
-Per l'anagrafe NAZIONALE completa con P.IVA in bulk servono vie gated:
-- **OpenCorporates API** (free tier, per-riga con P.IVA): richiede API token via applicazione gratuita "public-benefit". Serve OK Luke per registrarsi (G-ZEROCOST: gratis ma login). Legittimità: dati di registro pubblico d'impresa, uso B2B legittimo, GDPR-compliant (dati d'impresa, non PII persone fisiche). → chiedere al giudice di validare la via + Luke registra.
-- **ondata / mirror open-data**: verificare se ondata (o dati.gov.it CCIAA) pubblica liste imprese a 6 cifre per provincia scaricabili. Non confermato in questa sessione.
-- **InfoCamere/Telemaco** (ufficiale, a pagamento): fuori G-ZEROCOST salvo sì esplicito Luke.
+PROSSIMA UNITÀ (deep-extract in tools/recon/harvest_dealers_fb.py):
+1. scrape_page_detail: leggere ANCHE il feed post (scroll basso) e scansionare il
+   testo post per keyword Tier A/B → popola modelli_osservati.
+2. Contatti: m.facebook.com/<slug>/about o sezione about_contact_and_basic_info
+   per telefono/sito/indirizzo strutturati.
+3. Ri-run pilota 3 province, STESSA SOGLIA: >=3 IN-TARGET nuovi con telefono in
+   >=1 provincia → PROMOSSO → poi UNITÀ 2 (docs/briefs/SINTESI_DEALER_FB.md).
+4. Fonte-B PagineGialle: già implementata, si attiva sola sugli IN-TARGET.
 
-## VINCOLI INVARIATI
-SOLO GET pubblici · NO bypass anti-bot (Cloudflare = salta+annota) · zero contatto · G-ZEROCOST · mai PARTIAL · push VIETATO (S278) · Rule 1d.
+VINCOLI INVARIATI: G-ZEROCOST · PUSH VIETATO (S278) · Gate E protetto (MEMORY/
+DECISIONS/PLAN/*.db/CLAUDE) · output no-overwrite per provincia (1d) ·
+riconteggio-madre da disco · accept-edits OFF (rispondi '1').
+
+PENDING GATE E (sessione precedente): index memory FB = packet
+overwrite_sot-dc04f63aaf. Da aggiornare a PROMOSSO: reference_fb_harvest_auth.md
+(aggiungere --chrome-profile "Profile 12" + PLAYWRIGHT_NODEJS_PATH).
+════════════════════════════════════════════════════════════
