@@ -2,6 +2,23 @@
 
 <!-- Aggiungi qui durante lo sprint. Non risolvere ora. -->
 
+## 2026-07-11 — #FB-HARVEST-POOL-INQUINATO [dal pilota deep-extract]
+La ricerca FB `/search/pages` per "concessionaria auto {prov}" restituisce business
+"concessionaria" in senso NON-auto (es. `Libreria Concessionaria Milano` = modellismo;
+`Experienceadv srl` = concessionaria di PUBBLICITÀ). Il filtro-categoria in
+`harvest_dealers_fb.py` (`DEALER_CATEGORY_HINTS` con "concessionaria") è troppo permissivo →
+li marca dealer → esito INCERTA, inquina il pool. Fix futuro: (a) query più specifiche
+("autosalone", "auto usate", "km0 {prov}") e/o (b) categoria_fb richiesta = match forte su
+"Concessionaria di automobili"/"Vendita e assistenza auto", non substring generico.
+
+## 2026-07-11 — #FB-POST-TEXT-OFFUSCATO [dal pilota deep-extract]
+Il deep-extract legge ora il feed post (raw_signal 333-1434 → 1600-8100 char), MA FB rende il
+CORPO dei post come span scramblati carattere-per-carattere in `inner_text` (anti-scraping):
+solo caption/frammenti sopravvivono. Lo scan-keyword Tier A/B sui post è quindi inaffidabile
+(0/30 modelli anche su pagine con post visibili). Fix futuro da valutare: leggere alt-text
+immagini post, oppure OCR sulle foto stock, oppure API/mbasic. Contatti (telefono/sito/
+indirizzo) invece OK dal blocco about mobile → quella parte del deep-extract è valida.
+
 ## S-A 2026-07-01 — #DOSSIER-FIRMA-TRASPARENZA [BLOCCANTE PRE-LOTTO-PILOTA]
 
 ### ⛔ Il footer del PDF dossier firma "Luca Ferretti + email personale", "Azzurra" assente
