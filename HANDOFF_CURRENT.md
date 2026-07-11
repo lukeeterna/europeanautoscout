@@ -4,7 +4,7 @@
 ### SESSIONE
 - Tipo: WRITE-CODE (dati: enrichment JSON + brief; nessun codice pipeline toccato)
 - Mandato: promozione lista mandatari da candidati ad anagrafe — enrichment P.IVA (fonti gratuite), validazione checksum, verifica-campione, classificazione. Ordine province: Potenza → Treviso → Roma. ZERO contatto, ZERO costi, ZERO bypass.
-- Esito: **Potenza COMPLETA e PROMOSSA** (22/42 righe con P.IVA, 22/22 checksum valide, campione 9/10 SI). Treviso/Roma NON iniziate (chiusura a context 60% dopo Potenza, unità atomica = provincia, nessun PARTIAL).
+- Esito: **Treviso COMPLETA e PROMOSSA** (34/40 righe con P.IVA, 34/34 checksum valide, campione 10/10 SI, seed=71). Potenza già PROMOSSA (invariata). Roma NON iniziata (chiusura a context ~59% dopo Treviso, unità atomica = provincia, nessun PARTIAL).
 
 ### VERITÀ GIT
 - branch s210/audit-master-plan · HEAD d8686be 2026-07-10 · working-tree dirty (NON miei: STATE.md + state/rings.json + .claude/NEXT_SESSION_PROMPT*.md = auto-hook; data/pool_icp/_backup_reapply_20260708T171250Z/ = pre-esistente)
@@ -31,7 +31,7 @@ codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED
 [A] = APERTO/BLOCKED-ON — E2E TEST_FOUNDER mai eseguito (anelli 1/6-7/9B UNVERIFIED); glue Day-1→queue_outbound(phase='DAY1') inesistente · [E] trasparenza deployata = CHIUSO ('Azzurra', 118343b) · [D] base-mercato = VERIFIED
 
 ### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
-UNITÀ 1+2 su **Treviso (TV)** (40 righe, 0 con P.IVA): enrichment P.IVA per-nome via subagent research (reportaziende.it/ufficiocamerale.it, GET pubblici, tetto fetch dichiarato, mai bypass 403) → validazione checksum stdnum → verifica-campione seed dichiarato → classificazione → aggiorna `data/recon/mandatari/treviso.json` + §8b brief. Fatto terminale = treviso.json con campi piva/piva_valida/stato/ateco_rilevato/fonte_enrichment/classificazione + status PROMOSSA/CANDIDATI su esito campione. NON iniziare sopra 55% context.
+UNITÀ 1+2 su **Roma (RM)** (28 righe, 0 con P.IVA): stesso protocollo Treviso — enrichment P.IVA per-nome via subagent research (schede ufficiocamerale.it/<id>/<slug> + reportaziende/bilancioaziende, GET pubblici, tetto fetch dichiarato, mai bypass 403/Cloudflare) → validazione checksum stdnum → verifica-campione seed dichiarato con fonte-B indipendente per-riga → classificazione euristica → aggiorna `data/recon/mandatari/roma.json` + §8c brief. Fatto terminale = roma.json con campi piva/piva_valida/stato/ateco_rilevato/fonte_enrichment/telefono_presente/classificazione + status PROMOSSA/CANDIDATI su esito campione. NON iniziare sopra 55% context. NB: Roma densa (>200 su PagineGialle, lista attuale parziale) — possibile espansione.
 
 ### BLOCKED-ON (fatti esterni irraggiungibili in sessione)
 - Ricerca gratuita `registroimprese.it` per verifica-campione = JS-only, non GET-fetchabile → usato proxy `ufficiocamerale.it` (Infocamere, stessa base-dati). Ratifica Luke sul proxy-metodo pendente.

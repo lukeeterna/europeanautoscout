@@ -126,5 +126,18 @@ Nessuna delle tre è tecnica: è scope. Non procedo oltre senza decisione.
   - **Footprint linguistico** ("su commissione"/"cerchiamo per te"/"su ordinazione"): NESSUNO raccolto — il testo dei siti per-riga NON è stato harvest-ato in questa passata → classe "mandatario-attivo-web" non assegnata (assenza dato, non assenza fenomeno).
 - **File**: `data/recon/mandatari/potenza.json` (campi nuovi: piva · piva_valida · stato · ateco_rilevato · fonte_enrichment · classificazione · status)
 
-### 8b. Treviso (TV) — PENDING (40 righe, 0 con P.IVA) — prossima sessione
+### 8b. Treviso (TV) — 2026-07-11 — **PROMOSSA ad anagrafe**
+- **Righe**: 40 · **con P.IVA**: 34 (0 pre-esistenti + 34 nuove da subagent research, tetto 45 fetch dichiarato)
+- **P.IVA valide (checksum stdnum it.iva)**: **34/34** (0 invalide, 0 duplicati) → **85% delle 40 righe** con P.IVA valida
+- **NON-ARRICCHIBILI**: 6 righe (idx 17 Auto-Da-MD&A, 18 Autodue, 26 Autosalone Teot, 27 Casagrande, 30 P.S. Group, 37 Magro Antonio — motivi: nessun match / 403-404 / persona fisica deceduta)
+- **Verifica-campione** (seed=71, 10 righe idx 0,2,4,6,8,22,28,31,35,38): **10 SI / 0 NO / 0 NON-VERIFICABILE**. Soglia ≥8/10 **RAGGIUNTA**.
+  - Indipendenza per-riga: fonte_B ≠ fonte_enrichment (Infocamere-derivate: reportaziende / bilancioaziende / misterimprese / prontoimprese). Esito verbatim per riga nel JSON `verifica_campione.esito_verbatim`.
+- **Distribuzione classi** (euristica dichiarata: fuori-target=ATECO 45.20.x officina o nome soccorso/servizio-acquisto fuori-TV · probabile-agente=brand ufficiale nel nome o dealer SpA storico · solo-anagrafe=P.IVA valida ATECO commercio senza footprint web · non-classificabile=no P.IVA):
+  - solo-anagrafe: **22** · probabile-agente-di-concessionaria: **6** (Campaner-Peugeot/Citroen · Automarca SpA · Carraro SpA · Autobavaria-BMW · Trevisauto-Saab · Basso-Ford) · fuori-target: **6** (Autostar 45.20.1 · Bianchi 45.20.1 · Activa 45.20.9 · Noicompriamoauto 82.99.09 sede-MI · Lezier 45.20.1 · Autosoccorso) · non-classificabile: **6**
+  - **% con telefono**: **0%** (campo telefono NON harvest-ato in questa passata — assenza dato, non assenza fenomeno)
+  - **Footprint linguistico** ("su commissione"/"cerchiamo per te"): NESSUNO raccolto → classe "mandatario-attivo-web" non assegnata (backlog).
+  - **ATECO-mandatario esplicito trovati**: idx 9 Nicola Auto e idx 13 A27 espongono **46.18.41** (successore 2025 di 45.11.02 "intermediari") — unici 2 con codice-intermediario puro.
+- **CAVEAT qualità**: idx 2 Sotreva Auto = P.IVA ora intestata a **EM 27 SRL in liquidazione** (ragione sociale cambiata); idx 22 Noicompriamoauto sede legale **Milano**; idx 28 Emmecar sede legale **Mantova** (presenza operativa Conegliano); idx 24 Autobavaria in liquidazione; idx 25 Trevisauto fallita (proc. 135/2018).
+- **File**: `data/recon/mandatari/treviso.json` (campi: piva · piva_valida · stato · ateco_rilevato · fonte_enrichment · telefono_presente · classificazione · status=PROMOSSA)
+
 ### 8c. Roma (RM) — PENDING (28 righe, 0 con P.IVA) — prossima sessione
