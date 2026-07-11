@@ -140,4 +140,16 @@ Nessuna delle tre è tecnica: è scope. Non procedo oltre senza decisione.
 - **CAVEAT qualità**: idx 2 Sotreva Auto = P.IVA ora intestata a **EM 27 SRL in liquidazione** (ragione sociale cambiata); idx 22 Noicompriamoauto sede legale **Milano**; idx 28 Emmecar sede legale **Mantova** (presenza operativa Conegliano); idx 24 Autobavaria in liquidazione; idx 25 Trevisauto fallita (proc. 135/2018).
 - **File**: `data/recon/mandatari/treviso.json` (campi: piva · piva_valida · stato · ateco_rilevato · fonte_enrichment · telefono_presente · classificazione · status=PROMOSSA)
 
-### 8c. Roma (RM) — PENDING (28 righe, 0 con P.IVA) — prossima sessione
+### 8c. Roma (RM) — 2026-07-11 — **CANDIDATI** (enrichment completo; promozione gated su verifica-campione)
+- **Righe**: 28 · **con P.IVA**: 22 (tutte nuove da subagent research; tetto fetch dichiarato per batch: 12+12+22)
+- **P.IVA valide (checksum stdnum it.iva)**: **22/22** (0 invalide) → **78,6%** delle 28 righe · **distinte**: 19 (idx 18-21 = stessa entità `01559111008` MERCEDES-BENZ ROMA S.P.A., 4 filiali PagineGialle → dedup)
+- **NON-ARRICCHIBILI**: 6 (idx 8 Automobili Zupi no-match ragione sociale · 10 Auto Giovanni P.IVA senza URL camerale · 11 Maurmotors nessuna scheda · 13 Micro Car Roma Sud P.IVA senza URL · 25 Panichi Auto 101 · 26 Rp Auto Srls)
+- **⚠️ CAVEAT PROVENIENZA (rilevante per la promozione)**: 12 P.IVA da **serp-snippet/websearch** (ufficiocamerale.it ha risposto **403** al fetch diretto → numero letto dallo snippet, NON da pagina GET-fetchata); 10 da **scheda-diretta** (impresaitalia/fatturatoitalia/reportaziende/visura.pro). Checksum 22/22 OK ma **match-entità NON verificato indipendentemente** in questa passata.
+- **Verifica-campione**: **NON eseguita** — sessione chiusa a context ~62% (vincolo #7) dopo l'enrichment. È l'**unico gate** rimasto per la promozione → prossima sessione.
+- **Distribuzione classi** (euristica dichiarata, STATO di prima classe): solo-anagrafe **11** · probabile-agente-di-concessionaria **5** (idx 18-21 Mercedes-Benz Roma SpA/Autotorino + 23 Angelo Fiori SpA Stellantis/Renault) · fuori-target **5** (idx 1 G.M. Autoricambi 45.32 ricambi · 4 P.Auto Service officina BMW/Mini · 14 Autoservice Masciotra autosoccorso · 15 AFT Romani carrozzeria 45.20.2 · 27 Essedi noleggio camper) · **non-operativa 1** (idx 9 Centro Auto Roma SRL **in liquidazione**, esclusa dal target) · non-classificabile **6** · mandatario-attivo-web **0**
+- **% con telefono**: **39%** (11/28) · **% non-operative**: **3,6%** (1/28)
+- **Footprint linguistico**: NON harvest-ato (backlog, come Potenza/Treviso)
+- **Nota geo**: idx 2 Autovillage sede legale Monterotondo (RM), idx 10 Auto Giovanni a Lunghezza (RM) — entrambi **dentro** provincia RM → nessun geo_flag di esclusione (a differenza dei casi MI/MN di Treviso)
+- **File**: `data/recon/mandatari/roma.json` (campi: piva · piva_valida · stato · ateco_rilevato · telefono · fonte_enrichment · ragione_sociale_camerale · comune_sede_legale · geo_flag · provenienza_qualita · classificazione + `enrichment_meta` + `status=CANDIDATI`)
+
+> **SINTESI PILOTA 3 PROVINCE**: NON eseguita in questa sessione (UNITÀ 3 richiedeva context ≤60% e Roma promossa; nessuna delle due condizioni). Passa alla sessione che chiude la verifica-campione Roma. Dati comparativi già pronti: Potenza 42/22 PROMOSSA, Treviso 40/34 PROMOSSA, Roma 28/22 CANDIDATI.
