@@ -27,18 +27,18 @@ Rigenera con: `bash state/refresh.sh <SESSION_ID>` · sorgente: `state/rings.jso
 
 <!-- GENERATED:rings:start -->
 <!-- NON modificare a mano: rigenerato da `bash state/refresh.sh`. VERIFIED = check passato in QUESTA sessione. -->
-_Rigenerato 2026-07-10T20:48:32Z · sessione `auto-20260710T224832Z`_
+_Rigenerato 2026-07-11T15:34:17Z · sessione `auto-20260711T173417Z`_
 
 | # | Anello | Stato | Tier | Check | Ultima sessione |
 |---|--------|-------|------|-------|-----------------|
 | 1 | invio Day1 WA | UNVERIFIED | full | — | — |
-| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | auto-20260710T224832Z |
-| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | auto-20260710T224832Z |
+| 2 | classifier intent (AMBRA) | VERIFIED | smoke | `python3 tools/test_ambra_5scenarios.py` | auto-20260711T173417Z |
+| 9A | approve -> send | VERIFIED | smoke | `python3 tools/tests/test_approve_reply_runtime.py` | auto-20260711T173417Z |
 | 9B | reject -> abort | UNVERIFIED | full | — | — |
-| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | auto-20260710T224832Z |
+| 5 | generazione dossier PDF | VERIFIED | smoke | `python3 tools/tests/test_dossier_hitl_smoke.py` | auto-20260711T173417Z |
 | 6-7 | approve HITL dossier -> invio PDF al dealer | UNVERIFIED | full | — | — |
 | 8 | contract -> sign_url | BLOCKED | full | freeze: sign_url firmato dal dealer reale (HITL fisico Luke o terzo) — fatto esterno non raggiungibile in-sessione | — |
-| BM | base-mercato IT fidata (scrape esaustivo + gate banda) | VERIFIED | smoke | `python3 tools/tests/test_base_mercato_gate.py` | auto-20260710T224832Z |
+| BM | base-mercato IT fidata (scrape esaustivo + gate banda) | VERIFIED | smoke | `python3 tools/tests/test_base_mercato_gate.py` | auto-20260711T173417Z |
 <!-- GENERATED:rings:end -->
 
 Legenda: **VERIFIED** = check PASS in questa sessione · **STALE** = PASS ma in sessione
