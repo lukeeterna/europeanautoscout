@@ -1,14 +1,14 @@
-# HANDOFF — 1c77ece1-5a03-443a-8158-3712df6d2c19 — 2026-07-15 UTC
+# HANDOFF — 6afc9610-1405-46d6-9731-cb6413a04005 — 2026-07-15 UTC
 > Render dello stato su disco. Autorità = git/disco, NON questo testo. Rigenerabile con chiudi-ordinatamente.
 
 ### SESSIONE
-- Tipo: WRITE-CODE
-- Mandato: hardening harness — PIN `defaultMode` in settings.local.json + fix hook `.harness` (path relativo → assoluto) + verifica funzionale read-only degli hook.
-- Esito: `defaultMode:"default"` aggiunto in `.claude/settings.local.json` (GITIGNORATO, no commit); hook `.harness/state_guard.py` e `.harness/gate_e.py` resi path-assoluti e committati in 97c9300; verifica HOOK-OK (gate_e EXIT=0, zero errori di path).
+- Tipo: READ-ONLY
+- Mandato: pre-push audit S278 — perimetro harvester FB (6673ce9), scan segreti in history, inventario PII, piano scrub filter-repo. Nessuna scrittura/push.
+- Esito: harvester isolabile (4 commit, 2 path); history segreti PULITA (0 chiavi complete: `gsk_{20+}`=0, `sk-or-v1-{16hex}`=0, `ghp_{36}`=0 — i match sono prefissi in hook/doc); `.env` mai committato; rischio reale = PII terzi in `data/recon`, `data/pool_icp`, `s173_cciaa`.
 
 ### VERITÀ GIT
-- branch s210/audit-master-plan · HEAD 5432a6c 2026-07-15 · working-tree dirty (effimeri, non-miei): .claude/NEXT_SESSION_PROMPT.md, vos-out/decisions.jsonl + untracked data/pool_icp/_backup_reapply_20260708T171250Z/
-- commit di questa sessione: 97c9300 "hooks: .harness path assoluto (fix deadlock cd)" (NB: 5432a6c = commit auto-close hook di sistema, non lavoro manuale)
+- branch s210/audit-master-plan · HEAD 499b2e6 2026-07-15 · working-tree dirty (effimeri, non-miei): .claude/NEXT_SESSION_PROMPT.md, vos-out/decisions.jsonl + untracked data/pool_icp/_backup_reapply_20260708T171250Z/
+- commit di questa sessione: nessuno (READ-ONLY; 499b2e6 = auto-close hook di sistema, non lavoro manuale)
 
 ### CATENA DI AUTORITÀ
 codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED)
@@ -27,19 +27,20 @@ codice/git > STATE.md > docs/ROADMAP.md > docs/briefs/ > REPORT/chat (SUPERSEDED
 [#1 Day1] = UNVERIFIED (APERTO) · [#6-7 invio PDF] = UNVERIFIED (APERTO) · [#8 sign_url] = BLOCKED-ON dealer reale
 
 ### PROSSIMO PASSO (singolo, falsificabile, fatto esterno)
-Applicare U2-v3 a docs/briefs/SINTESI_PILOTA_MANDATARI.md (CASO 1 = edit correttivo del draft già su disco): nomenclatura LEAD/QUALIFICABILE/CONTATTABILE, ICP={solo-anagrafe}, escludere probabile-agente-di-concessionaria (visibile con nota off-ICP), telefono PZ/TV = "n/d" mai 0, proiezione ~100 province SOLO da riga COPERTURA → commit "U2 v3: metrica target corretta". Numeri già ricalcolati da disco (vedi git history b8431ae).
+Luke decide il perimetro-push (Fase C: escludere data/recon/dealers_fb, data/recon/mandatari, data/pool_icp/dealer_*.json, data/s173_cciaa_target_d28.csv) e autorizza lo scrub. Verifica post-scrub: `git log --all -- data/recon/dealers_fb/` = vuoto E `git log --oneline --all -G"gsk_[A-Za-z0-9]{20}"` = 0.
 
 ### BLOCKED-ON (fatti esterni irraggiungibili in sessione)
-[#8 sign_url] BLOCKED-ON dealer reale (HITL fisico Luke o terzo).
+- Decisione umana Luke su perimetro-push + autorizzazione scrub filter-repo (il push resta bloccato finché non decisa).
+- [#8 sign_url] BLOCKED-ON dealer reale (HITL fisico Luke o terzo).
 
 ### BACKLOG (differito, NON prerequisito del primo invio)
 - nessuno registrato in questa sessione.
 
 ### NOTE PER IL GIUDICE (osservazioni da segnalare a Luke)
-- Fix hook `.harness` risolve il deadlock cd (path relativo falliva quando cwd ≠ root repo). Adozione in-memory certa dalla prossima SessionStart (hook letti a SessionStart); su disco config già corretta e script eseguibili EXIT=0 al path assoluto.
-- `settings.local.json` è gitignorato (.gitignore:18): il PIN `defaultMode` vive solo locale, non versionato — se serve portabilità va spostato in settings.json tracciato (decisione di Luke/giudice).
-- HEAD attuale 5432a6c è l'auto-close hook della sessione precedente sovrapposto al mio 97c9300 (intatto in history).
+- History segreti PULITA su questo branch (258 ahead): nessuna chiave con valore completo. I 15/16/2 match di `sk-or-v1-`/`ghp_`/`gsk_` sono prefissi in `.githooks/{pre-commit,pre-push}` (TOKEN_PATTERN), `.claude/rules/security.md` e doc HANDOFF/PLAN/NEXT_PROMPT che citano i nomi-chiave — NON valori vivi.
+- Rischio residuo = PII di terzi (telefoni dealer, P.IVA ditte individuali) nel tree corrente, non secret-leak. Proposta esclusione = solo proposta, decide Luke.
+- filter-repo presente (a40bce548d2c); gitleaks assente (usato fallback grep). Se si vuole scan certificato, `brew install gitleaks` prima dello scrub.
 - Effimeri dirty (NEXT_SESSION_PROMPT.md, decisions.jsonl, backup dir) erano già dirty/generati dagli hook, NON toccati da me.
 
 ### DOVE STA LA STRATEGIA (puntatori, non ri-sintetizzare)
-docs/ROADMAP.md (fonte autoritativa segmento/geografia/anni/stock/supply) · docs/briefs/SINTESI_PILOTA_MANDATARI.md · state/rings.json (stato anelli)
+docs/ROADMAP.md (fonte autoritativa segmento/geografia/anni/stock/supply) · docs/briefs/SINTESI_PILOTA_MANDATARI.md · state/rings.json (stato anelli) · .claude/PLAN_FILTER_REPO_S278.md (piano scrub esistente)
