@@ -1,5 +1,13 @@
 # ARGOS — combaretrovamiauto-enterprise
 
+## CANONICO — questo repo (europeanautoscout) è il repo canonico ARGOS.
+Archivio storico locale: ~/Documents/combaretrovamiauto-enterprise (SOLA LETTURA;
+contiene la history pre-scrub e i dataset PII solo-locali).
+Offsite del canonico = push su GitHub (i bundle T7 restano per l'archivio).
+Regola doc: nelle doc versionate niente denominazioni nominative di ditte
+individuali — citare per P.IVA o indice.
+I 6 path in .gitignore non entrano MAI in git.
+
 ## Stato pipeline
 - E2E: FUNZIONANTE (verificato S157) — scrape→CoVe→PDF su BMW Serie 3 in 41s, 2 PROCEED su 16 listing
 - WA daemon: ONLINE su iMac (porta 9191)

@@ -1,8 +1,31 @@
 #!/bin/bash
-# ARGOS pre-push — S278. Blocca il push se QUALSIASI commit in arrivo contiene un
-# secret pattern. Colma il buco che ha portato sk-or/ghp_/Telegram su origin:
-# il pre-commit copre solo i NUOVI commit, non la history gia' committata prima del fix.
-# Stessa TOKEN_PATTERN del pre-commit (S220/S221). MAI bypassare con --no-verify.
+# ARGOS pre-push — SWITCH v1 (guardia PII) + S278 (guardia secret).
+# MAI bypassare con --no-verify.
+#
+# BLOCCO 1 (SWITCH v1): impedisce che i dataset PII solo-locali finiscano tracciati
+#   in git, o che un token Telegram resti in QUALSIASI punto della history.
+# BLOCCO 2 (S278): scansiona ogni commit in arrivo per secret pattern (colma il buco
+#   della history pre-scrub — il pre-commit copre solo i NUOVI commit).
+
+# --- BLOCCO 1a: nessun path PII tracciato ---
+PII_PATHS='^(data/recon/dealers_fb/|data/recon/mandatari/|data/pool_icp/|data/registry/|data/s173_cciaa_target_d28\.csv|tools/recon/harvest_dealers_fb\.py)'
+n_pii=$(git ls-files | grep -cE "$PII_PATHS")
+if [ "$n_pii" -gt 0 ]; then
+  echo "❌ pre-push BLOCK: $n_pii file PII operativi risultano TRACCIATI in git:"
+  git ls-files | grep -E "$PII_PATHS"
+  echo "Rimuovili dal tracking (git rm --cached) — sono in .gitignore per un motivo."
+  exit 1
+fi
+
+# --- BLOCCO 1b: nessun token Telegram in tutta la history ---
+n_tok=$(git log --all -p | grep -cE '[0-9]{8,10}:AA[A-Za-z0-9_-]{30,}')
+if [ "$n_tok" -gt 0 ]; then
+  echo "❌ pre-push BLOCK: pattern token Telegram presente nella history ($n_tok match)."
+  echo "Scrub della history PRIMA (filter-repo) + ruota il bot token."
+  exit 1
+fi
+
+# --- BLOCCO 2 (S278): secret pattern nei commit in arrivo ---
 TOKEN_PATTERN='sk-or-v1-[A-Za-z0-9]|sk-ant-[A-Za-z0-9]|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|[0-9]{8,10}:AA[A-Za-z0-9_-]{30,}'
 Z=0000000000000000000000000000000000000000
 fail=0

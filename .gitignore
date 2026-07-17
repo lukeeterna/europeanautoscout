@@ -45,3 +45,11 @@ dossiers */
 s62_*.png
 s63_*.png
 landing_full_page.png
+
+# SWITCH v1: dati operativi PII solo-locali — MAI in git (guardia statica + pre-push attiva)
+data/recon/dealers_fb/
+data/recon/mandatari/
+data/pool_icp/
+data/registry/
+data/s173_cciaa_target_d28.csv
+tools/recon/harvest_dealers_fb.py
