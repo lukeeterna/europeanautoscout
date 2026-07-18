@@ -18,12 +18,12 @@ Mandato: NEXT_PROMPT_S286.md (VALUTA-POI-BUILD; Parte A docs-only, Parte B read-
 ## PARTE A — [A1] CHIUSO (commit 9e76158)
 
 - **Punto 7 splittato** in `docs/briefs/BRIEF_A_e2e_67_testfounder.md`:
-  - **7a — MECCANICA D'INVIO = VERDE**: Day-1 consegnato a TEST_FOUNDER 393314928901,
+  - **7a — MECCANICA D'INVIO = VERDE**: Day-1 consegnato a TEST_FOUNDER 39<TEST_FOUNDER_NUM>,
     HTTP 200 + msg_id `out_1781986351333_evd8h` (commit 40a5d1e) = fatto terminale.
   - **7b — BREAKER VIVO = DEFERITO** a gate-pre-dealer-reale (già nei 3 gate a dealer reale).
     NON è done-condition di [A1].
   - Motivo split (referto forense S285): il punto 7 monolitico ("invio passato per Gate-E")
-    era INSODDISFACIBILE su TEST_FOUNDER perché `gate_e.py:37,349` whitelista 393314928901
+    era INSODDISFACIBILE su TEST_FOUNDER perché `gate_e.py:37,349` whitelista 39<TEST_FOUNDER_NUM>
     → il breaker non scatta by-design; esercitarlo richiede numero non-whitelist = dealer reale.
 - **ROADMAP** (`docs/ROADMAP.md`): marcato [A1] CHIUSO + [S4] item attivo corrente.
 - **Anello 6-7 NON flippato**: `state/rings.json` ha `check_cmd: null` (tier full) → nessun check

@@ -101,10 +101,10 @@ Quando Luke dice "fatto":
 curl -s -w "\nHTTP:%{http_code}\n" -X POST http://192.168.1.2:9191/send-doc \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $ARGOS_API_KEY" \
-  -d '{"phone":"393314928901","file_path":"/Users/gianlucadistasi/Documents/app-antigravity-auto/dossiers/ARGOS_BMW_Serie3_S189_E2E_TEST.pdf","dealer_id":"test_founder_s189_e2e","caption":"ARGOS S189 E2E test"}'
+  -d '{"phone":"39<TEST_FOUNDER_NUM>","file_path":"/Users/gianlucadistasi/Documents/app-antigravity-auto/dossiers/ARGOS_BMW_Serie3_S189_E2E_TEST.pdf","dealer_id":"test_founder_s189_e2e","caption":"ARGOS S189 E2E test"}'
 ```
   Atteso: HTTP 200 `{status:sent, msg_id:doc_...}`
-- Luke conferma PDF ricevuto su WA 3314928901
+- Luke conferma PDF ricevuto su WA <TEST_FOUNDER_NUM>
 
 ### STEP 2 — Test reject flow
 
@@ -113,7 +113,7 @@ Crea dossier #3 PENDING per test reject:
 curl -s -X POST http://192.168.1.2:9191/send-doc \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $ARGOS_API_KEY" \
-  -d '{"phone":"393314928901","file_path":"/Users/gianlucadistasi/Documents/app-antigravity-auto/dossiers/ARGOS_BMW_Serie3_S189_E2E_TEST.pdf","dealer_id":"test_founder_s189_reject","caption":"reject test"}'
+  -d '{"phone":"39<TEST_FOUNDER_NUM>","file_path":"/Users/gianlucadistasi/Documents/app-antigravity-auto/dossiers/ARGOS_BMW_Serie3_S189_E2E_TEST.pdf","dealer_id":"test_founder_s189_reject","caption":"reject test"}'
 ```
 
 Luke va su /pending-dossiers → trova #3 → click **Rifiuta** → textarea reason "test reject S190" → submit.
@@ -157,7 +157,7 @@ git commit -m "feat(S189): HITL approval gate dossier pre-invio WA
 Pivot strategico post 6 ricadute over-mask sanitizer D-32 (memory s187/s188).
 Vincoli founder closed: NO YOLO-EU, NO foto stock, NO filter incrementale.
 
-E2E TEST_FOUNDER 393314928901 VERDE (S190 STEP 1+2 fisico Luke):
+E2E TEST_FOUNDER 39<TEST_FOUNDER_NUM> VERDE (S190 STEP 1+2 fisico Luke):
 - Approve flow: dashboard click → audit JSONL → /send-doc 200 → PDF arrivato WA
 - Reject flow: dashboard click + reason → audit JSONL → /send-doc 403 REJECTED
 

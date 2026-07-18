@@ -51,7 +51,7 @@ OpenRouter `…2f13` / GitHub PAT `ghp_zgws…` (dati per morti, CONFERMARE) + b
 **In attesa OK Luke** (NON wirare): N-pick (i)[raccomando]/(ii); N1 `{FONTE_REALE}` canale reale; N2 differito; N3 gate.
 
 DOPO conferma rotazione, in ordine:
-- **[4] E2E anelli 6-7** (raccomandato): gate HITL iMac + invio PDF a TEST_FOUNDER 393314928901. Sicuro,
+- **[4] E2E anelli 6-7** (raccomandato): gate HITL iMac + invio PDF a TEST_FOUNDER 39<TEST_FOUNDER_NUM>. Sicuro,
   muove un anello vero, prima prova al RENDER che Azzurra atterra (gap statico-vs-render Q3). ⚠️ PDF test
   usa base-mercato non-fidata (gate-3) → test meccanica + render, NON dei numeri. Innesca Gate-E `outreach_real`.
 - **[3] filter-repo**: sessione DEDICATA (chirurgia history distruttiva, force-push multi-branch). Meno urgente della rotazione.

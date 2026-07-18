@@ -172,7 +172,7 @@ Asset attesi:
 - Una raccomandazione singola motivata con DATI (vincolo #3)
 - Autocritica 4 punti su ogni proposta (vincolo #4)
 - Zero costi, HITL immutato
-- TEST_FOUNDER 393314928901 SIM FLUXION
+- TEST_FOUNDER 39<TEST_FOUNDER_NUM> SIM FLUXION
 - Domenica 2026-05-31 OFF
 - REGOLA #0 delegation-first: tool-evaluator per scelta framework, code-reviewer per integrazione
 - Context >50% → handoff S201 con stato preciso

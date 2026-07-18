@@ -9,7 +9,7 @@
 ## UX GOTCHA — direzione TEST_FOUNDER reactive
 
 **MAI invertire**:
-- TEST_FOUNDER (dealer simulato): SIM `3314928901` → ARGOS Business `3281536308` ✓
+- TEST_FOUNDER (dealer simulato): SIM `<TEST_FOUNDER_NUM>` → ARGOS Business `3281536308` ✓
 - ARGOS → TEST_FOUNDER = OUTBOUND auto-eco filtrato dal daemon ✗
 
 In S176-finalize Luke ha invertito 1 volta = 15min persi. Verifica direzione PRIMA di ogni "Luke ha inviato".
@@ -166,7 +166,7 @@ ssh imac "sqlite3 ~/Documents/app-antigravity-auto/dealer_network.sqlite \"SELEC
 
 1. Luke apre dashboard `http://192.168.1.2:8080` → sezione pending_replies → trova `CONTRACT_REQUEST` → click "Approva e invia"
 2. AMBRA spedisce reply con URL al telefono TEST_FOUNDER
-3. Luke (dal telefono `3314928901`) apre link, compila form (nome test, firma touch, submit)
+3. Luke (dal telefono `<TEST_FOUNDER_NUM>`) apre link, compila form (nome test, firma touch, submit)
 4. Verifica DB:
    ```bash
    ssh imac "sqlite3 ~/Documents/app-antigravity-auto/dealer_network.sqlite \"SELECT id, dealer_id, status, datetime(created_at,'localtime') FROM contracts WHERE dealer_id='TEST_FOUNDER' ORDER BY rowid DESC LIMIT 2;\""

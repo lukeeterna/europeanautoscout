@@ -18,7 +18,7 @@ Leggi PRIMA di iniziare (ordine obbligatorio):
   - auto_approve_and_send mono-msg → bridge
   - auto_approve_and_send multi-msg → Popen fallback + Telegram alert
 - force=true esplicito sempre (NO exclusion logic su template_phase)
-- Test fisico su **393314928901** (autorizzato S172 — override REVIEW S171 #10 motivato: FLUXION zero contatti esterni)
+- Test fisico su **39<TEST_FOUNDER_NUM>** (autorizzato S172 — override REVIEW S171 #10 motivato: FLUXION zero contatti esterni)
 - BACKLOG #S172-1 multi-msg + media schema = **gating Day 1 dealer Aprile**
 - macOS 11 Big Sur compat
 - `force=true` audit log obbligatorio → `~/venture-os/state/argos-force-overrides.jsonl`
@@ -90,9 +90,9 @@ scp /tmp/migration_bridge_s172.sql imac:/tmp/
 ssh imac "sqlite3 ~/Documents/app-antigravity-auto/comm-broker/bridge.sqlite < /tmp/migration_bridge_s172.sql"
 ```
 
-### STEP 4 — test fisico T1-T4 su 393314928901 (20-30min LUKE FISICO RICHIESTO)
+### STEP 4 — test fisico T1-T4 su 39<TEST_FOUNDER_NUM> (20-30min LUKE FISICO RICHIESTO)
 
-Luke attivo su WhatsApp Business 393314928901 (FLUXION SIM, autorizzato test ARGOS).
+Luke attivo su WhatsApp Business 39<TEST_FOUNDER_NUM> (FLUXION SIM, autorizzato test ARGOS).
 
 T1: queue 1 bridge row test → Luke screenshot WhatsApp = 1 messaggio
 T2: queue 3 simultanei distinti → 3 messaggi distinti

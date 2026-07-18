@@ -19,6 +19,7 @@ src/cove/data/cove_tracker.duckdb
 # S220: backup di settings.* leakano secret (OpenRouter/Telegram/GitHub PAT in command history)
 *.bak
 *.bak-*
+*.bak*  # igiene: backup mai in git
 .claude/*.backup_*
 
 # S220: Chrome profile scraper = 140MB junk + DB tracking, mai source

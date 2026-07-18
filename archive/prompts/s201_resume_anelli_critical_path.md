@@ -23,7 +23,7 @@
 
 ## STEP 0 ASSOLUTO (non sindacabile)
 
-**TEST_FOUNDER 393314928901 (SIM FLUXION fisica Luke) + Luke dichiara "pienamente soddisfatto"**.
+**TEST_FOUNDER 39<TEST_FOUNDER_NUM> (SIM FLUXION fisica Luke) + Luke dichiara "pienamente soddisfatto"**.
 
 OGNI mappatura pipeline, OGNI proposta tecnica, OGNI dichiarazione di readiness deve avere TEST_FOUNDER come Step 0 esplicito. Se manca → ricorda recidiva (4 memory ignorate fino S200).
 
@@ -109,7 +109,7 @@ Componente NUOVO non esiste. Spec:
 ### Step 5 E2E TEST_FOUNDER osservato Luke (quinto — gate STEP 0)
 Una volta #9 + #6 + #2 + Step 4 verdi:
 1. Luke sceglie modello (Step 2 corretto)
-2. Sistema invia Day 1 al 393314928901 (auto se scope pivot confermato, HITL solo se Luke vuole gradualità)
+2. Sistema invia Day 1 al 39<TEST_FOUNDER_NUM> (auto se scope pivot confermato, HITL solo se Luke vuole gradualità)
 3. Luke risponde dalla SIM
 4. Sistema persiste in `messages`, classifica, triggera CoVe search
 5. Sistema genera report parziale (anti-reverse-image), invia
@@ -142,7 +142,7 @@ Debito S200: zero Task delegate. Recuperare in S201:
 - Pre-flight env check su lib nuove (vincolo #8) — Big Sur Python 3.13 compat
 - Mai "hai ragione" diplomatico (vincolo #9)
 - Pattern recognition strutturale (vincolo #11) — STEP 0 TEST_FOUNDER come prima riga ogni mappatura
-- TEST_FOUNDER 393314928901 SIM FLUXION whitelist
+- TEST_FOUNDER 39<TEST_FOUNDER_NUM> SIM FLUXION whitelist
 - Domenica 2026-05-31 OFF (no scadenze Luke-fisico)
 - Context >50% → handoff S202 con stato preciso
 

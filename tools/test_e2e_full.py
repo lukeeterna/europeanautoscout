@@ -3,7 +3,7 @@
 test_e2e_full.py — Test E2E completo del sistema ARGOS
 Simula l'intero ciclo: Day1 → risposta dealer → auto-reply → verifica
 
-Esegue TUTTO autonomamente sul numero test 393314928901.
+Esegue TUTTO autonomamente sul numero test 39<TEST_FOUNDER_NUM>.
 Nessun intervento umano richiesto.
 """
 
@@ -16,7 +16,7 @@ import urllib.error
 import subprocess
 
 WA_DAEMON = "http://192.168.1.2:9191"
-TEST_PHONE = "393314928901"
+TEST_PHONE = "39<TEST_FOUNDER_NUM>"
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ANALYZER_SCRIPT = os.path.join(PROJECT_ROOT, "wa-intelligence", "response-analyzer.py")
 DB_PATH_IMAC = "/Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite"
@@ -144,7 +144,7 @@ def test_1_daemon_status():
 def test_2_dealer_in_pipeline():
     print("\n[TEST 2] Dealer test in pipeline")
     result = ssh_cmd(
-        f"sqlite3 {DB_PATH_IMAC} \"SELECT dealer_id, dealer_name, phone_number, persona_type, current_step FROM conversations WHERE phone_number='393314928901'\""
+        f"sqlite3 {DB_PATH_IMAC} \"SELECT dealer_id, dealer_name, phone_number, persona_type, current_step FROM conversations WHERE phone_number='39<TEST_FOUNDER_NUM>'\""
     )
 
     if "TEST_FOUNDER" in result:
@@ -380,7 +380,7 @@ def test_10_pipeline_scrape_cove_pdf():
 def main():
     print("=" * 70)
     print("  ARGOS E2E TEST SUITE")
-    print("  Target: 393314928901 (numero test founder)")
+    print("  Target: 39<TEST_FOUNDER_NUM> (numero test founder)")
     print("  Modalita: AUTONOMA — nessun intervento umano")
     print("=" * 70)
 

@@ -57,7 +57,7 @@ Luke lato Claude:
 ssh imac "ls -la /Users/gianlucadistasi/Documents/app-antigravity-auto/dossiers/ARGOS_BMW_X1_*$(date +%Y%m%d)*.pdf"
 
 # Send via WA (oppure usa dashboard:8080)
-ssh imac "curl -X POST http://localhost:9191/send -H 'Content-Type: application/json' -H 'X-API-Key: ...' -d '{\"to\":\"393314928901\",\"message\":\"<msg + filepath>\"}'"
+ssh imac "curl -X POST http://localhost:9191/send -H 'Content-Type: application/json' -H 'X-API-Key: ...' -d '{\"to\":\"39<TEST_FOUNDER_NUM>\",\"message\":\"<msg + filepath>\"}'"
 ```
 
 Verifica delivery DB messages.

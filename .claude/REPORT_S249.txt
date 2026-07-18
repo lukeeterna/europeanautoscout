@@ -92,7 +92,7 @@ Tema: valutazione second-opinion (b-output) + coverage-check Gate E (item 2)
        follow-up di lead inbound / rapporto preesistente / richiesta esplicita);
    (b) AMBRA non nega di essere automatica se interrogata (rimuovere eventuale
        istruzione KB "nega di essere un bot").
-  La E2E contro TEST_FOUNDER 393314928901 procede comunque (non e' un dealer).
+  La E2E contro TEST_FOUNDER 39<TEST_FOUNDER_NUM> procede comunque (non e' un dealer).
 
 ==============================================================================
 7. NEXT PROMPT  (incollare a inizio sessione S250)
@@ -102,7 +102,7 @@ bash state/refresh.sh <SESSION_ID>
 Leggi STATE.md (source-of-truth) — §3 ha coverage-check ESEGUITO + gate legale.
 
 ORDINE DI LAVORO S250:
-1) 6-7 E2E (SBLOCCATO dal coverage-check). Solo su TEST_FOUNDER 393314928901, MAI
+1) 6-7 E2E (SBLOCCATO dal coverage-check). Solo su TEST_FOUNDER 39<TEST_FOUNDER_NUM>, MAI
    dealer reale. Anello 6 fastapi-coupled -> smoke-abile solo iMac/CI (fastapi assente
    su MacBook). Path: gate HITL dossier (wa-intelligence/dashboard/app.py) + invio PDF
    via /send-doc. Sara' la PRIMA azione a innescare Gate E (classe outreach_real):
@@ -118,7 +118,7 @@ ORDINE DI LAVORO S250:
    Resta BLOCKED-ON-LUKE finche' non confermato con un professionista legale.
 
 VINCOLI SEMPRE ATTIVI:
-- TEST_FOUNDER 393314928901 prima di QUALSIASI dealer reale. Max 1 Day1/numero.
+- TEST_FOUNDER 39<TEST_FOUNDER_NUM> prima di QUALSIASI dealer reale. Max 1 Day1/numero.
 - image_sanitizer (D-32) + landing CONGELATI finche' anelli E2E non risalgono.
 - DB canonico pending_replies = ~/Documents/app-antigravity-auto/dealer_network.sqlite
 - argos.py NON esiste (CLAUDE.md stale). Test reali: tools/test_*.py, tools/tests/.

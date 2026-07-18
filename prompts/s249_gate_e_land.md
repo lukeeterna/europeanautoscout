@@ -43,7 +43,7 @@ Il verdetto va incollato in:
     (defense-in-depth secondario; editare state_guard.py e' doppio-gated → stessa procedura).
   - #2 COVERAGE-CHECK (production-blocking `outreach_real`): confermare che Gate E intercetti
     il path-tool REALE con cui AMBRA invia (MCP/Python che bypassa il matcher-shell → REJECT).
-  - #3 6-7 E2E: gate HITL iMac (fastapi) + invio PDF su TEST_FOUNDER 393314928901 (mai dealer reale).
+  - #3 6-7 E2E: gate HITL iMac (fastapi) + invio PDF su TEST_FOUNDER 39<TEST_FOUNDER_NUM> (mai dealer reale).
 
 ## Contesto cosa cambia il refinement (vs gate_e.py attuale)
 1. FP fix: disable_hook/overwrite_sot SOLO su operandi reali di op lossy → niente piu' FP su

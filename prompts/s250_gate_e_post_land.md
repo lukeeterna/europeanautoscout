@@ -22,7 +22,7 @@ se bypassa, flip a REJECT su quel path.
 
 ### #3 — E2E anelli 6-7
 Gate HITL dossier (app.py, fastapi → solo iMac/CI) + invio PDF su TEST_FOUNDER
-393314928901 (MAI dealer reale). Vedi `feedback_e2e_full_test_founder_before_day1.md`.
+39<TEST_FOUNDER_NUM> (MAI dealer reale). Vedi `feedback_e2e_full_test_founder_before_day1.md`.
 
 ## Pendenze minori
 - MEMORY.md index: puntatore a `s249_gate_e_landed.md` NON aggiunto (gate overwrite_sot

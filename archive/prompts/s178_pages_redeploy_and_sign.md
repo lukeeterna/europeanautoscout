@@ -6,7 +6,7 @@
 ## Stato ereditato S177c GIALLO 3/5
 
 - ✅ BUG-3 fix daemon whitelist TEST_FOUNDER (commits `a97dd07`, `78f9700`)
-- ✅ STEP 1 send `out_1778958263596_ob4sr` consegnato (sign_url su SIM 3314928901)
+- ✅ STEP 1 send `out_1778958263596_ob4sr` consegnato (sign_url su SIM <TEST_FOUNDER_NUM>)
 - ❌ BUG-4 emerso: Pages NON auto-deploy GitHub, `/contract/*` serve landing root
 - ⏳ STEP 2 firma BLOCKED (Pages routing rotto)
 - ⏳ STEP 3 mark-paid BLOCKED (richiede AWAITING_DELIVERY)
@@ -33,7 +33,7 @@ npx wrangler pages deploy landing/ --project-name=argos-automotive --branch=mast
 
 ## STEP 2 — Firma fisica TEST_FOUNDER (Luke, ~3min)
 
-1. Sul telefono SIM 3314928901 → tap link `https://argos-automotive.pages.dev/contract/612b16944d82d75e639b92c060e74197` (link già consegnato da S177c STEP 1)
+1. Sul telefono SIM <TEST_FOUNDER_NUM> → tap link `https://argos-automotive.pages.dev/contract/612b16944d82d75e639b92c060e74197` (link già consegnato da S177c STEP 1)
 2. Pagina sign su Pages → compila form (nome, firma stilizzata, FES consent) → submit
 3. Verifica transition:
 ```bash
@@ -84,7 +84,7 @@ Se GIALLO/ROSSO: handoff S179 con stato preciso + prompt resume.
 
 ## Reference rapide
 
-- TEST_FOUNDER SIM: 3314928901 (numero Luke, NO rischio ban)
+- TEST_FOUNDER SIM: <TEST_FOUNDER_NUM> (numero Luke, NO rischio ban)
 - ARGOS WA daemon: 3281536308 (Luca Ferretti persona)
 - Contract id: `52bc66c9feb4771d` | signature_token: `612b16944d82d75e639b92c060e74197`
 - iMac SSH: `ssh imac` | .env path: `~/Documents/app-antigravity-auto/wa-intelligence/.env`

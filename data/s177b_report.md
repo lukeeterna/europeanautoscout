@@ -28,7 +28,7 @@ File `wa-intelligence/response-analyzer.py`:
 Branch CONTRACT_REQUEST dopo `classification = classify_message(...)` (linea 1891):
 - Chiama `create_contract_for_interest()` con confidence=0.92 (>= 0.85 threshold)
 - Fallback vehicle: BMW X1 2020 €18000 (TODO post-S177b: lookup dossier_sent table)
-- Normalizza dealer_phone: `393314928901` → `+393314928901` (Worker regex `^(\+39)?3\d{8,10}$`)
+- Normalizza dealer_phone: `39<TEST_FOUNDER_NUM>` → `+39<TEST_FOUNDER_NUM>` (Worker regex `^(\+39)?3\d{8,10}$`)
 - Reply template **D-OPEN-Q2 cash a consegna NO IBAN hardcode**:
   ```
   perfetto. firmiamo qui: {sign_url}
@@ -58,14 +58,14 @@ contract_id=52bc66c9feb4771d, signature_token=612b16944d82d75e639b92c060e74197
 
 **Issue intermedi risolti in STEP 3**:
 1. iMac `.env` mancava `ARGOS_PROXY_URL` + `ARGOS_ADMIN_SECRET` → appended (chmod 600), backup `.env.s177b_bak`
-2. Phone format `393314928901` (12 digits no +) failed Worker regex → normalize handler
+2. Phone format `39<TEST_FOUNDER_NUM>` (12 digits no +) failed Worker regex → normalize handler
 3. **Cloudflare WAF error 1010** (banned by browser signature) blocked default `Python-urllib/X.Y` UA → patched helper con `User-Agent: argos-analyzer/1.0` header
 
 ### STEP 4 — HITL approve + sign fisico — PENDING LUKE
 Azione richiesta:
 1. Apri dashboard `http://192.168.1.2:8080`
 2. Sezione pending_replies → cerca `reply_f674d884` → review testo → click "Approva"
-3. WA arriverà sul SIM TEST_FOUNDER (3314928901): aprire il link `https://argos-automotive.pages.dev/contract/612b16944d82d75e639b92c060e74197`
+3. WA arriverà sul SIM TEST_FOUNDER (<TEST_FOUNDER_NUM>): aprire il link `https://argos-automotive.pages.dev/contract/612b16944d82d75e639b92c060e74197`
 4. Firma + submit → status contract dovrebbe evolvere `DRAFT → AWAITING_DELIVERY`
 
 ### STEP 5 — Mark-paid fisico — PENDING LUKE

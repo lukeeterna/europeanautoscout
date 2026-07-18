@@ -164,7 +164,7 @@ Fattura Svantaggiosa (TD17/18/19) saving: `€150-200` range.
 
 - WA Business ARGOS (Luca Ferretti): `+39 328 153 6308` (`3281536308`)
 - Telefono fisso VoIP: `0972 536 918` (EhiWeb)
-- TEST_FOUNDER (unico numero autorizzato per test): `393314928901`
+- TEST_FOUNDER (unico numero autorizzato per test): `39<TEST_FOUNDER_NUM>`
 - Telegram alerts chat: `ARGOS_TELEGRAM_CHAT_ID=931063621`
 
 ### 2.5 Email
@@ -787,7 +787,7 @@ Non iniziare Task N+1 prima che Task N sia DONE.
 Se trovi un problema nuovo, scrivilo in `BACKLOG.md`, non risolverlo ora.
 
 ## Regole invariate
-- Test su TEST_FOUNDER (393314928901) prima di qualsiasi dealer reale
+- Test su TEST_FOUNDER (39<TEST_FOUNDER_NUM>) prima di qualsiasi dealer reale
 - Max 1 messaggio Day 1 per numero — verifica daemon prima di ogni invio
 - Day 1: MAI "Germania", "import", "premium", "cerco auto", "estero"
 - Risposta dealer reale = query su `messages` table (NON su `current_step`)
@@ -858,7 +858,7 @@ WHERE source='autoscout24_it' AND seller_name IS NOT NULL;
 **Prerequisito:** nessuno (parallelo a Task 1)
 
 ## Task 3: E2E demo su TEST_FOUNDER
-**DONE quando:** messaggio ricevuto su 393314928901 generato dalla pipeline
+**DONE quando:** messaggio ricevuto su 39<TEST_FOUNDER_NUM> generato dalla pipeline
 `scrape → score → genera template → invia via daemon`
 **Prerequisiti:** Task 1 e Task 2 DONE
 **Skill:** `/outreach-day1` + `/wa-daemon-ops`

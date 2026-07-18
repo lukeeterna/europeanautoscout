@@ -38,7 +38,7 @@ Sessione S148 — fix WA daemon (NO outreach oggi, è 1° maggio).
    - (B) Patch chirurgica: guard `typeof chat.sendPresenceUpdate === 'function'` prima della chiamata
    - (C) Aggiungere ack listener (`message_ack`) per delivery confirmation reale
    - Idealmente: A o B per fix immediato + C per hardening
-4. **Test marker su TEST_FOUNDER** (393314928901): invio + Luke conferma manualmente sul suo telefono entro 30 secondi
+4. **Test marker su TEST_FOUNDER** (39<TEST_FOUNDER_NUM>): invio + Luke conferma manualmente sul suo telefono entro 30 secondi
    - Se NO → debug più profondo, NON procedere
    - Se SÌ → daemon verde, log "DELIVERED" deve apparire post-send
 5. **Hardening daemon** (post-fix):

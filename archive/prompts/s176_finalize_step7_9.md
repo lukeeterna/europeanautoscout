@@ -35,7 +35,7 @@ ssh imac "grep -c -E 'vehicle_request_broker|_check_vehicle_hallucination|_check
 ### Query DB messages (priorità 1)
 
 ```bash
-ssh imac "sqlite3 ~/Documents/app-antigravity-auto/dealer_network.sqlite \"SELECT datetime(created_at,'localtime'), direction, dealer_id, substr(body,1,120) FROM messages WHERE phone_number LIKE '%3314928901%' OR dealer_id='TEST_FOUNDER' ORDER BY rowid DESC LIMIT 8;\""
+ssh imac "sqlite3 ~/Documents/app-antigravity-auto/dealer_network.sqlite \"SELECT datetime(created_at,'localtime'), direction, dealer_id, substr(body,1,120) FROM messages WHERE phone_number LIKE '%<TEST_FOUNDER_NUM>%' OR dealer_id='TEST_FOUNDER' ORDER BY rowid DESC LIMIT 8;\""
 ```
 
 **Caso A — INBOUND da TEST_FOUNDER presente con "contratto/contract/firmo/firma/proseguo/va bene"**:
@@ -50,7 +50,7 @@ ssh imac "sqlite3 ~/Documents/app-antigravity-auto/dealer_network.sqlite \"SELEC
 **Caso B — Nessun INBOUND TEST_FOUNDER post-16:17 S176**:
 - Verifica daemon log:
   ```bash
-  ssh imac "grep -E '16/05/2026 1[8-9]:|17/05/2026|Raw msg.from.*141115562971357|3314928901' /tmp/argos-wa-daemon-out.log | tail -20"
+  ssh imac "grep -E '16/05/2026 1[8-9]:|17/05/2026|Raw msg.from.*141115562971357|<TEST_FOUNDER_NUM>' /tmp/argos-wa-daemon-out.log | tail -20"
   ```
 - Verifica TEST_FOUNDER profile WA da telefono Luke: lo screenshot della chat ARGOS Business (+39 328 1536308) mostra reply spedita o no?
 - Possibili root cause:

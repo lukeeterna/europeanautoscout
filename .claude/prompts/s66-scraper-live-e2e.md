@@ -139,7 +139,7 @@ Esiste già uno skeleton (467 righe, reportlab). VA RISCRITTO completamente:
 
 FASE 4 — FIX E TEST E2E (completamento S65)
 ─────────────────────────────────────────────
-4a. Test E2E WA: founder invia dal 393314928901 → daemon → analyzer → auto-invio
+4a. Test E2E WA: founder invia dal 39<TEST_FOUNDER_NUM> → daemon → analyzer → auto-invio
 4b. Verificare /tmp/argos-analyzer.log
 4c. Verificare Day 3 scheduler per SALERNO_001/002 (21 marzo)
 

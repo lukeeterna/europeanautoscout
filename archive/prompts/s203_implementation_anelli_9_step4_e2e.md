@@ -11,7 +11,7 @@
 
 ## STEP 0 ASSOLUTO (non sindacabile, recidiva infinite volte)
 
-**TEST_FOUNDER 393314928901 (SIM FLUXION fisica Luke) + Luke dichiara "pienamente soddisfatto"**.
+**TEST_FOUNDER 39<TEST_FOUNDER_NUM> (SIM FLUXION fisica Luke) + Luke dichiara "pienamente soddisfatto"**.
 
 Day 1 Stile Car BLOCKED finché gate qualitativo Luke superato. Gate qualitativo > deadline T-6gg.
 
@@ -150,7 +150,7 @@ Solo dopo #3 + #4 VERDI + deploy iMac VERIFIED.
 
 **Flow E2E**:
 1. Luke sceglie modello auto manualmente (es. "Audi Q5 2021")
-2. Pipeline invia Day 1 al 393314928901 **AUTO** (no approvazione TG, `action_type=day1_send` whitelist)
+2. Pipeline invia Day 1 al 39<TEST_FOUNDER_NUM> **AUTO** (no approvazione TG, `action_type=day1_send` whitelist)
 3. Luke risponde fisico dalla SIM FLUXION
 4. Daemon persiste in `messages` (con raw_payload + classifier popola intent/confidence post-classify)
 5. Reactive: `classifier_intent=VEHICLE_REQUEST` → CoVe search → genera report parziale (Pillow+piexif anti-reverse) → invia AUTO (`action_type=partial_report`)
@@ -183,7 +183,7 @@ git add prompts/s199_*.md prompts/s200_*.md prompts/s201_*.md prompts/s202_*.md 
 - Pre-flight env check piexif (vincolo #8) — Big Sur Python 3.13
 - Mai "hai ragione" diplomatico (vincolo #9)
 - Pattern recognition strutturale (vincolo #11) — STEP 0 TEST_FOUNDER prima riga
-- TEST_FOUNDER 393314928901 SIM FLUXION whitelist
+- TEST_FOUNDER 39<TEST_FOUNDER_NUM> SIM FLUXION whitelist
 - Domenica 2026-05-31 OFF (no scadenze Luke-fisico)
 - Context >50% → handoff S204 con stato preciso
 - REGOLA #0 delegation-first → minimo 3 Task delegate (implementer×2 + code-reviewer×2 + validator E2E)

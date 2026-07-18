@@ -104,7 +104,7 @@ if cls_type == 'NEGATIVE':
    - Bloccanti Luke fisico:
      - Step 4: approve dashboard:8080 (browser + ssh -L 8080:localhost:8080 imac)
      - Step 6: mark-paid form
-     - Step 8: verifica WA inbound TEST_FOUNDER 393314928901 SIM FLUXION
+     - Step 8: verifica WA inbound TEST_FOUNDER 39<TEST_FOUNDER_NUM> SIM FLUXION
    - Gate: 9/9 PASS + contract test PAID in `~/Documents/app-antigravity-auto/comm-broker/bridge.sqlite`
 
 5. **STEP 5 matrix decisione Day 1 Stile Car** (post-STEP 4 VERDE):
@@ -160,7 +160,7 @@ File `prompts/s199_claude_ai_opzione3_critica.md` con:
 - Mai "hai ragione" diplomatico (vincolo #9): accordo motivato con DATI o disaccordo motivato con DATI
 - Zero costi
 - HITL gate immutato per scelte irreversibili
-- TEST_FOUNDER 393314928901 autorizzato (SIM FLUXION Luke)
+- TEST_FOUNDER 39<TEST_FOUNDER_NUM> autorizzato (SIM FLUXION Luke)
 - Domenica 2026-05-31 OFF
 - WebSearch prima di decisioni stack (anti-S159)
 - Context >50% durante Track A → STOP Opzione 3 → handoff S200

@@ -89,7 +89,7 @@ ORDINE:
 
 [3] COPY DAY-1: OK Luke sui 3 nodi -> poi (solo a gate tecnici verdi) wiring.
 
-[4] Verso E2E: anelli 6-7 (gate HITL iMac + invio PDF a TEST_FOUNDER 393314928901).
+[4] Verso E2E: anelli 6-7 (gate HITL iMac + invio PDF a TEST_FOUNDER 39<TEST_FOUNDER_NUM>).
     Prima azione che innesca Gate-E classe outreach_real.
 
 VINCOLI INVARIATI:

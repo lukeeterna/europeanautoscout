@@ -150,7 +150,7 @@ Luca Ferretti
 ## CHECKLIST PRIMA DI INVIARE
 
 ```
-[ ] Testato su TEST_FOUNDER (393314928901) — PDF arriva correttamente?
+[ ] Testato su TEST_FOUNDER (39<TEST_FOUNDER_NUM>) — PDF arriva correttamente?
 [ ] Tono approvato dal founder
 [ ] WA daemon online (curl localhost:9191/status = OK)
 [ ] Domenico non ha gia' ricevuto messaggi in DB (verifica: messages table)

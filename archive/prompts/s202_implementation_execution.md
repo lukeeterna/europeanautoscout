@@ -10,7 +10,7 @@
 
 ## STEP 0 ASSOLUTO (non sindacabile)
 
-**TEST_FOUNDER 393314928901 (SIM FLUXION fisica Luke) + Luke dichiara "pienamente soddisfatto"**.
+**TEST_FOUNDER 39<TEST_FOUNDER_NUM> (SIM FLUXION fisica Luke) + Luke dichiara "pienamente soddisfatto"**.
 
 OGNI mappatura pipeline, OGNI dichiarazione di readiness deve avere TEST_FOUNDER come Step 0 esplicito. Day 1 Stile Car BLOCKED finché gate qualitativo Luke superato.
 
@@ -57,7 +57,7 @@ Patch:
 - `dashboard/db.py:33` (`ensure_tables`) → stesso pattern idempotent
 - `response-analyzer.py` post-classify → `UPDATE messages SET classifier_intent=?, classifier_confidence=? WHERE id=?` (richiede propagazione `msg_id` da daemon → Python subprocess)
 
-Gate smoke: invio msg da TEST_FOUNDER 393314928901 → riga in `messages` con `classifier_intent` e `classifier_confidence` popolati.
+Gate smoke: invio msg da TEST_FOUNDER 39<TEST_FOUNDER_NUM> → riga in `messages` con `classifier_intent` e `classifier_confidence` popolati.
 
 Post-implementer: `code-reviewer` + commit `feat(S202-INBOX): ALTER messages classifier columns + indici reactive`.
 
@@ -123,7 +123,7 @@ Post-implementer: `code-reviewer` + commit `feat(S202-PARTIAL-REPORT): Pillow+pi
 Solo dopo #2+#6+#9+Step 4 VERDI.
 
 1. Luke sceglie modello auto manualmente (es. "Audi Q5 2021")
-2. Pipeline invia Day 1 al 393314928901 **AUTO** (no approvazione TG)
+2. Pipeline invia Day 1 al 39<TEST_FOUNDER_NUM> **AUTO** (no approvazione TG)
 3. Luke risponde fisico dalla SIM FLUXION
 4. Daemon persiste in `messages`, classifier popola `classifier_intent`
 5. Reactive: classifier_intent=VEHICLE_REQUEST → CoVe search → genera report parziale → invia AUTO
@@ -158,7 +158,7 @@ git add prompts/s199_*.md prompts/s200_*.md prompts/s201_*.md prompts/s202_*.md 
 - Pre-flight env check pacchetti nuovi (vincolo #8) — Big Sur Python 3.13
 - Mai "hai ragione" diplomatico (vincolo #9)
 - Pattern recognition strutturale (vincolo #11) — STEP 0 TEST_FOUNDER prima riga ogni mappatura
-- TEST_FOUNDER 393314928901 SIM FLUXION whitelist
+- TEST_FOUNDER 39<TEST_FOUNDER_NUM> SIM FLUXION whitelist
 - Domenica 2026-05-31 OFF (no scadenze Luke-fisico)
 - Context >50% → handoff S203 con stato preciso
 - REGOLA #0 delegation-first → minimo 4 Task delegate (implementer×4 + code-reviewer×4 + validator + database-admin)

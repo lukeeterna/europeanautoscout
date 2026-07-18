@@ -20,7 +20,7 @@ Leggi PRIMA di iniziare:
 
 ## Vincoli HARD (immutabili)
 
-- Test fisico su **393314928901** (FLUXION SIM, autorizzato S172 override REVIEW S171 #10)
+- Test fisico su **39<TEST_FOUNDER_NUM>** (FLUXION SIM, autorizzato S172 override REVIEW S171 #10)
 - `force=true` audit log obbligatorio → `~/venture-os/state/argos-force-overrides.jsonl`
 - iMac SSH PM2 workaround: `ssh imac "source ~/.zshrc; pm2 ..."`
 - BRIDGE_DB_PATH = `/Users/gianlucadistasi/Documents/app-antigravity-auto/comm-broker/bridge.sqlite`
@@ -38,7 +38,7 @@ ssh imac "bash /tmp/s173_test_setup.sh t1"
 ssh imac "bash /tmp/s173_test_setup.sh t1-verify"
 ```
 
-Luke verifica WA Business 393314928901:
+Luke verifica WA Business 39<TEST_FOUNDER_NUM>:
 - Expect: 1 messaggio testo "Test S173 T1 ${TS} — single send check"
 - Screenshot opzionale
 - DB row: `sent_ts NOT NULL`, `sent_status='ok'`, `wa_msg_id` reale, `attempt_count=1`
@@ -115,7 +115,7 @@ Fix:
 - INSERT OR IGNORE in wa_bridge.py
 
 Smoke offline: 4/4 PASS
-Test fisico T1-T4: 4/4 PASS su 393314928901
+Test fisico T1-T4: 4/4 PASS su 39<TEST_FOUNDER_NUM>
 Sblocca: REVIEW S171 issue #9, Day 1 dealer Aprile (gated su BACKLOG #S172-1 multi-msg)
 
 Co-Authored-By: Claude Opus 4 <noreply@anthropic.com>
@@ -141,7 +141,7 @@ Append `~/venture-os/state/brief-actions.jsonl`:
 
 Memory updates Appendix C HANDOFF (3 file):
 1. `feedback_single_writer_principle_bridge.md`
-2. `feedback_test_founder_3314928901_argos_authorized.md`
+2. `feedback_test_founder_<TEST_FOUNDER_NUM>_argos_authorized.md`
 3. `s173_dedup_implementation_closed.md` (sostituisce `s173_implementation_done_test_t1t4_pending.md`)
 
 ### STEP 6 — handoff S174 BACKLOG #S172-1 (5min)

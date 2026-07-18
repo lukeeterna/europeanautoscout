@@ -51,17 +51,17 @@ Se ancora `sent=0` dopo 2min, daemon non polla → Path B.
 
 **Path B — invio diretto /send daemon** (fallback):
 ```bash
-ssh imac "source ~/Documents/app-antigravity-auto/wa-intelligence/.env && curl -sS -X POST 'http://localhost:9191/send' -H \"X-API-Key: \$ARGOS_API_KEY\" -H 'Content-Type: application/json' -d '{\"phone\":\"393314928901\",\"message\":\"perfetto. firmiamo qui: https://argos-automotive.pages.dev/contract/612b16944d82d75e639b92c060e74197\\n\\nappena firmato ci sentiamo per consegna e saldo. Luca\"}'"
+ssh imac "source ~/Documents/app-antigravity-auto/wa-intelligence/.env && curl -sS -X POST 'http://localhost:9191/send' -H \"X-API-Key: \$ARGOS_API_KEY\" -H 'Content-Type: application/json' -d '{\"phone\":\"39<TEST_FOUNDER_NUM>\",\"message\":\"perfetto. firmiamo qui: https://argos-automotive.pages.dev/contract/612b16944d82d75e639b92c060e74197\\n\\nappena firmato ci sentiamo per consegna e saldo. Luca\"}'"
 ```
 Se ancora `outside business hours`: orario fuori range, attendi o vedi BACKLOG #3.
 
-**Path C — manuale fallback** (se daemon irrecuperabile): WhatsApp app dal SIM 3281536308 → chat con 3314928901 → incolla il testo sopra → invia.
+**Path C — manuale fallback** (se daemon irrecuperabile): WhatsApp app dal SIM 3281536308 → chat con <TEST_FOUNDER_NUM> → incolla il testo sopra → invia.
 
-**Verifica arrivo**: WA sulla SIM TEST_FOUNDER (3314928901) riceve messaggio con link.
+**Verifica arrivo**: WA sulla SIM TEST_FOUNDER (<TEST_FOUNDER_NUM>) riceve messaggio con link.
 
 ## STEP 2 — Firma contratto fisica (~3min, Luke fisico)
 
-1. Sul telefono SIM 3314928901 → clicca link `https://argos-automotive.pages.dev/contract/612b16944d82d75e639b92c060e74197`
+1. Sul telefono SIM <TEST_FOUNDER_NUM> → clicca link `https://argos-automotive.pages.dev/contract/612b16944d82d75e639b92c060e74197`
 2. Pagina firma su Cloudflare Pages → compila campi (nome dealer, conferma, eventuale firma) → submit
 3. Verifica transition DRAFT → AWAITING_DELIVERY:
    ```bash
@@ -109,7 +109,7 @@ Ipotesi: daemon polla solo `bridge_outbound` table, non `pending_replies`. Dashb
 ```bash
 grep -nE "business.?hours|workingHours|cooldown.*hour|hour.*reject" /Users/macbook/Documents/combaretrovamiauto-enterprise/wa-intelligence/wa-daemon.js
 ```
-Ipotesi: range 9:00-19:00 IT hardcoded. Per TEST_FOUNDER serve bypass (whitelist phone 393314928901). Aggiungi check `if (phone == TEST_FOUNDER_PHONE) skip business_hours_check`.
+Ipotesi: range 9:00-19:00 IT hardcoded. Per TEST_FOUNDER serve bypass (whitelist phone 39<TEST_FOUNDER_NUM>). Aggiungi check `if (phone == TEST_FOUNDER_PHONE) skip business_hours_check`.
 
 **Tempo budget**: BUG-1+2 fix ~30min (test su MacBook + push + reload daemon iMac), BUG-3 fix ~10min.
 
@@ -120,7 +120,7 @@ Ipotesi: range 9:00-19:00 IT hardcoded. Per TEST_FOUNDER serve bypass (whitelist
 - **ROSSO ≤2/5** → root cause analysis su daemon/dashboard, S178 differito
 
 ## UX gotcha invariata
-**MAI invertire direzione TEST_FOUNDER**: SIM `3314928901` (TEST_FOUNDER) ↔ ARGOS `3281536308` (Luca Ferretti). Per STEP 1 invio: from ARGOS `3281536308` to TEST_FOUNDER `3314928901`. Per STEP 2 firma: Luke fisico sul telefono che ha la SIM TEST_FOUNDER.
+**MAI invertire direzione TEST_FOUNDER**: SIM `<TEST_FOUNDER_NUM>` (TEST_FOUNDER) ↔ ARGOS `3281536308` (Luca Ferretti). Per STEP 1 invio: from ARGOS `3281536308` to TEST_FOUNDER `<TEST_FOUNDER_NUM>`. Per STEP 2 firma: Luke fisico sul telefono che ha la SIM TEST_FOUNDER.
 
 ## Findings parcheggiati S178+ (NON aprire in S177c)
 - D-32 sanitizer refactor Pillow-only → S178 post-S177c (BLOCKER Day 1 Stile Car)

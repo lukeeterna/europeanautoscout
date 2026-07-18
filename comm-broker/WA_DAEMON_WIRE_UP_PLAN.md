@@ -16,9 +16,9 @@
 >
 > **Verifica E2E**:
 > - `Client PRONTO` + `[bridge] polling enabled every 30000ms (batch=5, anti-ban 30-90s)` in `/tmp/argos-wa-daemon-out.log`
-> - V3-rev2 queue→approve→poll(30s)→`client.sendMessage('393314928901@c.us')`
+> - V3-rev2 queue→approve→poll(30s)→`client.sendMessage('39<TEST_FOUNDER_NUM>@c.us')`
 > - bridge_outbound id=1: `sent_status='ok'`, `wa_msg_id='true_141115562971357@lid_3EB0B9613EDB1E3D36675B'`
-> - Founder phone (393314928901) confermato ricezione messaggio
+> - Founder phone (39<TEST_FOUNDER_NUM>) confermato ricezione messaggio
 >
 > Path portable via `__dirname` (no hardcoded dir name) — funziona iMac `app-antigravity-auto` + MacBook `combaretrovamiauto-enterprise` (stesso git remote `europeanautoscout`).
 
@@ -166,7 +166,7 @@ from wa_bridge import WABridge
 from deal_state_machine import Deal, DealStateMachine
 bridge = WABridge('/tmp/bridge.sqlite', '/tmp/deals.sqlite')
 DealStateMachine(Deal(deal_id='TEST-001', dealer_alias='TEST', seller_alias='SELF'), '/tmp/deals.sqlite')
-bridge.register_party('393314928901', 'dealer', 'TEST', 'IT')
+bridge.register_party('39<TEST_FOUNDER_NUM>', 'dealer', 'TEST', 'IT')
 "
 
 # 2. Configure wa-daemon con BRIDGE_DB_PATH
@@ -183,7 +183,7 @@ pm2 logs argos-wa-daemon --lines 20 | grep "bridge"
 from wa_bridge import WABridge, OutboundCandidate
 bridge = WABridge('/tmp/bridge.sqlite', '/tmp/deals.sqlite')
 oid = bridge.queue_outbound(OutboundCandidate(
-    deal_id='TEST-001', target_role='dealer', target_phone='393314928901',
+    deal_id='TEST-001', target_role='dealer', target_phone='39<TEST_FOUNDER_NUM>',
     template_phase='offer', template_lang='it',
     body='[TEST BRIDGE] Hello from comm-broker pipeline',
     state_at_send='offer_sent',

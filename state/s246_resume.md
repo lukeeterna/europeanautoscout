@@ -19,7 +19,7 @@ DA FARE (ordine — high-stakes, backup Rule 1d PRIMA di file globali/lossy):
 - Step 8: backup verificato → move HANDOFF*/prompts(58)/.claude/NEXT_SESSION_PROMPT in archive/
   → 1 riga pointer STATE.md → commit reversibile.
 - Step 9: classe azioni high-stakes + Gate E (hook blocca, scrive pending_review/<azione>.md, exit!=0).
-- 6-7 E2E: gate HITL su iMac (fastapi presente) + invio PDF su TEST_FOUNDER 393314928901 (mai dealer reale).
+- 6-7 E2E: gate HITL su iMac (fastapi presente) + invio PDF su TEST_FOUNDER 39<TEST_FOUNDER_NUM> (mai dealer reale).
 
 Done-condition finale: sessione fresh, refresh parte da solo a SessionStart, guard attivo,
 CC procede da stato GENERATO + protetto.

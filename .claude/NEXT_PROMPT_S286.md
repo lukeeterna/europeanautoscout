@@ -5,7 +5,7 @@ Se un passo richiede di andare oltre quelli elencati, FERMATI e riporta — non 
 CONTESTO: due cose in questa sessione, in ordine.
 (1) CHIUSURA [A1]: il referto forense S285 ha stabilito che il punto 7 monolitico ("invio
     passato per Gate-E") è INSODDISFACIBILE su TEST_FOUNDER, perché gate_e.py whitelista
-    393314928901 (gate_e.py:37,349 + commit 40a5d1e). Decisione Luke: spaccare il punto 7 in
+    39<TEST_FOUNDER_NUM> (gate_e.py:37,349 + commit 40a5d1e). Decisione Luke: spaccare il punto 7 in
     7a (meccanica d'invio, GIÀ verde stasera: commit 40a5d1e HTTP 200 msg_id
     out_1781986351333_evd8h) + 7b (breaker vivo su numero non-whitelist) e DECLASSARE 7b a
     gate-pre-dealer-reale (è già nei "3 gate a dealer reale"). Con questo, [A1] = VERDE.

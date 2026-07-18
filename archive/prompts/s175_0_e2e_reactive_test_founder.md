@@ -13,7 +13,7 @@
 
 ## SCOPE S175.0
 
-Verificare 9 step E2E pipeline reactive funzionano REALMENTE su TEST_FOUNDER (393314928901). Output = gap report con fix singolo per gap. NO simulation, NO admin API, NO classifier stub. Solo `on_demand_runner.py` è manual (D-15 HITL).
+Verificare 9 step E2E pipeline reactive funzionano REALMENTE su TEST_FOUNDER (39<TEST_FOUNDER_NUM>). Output = gap report con fix singolo per gap. NO simulation, NO admin API, NO classifier stub. Solo `on_demand_runner.py` è manual (D-15 HITL).
 
 ---
 
@@ -69,7 +69,7 @@ ssh imac "curl -s -o /dev/null -w 'STEP0.3 dashboard: %{http_code}\n' http://loc
 
 # 0.4 TEST_FOUNDER row presente
 ssh imac "sqlite3 ~/Documents/app-antigravity-auto/dealer_network.sqlite \"SELECT dealer_id, dealer_name, phone_number, current_step, handoff_source, is_micro_dealer FROM conversations WHERE dealer_id='TEST_FOUNDER';\""
-# Expected: TEST_FOUNDER|Test Concessionaria Founder|393314928901|<step>|<source>|<flag>
+# Expected: TEST_FOUNDER|Test Concessionaria Founder|39<TEST_FOUNDER_NUM>|<step>|<source>|<flag>
 
 # 0.5 argos-proxy worker contract endpoint reale (NON /health che è 404)
 curl -s -X OPTIONS https://argos-proxy.gianlucanewtech.workers.dev/api/v1/contract/create \
@@ -216,7 +216,7 @@ ssh imac "WA_API_KEY=\$(grep -E '^WA_DAEMON_API_KEY=' ~/Documents/app-antigravit
   -H 'Content-Type: application/json' \
   -H \"X-API-Key: \$WA_API_KEY\" \
   -d '{
-    \"phone\": \"393314928901\",
+    \"phone\": \"39<TEST_FOUNDER_NUM>\",
     \"file_path\": \"/tmp/$BASENAME\",
     \"caption\": \"BMW X1 2020 — dossier ARGOS\",
     \"dealer_id\": \"TEST_FOUNDER\"
@@ -267,7 +267,7 @@ SELECT * FROM agent_state WHERE dealer_id='TEST_FOUNDER' ORDER BY rowid DESC LIM
 \""
 # NOTA: contracts table potrebbe non esistere in DB iMac — contracts vivono su worker D1 cloudflare.
 # Verifica worker side:
-curl -s "https://argos-proxy.gianlucanewtech.workers.dev/api/v1/contract/list?dealer_phone=393314928901" \
+curl -s "https://argos-proxy.gianlucanewtech.workers.dev/api/v1/contract/list?dealer_phone=39<TEST_FOUNDER_NUM>" \
   -H "Authorization: Bearer \$(grep ARGOS_PROXY_ADMIN_TOKEN ~/Documents/app-antigravity-auto/.env | cut -d= -f2)" \
   | python3 -m json.tool 2>&1 | head -30
 ```
@@ -285,7 +285,7 @@ GAP-8.X se: create_contract HTTP 4xx/5xx | sign_url 404 | form non submit | cont
 
 Verifica post:
 ```bash
-curl -s "https://argos-proxy.gianlucanewtech.workers.dev/api/v1/contract/list?dealer_phone=393314928901" \
+curl -s "https://argos-proxy.gianlucanewtech.workers.dev/api/v1/contract/list?dealer_phone=39<TEST_FOUNDER_NUM>" \
   -H "Authorization: Bearer \$TOKEN" | python3 -m json.tool
 # Expected: status=PAID, paid_amount=1, paid_at populated
 ```

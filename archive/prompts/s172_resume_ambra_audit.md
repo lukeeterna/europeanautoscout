@@ -95,12 +95,12 @@ Parallelo 4 agent (Agent tool subagent_type=general-purpose o Explore, in single
 Output ranked list 10 canali con confidence `[verified]` (joined+observed) vs `[unverified-need-join]` (only metadata public). Timebox HARD 60min — se sforato, deliverable PARTIAL allowed solo se ≥6 canali ranked + nota "Agent X timed out".
 
 ### P2 — Verifica fix wa-daemon duplicate sends (gated A1)
-**Pre-condizione**: founder fisico online TEST_FOUNDER 3314928901 conferma "pronto a verificare 3/3 single-send".
+**Pre-condizione**: founder fisico online TEST_FOUNDER <TEST_FOUNDER_NUM> conferma "pronto a verificare 3/3 single-send".
 
 Test procedura (eseguibile in S172 se founder pronto):
 1. SSH iMac: `sqlite3 bridge.sqlite "SELECT name FROM sqlite_master WHERE name='bridge_outbound'"` → schema check
 2. Verifica colonne S171: `PRAGMA table_info(bridge_outbound)` → `processing_ts` + `attempt_count` presenti
-3. Insert 3 outbound test rows manuali (deal_id S172-DEDUP-001/002/003, body distinto, target 393314928901, approved_ts now)
+3. Insert 3 outbound test rows manuali (deal_id S172-DEDUP-001/002/003, body distinto, target 39<TEST_FOUNDER_NUM>, approved_ts now)
 4. Wait BRIDGE_POLL_INTERVAL_MS (~30s) × 4 = 2min
 5. Founder verifica WA: deve ricevere ESATTAMENTE 3 messaggi (uno per row, NO duplicati per row)
 6. Query post-test: `SELECT id, sent_ts, sent_status, wa_msg_id, attempt_count FROM bridge_outbound WHERE deal_id LIKE 'S172-DEDUP-%'` → 3 rows con sent_status='ok' + attempt_count=1
@@ -142,8 +142,8 @@ Trigger: P5 verde end-to-end → P6 attiva.
 - **D-26**: V5 cold-lead SUPERSEDED-INVALIDATED (target wrong + paradigm wrong)
 - **D-27**: PROPOSED mystery shopper 3-layer (Layer 1 marketing infiltration + Layer 2 mystery shopper WA + Layer 3 AMBRA autonomous). Validation pending P1 research.
 - **D-28**: DECIDED target micro-dealer commissione P.IVA forfettaria stock<20. ESCLUDERE stock ≥20.
-- **D-29**: DECIDED numero 3314928901 condiviso ARGOS+FLUXION zero-cost pre-revenue. Persona Luca Ferretti / Erica Fluxion solo in CORPO messaggi.
-- **A1** (S171): P5 test simulato founder-to-founder su 3314928901 OK
+- **D-29**: DECIDED numero <TEST_FOUNDER_NUM> condiviso ARGOS+FLUXION zero-cost pre-revenue. Persona Luca Ferretti / Erica Fluxion solo in CORPO messaggi.
+- **A1** (S171): P5 test simulato founder-to-founder su <TEST_FOUNDER_NUM> OK
 - **A2** (S171): BLIND search 60min cap Telegram+FB+Google ranked 10 canali
 - **A5** (S171): 3 bozze antipattern americano vs 3 italiano naturale → founder sceglie
 - **A6** (S171): Auto fittizia P5 decisa LIVE da founder

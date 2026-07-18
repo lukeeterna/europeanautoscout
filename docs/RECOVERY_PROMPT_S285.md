@@ -6,7 +6,7 @@ Routing: STATE.md → docs/ROADMAP.md → docs/briefs/BRIEF_A_e2e_67_testfounder
 
 ## PRIMA AZIONE (invariante)
 `ssh gianlucadistasi@192.168.1.2 'curl -s localhost:9191/status'` → atteso `"wa_status": "connected"` + `is_business_hours:true`.
-Se no → [A0] wa-daemon-ops. SOLO TEST_FOUNDER 393314928901, mai dealer reale. Mai domenica (giorno OFF Luke).
+Se no → [A0] wa-daemon-ops. SOLO TEST_FOUNDER 39<TEST_FOUNDER_NUM>, mai dealer reale. Mai domenica (giorno OFF Luke).
 
 ## FATTO in S284 (verde, NON ripetere)
 - [A0] daemon `connected` verificato (curl letterale).

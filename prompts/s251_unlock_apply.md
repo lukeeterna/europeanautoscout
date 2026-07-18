@@ -26,7 +26,7 @@
 
 ## #3 — E2E anelli 6-7 (NON in questa sessione)
 BLOCKED-ON: Luke fisico + iMac/fastapi (app.py richiede fastapi assente su MacBook).
-Gate HITL dossier + invio PDF SOLO a TEST_FOUNDER 393314928901 (MAI dealer reale).
+Gate HITL dossier + invio PDF SOLO a TEST_FOUNDER 39<TEST_FOUNDER_NUM> (MAI dealer reale).
 Vedi `feedback_e2e_full_test_founder_before_day1.md`. Resta l'unico item che NON è codice.
 
 ## Correzione al prompt S250 (verificata)

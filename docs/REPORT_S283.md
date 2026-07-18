@@ -12,7 +12,7 @@ a) ROUTING A FREDDO
    imposto dall'autorità di stato, ho seguito la catena:
    STATE.md → docs/ROADMAP.md → docs/briefs/BRIEF_A_e2e_67_testfounder.md.
    Questi dicono: la sessione è DEDICATA all'anello E2E 6-7 verso
-   TEST_FOUNDER 393314928901, e per chiuderlo verde servono 7 punti
+   TEST_FOUNDER 39<TEST_FOUNDER_NUM>, e per chiuderlo verde servono 7 punti
    spuntati su un artefatto REALE (PDF dossier + messaggio Day-1).
 
 b) DUE GAP DI CODICE DA COSTRUIRE (non bypassare)
@@ -119,7 +119,7 @@ e) VERIFICA (lezione S240: mai fidarsi del verdetto di un subagent)
       dossier renderizzato → tu lo incolli a Claude AI per un GO/NO-GO
       esterno. Si invia SOLO con GO.
 
-   3. INVIO a TEST_FOUNDER 393314928901 via Gate-E: la classe
+   3. INVIO a TEST_FOUNDER 39<TEST_FOUNDER_NUM> via Gate-E: la classe
       "outreach_real" BLOCCA l'invio e scrive un packet; tu incolli il
       verdetto + lanci  ! python3 .harness/gate_e.py approve <slug>.
       Se Gate-E NON scatta = bug del breaker (non un successo).

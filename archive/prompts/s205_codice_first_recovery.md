@@ -32,17 +32,17 @@ Se uno dei tre fallisce → STOP, recovery del componente prima di proseguire.
 
 ## STEP 1 — Gap #2: verificare TEST_FOUNDER contract end-to-end (30min)
 
-Ultimo INBOUND `393314928901` 2026-05-16: "Va bene, mi mandi il contratto".
+Ultimo INBOUND `39<TEST_FOUNDER_NUM>` 2026-05-16: "Va bene, mi mandi il contratto".
 Domanda: la pipeline reactive CONTRACT_REQUEST ha creato il contract su D1? Mark-paid eseguito?
 
 ```bash
 # Query D1 argos-contracts via wrangler (cwd argos-proxy/)
 cd argos-proxy && wrangler d1 execute argos-contracts --remote \
-  --command "SELECT id, status, dealer_phone, created_at, signed_at, paid_at FROM contracts WHERE dealer_phone='+393314928901' ORDER BY created_at DESC LIMIT 5"
+  --command "SELECT id, status, dealer_phone, created_at, signed_at, paid_at FROM contracts WHERE dealer_phone='+39<TEST_FOUNDER_NUM>' ORDER BY created_at DESC LIMIT 5"
 
 # Query iMac dossiers/messages per token
 ssh imac "sqlite3 ~/Documents/app-antigravity-auto/dealer_network.sqlite \
-  \"SELECT body FROM messages WHERE phone_number='393314928901@c.us' AND direction='OUTBOUND' AND body LIKE '%contract%' ORDER BY timestamp_iso DESC LIMIT 3;\""
+  \"SELECT body FROM messages WHERE phone_number='39<TEST_FOUNDER_NUM>@c.us' AND direction='OUTBOUND' AND body LIKE '%contract%' ORDER BY timestamp_iso DESC LIMIT 3;\""
 ```
 
 **PASS criteria**: sappiamo se quel "Va bene" ha prodotto un contract reale o se è caduto. Se caduto → identificare callsite mancante (probabile gap classifier o handler).

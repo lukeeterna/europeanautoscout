@@ -29,7 +29,7 @@ TIER1_FG_002|CLOSED_NO|1|1|2026-04-15 06:55:52
   "qr_available": false
 }
 
---- E2E Test (TEST_FOUNDER 393314928901) ---
+--- E2E Test (TEST_FOUNDER 39<TEST_FOUNDER_NUM>) ---
 /Library/Developer/CommandLineTools/usr/bin/python3: can't open file '/Users/gianlucadistasi/Documents/app-antigravity-auto/tools/test_e2e_full.py': [Errno 2] No such file or directory
 E2E exit code: 0
 

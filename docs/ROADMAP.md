@@ -14,7 +14,7 @@
 #   Anelli E2E: 2/9A/5 VERIFIED-smoke · 1/9B/6-7 UNVERIFIED · 8 BLOCKED(esterno).
 #
 # SEQUENZA (ordine vincolante; ogni item → il suo brief in docs/briefs/):
-#   [A] E2E 6-7 su TEST_FOUNDER 393314928901   → docs/briefs/BRIEF_A_e2e_67_testfounder.md
+#   [A] E2E 6-7 su TEST_FOUNDER 39<TEST_FOUNDER_NUM>   → docs/briefs/BRIEF_A_e2e_67_testfounder.md
 #       PREREQ (scoperto S280): WA daemon = initializing/qr_available:false = client NON connesso.
 #       [A] NON parte finche': (i) daemon initializing->connected (area S252: QR re-scan, Luke fisico
 #       sulla SIM), (ii) orario lavorativo (anti-ban gate-a fuori orario). → SPLIT:

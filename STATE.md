@@ -72,7 +72,7 @@ selftest 9/9 PASS. Hook ATTIVO LIVE (CC rilegge settings.json a caldo): ha blocc
 commit di install = prova in produzione. Verdetto esterno Claude AI S247: APPROVE (atterra verificato,
 refinement dopo con stessa disciplina verify-then-land).
 
-Resta (verdetto Claude AI): 6-7 E2E (gate HITL iMac + invio PDF TEST_FOUNDER 393314928901). È la prima
+Resta (verdetto Claude AI): 6-7 E2E (gate HITL iMac + invio PDF TEST_FOUNDER 39<TEST_FOUNDER_NUM>). È la prima
 azione che innescherà Gate E (classe `outreach_real`).
 
 ---
@@ -115,7 +115,7 @@ azione che innescherà Gate E (classe `outreach_real`).
    - **AZIONE gated PRIMA di alzare autonomia-invio (oggi già bloccata da ≥10 CLOSED_WON)**: far
      rispettare `approved_ts` a `/send` stesso, o instradare ogni invio reale dentro il bridge
      (single-writer vero). NON blocca 6-7 (TEST_FOUNDER + CC-initiated).
-3. **6-7 E2E** — gate HITL su iMac (fastapi presente) + invio PDF su TEST_FOUNDER 393314928901
+3. **6-7 E2E** — gate HITL su iMac (fastapi presente) + invio PDF su TEST_FOUNDER 39<TEST_FOUNDER_NUM>
    (mai dealer reale). Anello 6 fastapi-coupled: smoke-abile solo iMac/CI. Prima azione che innesca
    **Gate E** (classe `outreach_real`): invio BLOCCATO + packet, si procede solo dopo verdetto esterno +
    `approve <slug>`. Coverage-check (item 2) ESEGUITO → sbloccato.
@@ -150,13 +150,13 @@ irreversibile + verifica con professionista legale — CC non è un legale) non 
 >     reale, voce/tel). test_ambra_5scenarios.py 5/5. Verifica = statica sui literal (il render LLM vero
 >     si vede nell'E2E TEST_FOUNDER, deferito). Seam: testo WA → Azzurra; Day-10 voce/Day-30 tel → Luca reale.
 >     **DEPLOYATO su iMac (2026-06-30, commit 118343b)** → in PRODUZIONE il daemon firma "Azzurra, assistente di Luca Ferretti" (flip verificato grezzo su LIVE ROOT, zero invii, coda bridge_outbound intatta).
-La E2E contro TEST_FOUNDER 393314928901 procede comunque (non è un dealer).
+La E2E contro TEST_FOUNDER 39<TEST_FOUNDER_NUM> procede comunque (non è un dealer).
 
 ---
 
 ## 4. Vincoli sempre attivi
 
-- **TEST_FOUNDER 393314928901** prima di QUALSIASI dealer reale. Max 1 Day1/numero.
+- **TEST_FOUNDER 39<TEST_FOUNDER_NUM>** prima di QUALSIASI dealer reale. Max 1 Day1/numero.
 - `image_sanitizer` (D-32) e **landing CONGELATI** finché anelli E2E non risalgono.
 - Clock skew iMac: DB `created_at` ~−2h vs log wa-daemon (non è un bug).
 - Deploy 2-path. Per OGNI path iMac consultare memoria `reference_imac_deploy_paths.md`.

@@ -304,7 +304,7 @@ def scenario_4_opt_out(tmpdir: Path) -> tuple[bool, list]:
     # Verify handler logic: NEGATIVE → UPDATE CLOSED_NO
     # Simula blocco line 2114-2123 su fixture DB
     db_path = make_db(tmpdir, 's4_opt_out')
-    seed_conversation(db_path, 'dealer_optout', '393314928901', 'DAY1_SENT')
+    seed_conversation(db_path, 'dealer_optout', '39<TEST_FOUNDER_NUM>', 'DAY1_SENT')
 
     # Esegui UPDATE come farebbe il handler
     con = sqlite3.connect(str(db_path))
@@ -381,7 +381,7 @@ def scenario_5_ambiguous(tmpdir: Path) -> tuple[bool, list]:
 
     # Verify save_pending_reply logic: approved=NULL
     db_path = make_db(tmpdir, 's5_ambiguous')
-    seed_conversation(db_path, 'dealer_ambig', '393314928901', 'DAY1_SENT')
+    seed_conversation(db_path, 'dealer_ambig', '39<TEST_FOUNDER_NUM>', 'DAY1_SENT')
 
     os.environ['ARGOS_DB_PATH'] = str(db_path)
     reply_candidate = {'text': 'grazie, restiamo in contatto. Luca', 'label': cls_type}

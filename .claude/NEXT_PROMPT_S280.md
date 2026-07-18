@@ -42,7 +42,7 @@ Se NON fatto, è l'unica cosa urgente adesso (chiavi vive), precede tutto:
 Il push bloccato NON è il rischio; la chiave viva sì. Lo scrub (filter-repo) è igiene separata, non rotazione.
 
 ## Esegui DOPO conferma rotazione — ORDINE
-[4] **E2E anelli 6-7** (raccomandato su [3]): gate HITL iMac + invio PDF a **TEST_FOUNDER 393314928901**.
+[4] **E2E anelli 6-7** (raccomandato su [3]): gate HITL iMac + invio PDF a **TEST_FOUNDER 39<TEST_FOUNDER_NUM>**.
    Sicuro (solo TEST_FOUNDER), muove un anello vero, e dà la **prima prova al RENDER** che Azzurra atterra
    nell'output generato (non solo nei literal — gap statico-vs-render del bundle Q3). ⚠️ Il PDF di test usa
    la base-mercato NON-fidata (gate-3) → è test di MECCANICA + render Azzurra, NON dei numeri (non leggere

@@ -84,7 +84,7 @@ Se FAIL STEP 1 → fix mirato sanitizer (NO over-engineering, root cause), poi r
 
 ### STEP 3 — AMBRA stress test 5 scenari TEST_FOUNDER fisico (~60min)
 
-Luke fisico invia 5 messaggi diversi su TEST_FOUNDER 393314928901, verifica reply AMBRA per ognuno:
+Luke fisico invia 5 messaggi diversi su TEST_FOUNDER 39<TEST_FOUNDER_NUM>, verifica reply AMBRA per ognuno:
 
 | # | Scenario | Input Luke | Expected AMBRA | Anti-pattern check |
 |---|----------|-----------|----------------|-------------------|

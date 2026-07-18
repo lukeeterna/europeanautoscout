@@ -40,7 +40,7 @@ def http_sender(n):
     try:
         for j in range(10):
             data = json.dumps({
-                'phone': '393314928901',
+                'phone': '39<TEST_FOUNDER_NUM>',
                 'message': f'DB stress {n}-{j}',
                 'dry_run': True
             }).encode()

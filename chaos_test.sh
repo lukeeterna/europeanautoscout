@@ -11,7 +11,7 @@ for i in 1 2 3 4 5 6 7 8 9 10; do
   RESP=$(curl -s -X POST "$HOST/send" \
     -H 'Content-Type: application/json' \
     -H "X-API-Key: $API_KEY" \
-    -d "{\"phone\":\"393314928901\",\"message\":\"Load test $i\",\"dry_run\":$DRY_RUN}")
+    -d "{\"phone\":\"39<TEST_FOUNDER_NUM>\",\"message\":\"Load test $i\",\"dry_run\":$DRY_RUN}")
   if echo "$RESP" | grep -q '"status":"sent"'; then
     ((COUNT++))
   fi
@@ -26,7 +26,7 @@ for i in $(seq 1 50); do
   CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$HOST/send" \
     -H 'Content-Type: application/json' \
     -H "X-API-Key: $API_KEY" \
-    -d "{\"phone\":\"393314928901\",\"message\":\"Flood test $i\",\"dry_run\":$DRY_RUN}")
+    -d "{\"phone\":\"39<TEST_FOUNDER_NUM>\",\"message\":\"Flood test $i\",\"dry_run\":$DRY_RUN}")
   CODES="$CODES $CODE"
 done
 echo "HTTP Codes: $CODES"
@@ -38,7 +38,7 @@ BIG_ID=$(python3 -c "print('A' * 1000)")
 RESP=$(curl -s -X POST "$HOST/send" \
   -H 'Content-Type: application/json' \
   -H "X-API-Key: $API_KEY" \
-  -d "{\"phone\":\"393314928901\",\"message\":\"test\",\"dealer_id\":\"$BIG_ID\",\"template_id\":\"DAY1_PREMIUM\",\"dry_run\":true}")
+  -d "{\"phone\":\"39<TEST_FOUNDER_NUM>\",\"message\":\"test\",\"dealer_id\":\"$BIG_ID\",\"template_id\":\"DAY1_PREMIUM\",\"dry_run\":true}")
 echo "CHAOS 9 Response: $RESP"
 
 echo ""
@@ -46,7 +46,7 @@ echo "=== CHAOS 10: Special characters ==="
 RESP=$(curl -s -X POST "$HOST/send" \
   -H 'Content-Type: application/json' \
   -H "X-API-Key: $API_KEY" \
-  -d "{\"phone\":\"393314928901\",\"message\":\"Test con euro € e apostrofo 's e accenti àèìòù\",\"dry_run\":true}")
+  -d "{\"phone\":\"39<TEST_FOUNDER_NUM>\",\"message\":\"Test con euro € e apostrofo 's e accenti àèìòù\",\"dry_run\":true}")
 echo "CHAOS 10 Response: $RESP"
 
 echo ""

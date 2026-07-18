@@ -14,7 +14,7 @@ Pipeline fermata finche' test E2E non passano. Zero outreach senza test green.
 
 **MAI inviare messaggi WA a dealer reali senza esplicita autorizzazione del founder.**
 
-- Tutti i test live usano ESCLUSIVAMENTE il numero demo: **TEST_FOUNDER (393314928901)**
+- Tutti i test live usano ESCLUSIVAMENTE il numero demo: **TEST_FOUNDER (39<TEST_FOUNDER_NUM>)**
 - I dealer reali (Car Plus, Stile Car, Sa.My. Auto, Enzo Car, ecc.) sono INTOCCABILI
   finche' il founder non autorizza esplicitamente l'outreach reale
 - Un DB entry o un `current_step` nel database NON e' prova che un messaggio sia

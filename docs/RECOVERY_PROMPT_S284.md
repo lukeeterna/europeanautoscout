@@ -27,13 +27,13 @@ ai subagent (context isolato) e tieni il main per verdetto-render + checkpoint.
    NB: G1/G2 verificati separatamente in S283, ma la checklist a 7 punti va spuntata sull'artefatto UNICO e finale.
 2. **CHECKPOINT GIUDICE** (vincolo #4): TextEdit con INLINE (a) 7 punti verbatim, (b) Day-1 reale, (c) testo dossier
    renderizzato → GO/NO-GO esterno Claude AI. Procedi all'invio SOLO con GO.
-3. **Invio TEST_FOUNDER 393314928901 via Gate-E** (classe `outreach_real` → BLOCCA → packet → Luke incolla
+3. **Invio TEST_FOUNDER 39<TEST_FOUNDER_NUM> via Gate-E** (classe `outreach_real` → BLOCCA → packet → Luke incolla
    verdetto + `! python3 .harness/gate_e.py approve <slug>`). Gate-E che NON scatta = bug del breaker.
 4. **Done-condition [A1]** = 7 punti VERDE sull'artefatto reale + invio passato per Gate-E. Verde o handoff (mai PARTIAL).
 
 ## Precondizioni invarianti
 - PRIMA AZIONE: `ssh gianlucadistasi@192.168.1.2 'curl -s localhost:9191/status'` → `"wa_status": "connected"`. Se no → [A0] wa-daemon-ops.
-- Orario lavorativo + Luke fisico sulla SIM 393314928901. SOLO TEST_FOUNDER, nessun altro numero.
+- Orario lavorativo + Luke fisico sulla SIM 39<TEST_FOUNDER_NUM>. SOLO TEST_FOUNDER, nessun altro numero.
 - Single-writer: solo la sessione [A1] scrive su branch s210/audit-master-plan.
 - Commit S283 = SOLO locale (push bloccato da scrub history GATE-0/[F], filter-repo non fatto). NON forzare il push.
 - NB ops iMac ssh: pm2 in `~/.npm-global/bin`, node v20 in `~/.nvm/versions/node/v20.11.0/bin` (daemon usa better-sqlite3 ABI node v20).

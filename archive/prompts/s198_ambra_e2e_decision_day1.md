@@ -32,7 +32,7 @@ NON `git add -A` perché working tree contiene D/ M residui di altre sessioni fu
 
 ## STEP 7 — AMBRA stress test (5 scenari response-analyzer reactive)
 
-Pre-existing: `wa-intelligence/response-analyzer.py` su TEST_FOUNDER **393314928901** (FLUXION SIM, autorizzato ARGOS).
+Pre-existing: `wa-intelligence/response-analyzer.py` su TEST_FOUNDER **39<TEST_FOUNDER_NUM>** (FLUXION SIM, autorizzato ARGOS).
 
 ### Scenari da inviare via curl/dashboard verso AMBRA
 
@@ -103,7 +103,7 @@ Pre-existing: `prompts/s190_e2e_physical_close.md`. Riusabile post-S196/S197 (HI
 
 1. **Loop gate Claude AI esterno** (CLAUDE.md S197): STEP 7 o 8 fallisce → diagnosi via log/SSH, NON nuovo bundle V5 + claude.ai V5.
 2. **PARTIAL/ARANCIONE**: ogni step gate binario. STEP 7 4/5 = ROSSO, handoff S199.
-3. **TEST_FOUNDER = Luke fisico reale** (memory `feedback_test_founder_means_real_interactive.md`): NON simulare risposte via subprocess args o admin API dummy. Aspettare Luke risponda fisicamente sulla SIM FLUXION 3314928901.
+3. **TEST_FOUNDER = Luke fisico reale** (memory `feedback_test_founder_means_real_interactive.md`): NON simulare risposte via subprocess args o admin API dummy. Aspettare Luke risponda fisicamente sulla SIM FLUXION <TEST_FOUNDER_NUM>.
 4. **Cross-platform false-positive S160/S197**: ogni nuovo file Python deploiato iMac → pre-flight `ssh imac "/usr/local/bin/python3.13 -c 'import ast; ast.parse(open(file).read())'"` PRIMA del rsync. Aggiungere a sync.sh in BACKLOG #S197-4.
 
 ---
@@ -125,7 +125,7 @@ Pre-existing: `prompts/s190_e2e_physical_close.md`. Riusabile post-S196/S197 (HI
 - pm2 iMac status: `ssh gianlucadistasi@192.168.1.2 "pm2 jlist | python3 -c 'import json,sys; [print(p[\"name\"], p[\"pm2_env\"][\"status\"]) for p in json.load(sys.stdin)]'"`
 - dashboard log: `ssh gianlucadistasi@192.168.1.2 "tail -50 /tmp/argos-dashboard-out.log"`
 - runtime test locale: `python3 tools/tests/test_approve_reply_runtime.py`
-- TEST_FOUNDER override autorizzato: `feedback_test_founder_3314928901_argos_authorized.md`
+- TEST_FOUNDER override autorizzato: `feedback_test_founder_<TEST_FOUNDER_NUM>_argos_authorized.md`
 - Memory S197 dettaglio: `s197_deploy_imac_verde_post_2bug_strutturali.md`
 
 ## Day 1 Stile Car deadline tracker

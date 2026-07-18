@@ -137,7 +137,7 @@ ssh gianlucadistasi@192.168.1.2 "curl -sf http://localhost:9191/status | grep -E
 # 2. Listing X3 ancora vivo (se 404 → rieseguire scrape, top candidate cambia)
 curl -sI 'https://www.autoscout24.de/angebote/bmw-x3-xdrive20i-ahk-hifi-sportsitze-benzin-schwarz-70dcd99b-3d68-45ac-ae20-2113e8f3d719' | head -1
 
-# 3. Test su TEST_FOUNDER 393314928901 (regola CLAUDE.md non negoziabile)
+# 3. Test su TEST_FOUNDER 39<TEST_FOUNDER_NUM> (regola CLAUDE.md non negoziabile)
 #    NB: TEST_FOUNDER ha già 9 outbound CLOSED_NO — usare messaggio test marker, non DAY1 reale
 ```
 

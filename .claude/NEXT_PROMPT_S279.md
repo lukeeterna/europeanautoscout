@@ -32,7 +32,7 @@ Rotazione e scrub-history sono DUE cose diverse, NON bundlarle:
 [3] FILTER-REPO (quando Luke vuole sbloccare il push) — `.claude/PLAN_FILTER_REPO_S278.md`.
     Disaccoppiato dalla rotazione (che è già fatta sopra, indipendente).
 
-[4] Verso E2E: anelli 6-7 (gate HITL iMac + invio PDF a TEST_FOUNDER 393314928901).
+[4] Verso E2E: anelli 6-7 (gate HITL iMac + invio PDF a TEST_FOUNDER 39<TEST_FOUNDER_NUM>).
     Prima azione che innesca Gate-E classe `outreach_real`.
 
 ## Stato E2E (INVARIATO — S278 = control-plane + sicurezza)

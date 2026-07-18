@@ -34,7 +34,7 @@ NB il narrowing e' SHELL-scoped: i path di scrittura non-shell (Write tool, `pyt
 restano fuori da classify_bash — invariato vs prima (tracciato in coverage-check #2).
 
 CLASSI rilevate:
-  - outreach_real   : Bash che invia WA a un numero != TEST_FOUNDER (393314928901).
+  - outreach_real   : Bash che invia WA a un numero != TEST_FOUNDER (39<TEST_FOUNDER_NUM>).
                       Match volutamente BROAD (classe piu' critica: meglio un FP che
                       chiede approvazione di un FN che lascia partire un invio reale).
   - archive_doc     : Bash che archivia/rimuove doc tracciati (git mv/mv -> archive/, git rm/rm .md).
@@ -71,7 +71,7 @@ HOME = os.path.expanduser("~")
 PENDING_DIR = os.path.join(HERE, "pending_review")
 AUDIT = os.path.join(PENDING_DIR, "gate_e_audit.jsonl")
 
-TEST_FOUNDER = {"393314928901", "3314928901"}
+TEST_FOUNDER = {"39<TEST_FOUNDER_NUM>", "<TEST_FOUNDER_NUM>"}
 
 # --- source-of-truth canonici (Rule 1d whitelist) ---------------------------------
 SOT_REALPATHS = {
@@ -505,7 +505,7 @@ def cli_selftest():
         ({"tool_name": "Bash", "tool_input": {"command": "cp /tmp/x .harness/gate_e.py"}}, "deny"),
         ({"tool_name": "Bash", "tool_input": {"command": "echo x > src/cove/data/cove_tracker.duckdb"}}, "deny"),
         ({"tool_name": "Bash", "tool_input": {"command": "curl :9191/send -d to=393998887766"}}, "deny"),
-        ({"tool_name": "Bash", "tool_input": {"command": "curl :9191/send -d to=393314928901"}}, "allow"),
+        ({"tool_name": "Bash", "tool_input": {"command": "curl :9191/send -d to=39<TEST_FOUNDER_NUM>"}}, "allow"),
         # --- #2 fix S251: entrypoint outreach per FILENAME (signature dentro il .py) ---
         ({"tool_name": "Bash", "tool_input": {"command": "python3 tools/outreach/send_day1_stile_car.py"}}, "deny"),
         ({"tool_name": "Bash", "tool_input": {"command": "python3 tools/outreach/send_day1_stile_car.py --dry-run"}}, "allow"),

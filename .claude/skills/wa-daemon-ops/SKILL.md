@@ -20,7 +20,7 @@ ssh gianlucadistasi@192.168.1.12 "curl -s localhost:9191/status"
 ssh gianlucadistasi@192.168.1.12 "curl -s -X POST localhost:9191/send \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: $WA_API_KEY' \
-  -d '{\"phone\":\"393314928901\",\"message\":\"testo\",\"dealer_id\":\"test\"}'"
+  -d '{\"phone\":\"39<TEST_FOUNDER_NUM>\",\"message\":\"testo\",\"dealer_id\":\"test\"}'"
 ```
 
 ## Checklist pre-invio — OBBLIGATORIA
@@ -29,7 +29,7 @@ ssh gianlucadistasi@192.168.1.12 "curl -s -X POST localhost:9191/send \
 [ ] outbound_count del dealer < cap corrente
 [ ] validate() restituisce PASS (non solo log)
 [ ] Nessun duplicato nelle ultime 24h
-[ ] Numero destinatario: TEST_FOUNDER (393314928901) per test
+[ ] Numero destinatario: TEST_FOUNDER (39<TEST_FOUNDER_NUM>) per test
 ```
 
 ## Verifica risposta dealer (query obbligatoria)
@@ -56,5 +56,5 @@ ssh gianlucadistasi@192.168.1.12 "pm2 restart wa-daemon"
 ## Regole sicurezza
 - Porta 9191 richiede X-API-Key header — mai chiamare senza
 - MAX 1 messaggio Day 1 per numero — non inviare se outbound_count > 0
-- TEST_FOUNDER = 393314928901 — unico numero autorizzato per test
+- TEST_FOUNDER = 39<TEST_FOUNDER_NUM> — unico numero autorizzato per test
 - Dealer reali: autorizzazione esplicita del founder prima di qualsiasi invio

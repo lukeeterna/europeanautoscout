@@ -2,7 +2,7 @@
 
 **Sessione**: S205
 **Data target**: 2026-05-29 (T-5gg Day 1 Stile Car 2026-06-03)
-**Owner**: CC tecnico + Luke fisico (TEST_FOUNDER 393314928901)
+**Owner**: CC tecnico + Luke fisico (TEST_FOUNDER 39<TEST_FOUNDER_NUM>)
 **Gate finale**: Luke dichiara "pienamente soddisfatto" su E2E completo (memoria `feedback_e2e_full_test_founder`).
 **Critique da chiudere**: `C-DEPLOY-S203` (PLAN.md). Se gate verde, sblocca Day 1 Stile Car.
 
@@ -24,9 +24,9 @@ PF3. Verifica WA daemon connected + daily remaining ≥1:
 ssh imac "curl -s localhost:9191/status"
 # atteso: wa_status=connected, daily_remaining ≥1
 ```
-PF4. Verifica TEST_FOUNDER whitelist daemon attiva (memoria `feedback_test_founder_3314928901_argos_authorized`):
+PF4. Verifica TEST_FOUNDER whitelist daemon attiva (memoria `feedback_test_founder_<TEST_FOUNDER_NUM>_argos_authorized`):
 ```
-ssh imac "grep -n '393314928901' ~/Documents/app-antigravity-auto/wa-intelligence/wa-daemon.js | head -3"
+ssh imac "grep -n '39<TEST_FOUNDER_NUM>' ~/Documents/app-antigravity-auto/wa-intelligence/wa-daemon.js | head -3"
 ```
 PF5. Backup DB iMac PRIMA del deploy (rules/security.md):
 ```
@@ -86,12 +86,12 @@ Se ≠ 5/5 → STOP. Apri ticket P4, NON proseguire a STEP C.
 
 ## STEP C — E2E TEST_FOUNDER fisico Luke (90-120 min)
 
-**Direzione corretta**: Luke da TEST_FOUNDER 3314928901 → ARGOS 3281536308 (UX gotcha memoria `s176_finalize_red`).
+**Direzione corretta**: Luke da TEST_FOUNDER <TEST_FOUNDER_NUM> → ARGOS 3281536308 (UX gotcha memoria `s176_finalize_red`).
 
 C1. Trigger pipeline scrape→CoVe→PDF→send-doc su modello target (memoria `s198_step7` usare BMW X1 €18000 o equivalente):
 ```
 python3 tools/on_demand_runner.py --marca BMW --modello X1 --budget 25000 --dealer "TEST_FOUNDER"
-# atteso: PDF dossier generato, send-doc OK su 3314928901
+# atteso: PDF dossier generato, send-doc OK su <TEST_FOUNDER_NUM>
 ```
 **Verifica**: dashboard:8080 mostra dossier PENDING su HITL gate (S190+S203 anello #9).
 

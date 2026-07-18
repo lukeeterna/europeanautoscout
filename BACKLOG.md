@@ -260,7 +260,7 @@ ALTER TABLE bridge_outbound ADD COLUMN msg_sequence INTEGER DEFAULT 0; -- 0..N p
 2. `pollBridgeOutbound` gestisce msg_sequence ORDER BY per consecutive sends
 3. Day7 voice migra a bridge (no più callsite diretto)
 4. `auto_approve_and_send` multi-msg migra a bridge (no più Popen)
-5. Test E2E: AMBRA reply 3 bubble → 3 WA messages distinte recapitati TEST_FOUNDER 393314928901
+5. Test E2E: AMBRA reply 3 bubble → 3 WA messages distinte recapitati TEST_FOUNDER 39<TEST_FOUNDER_NUM>
 6. Rollback plan documentato (DROP COLUMN media_path/media_type/msg_sequence + revert wa_bridge.py)
 
 **ETA target**: 2026-04-25 (5 working days da S173b close)
@@ -299,7 +299,7 @@ Classifier AMBRA non gestisce intent CONTRACT_REQUEST. Pipeline reactive si ferm
 LaMa→Pillow rectangle solid (D-25 violazione). Targa scomparsa + paraurti deformato in regression test S176. Senza fix = primo dealer reale vede foto distorte = trust kill. **Dopo S177 verde**.
 
 ### 🟡 PRIORITÀ 3 — UX direzione TEST_FOUNDER reactive
-In tutti prompt futuri esplicitare: TEST_FOUNDER reactive = SIM `3314928901` → SIM `3281536308`. Direzione invertita = daemon filtra come auto-eco. S176-finalize ha perso 15min su questo.
+In tutti prompt futuri esplicitare: TEST_FOUNDER reactive = SIM `<TEST_FOUNDER_NUM>` → SIM `3281536308`. Direzione invertita = daemon filtra come auto-eco. S176-finalize ha perso 15min su questo.
 
 ### ✅ PRIORITÀ 4 — `current_step` non si aggiorna dopo PDF send (RISOLTO S177a 2026-05-16)
 Daemon `wa-daemon.js` `/send-doc` patch in-place iMac: post-send UPDATE `conversations.current_step='DOSSIER_SENT'` se era `DAY1_SENT`/`DAY3_SENT`. Backup `wa-daemon.js.s177a_bak`. Restart pulito 18:11. Smoke test fisico differito S177b primo `/send-doc` reale.
@@ -458,14 +458,14 @@ Filtra slide marketing AS24 (Premium Selection, Garantie, Wartungsfreiheit, Inza
 
 
 - `argos-proxy/src/routes/contract-create.ts:46` regex `^(\+39)?3\d{8,10}$` accetta:
-  - `+393314928901` ✅ (`+39` + `3` + 9 digits)
-  - `3314928901` ✅ (10 digit national)
-  - `393314928901` ❌ (11 digits dopo prima `3` → fuori range {8,10})
+  - `+39<TEST_FOUNDER_NUM>` ✅ (`+39` + `3` + 9 digits)
+  - `<TEST_FOUNDER_NUM>` ✅ (10 digit national)
+  - `39<TEST_FOUNDER_NUM>` ❌ (11 digits dopo prima `3` → fuori range {8,10})
 - `argos-proxy/src/lib/wa-daemon.ts:27` regex `^\d{11,13}$` accetta:
-  - `393314928901` ✅ (12 digits puri)
-  - `+393314928901` ❌ (presenza `+` invalida)
-  - `3314928901` ❌ (10 digits)
-- **Intersezione vuota per TEST_FOUNDER 393314928901 (formato WA standard country+national)**
+  - `39<TEST_FOUNDER_NUM>` ✅ (12 digits puri)
+  - `+39<TEST_FOUNDER_NUM>` ❌ (presenza `+` invalida)
+  - `<TEST_FOUNDER_NUM>` ❌ (10 digits)
+- **Intersezione vuota per TEST_FOUNDER 39<TEST_FOUNDER_NUM> (formato WA standard country+national)**
 - Side effect: in send-iban / mark-paid Worker valida prima di chiamare daemon → `wa_sent: false`. Status DB transition OK (best-effort), ma dealer non riceve IBAN_SEND/PAYMENT_RECEIVED su WA.
 - **Fix proposto** (3 LOC, send-iban + mark-paid + wa-daemon.ts):
   - In `wa-daemon.ts`: normalizzare con `phone.replace(/\D/g, '')` PRIMA del regex check, passare valore pulito a fetch.

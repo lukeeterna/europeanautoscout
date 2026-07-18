@@ -10,7 +10,7 @@
 
 ## STEP 0 ASSOLUTO (non sindacabile)
 
-**TEST_FOUNDER 393314928901 (SIM FLUXION fisica Luke) + Luke dichiara "pienamente soddisfatto"**.
+**TEST_FOUNDER 39<TEST_FOUNDER_NUM> (SIM FLUXION fisica Luke) + Luke dichiara "pienamente soddisfatto"**.
 
 Day 1 Stile Car (2026-06-03, T-5gg) BLOCKED finché gate qualitativo Luke superato.
 
@@ -103,7 +103,7 @@ Solo dopo Step C + Step D verdi.
 
 **Flow**:
 1. Luke sceglie modello auto manualmente (es. "Audi Q5 2021")
-2. Pipeline invia Day 1 al 393314928901 AUTO (`action_type=day1_send` whitelist)
+2. Pipeline invia Day 1 al 39<TEST_FOUNDER_NUM> AUTO (`action_type=day1_send` whitelist)
 3. Luke risponde fisico dalla SIM FLUXION
 4. Daemon persiste in `messages` (raw_payload + classifier post-classify)
 5. Reactive: `classifier_intent=VEHICLE_REQUEST` → CoVe search → report parziale anti-reverse → invia AUTO (`action_type=partial_report`)
@@ -127,7 +127,7 @@ Solo dopo Step C + Step D verdi.
 - Zero costi (vincolo #5)
 - Context >50% → handoff S205 con stato preciso
 - REGOLA #0 delegation-first → minimo 2 Task (implementer Step D + code-reviewer)
-- TEST_FOUNDER 393314928901 SIM FLUXION whitelist
+- TEST_FOUNDER 39<TEST_FOUNDER_NUM> SIM FLUXION whitelist
 - Domenica 2026-05-31 OFF (no scadenze Luke-fisico)
 
 ## Day 1 Stile Car deadline

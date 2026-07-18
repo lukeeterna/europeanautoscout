@@ -482,7 +482,7 @@ URL builder patterns suffix per portale (src/cove/db_schema.py:65-93):
 
 | Numero | Ruolo | Fonte |
 |---|---|---|
-| 393314928901 | TEST_FOUNDER (unico autorizzato per test) | .claude/skills/wa-daemon-ops/SKILL.md:32,59; CLAUDE.md |
+| 39<TEST_FOUNDER_NUM> | TEST_FOUNDER (unico autorizzato per test) | .claude/skills/wa-daemon-ops/SKILL.md:32,59; CLAUDE.md |
 
 ### D.7 Env vars (presenti nel codice)
 

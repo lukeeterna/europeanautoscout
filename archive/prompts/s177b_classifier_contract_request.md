@@ -116,7 +116,7 @@ ssh imac "sqlite3 ~/Documents/app-antigravity-auto/dealer_network.sqlite \"SELEC
 ## STEP 4 — HITL approve + sign fisico Luke (~15min, fisico)
 
 1. Dashboard `http://192.168.1.2:8080` → pending_replies → approve CONTRACT_REQUEST
-2. SIM TEST_FOUNDER (`3314928901`) riceve link → apre, firma, submit
+2. SIM TEST_FOUNDER (`<TEST_FOUNDER_NUM>`) riceve link → apre, firma, submit
 3. Verify `SELECT * FROM contracts WHERE dealer_id='TEST_FOUNDER' ORDER BY rowid DESC LIMIT 1;` → status evolve `DRAFT → AWAITING_DELIVERY`
 
 ## STEP 5 — Mark-paid (~5min, fisico)
@@ -131,7 +131,7 @@ Verify status=PAID + paid_at.
 - ROSSO ≤2/5 → root cause analysis
 
 ## UX gotcha invariata
-**MAI invertire direzione TEST_FOUNDER reactive**: SIM `3314928901` → ARGOS `3281536308` ✓. Inverso = daemon filtra auto-eco. S176-finalize ha perso 15min su questo.
+**MAI invertire direzione TEST_FOUNDER reactive**: SIM `<TEST_FOUNDER_NUM>` → ARGOS `3281536308` ✓. Inverso = daemon filtra auto-eco. S176-finalize ha perso 15min su questo.
 
 ## Findings da NON aprire (BACKLOG)
 - HITL LLM_MULTI bypass (P4-bis) → S177c dedicato post-S177b

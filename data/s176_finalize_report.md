@@ -16,7 +16,7 @@
 **Sequence fattuale**:
 1. 17:40 prima query DB → zero INBOUND post-16:17 PDF send
 2. Tail daemon log 70s → silenzio assoluto
-3. Luke ha inviato messaggio nel verso sbagliato (`3281536308 → 3314928901` invece di `3314928901 → 3281536308`) — pattern UX da documentare in prompt futuri
+3. Luke ha inviato messaggio nel verso sbagliato (`3281536308 → <TEST_FOUNDER_NUM>` invece di `<TEST_FOUNDER_NUM> → 3281536308`) — pattern UX da documentare in prompt futuri
 4. 17:52:47 dopo correzione direzione: INBOUND `"Va bene , mi mandi il contratto"` ingested OK, LID resolve OK, buffer flush OK, analyzer triggered (msg_id `msg_1778946767736_b0a4v`)
 5. 17:53:08 AMBRA reply prodotta: `reply_e9be3ac6`, `reply_label=LLM_MULTI`, `approved=1`, `sent=0`
 
@@ -87,7 +87,7 @@ S177 sblocca catena valore completa (D-21 workflow info-broker → communication
 
 ## Findings collaterali (BACKLOG)
 
-1. **Inversione direzione test reactive UX** — chiarire in tutti prompt futuri: TEST_FOUNDER reactive = SIM `3314928901` → SIM `3281536308`, MAI viceversa (auto-eco filtrato dal daemon)
+1. **Inversione direzione test reactive UX** — chiarire in tutti prompt futuri: TEST_FOUNDER reactive = SIM `<TEST_FOUNDER_NUM>` → SIM `3281536308`, MAI viceversa (auto-eco filtrato dal daemon)
 2. **PDF send non aggiorna `current_step`** — root cause classifier degeneration su LLM_MULTI (mancano contesto fase)
 3. **D-32 sanitizer regression** — invariato, resta blocker Day 1 dealer reale
 4. **D-31 dossier 12 sezioni** — invariato, deferred S178+

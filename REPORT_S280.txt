@@ -136,7 +136,7 @@ SCRATCH SECRET (fuori repo, chmod 600, NON stampati):
     numeri=banda p25-p75 non punto; grep superlativi=0; render letto da pypdf
     non descritto) → così il gate "Luke soddisfatto" ha criteri, non sensazioni.
 
-  AZIONE 3 — lancia [A] E2E 6-7 su TEST_FOUNDER 393314928901:
+  AZIONE 3 — lancia [A] E2E 6-7 su TEST_FOUNDER 39<TEST_FOUNDER_NUM>:
     scraper AS24 (experiment-OFF, geo==IT) → 1 veicolo → dossier onesto (banda,
     margine intervallo, fonte "prezzi richiesti") → AMBRA genera Day-1 con voce +
     disclosure Azzurra + opt-out → RENDER verificato → invio via Gate-E

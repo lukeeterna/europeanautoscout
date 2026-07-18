@@ -166,7 +166,7 @@ Skip se code-reviewer interno GO è sufficiente per la tua tolleranza al rischio
 
 ## STEP 3 — AMBRA stress 5 scenari TEST_FOUNDER (~60 min Luke fisico)
 
-TEST_FOUNDER: `393314928901` (SIM FLUXION whitelist daemon, vedi memory).
+TEST_FOUNDER: `39<TEST_FOUNDER_NUM>` (SIM FLUXION whitelist daemon, vedi memory).
 
 Per ogni scenario: Luke invia WA → attende AMBRA classification → verifica reply PENDING su dashboard:8080/replies → approva o rifiuta → verifica delivery.
 

@@ -7,17 +7,17 @@ S164 chiuso **RETRACTED** (no green) 2026-05-12 ~19:00 su contestazione esplicit
 
 I 4 step S164 erano simulazione automatica: response stringhe iniettate via test_e2e_full.py, contract creato via admin endpoint `POST /api/v1/contract/create` con dati hardcoded, sign via JSON-only POST (bypass form web), mark-paid finto. `wa_sent:true` daemon-accept non equivale a "Luke ha visto e reagito".
 
-**Vincolo Luke `feedback_e2e_full_test_founder_before_day1.md`**: NESSUN Day 1 reale a dealer (Stile Car o altri) finché pipeline COMPLETA contatto → response → dossier → fattura → bonifico non è verificata end-to-end su TEST_FOUNDER `393314928901` con Luke fisicamente nei panni del dealer.
+**Vincolo Luke `feedback_e2e_full_test_founder_before_day1.md`**: NESSUN Day 1 reale a dealer (Stile Car o altri) finché pipeline COMPLETA contatto → response → dossier → fattura → bonifico non è verificata end-to-end su TEST_FOUNDER `39<TEST_FOUNDER_NUM>` con Luke fisicamente nei panni del dealer.
 
 **Vincolo Luke `feedback_test_founder_means_real_interactive.md`** (nuovo S164): "E2E test_founder" = Luke umano riceve WA + risponde fisicamente + clicca sign URL + bonifico vero. NON unit test, NON admin API call dummy.
 
 ## Goal sessione
 
-Luke vive 5 step da TEST_FOUNDER su 393314928901, ogni step triggerato dal flow naturale (non admin endpoint), ogni gate richiede conferma testuale Luke "ho ricevuto/risposto/firmato/pagato" (NON segnali daemon meccanici).
+Luke vive 5 step da TEST_FOUNDER su 39<TEST_FOUNDER_NUM>, ogni step triggerato dal flow naturale (non admin endpoint), ogni gate richiede conferma testuale Luke "ho ricevuto/risposto/firmato/pagato" (NON segnali daemon meccanici).
 
 ## Pre-conditions (verificare e CONFERMARE con Luke prima di partire)
 
-1. Luke ha telefono TEST_FOUNDER 393314928901 accessibile per ricevere/leggere/rispondere WA.
+1. Luke ha telefono TEST_FOUNDER 39<TEST_FOUNDER_NUM> accessibile per ricevere/leggere/rispondere WA.
 2. Luke ha browser su telefono o desktop per aprire `https://argos-automotive.pages.dev/contract/<token>`.
 3. Luke ha 30-60min disponibili in sessione continua (oppure split su 2-3 giorni naturali — dimmi quale modalità).
 4. Conto Luca Ferretti accessibile per bonifico simbolico (€1 anche to-self).
@@ -63,7 +63,7 @@ Se wrangler fallisce per macOS 11 warning → workaround: query D1 via REST API 
    WA_API_KEY=$(grep WA_API_KEY .env | cut -d= -f2)
    curl -X POST http://192.168.1.2:9191/send \
      -H "X-API-Key: $WA_API_KEY" -H "Content-Type: application/json" \
-     -d '{"phone":"393314928901","message":"<DAY1_REALE>"}'
+     -d '{"phone":"39<TEST_FOUNDER_NUM>","message":"<DAY1_REALE>"}'
    ```
 6. **Gate Step 1**: Luke conferma testualmente "ho ricevuto e letto su WA". NON `wa_sent:true`.
 
@@ -72,11 +72,11 @@ Se wrangler fallisce per macOS 11 warning → workaround: query D1 via REST API 
 1. Luke risponde su WA come farebbe un dealer reale (libero su tono, contenuto, lunghezza). Non scriptato.
 2. Verifica INBOUND nel DB iMac:
    ```bash
-   ssh gianlucadistasi@192.168.1.2 "sqlite3 /Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite \"SELECT timestamp_it, direction, substr(body,1,120), wa_msg_id FROM messages WHERE phone_number LIKE '%393314928901%' AND direction='INBOUND' ORDER BY created_at DESC LIMIT 1;\""
+   ssh gianlucadistasi@192.168.1.2 "sqlite3 /Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite \"SELECT timestamp_it, direction, substr(body,1,120), wa_msg_id FROM messages WHERE phone_number LIKE '%39<TEST_FOUNDER_NUM>%' AND direction='INBOUND' ORDER BY created_at DESC LIMIT 1;\""
    ```
 3. Verifica analyzer ha processato e schedulato reply (cerca log analyzer o nuovo OUTBOUND scheduled):
    ```bash
-   ssh gianlucadistasi@192.168.1.2 "sqlite3 /Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite \"SELECT timestamp_it, direction, substr(body,1,120) FROM messages WHERE phone_number LIKE '%393314928901%' ORDER BY created_at DESC LIMIT 5;\""
+   ssh gianlucadistasi@192.168.1.2 "sqlite3 /Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite \"SELECT timestamp_it, direction, substr(body,1,120) FROM messages WHERE phone_number LIKE '%39<TEST_FOUNDER_NUM>%' ORDER BY created_at DESC LIMIT 5;\""
    ```
 4. Luke conferma "ho ricevuto reply automatica e ha senso" (giudizio Luke su personalizzazione + variazione + non-spam).
 5. **Gate Step 2**: 1 INBOUND vero + 1 OUTBOUND auto-generato + OK testuale Luke su qualità reply.
@@ -100,7 +100,7 @@ Se wrangler fallisce per macOS 11 warning → workaround: query D1 via REST API 
    ```bash
    CLOUDFLARE_API_TOKEN=$(grep CLOUDFLARE_API_TOKEN .env | cut -d= -f2) \
      npx wrangler d1 execute argos-contracts --remote \
-     --command "SELECT id, status, signer_name, signature_font, signed_at FROM contracts WHERE dealer_phone='+393314928901' ORDER BY created_at DESC LIMIT 1"
+     --command "SELECT id, status, signer_name, signature_font, signed_at FROM contracts WHERE dealer_phone='+39<TEST_FOUNDER_NUM>' ORDER BY created_at DESC LIMIT 1"
    ```
 3. Per TEST_FOUNDER: salta consegna documenti auto fisica (non applicabile). Admin (tu) triggera send-iban:
    ```bash
@@ -196,7 +196,7 @@ S165 — E2E Real Interactive con Luke come TEST_FOUNDER.
 Pre-flight check:
 1. ssh imac curl localhost:9191/status → wa_status connected? [verifico]
 2. Luke disponibile 30-60min ora, o sessione split su giorni? [chiedo a Luke]
-3. Telefono TEST_FOUNDER 393314928901 accessibile? [chiedo a Luke]
+3. Telefono TEST_FOUNDER 39<TEST_FOUNDER_NUM> accessibile? [chiedo a Luke]
 4. Conto Luca Ferretti accessibile per bonifico €1? [chiedo a Luke]
 
 Se tutti OK → Step 0 cleanup contract S164 `6e243328f9d67896` + Step 1 compose Day 1.

@@ -27,7 +27,7 @@
 | Funnel status | non-empty con URL+proxy | `Funnel on` + `/ proxy http://127.0.0.1:9191` | ✅ |
 | DNS pubblico | risolve a IP ingress Tailscale | 185.40.234.55, 185.40.234.75, 185.40.234.198 | ✅ |
 | External HTTPS curl | HTTP 200 + JSON daemon | HTTP 200 in 1.04s, `wa_status:connected` | ✅ |
-| WA daemon log | 2× SEND a 393314928901 | 17:37: 2× `📤 sendMessage` + 2× `✅ INVIATO via HTTP` + 2× `📬 DELIVERED` | ✅ |
+| WA daemon log | 2× SEND a 39<TEST_FOUNDER_NUM> | 17:37: 2× `📤 sendMessage` + 2× `✅ INVIATO via HTTP` + 2× `📬 DELIVERED` | ✅ |
 | Visual delivery Luke | 2 WA Business app messaggi | Luke conferma "Sì, 2 messaggi ricevuti" | ✅ |
 
 ### Decisione architetturale validata
@@ -148,7 +148,7 @@ Quando entrambi unblock, la fase Deploy + smoke completi prende ~30 min e si pu�
 **Data**: 2026-05-04 12:43-12:51 CEST
 **Sessione**: S154-ter
 **Worker URL**: `https://argos-proxy.gianlucanewtech.workers.dev`
-**Phone test**: `+393314928901` (TEST_FOUNDER, contract-create regex) → normalizzato a `393314928901` per daemon (post-fix S154-ter wa-daemon.ts)
+**Phone test**: `+39<TEST_FOUNDER_NUM>` (TEST_FOUNDER, contract-create regex) → normalizzato a `39<TEST_FOUNDER_NUM>` per daemon (post-fix S154-ter wa-daemon.ts)
 
 ### Phase 1 — Phone-format fix + redeploy
 - ✅ `argos-proxy/src/lib/wa-daemon.ts`: `replace(/\D/g, '')` PRIMA del regex check
@@ -180,7 +180,7 @@ Quando entrambi unblock, la fase Deploy + smoke completi prende ~30 min e si pu�
 ### Phase 3 — Verifiche collaterali
 
 - **D1 audit_log**: ✅ 4/4 row in ordine `CREATE` → `SIGN` → `SEND_IBAN` → `MARK_PAID`
-- **WA daemon log iMac**: ❌ 0 entry SEND a 393314928901 nei timestamp 12:48-12:51
+- **WA daemon log iMac**: ❌ 0 entry SEND a 39<TEST_FOUNDER_NUM> nei timestamp 12:48-12:51
 - **Telegram alerts**: pending Luke visual confirmation (3 alert attesi: SIGNED + IBAN_SENT + PAID)
 
 ### 🐛 Architectural blocker — CF Worker cannot reach LAN daemon

@@ -182,7 +182,7 @@ Rotation: logrotate weekly (BACKLOG #S189-1, OUT-OF-SCOPE S189).
 ### STEP 5 — E2E test TEST_FOUNDER
 
 Scenario verde minimale:
-1. Generate dossier su TEST_FOUNDER 393314928901 via `on_demand_runner` → row PENDING in DB
+1. Generate dossier su TEST_FOUNDER 39<TEST_FOUNDER_NUM> via `on_demand_runner` → row PENDING in DB
 2. Dashboard:8080 `/pending-dossiers` mostra 1 row
 3. Luke clicca approve → row APPROVED
 4. Tool caller invoca `/send-doc` con `dealer_id=test_founder` → 200 OK, PDF arrivato su WA

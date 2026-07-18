@@ -45,14 +45,14 @@ macchina ma con la fascia comparabili marcata insufficiente.
 3. **Render-verify 7 punti** (BRIEF_A 17-28) LEGGENDO PDF (pypdf) + messaggio reale. Punti 1-6 da CC.
 4. **CHECKPOINT GIUDICE** (vincolo #4): TextEdit con INLINE (a) 7 punti VERBATIM, (b) Day-1 reale, (c) testo
    dossier renderizzato. GO/NO-GO esterno Claude AI. Procedi all'invio SOLO con GO.
-5. **Invio TEST_FOUNDER 393314928901 via Gate-E** (classe outreach_real → BLOCCA → packet → Luke incolla
+5. **Invio TEST_FOUNDER 39<TEST_FOUNDER_NUM> via Gate-E** (classe outreach_real → BLOCCA → packet → Luke incolla
    verdetto + `! python3 .harness/gate_e.py approve <slug>`). Gate-E che NON scatta = bug del breaker.
 6. Done-condition [A1] = 7 punti VERDE sull'artefatto reale. Verde o handoff strutturato (mai PARTIAL).
 
 ## Precondizioni invarianti
 - PRIMA AZIONE: curl letterale `ssh gianlucadistasi@192.168.1.2 'curl -s localhost:9191/status'` → deve
   mostrare `"wa_status": "connected"`. Se no → [A0] restart (wa-daemon-ops). Interpretazione stato = autorità CC.
-- Orario lavorativo + Luke fisico sulla SIM 393314928901. SOLO TEST_FOUNDER, nessun altro numero.
+- Orario lavorativo + Luke fisico sulla SIM 39<TEST_FOUNDER_NUM>. SOLO TEST_FOUNDER, nessun altro numero.
 - Single-writer: solo questa sessione scrive su branch s210/audit-master-plan.
 - NB ops iMac ssh non-interattivo: pm2 in `~/.npm-global/bin`, node v20 in `~/.nvm/versions/node/v20.11.0/bin`
   (il daemon usa better-sqlite3 ABI node v20 — NON node v22 di /usr/local/bin per il processo).

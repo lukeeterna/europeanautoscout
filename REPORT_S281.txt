@@ -137,7 +137,7 @@ VERIFICHE PASSATE (fatti, non opinioni):
     3. done-condition [A0] = wa_status:"connected" + qr_available coerente.
     NON saltare a [A1] col daemon initializing.
 
-  [A1] — E2E 6-7 su TEST_FOUNDER 393314928901 (done = CHECKLIST VERDE 7 punti,
+  [A1] — E2E 6-7 su TEST_FOUNDER 39<TEST_FOUNDER_NUM> (done = CHECKLIST VERDE 7 punti,
     BRIEF_A righe 17-28):
     scraper AS24 (experiment-OFF, geo==IT) → 1 veicolo → dossier onesto (banda
     p25-p75, margine INTERVALLO, fonte "prezzi richiesti") → AMBRA genera Day-1

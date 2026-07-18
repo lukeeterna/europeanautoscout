@@ -2,7 +2,7 @@
 
 **Data**: 2026-05-16 ~10:05-10:50 IT
 **Durata effettiva**: ~45min wall (chiusura forzata vincolo #7 context 67%)
-**Operatore Luke**: phone TEST_FOUNDER 393314928901 + laptop CTO
+**Operatore Luke**: phone TEST_FOUNDER 39<TEST_FOUNDER_NUM> + laptop CTO
 **Verdict**: **ROSSO** (1 gap critico hallucination veicolo + 1 finding sistemico target_lexicon)
 
 ## Step results

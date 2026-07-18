@@ -12,7 +12,7 @@ Stato: #9 **PENDING-GATE, BLOCKED-ON fix codice C-WA-SEND-SPLIT** (NON Luke fisi
 **Ordine:**
 1. Fix su MacBook + code-review.
 2. Deploy iMac (rsync atomico + healthcheck).
-3. GATE PACKET #9 v2: SEED Luke SIM TEST_FOUNDER 393314928901 → `/approva` → **Scenario A** = msg ARRIVA + log `[SENT]` (sent TAINTED). Window-integrity via `uptime_sec` PRE/POST (`curl :9191/status` — `pm2` NON in PATH ssh).
+3. GATE PACKET #9 v2: SEED Luke SIM TEST_FOUNDER 39<TEST_FOUNDER_NUM> → `/approva` → **Scenario A** = msg ARRIVA + log `[SENT]` (sent TAINTED). Window-integrity via `uptime_sec` PRE/POST (`curl :9191/status` — `pm2` NON in PATH ssh).
 4. **Scenario B** (mai provato): `/approva` poi subito `/rifiuta` → nessun msg + `[ABORT]` + `approved=0`.
 
 **Chiusura:** #9 → VERIFIED 3/9 (Luke "soddisfatto") o handoff PENDING-GATE.

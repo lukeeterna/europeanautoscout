@@ -19,7 +19,7 @@ Questo smoke copre SOLO la parte verificabile offline su CODICE DI PRODUZIONE:
   anello 7 — invio PDF al dealer (WA):
       NON coperto qui. Codice in wa-intelligence/wa-daemon.js (/send-doc) richiede
       whatsapp-web.js + client WA connesso + TEST_FOUNDER fisico -> tier FULL.
-      Resta UNVERIFIED finche' non eseguito E2E su 393314928901 (mai dealer reale).
+      Resta UNVERIFIED finche' non eseguito E2E su 39<TEST_FOUNDER_NUM> (mai dealer reale).
 
 Esecuzione:
   cd /Users/macbook/Documents/combaretrovamiauto-enterprise

@@ -13,7 +13,7 @@
 import type { Env } from './types';
 
 export interface SendWaParams {
-  phone: string; // 393314928901 format (no +, no spaces)
+  phone: string; // 39<TEST_FOUNDER_NUM> format (no +, no spaces)
   body: string;
 }
 

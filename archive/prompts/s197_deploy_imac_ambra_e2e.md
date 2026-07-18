@@ -119,7 +119,7 @@ Atteso: `{"ok": true, "approved": true, "bridge_queued": true, "error": null}`.
 
 Pre-existing handoff: `prompts/s194_deploy_ambra_e2e.md` STEP 3-4. Re-eseguibili identici post-S196.
 
-5 scenari da `wa-intelligence/response-analyzer.py` su TEST_FOUNDER 393314928901:
+5 scenari da `wa-intelligence/response-analyzer.py` su TEST_FOUNDER 39<TEST_FOUNDER_NUM>:
 1. VEHICLE_REQUEST esplicito (BMW X3 2021 €18k) → AMBRA broker reply
 2. PRICE_NEGOTIATION ("posso prendere a 17?") → ResponseValidator hallucination check
 3. CONTRACT_REQUEST ("ok mando bonifico") → handler create_contract_for_interest

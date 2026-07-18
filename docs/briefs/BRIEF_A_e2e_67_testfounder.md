@@ -1,4 +1,4 @@
-# BRIEF A — E2E REALE: scraper→dossier→AMBRA parla. TEST_FOUNDER 393314928901. CC Max. system python3.
+# BRIEF A — E2E REALE: scraper→dossier→AMBRA parla. TEST_FOUNDER 39<TEST_FOUNDER_NUM>. CC Max. system python3.
 # PREREQ [A0] (scoperto S280, NON saltare): WA daemon connesso (NON `initializing`) + orario lavorativo +
 #   Luke fisico sulla SIM. Se daemon = initializing/qr_available:false → prima [A0] wa-daemon-ops (area S252).
 # PRECONDIZIONE: ambra_voice_profile.md prodotto (BRIEF B) + integrato in response-analyzer.py.
@@ -23,12 +23,12 @@
 #  6. RENDER letto, non descritto: punti 1-5 verificati LEGGENDO l'output reale (pypdf / messaggio generato),
 #     non riferiti da CC a parole. Lezione statico-vs-render: il bundle Azzurra e' chiuso nei literal,
 #     [A] e' la prima prova che atterra nell'OUTPUT generato.
-#  7a. MECCANICA D'INVIO — Day-1 consegnato a TEST_FOUNDER 393314928901: HTTP 200 + msg_id reale.
+#  7a. MECCANICA D'INVIO — Day-1 consegnato a TEST_FOUNDER 39<TEST_FOUNDER_NUM>: HTTP 200 + msg_id reale.
 #      STATO: VERDE (commit 40a5d1e · msg_id out_1781986351333_evd8h = fatto terminale).
 #  7b. BREAKER VIVO — Gate-E blocca outreach_real su numero NON-whitelist (deny→packet→approve→consume),
 #      a vuoto, ZERO invio. STATO: DEFERITO a gate-pre-dealer-reale (è già nei 3 gate a dealer reale) —
 #      NON è done-condition di [A1].
 #  NB SPLIT (referto forense S285): il punto 7 monolitico ("invio passato per Gate-E") era INSODDISFACIBILE
-#     su TEST_FOUNDER perché gate_e.py whitelista 393314928901 (gate_e.py:37,349 · commit 40a5d1e) → su
+#     su TEST_FOUNDER perché gate_e.py whitelista 39<TEST_FOUNDER_NUM> (gate_e.py:37,349 · commit 40a5d1e) → su
 #     TEST_FOUNDER il breaker NON scatta by design; esercitarlo richiede un numero non-whitelist = dealer reale.
 #  → punti 1-6 + 7a verdi sull'artefatto reale, 7b deferito = [A]/[A1] verde CON CRITERIO (non a occhio).

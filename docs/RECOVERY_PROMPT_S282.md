@@ -20,8 +20,8 @@ STATE.md → docs/ROADMAP.md → docs/briefs/BRIEF_A_e2e_67_testfounder.md. In c
   → `connected` = procedi. `authenticated` / `initializing` / qualsiasi altra cosa o ambiguità → **STOP**,
   ripeti [A0] (restart daemon), NON improvvisare. L'interpretazione dello stato-macchina del daemon è autorità di CC, non del giudice.
   La PRIMA cosa che Luke vuole vedere incollata è l'output letterale del curl. Da lì, step per step.
-- Orario lavorativo (business_hours true) + Luke fisicamente sulla SIM 393314928901.
-- SOLO TEST_FOUNDER 393314928901 — NESSUN altro numero, mai.
+- Orario lavorativo (business_hours true) + Luke fisicamente sulla SIM 39<TEST_FOUNDER_NUM>.
+- SOLO TEST_FOUNDER 39<TEST_FOUNDER_NUM> — NESSUN altro numero, mai.
 - **SINGLE-WRITER (sez. 2 standing rule):** nessun altro terminale CC scrive sul branch
   `s210/audit-master-plan` durante [A1]. Letture libere, scritture solo questa sessione.
 

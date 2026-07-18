@@ -21,7 +21,7 @@ Estendere `bridge_outbound` (iMac `~/Documents/app-antigravity-auto/comm-broker/
 - Migration idempotente (`ALTER TABLE ADD COLUMN IF NOT EXISTS` non esiste in SQLite → check `PRAGMA table_info` prima)
 - Backward compat: NULL media_path = single text msg, msg_sequence DEFAULT 0
 - NO physical WA send durante implementation — solo smoke offline + test fisico T-E2E finale
-- TEST_FOUNDER_PHONE=393314928901 (autorizzato S172/S173b)
+- TEST_FOUNDER_PHONE=39<TEST_FOUNDER_NUM> (autorizzato S172/S173b)
 - macOS 11 Big Sur compat (no librerie ML pesanti)
 - `force=true` audit log preservato (S173 invariato)
 - UNIQUE INDEX `uq_outbound_deal_phone_phase` preservato (NO drop)
@@ -86,7 +86,7 @@ Prompt implementer:
 4. Migrate `wa-intelligence/response-analyzer.py.auto_approve_and_send()` multi-msg branch → loop INSERT bridge con msg_sequence 0..N-1, rimuovi Popen fallback (preserva WARN log come info, no più alert Telegram)
 5. NO modifica `/send` HTTP HITL (resta force=true esplicito + precheck 24h S173)
 
-### STEP 5 (15min) — test fisico E2E T-E2E1 + T-E2E2 su 393314928901
+### STEP 5 (15min) — test fisico E2E T-E2E1 + T-E2E2 su 39<TEST_FOUNDER_NUM>
 
 - **T-E2E1 multi-msg**: INSERT bridge 3 rows stesso deal_id `S174-MULTI-${TS}`, msg_sequence 0/1/2, body distinti. Atteso: 3 messaggi WA in ordine + 30-60s gap anti-ban
 - **T-E2E2 voice**: prep mp3 dummy 5s, INSERT bridge `S174-VOICE-${TS}` con media_path + media_type='audio/ogg'. Atteso: 1 voice note WA recapitato
@@ -113,7 +113,7 @@ Se tutti VERDE → `prompts/s175_day1_dealer_reale_first.md` (handoff Day 1 Stil
 
 - Schema migration applied + smoke 4/4 PASS
 - Implementer 3 file modificati (wa_bridge.py + wa-daemon.js + response-analyzer.py)
-- T-E2E1 + T-E2E2 PASS su 393314928901 (Luke conferma fisica)
+- T-E2E1 + T-E2E2 PASS su 39<TEST_FOUNDER_NUM> (Luke conferma fisica)
 - Commit pushed master
 - CLOSE-S174-BRIDGE-EXTENSION.md scritto
 - BACKLOG #S172-1 ✅ CLOSED
