@@ -21,7 +21,7 @@ committato** (`832c31a`). Chiudo quindi con stato VERITIERO (non "PARZIALE"), on
   - **RESIDUO PARCHEGGIATO onesto**: gli agent NON hanno eseguito il campionamento seed-deterministico (seed PZ=202/TV=203) — hanno selezionato a mano. Ho ricalcolato in main-context il campione seed-deterministico (PZ 8 pive, TV 8 pive); overlap già-confermato con fonte-B = PZ 3/8, TV 2/8. La re-verifica indipendente delle restanti righe-seed NON è stata eseguita (tetto-fetch 45/prov saturo + budget-context) → parcheggiata, NON fabbricata. Le righe non-overlap hanno sola fonte-primaria (telefono_fonte).
 - **F5 SINTESI v4**: FATTO (in commit 832c31a). copertura-telefono PZ 94,7% (18/19) / TV 100% (22/22); CONTATTABILI-SUBITO PZ 18 / TV 22; funnel + caveat aggiornati; nota-metodo backfill (fonti/tetti/seed/data/RPO); clausola RPO in testa; ditta individuale RM (riga 4-CONTATTABILI) → `idx 22 · P.IVA 09248401003`.
 - **A1 FONTI_MANDATARI.md**: ditte individuali con nome-persona identificabili anonimizzate — `Carrieri Sandro`→`idx 25 · P.IVA 01760320760`; `Magro Antonio`→`idx 37 · P.IVA n/d`. (In commit 832c31a.)
-- **A2 s173**: TEST_FOUNDER `3314928901`→`<TEST_FOUNDER_NUM>`. **Il valore resta comunque nella history** (l'edit riduce solo la visibilità casuale). (In commit 832c31a.)
+- **A2 s173**: TEST_FOUNDER `<TEST_FOUNDER_NUM>`→`<TEST_FOUNDER_NUM>`. **Il valore resta comunque nella history** (l'edit riduce solo la visibilità casuale). (In commit 832c31a.)
 - **F6 commit+push**: commit `832c31a` "BACKFILL telefono PZ+TV → SINTESI v4 + igiene doc pubblica" (3 doc; pre-commit ✅). Porcelain-check: JSON/.bak/map NON compaiono (PII protetta, dir gitignored). Push: eseguito in chiusura (vedi exit sotto).
 - **F7**: questo doc.
 
