@@ -99,7 +99,7 @@ Validation: ogni mock check (a) no "ARGOS" presente if handoff_source=cold, OK i
 - **#1 verifica fattuale**: registroimprese.it endpoint reali, no inventati
 - **#13 pre-action check**: D-28 + D-27 cite in proposte
 - **CLAUDE.md ARGOS**: NO nuove skill/agent — TaskC test mocks è dentro pipeline esistente
-- **TEST_FOUNDER 3314928901**: NON inviare nulla in S173 (no founder gate richiesto)
+- **TEST_FOUNDER <TEST_FOUNDER_NUM>**: NON inviare nulla in S173 (no founder gate richiesto)
 
 ---
 

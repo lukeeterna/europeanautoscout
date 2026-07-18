@@ -122,14 +122,14 @@ Nessuna delle tre è tecnica: è scope. Non procedo oltre senza decisione.
 - **Verifica-campione** (seed=42, 10 righe): **9 SI / 0 NO / 1 NON-VERIFICABILE** (Quality Cars — nessun match PZ). Soglia ≥8/10 **RAGGIUNTA**.
   - **CAVEAT**: cross-check eseguito su `ufficiocamerale.it` (dati Infocamere, stessa base Registro Imprese) perché la ricerca gratuita `registroimprese.it` è JS-only, non GET-fetchabile → NON aggirata. Fonte-proxy equivalente, da ratificare Luke.
 - **Distribuzione classi** (euristica dichiarata: fuori-target=officina/carrozzeria/moto/ricambi/noleggio · probabile-agente=brand ufficiale/franchising · solo-anagrafe=P.IVA valida senza footprint web · non-classificabile=no P.IVA):
-  - solo-anagrafe: **19** · fuori-target: **3** (Sanza Motors 47.83.10 moto · Carrieri Sandro carrozzeria · Officina & Service) · non-classificabile: **20** · probabile-agente-di-concessionaria: 0
+  - solo-anagrafe: **19** · fuori-target: **3** (Sanza Motors 47.83.10 moto · idx 25 · P.IVA 01760320760 carrozzeria · Officina & Service) · non-classificabile: **20** · probabile-agente-di-concessionaria: 0
   - **Footprint linguistico** ("su commissione"/"cerchiamo per te"/"su ordinazione"): NESSUNO raccolto — il testo dei siti per-riga NON è stato harvest-ato in questa passata → classe "mandatario-attivo-web" non assegnata (assenza dato, non assenza fenomeno).
 - **File**: `data/recon/mandatari/potenza.json` (campi nuovi: piva · piva_valida · stato · ateco_rilevato · fonte_enrichment · classificazione · status)
 
 ### 8b. Treviso (TV) — 2026-07-11 — **PROMOSSA ad anagrafe**
 - **Righe**: 40 · **con P.IVA**: 34 (0 pre-esistenti + 34 nuove da subagent research, tetto 45 fetch dichiarato)
 - **P.IVA valide (checksum stdnum it.iva)**: **34/34** (0 invalide, 0 duplicati) → **85% delle 40 righe** con P.IVA valida
-- **NON-ARRICCHIBILI**: 6 righe (idx 17 Auto-Da-MD&A, 18 Autodue, 26 Autosalone Teot, 27 Casagrande, 30 P.S. Group, 37 Magro Antonio — motivi: nessun match / 403-404 / persona fisica deceduta)
+- **NON-ARRICCHIBILI**: 6 righe (idx 17 Auto-Da-MD&A, 18 Autodue, 26 Autosalone Teot, 27 Casagrande, 30 P.S. Group, idx 37 · P.IVA n/d — motivi: nessun match / 403-404 / persona fisica deceduta)
 - **Verifica-campione** (seed=71, 10 righe idx 0,2,4,6,8,22,28,31,35,38): **10 SI / 0 NO / 0 NON-VERIFICABILE**. Soglia ≥8/10 **RAGGIUNTA**.
   - Indipendenza per-riga: fonte_B ≠ fonte_enrichment (Infocamere-derivate: reportaziende / bilancioaziende / misterimprese / prontoimprese). Esito verbatim per riga nel JSON `verifica_campione.esito_verbatim`.
 - **Distribuzione classi** (euristica dichiarata: fuori-target=ATECO 45.20.x officina o nome soccorso/servizio-acquisto fuori-TV · probabile-agente=brand ufficiale nel nome o dealer SpA storico · solo-anagrafe=P.IVA valida ATECO commercio senza footprint web · non-classificabile=no P.IVA):

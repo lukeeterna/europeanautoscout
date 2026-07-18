@@ -1,8 +1,10 @@
-# Sintesi pilota mandatari — 3 province (Potenza · Treviso · Roma) — v3
+# Sintesi pilota mandatari — 3 province (Potenza · Treviso · Roma) — v4
 
-_Generato 2026-07-14 · fonte: `data/recon/mandatari/{potenza,treviso,roma}.json` · Roma = POST riconciliazione provenienza + fix RS Autotorino (commit af4bab0)._
+_Generato 2026-07-18 · fonte: `data/recon/mandatari/{potenza,treviso,roma}.json` · v4 = POST backfill-telefono PZ+TV (fonti pubbliche per-riga) · Roma invariata da v3 (commit af4bab0)._
 
-> **v3 — metrica corretta per comparabilità + ICP.** Rispetto alla v1: (a) nomenclatura funnel non-euristica (LEAD → QUALIFICABILE → CONTATTABILE → VERIFICATO); (b) ICP ristretto a `{solo-anagrafe}`, `probabile-agente-di-concessionaria` esclusa off-ICP; (c) `%non-operative` calcolata SOLO sulle righe con STATO osservato (denominatore dichiarato); (d) telefono non harvestato = `n/d`, mai `0`; (e) nota metodologica ATECO.
+> **v4 — backfill telefono PZ+TV.** Rispetto alla v3: (a) copertura-campo-telefono e CONTATTABILI-SUBITO ora valorizzate per PZ (18/19) e TV (22/22), non più `n/c`; (b) telefono per-riga da fonti pubbliche con `telefono_fonte`/`telefono_presente`; (c) verifica-campione fonte-B indipendente (PZ 6/8, TV 8/8); (d) le denominazioni nominative di ditte individuali sono sostituite con `idx N · P.IVA <numero>` (igiene doc repo pubblico). Invarianti da v3: nomenclatura funnel, ICP `{solo-anagrafe}`, `n/d` mai `0`, nota ATECO.
+
+> **Clausola RPO (vincolante):** i numeri raccolti NON sono chiamabili finché il check al **Registro Pubblico delle Opposizioni** non sarà eseguito (parcheggio RPO invariato). "CONTATTABILE-SUBITO" = `qualif ∧ telefono presente`, **non** "chiamabile ora".
 
 ## Nomenclatura (vincolante)
 
@@ -20,25 +22,25 @@ _Generato 2026-07-14 · fonte: `data/recon/mandatari/{potenza,treviso,roma}.json
 | righe | 42 | 40 | 28 |
 | P.IVA valide | 22 | 34 | 22 |
 | P.IVA **DISTINTE** | 22 | 34 | **19** (−3 = quaterna Autotorino stessa P.IVA) |
-| copertura-campo-telefono | **n/d — non harvestato** | **n/d — non harvestato** | 39,3% (11/28) |
+| copertura-campo-telefono | **94,7% (18/19 qualif)** | **100% (22/22 qualif)** | 39,3% (11/28) |
 | copertura-STATO | 1/42 | 27/40 | 12/28 |
 | %non-operative (su osservate) | **n/c — copertura 1/42 insufficiente** | **11,1% (3/27)** | **8,3% (1/12)** |
 | LEAD-QUALIFICABILI `{solo-anagrafe}` | 19 | 22 | 11 |
-| **CONTATTABILI-SUBITO** (qualif ∧ tel) | **n/c** (telefono n/d) | **n/c** (telefono n/d) | **4** |
+| **CONTATTABILI-SUBITO** (qualif ∧ tel) | **18** | **22** | **4** |
 | VERIFICATI | 0 | 0 | 0 |
 | COPERTURA vs universo (con fonte) | N/D | N/D | **<14%** — 28/«>200» PagineGialle (lower-bound) |
 
-**Comparabilità PZ/TV vs RM sospesa sul telefono**: in PZ e TV il campo telefono NON è stato harvestato in questa passata (`n/d`, non `0`). I QUALIFICABILI esistono (19 PZ, 22 TV), ma senza telefono CONTATTABILI-SUBITO è `n/c` per costruzione — non "0 target". Diventa confrontabile con RM solo dopo il backfill telefono.
+**Comparabilità PZ/TV vs RM ora attiva**: il backfill-telefono (2026-07-18) ha valorizzato PZ e TV. CONTATTABILI-SUBITO = 18 (PZ) e 22 (TV), superiori a RM (4) — RM resta indietro sul campo telefono (39,3%) perché arricchita in una passata precedente meno esaustiva, non per scarsità. L'unica riga `n/d` PZ è un'impresa IT (ATECO 62.09), non automotive.
 
 ## Funnel (non-euristico)
 
 Funnel operativo: **LEAD → QUALIFICABILE `{solo-anagrafe}` → backfill telefono → CONTATTABILE → verifica indipendente → VERIFICATO**. Nessuna classe euristica è di per sé un target: il target si costruisce lungo il funnel, non si assume dalla classe.
 
-- **Potenza**: LEAD 22 → QUALIFICABILI 19 → CONTATTABILI n/c (telefono n/d) → VERIFICATI 0.
-- **Treviso**: LEAD 34 → QUALIFICABILI 22 → CONTATTABILI n/c (telefono n/d) → VERIFICATI 0.
+- **Potenza**: LEAD 22 → QUALIFICABILI 19 → CONTATTABILI 18 → VERIFICATI 0.
+- **Treviso**: LEAD 34 → QUALIFICABILI 22 → CONTATTABILI 22 → VERIFICATI 0.
 - **Roma**: LEAD 22 → QUALIFICABILI 11 → CONTATTABILI 4 → VERIFICATI 0.
 
-Roma — i 4 CONTATTABILI-SUBITO (tutti `solo-anagrafe`, sopravvivono al restringimento ICP): **Gold Car**, **Ve.Ta. Auto 2**, **Autocentri Anzano S.r.l.**, **Cmc Auto di Federico Aprosio**.
+Roma — i 4 CONTATTABILI-SUBITO (tutti `solo-anagrafe`, sopravvivono al restringimento ICP): **Gold Car**, **Ve.Ta. Auto 2**, **Autocentri Anzano S.r.l.**, **idx 22 · P.IVA 09248401003** (ditta individuale).
 
 ## Distribuzione classi (tutte, incl. off-ICP)
 
@@ -73,6 +75,14 @@ Regola mandato: la proiezione entra solo dalla riga COPERTURA-con-fonte (mai da 
 
 ## Caveat per-provincia
 
-- **Potenza**: telefono non harvestato (`n/d`); 20/42 righe senza P.IVA (`non-classificabile no-P.IVA`); `STATO` popolato su **1 sola riga** (di fatto assente) → `%non-operative` = n/c; P.IVA solo da schede per-nome reportaziende.it (directory-categoria non espongono P.IVA).
-- **Treviso**: telefono non harvestato (`n/d`); enrichment P.IVA per-nome PENDING; alcune voci (Autosoccorso Veneto, Basso Ford, Trevisauto Spa, Autobavaria BMW) potenzialmente concessionari ufficiali/carrozzerie, non mandatari puri (ATECO 45.11.02 non verificato); `STATO` popolato 27/40 (provincia più ricca sul campo).
-- **Roma**: telefono 39,3% (unica provincia arricchita); provenienza riconciliata (11 scheda-diretta / 8 serp-snippet / 3 websearch, caveat 12/10 corretto in af4bab0); RS 4 filiali Autotorino aggiornata; PagineGialle mescola zone adiacenti (righe fuori-RM segnalate in `avvertenza`).
+- **Potenza**: telefono harvestato 18/19 (1 `n/d` = impresa IT ATECO 62.09 non automotive); 20/42 righe senza P.IVA (`non-classificabile no-P.IVA`); `STATO` popolato su **1 sola riga** (di fatto assente) → `%non-operative` = n/c; P.IVA solo da schede per-nome reportaziende.it (directory-categoria non espongono P.IVA).
+- **Treviso**: telefono harvestato 22/22; enrichment P.IVA per-nome PENDING; alcune voci (Autosoccorso Veneto, Basso Ford, Trevisauto Spa, Autobavaria BMW) potenzialmente concessionari ufficiali/carrozzerie, non mandatari puri (ATECO 45.11.02 non verificato); `STATO` popolato 27/40 (provincia più ricca sul campo).
+- **Roma**: telefono 39,3% (arricchita in passata precedente meno esaustiva); provenienza riconciliata (11 scheda-diretta / 8 serp-snippet / 3 websearch, caveat 12/10 corretto in af4bab0); RS 4 filiali Autotorino aggiornata; PagineGialle mescola zone adiacenti (righe fuori-RM segnalate in `avvertenza`).
+
+## Nota metodo backfill-telefono (v4 — obbligatoria)
+
+- **Data**: 2026-07-18. **Fonti pubbliche GET** (no contatto imprese, no bypass 403/Cloudflare): reportaziende, ufficiocamerale (403 sistematico → skip), paginegialle, paginebianche, misterimprese, siti aziendali linkati, WebSearch mirata. Ogni riga porta `telefono`, `telefono_fonte` (URL), `telefono_presente`.
+- **Tetto fetch dichiarato**: 45/provincia — usati **PZ 43/45**, **TV 41/45**.
+- **Null-discipline**: telefono non trovato = `n/d` + motivo per-riga, mai `0`.
+- **Verifica-campione** (`verifica_telefono` nei JSON): fonte-B indipendente (URL ≠ `telefono_fonte`), match esatto o prefisso+ultime4. Score agenti **PZ 6/8**, **TV 8/8** (soglia ≥6/8 rispettata). Campione seed-deterministico (seed PZ=202, TV=203) calcolato in main-context; overlap già-confermato PZ 3/8, TV 2/8; **re-verifica indipendente delle restanti righe seed = RESIDUO PARCHEGGIATO** (tetto-fetch saturo + budget-context), non fabbricata.
+- **Clausola RPO**: numeri NON chiamabili finché il check Registro Pubblico delle Opposizioni non è eseguito.
