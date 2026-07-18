@@ -1,22 +1,31 @@
-# NEXT SESSION — europeanautoscout (stato VERO da git/disco, 2026-07-18 10:00)
+# NEXT SESSION — europeanautoscout (stato VERO da git/disco, 2026-07-18 14:21)
 
-## Stato per-fase (F4 backfill telefono)
-- **F4 seed VERIFICA = COMPLETATA.** Campione seed-deterministico (pop. ordinata per P.IVA, seed PZ=202/TV=203).
-  - PZ idx [0,3,4,14,16,24,26,38] — score fonte-B **7/8 PASS** (NON-VERIFICABILE: idx0 GruppoValluzzi).
-  - TV idx [5,12,13,19,23,29,33,35] — score fonte-B **7/8 PASS** (NON-VERIFICABILE: idx13 A27).
-  - Dettaglio per-riga + URL fonte-B in `docs/judge/20260718-1000-backfill-f4.md`.
-- **V5 igiene** doc giudice v1 = fatto (numero test → <TEST_FOUNDER_NUM>).
-- **V6 SINTESI v4.1** nota-verifica aggiornata (git-visibile) = fatto.
+## Fatto in questa sessione (igiene pubblica v1)
+- **I1** numero test → `<TEST_FOUNDER_NUM>` in **79 file tracciati non-.bak / 178 occ** (0 numeri
+  grezzi residui fuori dai .bak). Dettaglio: `docs/judge/20260718-1421-igiene-pubblica-v1.md`.
+- **I2** rimossi **23** file `.bak` tracciati (grep segreti sui 2 config = 0 match); `.gitignore`
+  esteso con `*.bak*`.
+- **I3** (residuo F4 CHIUSO) blocco `verifica_telefono.campione_seed_perga` per-riga annotato nei 4
+  file dati untracked (potenza/treviso .json + telefono_map_pz/tv): PZ 7/8, TV 7/8, idx→nome
+  validati, valori VERBATIM da judge V3. Restano fuori git (gitignored).
+- **I4** commit `66d143f` + push `s210/audit-master-plan` exit 0 (pre-push guard passato).
 
-## UNICO RESIDUO (1 step, untracked/gitignored, NON git)
-Annotare il blocco `verifica_telefono` per-riga (esiti V3: idx→SÌ/NON-VERIFICABILE + URL fonte-B) nei 4 file dati:
-`data/recon/mandatari/{potenza.json,treviso.json,telefono_map_pz.json,telefono_map_tv.json}`.
-Fonte dei valori = sezione V3 del doc giudice F4. Fare .bak (nella dir gitignored) prima della scrittura (vincolo 1d). Poi F4 chiuso al 100%.
+## RESIDUI (micro-fix futuri, non bloccanti)
+1. **`state/rings.json`** (JSON tracciato): contiene ancora il numero (1 occ, campo `note`
+   generato). NON toccato in commit per porcelain-guard (JSON mai staged). Fix alla sorgente del
+   note (state/refresh.sh genera rings.json).
+2. **File di CODICE placeholderati** (`.harness/gate_e.py`, `argos-proxy/src/lib/wa-daemon.ts`,
+   `chaos_db_stress.py`, `chaos_test.sh`, `tools/test_ambra_5scenarios.py`,
+   `tools/test_e2e_full.py`, `tools/tests/test_dossier_hitl_smoke.py`): prima del prossimo E2E
+   fisico devono leggere il numero da `env/.env.local` (untracked), non dal placeholder.
+3. **History**: il numero resta nella git history (questo mandato è working-tree level; scrub
+   filter-repo è task separato).
 
 ## Armatura (ricorda)
-- OGNI git con `-C ~/Documents/europeanautoscout`, MAI `cd` nudo (cwd si resetta sull'archivio combaretrovamiauto-enterprise = INTOCCABILE).
+- OGNI git con `-C ~/Documents/europeanautoscout`, MAI `cd` nudo (cwd si resetta sull'archivio
+  combaretrovamiauto-enterprise = INTOCCABILE).
 - PII mai in git: porcelain-check (JSON/map/.bak assenti) prima di ogni commit.
 - Solo GET pubblici, zero bypass 403/Cloudflare, zero contatto imprese.
 
 ## HEAD
-Pre-sessione 1b9042e → + commit di chiusura F4 (vedi git log).
+`66d143f` (igiene pubblica) → + commit chiusura doc (vedi git log).
