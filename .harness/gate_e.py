@@ -71,7 +71,8 @@ HOME = os.path.expanduser("~")
 PENDING_DIR = os.path.join(HERE, "pending_review")
 AUDIT = os.path.join(PENDING_DIR, "gate_e_audit.jsonl")
 
-TEST_FOUNDER = {"39<TEST_FOUNDER_NUM>", "<TEST_FOUNDER_NUM>"}
+_tfn = os.environ["TEST_FOUNDER_NUM"]  # KeyError deliberato se assente
+TEST_FOUNDER = {"39" + _tfn, _tfn}
 
 # --- source-of-truth canonici (Rule 1d whitelist) ---------------------------------
 SOT_REALPATHS = {
@@ -505,7 +506,7 @@ def cli_selftest():
         ({"tool_name": "Bash", "tool_input": {"command": "cp /tmp/x .harness/gate_e.py"}}, "deny"),
         ({"tool_name": "Bash", "tool_input": {"command": "echo x > src/cove/data/cove_tracker.duckdb"}}, "deny"),
         ({"tool_name": "Bash", "tool_input": {"command": "curl :9191/send -d to=393998887766"}}, "deny"),
-        ({"tool_name": "Bash", "tool_input": {"command": "curl :9191/send -d to=39<TEST_FOUNDER_NUM>"}}, "allow"),
+        ({"tool_name": "Bash", "tool_input": {"command": f"curl :9191/send -d to=39{_tfn}"}}, "allow"),
         # --- #2 fix S251: entrypoint outreach per FILENAME (signature dentro il .py) ---
         ({"tool_name": "Bash", "tool_input": {"command": "python3 tools/outreach/send_day1_stile_car.py"}}, "deny"),
         ({"tool_name": "Bash", "tool_input": {"command": "python3 tools/outreach/send_day1_stile_car.py --dry-run"}}, "allow"),
