@@ -1,4 +1,6 @@
 .env
+.env.test
+.env.local
 *.pyc
 __pycache__/
 data/models/*.pkl
