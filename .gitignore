@@ -54,3 +54,7 @@ data/pool_icp/
 data/registry/
 data/s173_cciaa_target_d28.csv
 tools/recon/harvest_dealers_fb.py
+
+# ponte Sol -> CC: consegne e loro snapshot, mai in git
+incoming/
+.vos/
