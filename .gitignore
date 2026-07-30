@@ -58,3 +58,6 @@ tools/recon/harvest_dealers_fb.py
 # ponte Sol -> CC: consegne e loro snapshot, mai in git
 incoming/
 .vos/
+
+# render locale di fine sessione: utile a schermo, mai in git
+HANDOFF_CURRENT.md

@@ -1,12 +1,12 @@
 # ARGOS — STATE
-aggiornato: 2026-07-28 · fonte: git (mai memoria, mai tracker)
+aggiornato: 2026-07-30 · fonte: git (mai memoria, mai tracker)
 
 ## Coordinate
 repo: github.com/lukeeterna/europeanautoscout (PUBBLICO)
 branch: s210/audit-master-plan
 workspace: ~/Documents/europeanautoscout
 archivio SOLA LETTURA: ~/Documents/combaretrovamiauto-enterprise
-catena: 5607cea > 832c31a > 1b9042e > 932796d > 66d143f > 9d7c3f7 > 382236f > 3fd1c8f
+catena: 5607cea > 832c31a > 1b9042e > 932796d > 66d143f > 9d7c3f7 > 382236f > 3fd1c8f > acb8966
 
 ## Scadenza
 produzione 2026-08-27, non negoziabile.
@@ -45,6 +45,7 @@ Token di scrittura a Sol e branch di quarantena: RESPINTI, non riaprire.
   tools/test_ambra_5scenarios.py · tools/test_e2e_full.py · tools/tests/test_dossier_hitl_smoke.py
 - rings E2E: #1 UNVERIFIED · #9B UNVERIFIED · #6-7 UNVERIFIED (founder-gated) · #8 BLOCKED-ON dealer reale · resto PASS.
 - rimozione .claude/NEXT_SESSION_PROMPT.* (sostituiti da questo file).
+- generatore chiudi-ordinatamente: ripuntare l'output su docs/judge/STATE.md invece di HANDOFF_CURRENT.md. unita SOL, post-27/08. nel frattempo HANDOFF_CURRENT.md e gitignorato.
 
 ## Invarianti
 un solo blocco attivo cross-venture · ogni blocco apre con MODELLO: · git -C esplicito mai in variabile ·
