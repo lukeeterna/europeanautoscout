@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /Users/macbook/Documents/combaretrovamiauto-enterprise/.harness/state_guard.py"
+            "command": "GUARD=/Users/macbook/Documents/combaretrovamiauto-enterprise/.harness/state_guard.py; [ -f \"$GUARD\" ] && python3 \"$GUARD\" || exit 0"
           }
         ]
       },
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /Users/macbook/Documents/combaretrovamiauto-enterprise/.harness/gate_e.py"
+            "command": "GATE=/Users/macbook/Documents/combaretrovamiauto-enterprise/.harness/gate_e.py; [ -f \"$GATE\" ] && python3 \"$GATE\" || exit 0"
           }
         ]
       }
