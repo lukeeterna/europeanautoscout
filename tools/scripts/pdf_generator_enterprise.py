@@ -2039,19 +2039,20 @@ def _find_sanitizer_python():
 def _sanitize_photo(image_path: str, image_index: int, listing_id: str, sanitized_dir: str, seller_name=None):
     """
     Sanitize a photo via subprocess (image_sanitizer + Apple Vision Framework).
-    Returns sanitized path, original path (if skip), or None (if crash).
+    Returns sanitized path, or None when safety cannot be proven. Never returns RAW.
     """
     py = _find_sanitizer_python()
     if not py:
-        return image_path  # no image_sanitizer → RAW
+        print(f"  [SANITIZER] img[{image_index}] backend unavailable — EXCLUDED")
+        return None
 
     import subprocess
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sanitizer_script = os.path.join(project_root, 'src', 'cove', 'image_sanitizer.py')
 
     if not os.path.exists(sanitizer_script):
-        print(f"  [SANITIZER] Script not found: {sanitizer_script}")
-        return image_path
+        print(f"  [SANITIZER] Script not found: {sanitizer_script} — EXCLUDED")
+        return None
 
     # S191 MED-1: sanitize listing_id before injection into subprocess code template
     # Defense-in-depth: repr() is safe for normal strings but a malicious listing_id
@@ -2098,24 +2099,23 @@ print(json.dumps({{"result": result, "size": os.path.getsize(result) if result a
                     print(f"  [SANITIZER] img[{image_index}] OK ({size:,} bytes) → {os.path.basename(result_path)}")
                     return result_path
                 elif result_path is None:
-                    # Crash inside sanitize_image — fallback RAW (legacy behavior)
-                    print(f"  [SANITIZER] img[{image_index}] returned None (crash) — using original RAW")
-                    return image_path
+                    print(f"  [SANITIZER] img[{image_index}] returned None — EXCLUDED (fail closed)")
+                    return None
                 else:
-                    print(f"  [SANITIZER] img[{image_index}] output missing/empty — using original RAW")
-                    return image_path
+                    print(f"  [SANITIZER] img[{image_index}] output missing/empty — EXCLUDED (fail closed)")
+                    return None
 
         # No JSON output found — check stderr for errors
         if r.returncode != 0:
             print(f"  [SANITIZER] img[{image_index}] subprocess failed (rc={r.returncode}): {r.stderr[-200:]}")
             return None
 
-        print(f"  [SANITIZER] img[{image_index}] no output parsed — using original")
-        return image_path
+        print(f"  [SANITIZER] img[{image_index}] no output parsed — EXCLUDED (fail closed)")
+        return None
 
     except subprocess.TimeoutExpired:
-        print(f"  [SANITIZER] img[{image_index}] timeout (120s) — using original")
-        return image_path
+        print(f"  [SANITIZER] img[{image_index}] timeout (120s) — EXCLUDED (fail closed)")
+        return None
     except Exception as e:
         print(f"  [SANITIZER] img[{image_index}] error: {e}")
         return None
@@ -2341,11 +2341,12 @@ def generate_dossier_from_data(
             else:
                 print(f"  [SANITIZER] img[{idx}] EXCLUDED (sanitizer failed)")
 
+        raw_count = len(local_image_paths)
+        local_image_paths = sanitized_paths
         if sanitized_paths:
-            local_image_paths = sanitized_paths
-            print(f"[SANITIZER] {len(sanitized_paths)}/{len(local_image_paths)} photos sanitized")
+            print(f"[SANITIZER] {len(sanitized_paths)}/{raw_count} photos sanitized")
         else:
-            print("[SANITIZER] All photos failed — using originals")
+            print("[SANITIZER] All photos failed — dossier continues without images (fail closed)")
 
     vehicle.local_image_paths = local_image_paths
 
@@ -2546,21 +2547,12 @@ def generate_dossier_from_db(
             local_image_paths = safe_paths
             print(f"  {len(safe_paths)} photos sanitized (plates/dealer info removed)")
     except Exception as e:
-        print(f"  [warn] Sanitizer failed ({e}), falling back to raw download")
+        print(f"  [warn] Sanitizer failed ({e}) — RAW fallback forbidden")
 
-    # Fallback: raw download if sanitizer unavailable or failed
-    if not local_image_paths and img_row and img_row[0]:
-        image_url = img_row[0]
-        print(f"  Downloading raw photo (NO SANITIZATION)...")
-        local_path = _download_image_to_temp(image_url)
-        if local_path:
-            local_path = _convert_webp_to_jpg(local_path)
-            if local_path and os.path.exists(local_path) and os.path.getsize(local_path) > 500:
-                local_image_paths.append(local_path)
-                print(f"  WARNING: Photo NOT sanitized — may contain dealer/plate info!")
-
+    # Fail closed: a dealer dossier may be text-only, but it must never embed
+    # an image whose seller/plate privacy was not successfully verified.
     if not local_image_paths:
-        print("  [info] No usable images for this listing")
+        print("  [info] No SAFE images for this listing — generating dossier without photos")
 
     vehicle.local_image_paths = local_image_paths
     vehicle._power_kw = power_kw if power_kw and power_kw > 0 else 150

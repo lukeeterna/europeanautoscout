@@ -7,7 +7,7 @@ CoVe 2026 | Enterprise Grade
   Stage 1: Crop portal banner (top zone, configurable per portal)
   Stage 2: Apple Vision text detection (was PaddleOCR pre-S163)
   Stage 3: Cover text regions with Pillow rectangles (D-32, D-25)
-  Stage 4: Post-OCR verification + Telegram alert if residuals
+  Stage 4: Post-OCR verification; residual sensitive text => automatic reject
 
 BUSINESS RULE: The dealer must NOT be able to identify the EU seller
 from the dossier. Source identity is revealed ONLY after fee payment.
@@ -73,10 +73,10 @@ PADDLE_BOX_THRESH = 0.35
 PADDLE_CONF_MIN = 0.25
 PADDLE_TEXT_MIN_LEN = 2
 
-# Alert: if post-verify finds text above this confidence, send TG alert
+# Reject: if post-verify finds sensitive text above this confidence, exclude image
 ALERT_CONFIDENCE_THRESHOLD = 0.70
 
-# S183-quater: 3-verdict classifier thresholds (HITL)
+# S183-quater: 3-verdict classifier thresholds (SOSPETTO is masked + telemetry)
 SUSPECT_CONF_THRESHOLD = 0.45    # conf < soglia → SOSPETTO (BASSA_CONF)
 SUSPECT_TOP_BAND_RATIO = 0.25    # y1 < h * ratio → SOSPETTO (POSIZIONE_RIFLESSO)
 
@@ -352,7 +352,7 @@ def _detect_text_regions(
     """
     vision_fn = _get_vision_ocr()
     if vision_fn is None:
-        return []
+        raise RuntimeError("Vision OCR unavailable: sanitizer cannot prove image safety")
 
     try:
         raw_regions = vision_fn(
@@ -364,7 +364,7 @@ def _detect_text_regions(
         )
     except Exception as e:
         log.error(f"Vision OCR detection failed: {e}")
-        return []
+        raise RuntimeError("Vision OCR detection failed; refusing fail-open image") from e
 
     # S183-quater: apply 3-verdict classifier (image_height needed for position check)
     img_h = _get_image_height(image_path)
@@ -381,7 +381,7 @@ def _get_image_height(image_path: str) -> int:
 
 
 def _classify_region(region: Dict, img_h: int) -> Dict:
-    """Apply 3-verdict HITL classifier to a region (S183-quater).
+    """Apply 3-verdict sanitizer classifier to a region (S183-quater).
 
     Returns the region with two extra keys:
       - verdict: 'KEEP' | 'MASK' | 'SOSPETTO'
@@ -590,7 +590,7 @@ def _format_sospetti_alert_message(
     seller_name: Optional[str],
     sospetti: List[Dict],
 ) -> str:
-    """Build the TG alert text body for SOSPETTO regions (HITL review)."""
+    """Build optional telemetry for SOSPETTO regions already masked automatically."""
     lines = [
         f"SANITIZER SOSPETTO — {listing_id} img#{image_index}",
         f"File: {photo_basename}",
@@ -604,7 +604,7 @@ def _format_sospetti_alert_message(
             f"box={r['box']} motivo={r.get('reason', '?')}"
         )
     lines.append("")
-    lines.append("Azione: verifica manuale — mascherate per sicurezza.")
+    lines.append("Azione: nessuna approvazione richiesta — regioni mascherate automaticamente.")
     return "\n".join(lines)
 
 
@@ -617,18 +617,13 @@ def _post_verify_and_alert(
     sospetti: Optional[List[Dict]] = None,
 ) -> bool:
     """
-    Re-run OCR on sanitized image. If text survives:
-    - conf >= ALERT_CONFIDENCE_THRESHOLD → send TG alert with before/after
-    - Returns True if image is acceptable (no high-confidence text)
+    Re-run OCR on the sanitized image. This is a fail-closed safety gate:
+    - OCR backend unavailable/error => False (image must be excluded)
+    - high-confidence sensitive residual => False (image must be excluded)
+    - otherwise => True
 
-    Unlike v2 which REJECTED images with surviving text, v3 keeps the image
-    but alerts for human review. This prevents empty dossiers.
-
-    S183-quater: also handles SOSPETTO regions accumulated in Stage 2.
-    These were masked (safety) but flagged for human review — we ship a TG
-    message with an annotated copy of the original photo (red rects + reason).
-    If TG bot not configured, the alert text is printed to console so the
-    operator can still see it.
+    SOSPETTO telemetry is observability only. It never authorizes an image and
+    never requires a human approval step.
     """
     # ── SOSPETTO alert (Stage 2 accumulation) ───────────────────────
     if sospetti:
@@ -655,7 +650,8 @@ def _post_verify_and_alert(
 
     vision_fn = _get_vision_ocr()
     if vision_fn is None:
-        return True  # Can't verify, assume OK
+        log.error("Post-verify unavailable: refusing fail-open image")
+        return False
 
     try:
         # Re-detect on sanitized image with same seller-aware filter
@@ -693,11 +689,11 @@ def _post_verify_and_alert(
                     f"SANITIZER ALERT: Residual text in {listing_id} img#{image_index}\n"
                     f"Text: {all_text}\n"
                     f"Seller: {seller_name or 'unknown'}\n"
-                    f"ACTION: Review manually"
+                    f"ACTION: Image excluded automatically"
                 )
                 log.warning(caption)
                 _send_tg_before_after(original_path, safe_path, caption)
-                return True  # Keep image but alert sent
+                return False  # Sensitive residual: fail closed
 
             # Low confidence text — log only
             log.info(f"Low-conf residual in {listing_id} img#{image_index}: {all_text}")
@@ -706,7 +702,7 @@ def _post_verify_and_alert(
 
     except Exception as e:
         log.error(f"Post-verify failed: {e}")
-        return True
+        return False
 
 
 # ── Hood Reflection Detection ─────────────────────────────────────────────────
@@ -774,7 +770,7 @@ def sanitize_image(
     Stage 1: Crop portal banner (top zone)
     Stage 2: Apple Vision text detection
     Stage 3: Cover text regions with Pillow rectangles (D-32, D-25)
-    Stage 4: Post-verify + TG alert if residuals
+    Stage 4: Post-verify; unsafe/unverifiable output is excluded
 
     Returns: path to sanitized image, or None on failure.
     """
@@ -810,26 +806,13 @@ def sanitize_image(
         is_interior = _is_interior_photo(image_path, image_index)
 
         if is_interior:
-            # Interior photos: just strip EXIF, no text removal
-            img = Image.open(image_path)
-            clean = Image.new(img.mode, img.size)
-            clean.paste(img)
-            if clean.mode == 'RGBA':
-                clean = clean.convert('RGB')
-            clean.save(safe_path, 'JPEG', quality=90)
-            elapsed = time.time() - t0
-            print(f"  INTERIOR: {safe_name} (index={image_index}, {elapsed:.1f}s)")
-            return safe_path
+            # Classification is informational only: interior images still pass
+            # through the same sanitization and post-verification safety gate.
+            print(f"  [CLASSIFIER] img[{image_index}] interior candidate — sanitization still required")
 
         if not CV2_AVAILABLE:
-            # Without OpenCV, just strip EXIF
-            img = Image.open(image_path)
-            clean = Image.new(img.mode, img.size)
-            clean.paste(img)
-            if clean.mode == 'RGBA':
-                clean = clean.convert('RGB')
-            clean.save(safe_path, 'JPEG', quality=90)
-            return safe_path
+            print("  ERROR: OpenCV unavailable — refusing unsanitized/EXIF-only output")
+            return None
 
         cv_img = cv2.imread(image_path)
         if cv_img is None:
@@ -898,7 +881,7 @@ def sanitize_image(
             if other_text:
                 print(f"  [OCR] {len(other_text)} other text region(s) to mask")
         if sospetti:
-            print(f"  [SOSPETTO] {len(sospetti)} region(s) flagged for HITL review")
+            print(f"  [SOSPETTO] {len(sospetti)} region(s) masked; telemetry only")
 
         # ── STAGE 3: Pillow solid fill (D-32, D-25) ─────────────
         to_mask = [r for r in text_regions if r['should_mask']]
@@ -934,10 +917,11 @@ def sanitize_image(
         if _detect_hood_reflection(cv_img):
             caption = (
                 f"HOOD REFLECTION: {listing_id or 'unknown'} img#{image_index}\n"
-                f"Possible text reflection on hood — review manually"
+                f"Possible text reflection on hood — image excluded automatically"
             )
             log.warning(caption)
             _send_tg_alert(caption, image_path)
+            return None
 
         # ── Save ─────────────────────────────────────────────────
         # NOTE: ARGOS branding watermark is applied by apply_watermark() in pdf_generator_enterprise.py
@@ -962,12 +946,19 @@ def sanitize_image(
             # Caller must exclude this image from PDF (NOT fallback to RAW).
             return SENTINEL_SKIP_PROMO
 
-        # ── STAGE 4: Post-verify + Alert (only if text was masked or SOSPETTO) ──
-        if has_mask or sospetti:
-            _post_verify_and_alert(
-                safe_path, image_path, listing_id or "", image_index, seller_name,
-                sospetti=sospetti,
-            )
+        # ── STAGE 4: Post-verify — ALWAYS, fail closed ────────────
+        verified = _post_verify_and_alert(
+            safe_path, image_path, listing_id or "", image_index, seller_name,
+            sospetti=sospetti,
+        )
+        if not verified:
+            try:
+                if os.path.exists(safe_path):
+                    os.remove(safe_path)
+            except OSError:
+                pass
+            print(f"  EXCLUDED: {safe_name} failed post-verification")
+            return None
 
         elapsed = time.time() - t0
         size_kb = os.path.getsize(safe_path) / 1024
