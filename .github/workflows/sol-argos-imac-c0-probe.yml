@@ -1,0 +1,129 @@
+name: ARGOS C0 iMac Corpus Probe
+
+on:
+  push:
+    branches:
+      - sol/argos-canonicalization-20260817
+    paths:
+      - '.github/workflows/sol-argos-imac-c0-probe.yml'
+
+jobs:
+  c0-imac-corpus:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - name: Read-only iMac corpus acceptance
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.IMAC_HOST }}
+          username: ${{ secrets.IMAC_USER }}
+          key: ${{ secrets.IMAC_SSH_KEY }}
+          port: 22
+          command_timeout: 15m
+          script: |
+            set -eu
+            FREEZE='/Users/gianlucadistasi/ARGOS_C0_FREEZE_20260814_193356'
+            CORPUS='/Users/gianlucadistasi/Documents/combaretrovamiauto-enterprise/dossiers/safe_images'
+            PROD='/Users/gianlucadistasi/Documents/app-antigravity-auto'
+            BRANCH='sol/argos-canonicalization-20260817'
+            EXPECTED_FREEZE_MANIFEST='fbd8d2bbce034f739be304ec4bb01579fadc695680864a20c17ce6a9830563c8'
+
+            echo '=== HOST ==='
+            hostname
+            sw_vers
+
+            echo '=== PROTECTED INPUTS ==='
+            test -d "$FREEZE"
+            test -d "$CORPUS"
+            COUNT_BEFORE=$(find "$CORPUS" -maxdepth 1 -type f | wc -l | tr -d ' ')
+            echo "CORPUS_COUNT_BEFORE=$COUNT_BEFORE"
+            test "$COUNT_BEFORE" -ge 12830
+            du -sh "$CORPUS"
+            if [ -f "$FREEZE/MANIFEST_SHA256.txt" ]; then
+              ACTUAL=$(shasum -a 256 "$FREEZE/MANIFEST_SHA256.txt" | awk '{print $1}')
+              echo "FREEZE_MANIFEST_FILE_SHA=$ACTUAL"
+            else
+              echo 'FREEZE_MANIFEST_FILE=not_at_root (freeze still preserved)'
+            fi
+            if [ -d "$PROD/.git" ]; then
+              echo "PROD_HEAD=$(git -C "$PROD" rev-parse HEAD)"
+              echo "PROD_BRANCH=$(git -C "$PROD" branch --show-current)"
+              echo 'PROD_STATUS_BEGIN'
+              git -C "$PROD" status --porcelain || true
+              echo 'PROD_STATUS_END'
+            fi
+
+            echo '=== TEMP VERIFY ROOT ==='
+            TMP=$(mktemp -d /tmp/argos-c0-imac.XXXXXX)
+            trap 'rm -rf "$TMP"' EXIT
+            mkdir -p "$TMP/src/cove" "$TMP/out"
+            curl -fsSL "https://raw.githubusercontent.com/lukeeterna/europeanautoscout/$BRANCH/src/cove/image_sanitizer.py" -o "$TMP/src/cove/image_sanitizer.py"
+            curl -fsSL "https://raw.githubusercontent.com/lukeeterna/europeanautoscout/$BRANCH/src/cove/vision_ocr.py" -o "$TMP/src/cove/vision_ocr.py"
+            printf '' > "$TMP/src/__init__.py"
+            printf '' > "$TMP/src/cove/__init__.py"
+            PATCHED_SHA=$(shasum -a 256 "$TMP/src/cove/image_sanitizer.py" | awk '{print $1}')
+            echo "PATCHED_SANITIZER_SHA=$PATCHED_SHA"
+
+            PY=''
+            for CAND in \
+              /usr/local/bin/python3.11 \
+              /opt/homebrew/bin/python3.11 \
+              "$PROD/.venv/bin/python" \
+              "$PROD/venv/bin/python" \
+              python3.11 \
+              python3; do
+              if command -v "$CAND" >/dev/null 2>&1 || [ -x "$CAND" ]; then
+                if "$CAND" -c 'import PIL, cv2; import Vision, Foundation' >/dev/null 2>&1; then
+                  PY="$CAND"
+                  break
+                fi
+              fi
+            done
+            test -n "$PY"
+            echo "PYTHON=$PY"
+            "$PY" --version
+
+            echo '=== REPRESENTATIVE CORPUS SAMPLE ==='
+            find "$CORPUS" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) | LC_ALL=C sort | head -n 12 > "$TMP/sample.txt"
+            SAMPLE_N=$(wc -l < "$TMP/sample.txt" | tr -d ' ')
+            echo "SAMPLE_N=$SAMPLE_N"
+            test "$SAMPLE_N" -ge 10
+
+            PYTHONPATH="$TMP" "$PY" - "$TMP" <<'PY'
+            import os, sys, hashlib
+            from pathlib import Path
+            tmp = Path(sys.argv[1])
+            from src.cove import image_sanitizer as san
+
+            samples = [Path(x) for x in (tmp/'sample.txt').read_text().splitlines() if x.strip()]
+            assert len(samples) >= 10
+            outcomes = {'safe': 0, 'excluded': 0, 'promo': 0}
+            for i, src in enumerate(samples):
+                before = hashlib.sha256(src.read_bytes()).hexdigest()
+                out = san.sanitize_image(str(src), output_dir=str(tmp/'out'), listing_id=f'c0golden{i:02d}', image_index=i)
+                after = hashlib.sha256(src.read_bytes()).hexdigest()
+                assert before == after, f'input mutated: {src}'
+                assert out != str(src), f'RAW pass-through: {src}'
+                if out == san.SENTINEL_SKIP_PROMO:
+                    outcomes['promo'] += 1
+                elif out is None:
+                    outcomes['excluded'] += 1
+                else:
+                    p = Path(out)
+                    assert p.exists() and p.stat().st_size > 0
+                    assert p.resolve().is_relative_to((tmp/'out').resolve())
+                    outcomes['safe'] += 1
+                print(f'SAMPLE[{i}] result={"SAFE" if out not in (None, san.SENTINEL_SKIP_PROMO) else ("PROMO" if out == san.SENTINEL_SKIP_PROMO else "EXCLUDED")} file={src.name}')
+            print('OUTCOMES=' + repr(outcomes))
+            assert outcomes['safe'] + outcomes['excluded'] + outcomes['promo'] == len(samples)
+            assert outcomes['safe'] >= 1, 'representative sample produced no verified safe output'
+            print('C0_IMAC_CORPUS_ACCEPTANCE=PASS')
+            PY
+
+            echo '=== POSTCONDITIONS ==='
+            COUNT_AFTER=$(find "$CORPUS" -maxdepth 1 -type f | wc -l | tr -d ' ')
+            echo "CORPUS_COUNT_AFTER=$COUNT_AFTER"
+            test "$COUNT_AFTER" = "$COUNT_BEFORE"
+            test -d "$FREEZE"
+            echo 'FREEZE_MUTATION=NONE_BY_WORKFLOW'
+            echo 'C0_IMAC_READ_ONLY=PASS'
