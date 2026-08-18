@@ -138,7 +138,7 @@ class RuntimeProductionTests(unittest.TestCase):
         ).fetchone()
         con.close()
         self.assertEqual(row[0], "d-day1")
-        self.assertEqual(row[1], "DAY1_GENERALIST")
+        self.assertEqual(row[1], "DAY1_PREMIUM")
         self.assertEqual(row[2], "s292_scheduler")
         self.assertIsNotNone(row[3])
         self.assertIsNone(row[4])
@@ -146,7 +146,7 @@ class RuntimeProductionTests(unittest.TestCase):
     def test_day7_requires_no_newer_inbound(self):
         now = datetime.now(timezone.utc)
         self._dealer("d-day7", state="CONTACTED", outbound_count=1, authorized=1)
-        self._message("d-day7", "OUTBOUND", now - timedelta(days=8), template_id="DAY1_GENERALIST", wa_id="wa-old")
+        self._message("d-day7", "OUTBOUND", now - timedelta(days=8), template_id="DAY1_PREMIUM", wa_id="wa-old")
         result = run_cycle(
             db_path=self.db_path,
             bridge_path=self.bridge_path,
@@ -160,7 +160,7 @@ class RuntimeProductionTests(unittest.TestCase):
         self.assertEqual(template, "DAY7_RECOVERY")
 
         self._dealer("d-inbound", state="CONTACTED", outbound_count=1, authorized=1)
-        self._message("d-inbound", "OUTBOUND", now - timedelta(days=8), template_id="DAY1_GENERALIST", wa_id="wa-old-2")
+        self._message("d-inbound", "OUTBOUND", now - timedelta(days=8), template_id="DAY1_PREMIUM", wa_id="wa-old-2")
         self._message("d-inbound", "INBOUND", now - timedelta(days=1), wa_id="wa-in")
         result2 = run_cycle(
             db_path=self.db_path,
@@ -181,19 +181,19 @@ class RuntimeProductionTests(unittest.TestCase):
             "d-post",
             "OUTBOUND",
             now,
-            template_id="DAY1_GENERALIST",
+            template_id="DAY1_PREMIUM",
             wa_id="wa-real-1",
         )
         first = apply_post_send(
             db_path=self.db_path,
             dealer_id="d-post",
-            template_id="DAY1_GENERALIST",
+            template_id="DAY1_PREMIUM",
             event_id="wa-real-1",
         )
         second = apply_post_send(
             db_path=self.db_path,
             dealer_id="d-post",
-            template_id="DAY1_GENERALIST",
+            template_id="DAY1_PREMIUM",
             event_id="wa-real-1",
         )
         self.assertFalse(first["idempotent"])
@@ -216,13 +216,13 @@ class RuntimeProductionTests(unittest.TestCase):
             "d-compat",
             "OUTBOUND",
             datetime.now(timezone.utc),
-            template_id="DAY1_GENERALIST",
+            template_id="DAY1_PREMIUM",
             wa_id="wa-compat",
         )
         result = apply_post_send(
             db_path=self.db_path,
             dealer_id="d-compat",
-            template_id="DAY1_GENERALIST",
+            template_id="DAY1_PREMIUM",
         )
         self.assertEqual(result["event_id"], "wa-compat")
         self.assertEqual(result["outbound_count"], 1)
