@@ -1,469 +1,282 @@
+"""ARGOS Automotive — guarded EU seller contact.
+
+Seller contact belongs *after* an S292 dealer commission.  This module keeps
+its historical public API names but fails closed unless the caller supplies a
+traceable :class:`DemandEvidence` authorising sourcing for the listing/request.
+
+No function in this module infers that a dealer is ready to buy, promises a
+collection date, or promotes a raw photo count to semantic completeness.
 """
-seller_contact.py — ARGOS Automated EU Seller Contact Module
-CoVe 2026 | Enterprise Grade
+from __future__ import annotations
 
-Automatically contacts EU sellers (in English) via email to request:
-  1. Missing vehicle photos (interior, rear, engine, etc.)
-  2. Vehicle details not available on listing (VIN, service history, HU date)
-  3. Current availability confirmation
-
-BUSINESS RULES:
-  - All communication in ENGLISH (EU dealers/sellers)
-  - Professional tone, presents as vehicle sourcing company
-  - Never reveals the Italian dealer client
-  - Tracks contact status in DuckDB
-  - Uses SMTP via Gmail (ferretti.argosautomotive@gmail.com)
-
-Usage:
-  from src.cove.seller_contact import request_missing_data
-
-  result = request_missing_data(listing_id, db_path)
-  # Returns: {"sent": True, "email": "...", "requested": ["photos", "vin", ...]}
-
-CLI:
-  python3 src/cove/seller_contact.py <listing_id>              # Send request
-  python3 src/cove/seller_contact.py <listing_id> --dry-run    # Preview only
-  python3 src/cove/seller_contact.py --check <listing_id>      # Check what's missing
-"""
-
-import os
-import sys
+import argparse
+import imaplib
 import json
+import os
 import smtplib
-from email.mime.text import MIMEText
+import sys
+from datetime import datetime, timedelta, timezone
+from email.header import decode_header
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import parseaddr
 from pathlib import Path
-from datetime import datetime, timezone
-from typing import Optional, Dict, List
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-# ── Configuration ─────────────────────────────────────────────────────────────
+try:
+    from src.cove.demand_contract import (
+        DemandEvidence,
+        NOT_AVAILABLE,
+        require_listing_authorization,
+    )
+except ModuleNotFoundError:  # direct CLI execution from src/cove
+    from demand_contract import (  # type: ignore
+        DemandEvidence,
+        NOT_AVAILABLE,
+        require_listing_authorization,
+    )
 
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
+DEFAULT_DB_PATH = SCRIPT_DIR / "data" / "cove_tracker.duckdb"
 
-# Email config (from .env)
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SENDER_EMAIL = os.getenv("ARGOS_EMAIL", "ferretti.argosautomotive@gmail.com")
-SENDER_PASSWORD = os.getenv("ARGOS_EMAIL_PASSWORD", "")  # App password from .env
-SENDER_NAME = "Luca Ferretti — ARGOS Automotive"
+SMTP_SERVER = os.getenv("ARGOS_SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("ARGOS_SMTP_PORT", "587"))
+SENDER_EMAIL = os.getenv("ARGOS_EMAIL", "")
+SENDER_PASSWORD = os.getenv("ARGOS_EMAIL_PASSWORD", "")
+SENDER_NAME = os.getenv("ARGOS_SELLER_SENDER_NAME", "ARGOS Automotive")
 
-# What we need for a complete dossier — every field the Italian dealer expects
-REQUIRED_DATA = {
-    # Critical (deal-breaker if missing)
+REQUIRED_DATA: Dict[str, str] = {
     "vin": "Vehicle Identification Number (VIN)",
-    "service_history": "Complete service history / maintenance booklet (digital or scanned pages)",
-    "hu_date": "Last HU/TÜV inspection date, result, and expiry",
-    "previous_owners": "Number of previous owners",
-    "accident_history": "Full accident and damage history (including minor repairs)",
-    # Important (affects pricing and dealer decision)
-    "equipment_list": "Complete equipment/options list (factory and aftermarket)",
-    "num_keys": "Number of keys provided",
-    "next_service_due": "Next scheduled service date and type",
-    "outstanding_finance": "Confirmation vehicle is free of liens/financing",
-    "interior_color_material": "Interior color and material (leather/cloth/alcantara)",
-    "tire_type_condition": "Tire type (summer/winter/all-season), brand, DOT date, tread depth",
-    "available_from": "Earliest collection/shipping date",
+    "service_history": "Service/maintenance history available for the vehicle",
+    "hu_date": "Latest HU/TÜV inspection date/result where applicable",
+    "previous_owners": "Number of previous owners, if known",
+    "accident_history": "Known accident/damage and repair history",
+    "equipment_list": "Equipment/options list",
+    "num_keys": "Number of keys supplied",
+    "next_service_due": "Next scheduled service, if known",
+    "outstanding_finance": "Confirmation of any outstanding finance/liens",
+    "interior_color_material": "Interior colour/material",
+    "tire_type_condition": "Tyre type/condition and DOT/tread information if available",
+    "available_from": "Current availability / earliest possible handover",
 }
 
-REQUIRED_PHOTO_VIEWS = [
-    # Exterior (6)
-    ("front", "Front view — full vehicle, straight on"),
-    ("rear", "Rear view — full vehicle, straight on"),
-    ("side_left", "Left side profile — full vehicle"),
-    ("side_right", "Right side profile — full vehicle"),
-    ("front_three_quarter", "Front 3/4 view (driver side)"),
-    ("rear_three_quarter", "Rear 3/4 view (passenger side)"),
-    # Interior (5)
-    ("interior_front", "Front cabin — driver and passenger seats, center console"),
-    ("interior_rear", "Rear seats and legroom"),
-    ("dashboard", "Dashboard with mileage/odometer clearly visible"),
-    ("infotainment", "Infotainment screen / navigation system"),
-    ("trunk", "Trunk / cargo area — open, empty"),
-    # Mechanical (3)
-    ("engine", "Engine bay — open hood"),
-    ("wheels_front", "Front wheel close-up — tire brand, DOT visible"),
-    ("wheels_rear", "Rear wheel close-up — tire brand, DOT visible"),
-    # Documentation (2)
-    ("service_book", "Service booklet — last stamped page"),
-    ("hu_report", "HU/TÜV report or sticker on plate"),
-    # Condition (2)
-    ("damage_detail", "Close-up of any scratches, dents, or paint issues (or confirm 'none')"),
-    ("underbody", "Underbody photo (if available) or confirmation of condition"),
-]
+REQUIRED_PHOTO_VIEWS: Tuple[Tuple[str, str], ...] = (
+    ("front", "Front view — full vehicle"),
+    ("rear", "Rear view — full vehicle"),
+    ("side_left", "Left side profile"),
+    ("side_right", "Right side profile"),
+    ("front_three_quarter", "Front three-quarter view"),
+    ("rear_three_quarter", "Rear three-quarter view"),
+    ("interior_front", "Front cabin / seats / centre console"),
+    ("interior_rear", "Rear seats"),
+    ("dashboard", "Dashboard with odometer visible"),
+    ("infotainment", "Infotainment screen"),
+    ("trunk", "Boot / cargo area"),
+    ("engine", "Engine bay"),
+    ("wheels_front", "Front wheel/tyre close-up"),
+    ("wheels_rear", "Rear wheel/tyre close-up"),
+    ("service_book", "Relevant service-history documentation"),
+    ("hu_report", "HU/TÜV documentation where applicable"),
+    ("damage_detail", "Close-up of disclosed damage/repairs, if any"),
+    ("underbody", "Underbody view, if available"),
+)
+PHOTO_VIEW_KEYS = {view for view, _ in REQUIRED_PHOTO_VIEWS}
+MIN_PHOTOS_COMPLETE = len(PHOTO_VIEW_KEYS)  # compatibility constant; semantics still mandatory
 
-MIN_PHOTOS_COMPLETE = 8
+_DATA_ALIASES: Dict[str, Tuple[str, ...]] = {
+    "vin": ("vin",),
+    "service_history": ("service_history", "service_history_present", "service_history_verified"),
+    "hu_date": ("hu_date", "tuv_date", "inspection_date"),
+    "previous_owners": ("previous_owners", "owner_count"),
+    "accident_history": ("accident_history", "accident_history_verified", "accident_free_confirmed"),
+    "equipment_list": ("equipment_list", "equipment"),
+    "num_keys": ("num_keys", "keys_count"),
+    "next_service_due": ("next_service_due",),
+    "outstanding_finance": ("outstanding_finance", "finance_status", "lien_status"),
+    "interior_color_material": ("interior_color_material", "interior", "interior_material"),
+    "tire_type_condition": ("tire_type_condition", "tire_condition"),
+    "available_from": ("available_from", "seller_availability", "availability_status"),
+}
 
 
-def analyze_missing_data(listing_id: str, db_path: str = None) -> Dict:
+def _known(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        stripped = value.strip()
+        return bool(stripped) and stripped not in {NOT_AVAILABLE, "DA_VERIFICARE", "NO-VERDICT"}
+    return True
+
+
+def _table_columns(con: Any, table: str) -> set[str]:
+    try:
+        rows = con.execute(f"PRAGMA table_info('{table}')").fetchall()
+    except Exception:
+        return set()
+    return {str(row[1]) for row in rows if len(row) > 1}
+
+
+def _fetch_dict(con: Any, table: str, listing_id: str) -> Dict[str, Any]:
+    cols = _table_columns(con, table)
+    if "listing_id" not in cols:
+        return {}
+    ordered = sorted(cols)
+    projection = ", ".join(f'"{col}"' for col in ordered)
+    row = con.execute(
+        f'SELECT {projection} FROM "{table}" WHERE listing_id = ? LIMIT 1',
+        [listing_id],
+    ).fetchone()
+    return dict(zip(ordered, row)) if row else {}
+
+
+def _first_known(mapping: Mapping[str, Any], names: Iterable[str]) -> Any:
+    for name in names:
+        if name in mapping and _known(mapping[name]):
+            return mapping[name]
+    return None
+
+
+def _semantic_photo_coverage(con: Any, listing_id: str) -> tuple[int, set[str], bool]:
+    cols = _table_columns(con, "vehicle_images")
+    if "listing_id" not in cols:
+        return 0, set(), False
+    label_col = next(
+        (name for name in ("view", "view_type", "photo_view", "semantic_view", "image_type") if name in cols),
+        None,
+    )
+    if label_col is None:
+        count = con.execute(
+            "SELECT COUNT(*) FROM vehicle_images WHERE listing_id = ?", [listing_id]
+        ).fetchone()[0]
+        return int(count or 0), set(), False
+    rows = con.execute(
+        f'SELECT "{label_col}" FROM vehicle_images WHERE listing_id = ?', [listing_id]
+    ).fetchall()
+    views = {
+        str(row[0]).strip().lower()
+        for row in rows
+        if row and _known(row[0]) and str(row[0]).strip().lower() in PHOTO_VIEW_KEYS
+    }
+    return len(rows), views, bool(views)
+
+
+def _vehicle_label(row: Mapping[str, Any]) -> str:
+    parts = [row.get("make"), row.get("model"), row.get("year")]
+    value = " ".join(str(part).strip() for part in parts if _known(part)).strip()
+    return value or NOT_AVAILABLE
+
+
+def analyze_missing_data(listing_id: str, db_path: str | None = None) -> Dict[str, Any]:
+    """Read factual vehicle/seller data and semantic photo coverage.
+
+    Raw image count is returned for diagnostics but cannot satisfy a requested
+    view unless the DB stores a recognised semantic label for that image.
     """
-    Analyze what data/photos are missing for a complete dossier.
-
-    Returns dict with:
-      missing_data: list of (key, description) for missing vehicle data
-      missing_photos: list of (view, description) for missing photo views
-      seller_email: str or None (from listing detail page)
-      seller_name: str or None
-      photo_count: int
-      data_completeness: dict of field -> bool
-      needs_contact: bool
-    """
-    if db_path is None:
-        db_path = str(PROJECT_ROOT / "src" / "cove" / "data" / "cove_tracker.duckdb")
-
     import duckdb
-    db = duckdb.connect(db_path, read_only=True)
 
-    # Get listing data
-    listing = db.execute("""
-        SELECT make, model, year, km, price, vin, source, market_price,
-               confidence, fraud_overall, recommendation
-        FROM cove_results WHERE listing_id = ?
-    """, [listing_id]).fetchone()
+    listing_id = str(listing_id or "").strip()
+    if not listing_id:
+        return {"error": "listing_id is required"}
+    path = str(db_path or DEFAULT_DB_PATH)
+    con = duckdb.connect(path, read_only=True)
+    try:
+        cove = _fetch_dict(con, "cove_results", listing_id)
+        listing = _fetch_dict(con, "vehicle_listings", listing_id)
+        photo_count, observed_views, semantics_available = _semantic_photo_coverage(con, listing_id)
+    finally:
+        con.close()
 
-    if not listing:
-        db.close()
+    if not cove and not listing:
         return {"error": f"Listing {listing_id} not found"}
 
-    make, model, year, km, price, vin, source, market_price, conf, fraud, rec = listing
+    merged = {**cove, **listing}
+    missing_data: List[Tuple[str, str]] = []
+    data_status: Dict[str, bool] = {}
+    for key, description in REQUIRED_DATA.items():
+        value = _first_known(merged, _DATA_ALIASES[key])
+        # A malformed/short VIN is not evidence of a VIN.
+        has_value = _known(value)
+        if key == "vin" and has_value:
+            compact = "".join(ch for ch in str(value).upper() if ch.isalnum())
+            has_value = len(compact) == 17
+        data_status[key] = bool(has_value)
+        if not has_value:
+            missing_data.append((key, description))
 
-    # Get vehicle_listings extended data (if exists)
-    extended = {}
-    try:
-        ext_row = db.execute("""
-            SELECT seller_name, seller_email, seller_phone, detail_url,
-                   fuel_type, transmission, color, power_kw
-            FROM vehicle_listings WHERE listing_id = ?
-        """, [listing_id]).fetchone()
-        if ext_row:
-            keys = ['seller_name', 'seller_email', 'seller_phone', 'detail_url',
-                    'fuel_type', 'transmission', 'color', 'power_kw']
-            extended = {k: v for k, v in zip(keys, ext_row) if v}
-    except Exception:
-        pass
-
-    # Get photo count
-    photo_count = db.execute(
-        "SELECT COUNT(*) FROM vehicle_images WHERE listing_id = ?",
-        [listing_id]
-    ).fetchone()[0]
-
-    db.close()
-
-    # Determine what's missing
-    missing_data = []
-    data_status = {}
-    for key, desc in REQUIRED_DATA.items():
-        if key == "vin":
-            has_it = bool(vin and len(str(vin)) >= 11)
-        elif key == "service_history":
-            has_it = False  # Never available from scraping
-        elif key == "hu_date":
-            has_it = False  # Rarely available
-        elif key == "previous_owners":
-            has_it = False  # Rarely in listing
-        elif key == "accident_history":
-            has_it = False  # Rarely disclosed in listing
-        else:
-            has_it = False
-
-        data_status[key] = has_it
-        if not has_it:
-            missing_data.append((key, desc))
-
-    # Determine missing photos (we just check count, not specific views)
-    missing_photos = []
-    if photo_count < MIN_PHOTOS_COMPLETE:
-        for view, desc in REQUIRED_PHOTO_VIEWS:
-            missing_photos.append((view, desc))
-
-    needs_contact = len(missing_data) > 0 or len(missing_photos) > 0
+    missing_photos = [
+        (view, description)
+        for view, description in REQUIRED_PHOTO_VIEWS
+        if view not in observed_views
+    ]
 
     return {
         "listing_id": listing_id,
-        "vehicle": f"{make} {model} {year}",
-        "price": price,
-        "km": km,
-        "vin": vin,
-        "source": source,
-        "seller_name": extended.get("seller_name"),
-        "seller_email": extended.get("seller_email"),
-        "seller_phone": extended.get("seller_phone"),
-        "detail_url": extended.get("detail_url"),
+        "vehicle": _vehicle_label(merged),
+        "price": _first_known(merged, ("price_eu", "price")),
+        "km": _first_known(merged, ("mileage", "km")),
+        "vin": _first_known(merged, ("vin",)),
+        "source": _first_known(merged, ("source",)) or NOT_AVAILABLE,
+        "seller_name": _first_known(merged, ("seller_name", "seller", "dealer_name")),
+        "seller_email": _first_known(merged, ("seller_email", "email")),
+        "seller_phone": _first_known(merged, ("seller_phone", "phone")),
+        "detail_url": _first_known(merged, ("detail_url", "url")),
         "photo_count": photo_count,
+        "photo_semantics_available": semantics_available,
+        "observed_photo_views": sorted(observed_views),
         "missing_data": missing_data,
         "missing_photos": missing_photos,
         "data_completeness": data_status,
-        "needs_contact": needs_contact,
+        "needs_contact": bool(missing_data or missing_photos),
     }
 
 
-def compose_seller_email(analysis: Dict) -> Dict:
-    """
-    Compose a professional English email to the EU seller requesting
-    missing photos and vehicle data.
-
-    Returns dict with: subject, body, to_email, to_name
-    """
-    vehicle = analysis["vehicle"]
-    km = analysis.get("km", 0)
-    price = analysis.get("price", 0)
-
-    # Subject
-    subject = f"Inquiry: {vehicle} — Additional Photos & Information Request"
-
-    # Separate critical vs important data requests
-    critical_keys = {"vin", "service_history", "hu_date", "previous_owners", "accident_history"}
-    critical_data = [(k, d) for k, d in analysis["missing_data"] if k in critical_keys]
-    important_data = [(k, d) for k, d in analysis["missing_data"] if k not in critical_keys]
-
-    # Build structured sections
-    photo_section = ""
-    if analysis["missing_photos"]:
-        # Group photos by category
-        exterior = [(v, d) for v, d in analysis["missing_photos"]
-                    if v in ("front", "rear", "side_left", "side_right", "front_three_quarter", "rear_three_quarter")]
-        interior = [(v, d) for v, d in analysis["missing_photos"]
-                    if v in ("interior_front", "interior_rear", "dashboard", "infotainment", "trunk")]
-        mechanical = [(v, d) for v, d in analysis["missing_photos"]
-                      if v in ("engine", "wheels_front", "wheels_rear")]
-        docs = [(v, d) for v, d in analysis["missing_photos"]
-                if v in ("service_book", "hu_report")]
-        condition = [(v, d) for v, d in analysis["missing_photos"]
-                     if v in ("damage_detail", "underbody")]
-
-        sections = []
-        if exterior:
-            lines = "\n".join(f"    • {d}" for _, d in exterior)
-            sections.append(f"  EXTERIOR ({len(exterior)} photos):\n{lines}")
-        if interior:
-            lines = "\n".join(f"    • {d}" for _, d in interior)
-            sections.append(f"  INTERIOR ({len(interior)} photos):\n{lines}")
-        if mechanical:
-            lines = "\n".join(f"    • {d}" for _, d in mechanical)
-            sections.append(f"  MECHANICAL ({len(mechanical)} photos):\n{lines}")
-        if docs:
-            lines = "\n".join(f"    • {d}" for _, d in docs)
-            sections.append(f"  DOCUMENTATION ({len(docs)} photos):\n{lines}")
-        if condition:
-            lines = "\n".join(f"    • {d}" for _, d in condition)
-            sections.append(f"  CONDITION ({len(condition)} photos):\n{lines}")
-
-        photo_section = f"""
---- PHOTOS REQUESTED ({len(analysis['missing_photos'])} views) ---
-
-We need high-resolution photos for our pre-purchase evaluation:
-
-{chr(10).join(sections)}
-
-Please send photos at the highest resolution available (minimum 1280x960).
-If some views are not possible, please let us know."""
-
-    data_section = ""
-    if critical_data or important_data:
-        lines = []
-        if critical_data:
-            lines.append("  ESSENTIAL (required before we can proceed):")
-            for _, desc in critical_data:
-                lines.append(f"    • {desc}")
-        if important_data:
-            lines.append("")
-            lines.append("  ADDITIONAL (helps our client make a faster decision):")
-            for _, desc in important_data:
-                lines.append(f"    • {desc}")
-
-        data_section = f"""
---- VEHICLE INFORMATION REQUESTED ---
-
-{chr(10).join(lines)}"""
-
-    # Compose body
-    body = f"""Dear {analysis.get('seller_name') or 'Sales Team'},
-
-We are ARGOS Automotive, a European vehicle sourcing company. We work with professional dealers across the EU and are interested in the following vehicle from your inventory:
-
-  Vehicle: {vehicle}
-  Mileage: {km:,} km
-  Listed price: EUR {price:,.0f}
-
-Our client is ready to proceed quickly if the vehicle meets our quality standards. To complete our pre-purchase evaluation, we kindly request the following:
-{photo_section}
-{data_section}
-
---- NEXT STEPS ---
-
-1. Please confirm the vehicle is still available
-2. Send the requested photos and information to this email
-3. We will respond within 24 hours with our decision
-
-We handle all transport, customs, and registration. If the vehicle passes our checks, we can arrange collection within 5-7 business days.
-
-Thank you for your time. We look forward to a smooth transaction.
-
-Best regards,
-
-Luca Ferretti
-Vehicle Sourcing Department
-ARGOS Automotive — European Vehicle Intelligence
-Email: ferretti.argosautomotive@gmail.com
-Web: argos-automotive.pages.dev
-"""
-
-    return {
-        "subject": subject,
-        "body": body.strip(),
-        "to_email": analysis.get("seller_email"),
-        "to_name": analysis.get("seller_name", "Sales Team"),
-        "vehicle": vehicle,
-    }
+def _require_contact_context(
+    analysis: Mapping[str, Any],
+    evidence: Optional[DemandEvidence],
+) -> DemandEvidence:
+    return require_listing_authorization(evidence, str(analysis.get("listing_id") or ""))
 
 
-def send_seller_email(email_data: Dict, dry_run: bool = False) -> Dict:
-    """
-    Send the email to the EU seller via Gmail SMTP.
-
-    Returns dict: sent, message_id, error
-    """
-    to_email = email_data.get("to_email")
-
-    if not to_email:
-        return {
-            "sent": False,
-            "error": "No seller email available — contact must be manual via portal messaging"
-        }
-
-    if dry_run:
-        print(f"\n  ─── DRY RUN ───")
-        print(f"  To: {email_data['to_name']} <{to_email}>")
-        print(f"  Subject: {email_data['subject']}")
-        print(f"  ────────────────────────────────────────")
-        print(email_data['body'])
-        print(f"  ─── END DRY RUN ───")
-        return {"sent": False, "dry_run": True}
-
-    if not SENDER_PASSWORD:
-        return {
-            "sent": False,
-            "error": "ARGOS_EMAIL_PASSWORD not set in environment. Set Gmail app password in .env"
-        }
-
-    try:
-        msg = MIMEMultipart()
-        msg['From'] = f"{SENDER_NAME} <{SENDER_EMAIL}>"
-        msg['To'] = f"{email_data['to_name']} <{to_email}>"
-        msg['Subject'] = email_data['subject']
-        msg.attach(MIMEText(email_data['body'], 'plain'))
-
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.send_message(msg)
-
-        return {
-            "sent": True,
-            "to": to_email,
-            "subject": email_data['subject'],
-            "sent_at": datetime.now(timezone.utc).isoformat(),
-        }
-    except Exception as e:
-        return {"sent": False, "error": str(e)}
+def _format_vehicle_line(analysis: Mapping[str, Any]) -> str:
+    parts = [str(analysis.get("vehicle") or NOT_AVAILABLE)]
+    km = analysis.get("km")
+    price = analysis.get("price")
+    if _known(km):
+        parts.append(f"{km} km")
+    if _known(price):
+        parts.append(f"listed price EUR {price}")
+    return " | ".join(parts)
 
 
-def compose_followup_email(analysis: Dict, followup_num: int) -> Dict:
-    """
-    Compose follow-up email (Day 3 or Day 7).
-
-    Day 3: Short reminder, reference original email
-    Day 7: Final attempt, "closing inquiry in 7 days"
-
-    All in English — lingua franca for all EU sellers.
-    """
-    vehicle = analysis["vehicle"]
+def compose_initial_email_slim(
+    analysis: Dict[str, Any],
+    evidence: Optional[DemandEvidence] = None,
+) -> Dict[str, Any]:
+    """Compose the first evidence-safe seller inquiry."""
+    authorized = _require_contact_context(analysis, evidence)
     seller_name = analysis.get("seller_name") or "Sales Team"
-    to_email = analysis.get("seller_email")
-
-    if followup_num == 1:
-        # Day 3 — short reminder
-        subject = f"Follow-up: {vehicle} — Still available?"
-        body = f"""Dear {seller_name},
-
-I am following up on my inquiry about the {vehicle} from a few days ago.
-
-Could you please confirm:
-1. Is the vehicle still available?
-2. Can you share the VIN number?
-
-We are ready to proceed quickly if it meets our standards.
-
-Best regards,
-Luca Ferretti
-ARGOS Automotive
-ferretti.argosautomotive@gmail.com
-"""
-    else:
-        # Day 7 — final attempt
-        subject = f"Final inquiry: {vehicle}"
-        body = f"""Dear {seller_name},
-
-This is my final follow-up regarding the {vehicle}.
-
-If I don't hear back within 7 days, I will close this inquiry and move to alternative vehicles.
-
-If you are still interested in selling, a quick reply with the VIN and confirmation of availability would be appreciated.
-
-Best regards,
-Luca Ferretti
-ARGOS Automotive
-ferretti.argosautomotive@gmail.com
-"""
-
-    return {
-        "subject": subject,
-        "body": body.strip(),
-        "to_email": to_email,
-        "to_name": seller_name,
-        "vehicle": vehicle,
-        "followup_num": followup_num,
-    }
-
-
-def compose_initial_email_slim(analysis: Dict) -> Dict:
-    """
-    Compose SLIM initial contact email.
-    Ask ONLY for VIN + availability first. Photos in follow-up.
-
-    Research finding: asking for too much in first email lowers response rate.
-    """
-    vehicle = analysis["vehicle"]
-    km = analysis.get("km", 0)
-    price = analysis.get("price", 0)
-    seller_name = analysis.get("seller_name") or "Sales Team"
-
-    subject = f"Purchase inquiry: {vehicle}, {km:,} km"
-
+    vehicle = analysis.get("vehicle") or NOT_AVAILABLE
+    subject = f"Vehicle information request: {vehicle}"
     body = f"""Dear {seller_name},
 
-We are ARGOS Automotive, a European vehicle sourcing company. We are interested in purchasing the following vehicle from your inventory:
+ARGOS Automotive is evaluating this vehicle in connection with a professional sourcing request:
 
-  {vehicle} | {km:,} km | EUR {price:,.0f}
+  {_format_vehicle_line(analysis)}
 
-Before we proceed, could you please confirm:
+Could you please confirm:
+1. whether the vehicle is currently available;
+2. the 17-character VIN, if it is not already shown in the listing;
+3. whether there is any outstanding finance or lien that would affect a professional purchase.
 
-  1. Is this vehicle still available?
-  2. What is the VIN number?
-  3. Is the vehicle free of any outstanding finance?
+If the vehicle remains a candidate after these checks, we may request specific photos and documentation required for the evaluation.
 
-If confirmed, we would then request additional photos and documentation for our pre-purchase evaluation.
-
-We handle all transport and registration. Collection can be arranged within 5-7 business days.
+This message is a request for information only and is not a purchase commitment.
 
 Best regards,
-
-Luca Ferretti
-ARGOS Automotive — European Vehicle Sourcing
-ferretti.argosautomotive@gmail.com
+{SENDER_NAME}
+ARGOS Automotive
 """
-
     return {
         "subject": subject,
         "body": body.strip(),
@@ -471,142 +284,311 @@ ferretti.argosautomotive@gmail.com
         "to_name": seller_name,
         "vehicle": vehicle,
         "type": "initial_slim",
+        "dealer_id": authorized.dealer_id,
+        "evidence_id": authorized.evidence_id,
+        "listing_id": analysis.get("listing_id"),
     }
 
 
-def send_followup(listing_id: str, followup_num: int,
-                  db_path: str = None, dry_run: bool = False) -> Dict:
-    """Send a follow-up email for a listing."""
-    analysis = analyze_missing_data(listing_id, db_path)
-    if "error" in analysis or not analysis.get("seller_email"):
-        return {"sent": False, "error": "no seller email"}
+def compose_seller_email(
+    analysis: Dict[str, Any],
+    evidence: Optional[DemandEvidence] = None,
+) -> Dict[str, Any]:
+    """Compose a detailed request only after S292 sourcing authorization."""
+    authorized = _require_contact_context(analysis, evidence)
+    seller_name = analysis.get("seller_name") or "Sales Team"
+    vehicle = analysis.get("vehicle") or NOT_AVAILABLE
+    subject = f"Additional information request: {vehicle}"
 
-    email_data = compose_followup_email(analysis, followup_num)
-    return send_seller_email(email_data, dry_run=dry_run)
+    data_lines = [f"  • {description}" for _, description in analysis.get("missing_data", [])]
+    photo_lines = [f"  • {description}" for _, description in analysis.get("missing_photos", [])]
+    sections: List[str] = []
+    if data_lines:
+        sections.append("VEHICLE INFORMATION\n" + "\n".join(data_lines))
+    if photo_lines:
+        sections.append("PHOTOS / DOCUMENT IMAGES\n" + "\n".join(photo_lines))
+    requested = "\n\n".join(sections) or "No additional item is currently required."
+
+    body = f"""Dear {seller_name},
+
+ARGOS Automotive is evaluating the following vehicle in connection with a professional sourcing request:
+
+  {_format_vehicle_line(analysis)}
+
+To complete the evidence package, could you please provide or confirm the items below where available?
+
+{requested}
+
+Please state explicitly when an item is unavailable or unknown; we prefer an accurate 'not available' to an assumption. Any information supplied will be treated as seller-provided evidence for this vehicle evaluation.
+
+This inquiry does not constitute a purchase commitment, a promise of collection, or acceptance of the vehicle.
+
+Best regards,
+{SENDER_NAME}
+ARGOS Automotive
+"""
+    return {
+        "subject": subject,
+        "body": body.strip(),
+        "to_email": analysis.get("seller_email"),
+        "to_name": seller_name,
+        "vehicle": vehicle,
+        "type": "evidence_request",
+        "dealer_id": authorized.dealer_id,
+        "evidence_id": authorized.evidence_id,
+        "listing_id": analysis.get("listing_id"),
+    }
+
+
+def compose_followup_email(
+    analysis: Dict[str, Any],
+    followup_num: int,
+    evidence: Optional[DemandEvidence] = None,
+) -> Dict[str, Any]:
+    """Compose a factual follow-up; no artificial urgency or purchase promise."""
+    authorized = _require_contact_context(analysis, evidence)
+    seller_name = analysis.get("seller_name") or "Sales Team"
+    vehicle = analysis.get("vehicle") or NOT_AVAILABLE
+    final = int(followup_num) >= 2
+    subject = f"{'Final ' if final else ''}follow-up: {vehicle}"
+    if final:
+        action = "If the vehicle or requested information is no longer available, a short confirmation is sufficient and we will close the evaluation."
+    else:
+        action = "A short confirmation of current availability and the VIN, if available, is sufficient for the next step."
+    body = f"""Dear {seller_name},
+
+I am following up on our information request concerning:
+
+  {_format_vehicle_line(analysis)}
+
+{action}
+
+This remains an information request only and is not a purchase commitment.
+
+Best regards,
+{SENDER_NAME}
+ARGOS Automotive
+"""
+    return {
+        "subject": subject,
+        "body": body.strip(),
+        "to_email": analysis.get("seller_email"),
+        "to_name": seller_name,
+        "vehicle": vehicle,
+        "followup_num": int(followup_num),
+        "type": "followup",
+        "dealer_id": authorized.dealer_id,
+        "evidence_id": authorized.evidence_id,
+        "listing_id": analysis.get("listing_id"),
+    }
+
+
+def send_seller_email(
+    email_data: Dict[str, Any],
+    dry_run: bool = False,
+    *,
+    evidence: Optional[DemandEvidence] = None,
+) -> Dict[str, Any]:
+    """Send via SMTP only after re-validating the S292 listing gate."""
+    listing_id = str(email_data.get("listing_id") or "").strip()
+    authorized = require_listing_authorization(evidence, listing_id)
+    if email_data.get("dealer_id") and str(email_data["dealer_id"]) != authorized.dealer_id:
+        return {"sent": False, "error": "S292_GATE: dealer_id mismatch"}
+    if email_data.get("evidence_id") and str(email_data["evidence_id"]) != authorized.evidence_id:
+        return {"sent": False, "error": "S292_GATE: evidence_id mismatch"}
+
+    to_email = str(email_data.get("to_email") or "").strip()
+    if not to_email:
+        return {"sent": False, "error": "No seller email available"}
+
+    if dry_run:
+        return {
+            "sent": False,
+            "dry_run": True,
+            "to": to_email,
+            "subject": email_data.get("subject"),
+            "dealer_id": authorized.dealer_id,
+            "evidence_id": authorized.evidence_id,
+        }
+
+    if not SENDER_EMAIL or not SENDER_PASSWORD:
+        return {"sent": False, "error": "ARGOS_EMAIL/ARGOS_EMAIL_PASSWORD not configured"}
+
+    msg = MIMEMultipart()
+    msg["From"] = f"{SENDER_NAME} <{SENDER_EMAIL}>"
+    msg["To"] = f"{email_data.get('to_name') or 'Sales Team'} <{to_email}>"
+    msg["Subject"] = str(email_data.get("subject") or "ARGOS vehicle information request")
+    msg.attach(MIMEText(str(email_data.get("body") or ""), "plain", "utf-8"))
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=20) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.send_message(msg)
+    except (OSError, smtplib.SMTPException) as exc:
+        return {"sent": False, "error": f"smtp_error: {type(exc).__name__}"}
+
+    return {
+        "sent": True,
+        "to": to_email,
+        "subject": msg["Subject"],
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "dealer_id": authorized.dealer_id,
+        "evidence_id": authorized.evidence_id,
+        "listing_id": listing_id,
+    }
+
+
+def _record_contact_result(
+    listing_id: str,
+    result: Mapping[str, Any],
+    db_path: str | None,
+) -> None:
+    """Best-effort audit update only when compatible columns already exist."""
+    if not result.get("sent"):
+        return
+    try:
+        import duckdb
+        con = duckdb.connect(str(db_path or DEFAULT_DB_PATH))
+        try:
+            cols = _table_columns(con, "vehicle_listings")
+            assignments: List[str] = []
+            params: List[Any] = []
+            if "seller_contact_sent_at" in cols:
+                assignments.append("seller_contact_sent_at = ?")
+                params.append(result.get("sent_at"))
+            if "seller_contact_evidence_id" in cols:
+                assignments.append("seller_contact_evidence_id = ?")
+                params.append(result.get("evidence_id"))
+            if assignments:
+                params.append(listing_id)
+                con.execute(
+                    f"UPDATE vehicle_listings SET {', '.join(assignments)} WHERE listing_id = ?",
+                    params,
+                )
+        finally:
+            con.close()
+    except Exception:
+        # Sending result remains authoritative; absence of legacy audit columns
+        # must not be rewritten as a false successful DB persistence event.
+        return
+
+
+def send_followup(
+    listing_id: str,
+    followup_num: int,
+    db_path: str | None = None,
+    dry_run: bool = False,
+    *,
+    evidence: Optional[DemandEvidence] = None,
+) -> Dict[str, Any]:
+    analysis = analyze_missing_data(listing_id, db_path)
+    if "error" in analysis:
+        return {"sent": False, "error": analysis["error"]}
+    if not analysis.get("seller_email"):
+        return {"sent": False, "error": "No seller email available"}
+    data = compose_followup_email(analysis, followup_num, evidence=evidence)
+    result = send_seller_email(data, dry_run=dry_run, evidence=evidence)
+    _record_contact_result(listing_id, result, db_path)
+    return result
 
 
 def check_inbox_for_responses(
-    listing_ids: List[str] = None,
+    listing_ids: List[str] | None = None,
     max_emails: int = 50,
-) -> Dict[str, Dict]:
-    """
-    Check Gmail inbox (IMAP) for seller responses.
-
-    Searches for replies matching seller emails from vehicle_listings.
-    Returns dict: {listing_id: {"responded": True, "subject": ..., "date": ...}}
-
-    Requires ARGOS_EMAIL and ARGOS_EMAIL_PASSWORD in env.
-    """
-    import imaplib
+    *,
+    db_path: str | None = None,
+    since_days: int = 30,
+) -> Dict[str, Dict[str, Any]]:
+    """Read recent unread replies and correlate only against known seller emails."""
     import email as email_lib
-    from email.header import decode_header
+    import duckdb
 
-    imap_server = "imap.gmail.com"
-    username = os.getenv("ARGOS_EMAIL", SENDER_EMAIL)
-    password = os.getenv("ARGOS_EMAIL_PASSWORD", "")
-
-    if not password:
-        print("  IMAP: ARGOS_EMAIL_PASSWORD not set — cannot check inbox")
+    if not SENDER_EMAIL or not SENDER_PASSWORD or not listing_ids:
         return {}
 
-    responses = {}
-
+    seller_emails: Dict[str, str] = {}
+    con = duckdb.connect(str(db_path or DEFAULT_DB_PATH), read_only=True)
     try:
-        mail = imaplib.IMAP4_SSL(imap_server)
-        mail.login(username, password)
-        mail.select("INBOX")
-
-        # Search for recent unread messages
-        status, msg_ids = mail.search(None, '(UNSEEN SINCE "01-Mar-2026")')
-        if status != "OK" or not msg_ids[0]:
-            mail.logout()
+        cols = _table_columns(con, "vehicle_listings")
+        if "seller_email" not in cols:
             return {}
+        for listing_id in listing_ids:
+            row = con.execute(
+                "SELECT seller_email FROM vehicle_listings WHERE listing_id = ?", [listing_id]
+            ).fetchone()
+            if row and _known(row[0]):
+                seller_emails[str(row[0]).strip().lower()] = str(listing_id)
+    finally:
+        con.close()
+    if not seller_emails:
+        return {}
 
-        ids = msg_ids[0].split()[-max_emails:]  # Last N messages
-        print(f"  IMAP: checking {len(ids)} unread messages...")
-
-        # Load seller emails from DB for matching
-        seller_emails = {}
-        if listing_ids:
-            import duckdb
-            db_path = str(SCRIPT_DIR.parent.parent / "src" / "cove" / "data" / "cove_tracker.duckdb")
-            con = duckdb.connect(db_path, read_only=True)
-            for lid in listing_ids:
-                row = con.execute(
-                    "SELECT seller_email FROM vehicle_listings WHERE listing_id = ?", [lid]
-                ).fetchone()
-                if row and row[0]:
-                    seller_emails[row[0].lower()] = lid
-            con.close()
-
-        for msg_id in ids:
+    since = (datetime.now(timezone.utc) - timedelta(days=max(1, int(since_days)))).strftime("%d-%b-%Y")
+    responses: Dict[str, Dict[str, Any]] = {}
+    mail = imaplib.IMAP4_SSL(os.getenv("ARGOS_IMAP_SERVER", "imap.gmail.com"), timeout=20)
+    try:
+        mail.login(SENDER_EMAIL, SENDER_PASSWORD)
+        mail.select("INBOX", readonly=True)
+        status, msg_ids = mail.search(None, f'(UNSEEN SINCE "{since}")')
+        if status != "OK" or not msg_ids or not msg_ids[0]:
+            return {}
+        for msg_id in msg_ids[0].split()[-max(1, int(max_emails)):]:
             status, data = mail.fetch(msg_id, "(RFC822)")
-            if status != "OK":
+            if status != "OK" or not data or not isinstance(data[0], tuple):
                 continue
-
             msg = email_lib.message_from_bytes(data[0][1])
-            from_addr = msg.get("From", "").lower()
+            sender = parseaddr(msg.get("From", ""))[1].strip().lower()
+            listing_id = seller_emails.get(sender)
+            if not listing_id:
+                continue
             subject = msg.get("Subject", "")
-
-            # Decode subject if encoded
             try:
-                decoded = decode_header(subject)
                 subject = "".join(
-                    part.decode(enc or "utf-8") if isinstance(part, bytes) else part
-                    for part, enc in decoded
+                    part.decode(enc or "utf-8", errors="replace") if isinstance(part, bytes) else part
+                    for part, enc in decode_header(subject)
                 )
             except Exception:
-                pass
-
-            # Match against seller emails
-            for seller_email, lid in seller_emails.items():
-                if seller_email in from_addr:
-                    responses[lid] = {
-                        "responded": True,
-                        "from": from_addr,
-                        "subject": subject,
-                        "date": msg.get("Date", ""),
-                        "listing_id": lid,
-                    }
-                    print(f"  MATCH: {lid} ← {from_addr} — {subject[:50]}")
-
-        mail.logout()
-
-    except imaplib.IMAP4.error as e:
-        print(f"  IMAP error: {e}")
-    except Exception as e:
-        print(f"  IMAP connection error: {e}")
-
+                subject = str(subject)
+            responses[listing_id] = {
+                "responded": True,
+                "from": sender,
+                "subject": subject,
+                "date": msg.get("Date", ""),
+                "listing_id": listing_id,
+            }
+    finally:
+        try:
+            mail.logout()
+        except Exception:
+            pass
     return responses
 
 
-def request_missing_data(listing_id: str, db_path: str = None, dry_run: bool = False) -> Dict:
-    """
-    Full pipeline: analyze → compose → send email to EU seller.
-
-    Returns complete result dict.
-    """
-    print(f"\n  Analyzing listing {listing_id}...")
+def request_missing_data(
+    listing_id: str,
+    db_path: str | None = None,
+    dry_run: bool = False,
+    *,
+    evidence: Optional[DemandEvidence] = None,
+    initial_slim: bool = True,
+) -> Dict[str, Any]:
+    """Analyse -> compose -> guarded send for an authorised sourcing request."""
+    require_listing_authorization(evidence, listing_id)
     analysis = analyze_missing_data(listing_id, db_path)
-
     if "error" in analysis:
-        print(f"  ERROR: {analysis['error']}")
         return analysis
-
-    print(f"  Vehicle: {analysis['vehicle']}")
-    print(f"  Photos: {analysis['photo_count']} (min {MIN_PHOTOS_COMPLETE})")
-    print(f"  Missing data: {len(analysis['missing_data'])} fields")
-    print(f"  Missing photos: {'YES' if analysis['missing_photos'] else 'NO'}")
-    print(f"  Seller: {analysis.get('seller_name', 'Unknown')}")
-    print(f"  Seller email: {analysis.get('seller_email', 'Not available')}")
-
     if not analysis["needs_contact"]:
-        print(f"\n  Listing is complete — no contact needed.")
-        return {"listing_id": listing_id, "needs_contact": False, "complete": True}
-
-    email_data = compose_seller_email(analysis)
-    result = send_seller_email(email_data, dry_run=dry_run)
-
+        return {"listing_id": listing_id, "needs_contact": False, "complete": True, "analysis": analysis}
+    email_data = (
+        compose_initial_email_slim(analysis, evidence=evidence)
+        if initial_slim
+        else compose_seller_email(analysis, evidence=evidence)
+    )
+    result = send_seller_email(email_data, dry_run=dry_run, evidence=evidence)
+    _record_contact_result(listing_id, result, db_path)
     return {
         "listing_id": listing_id,
         "analysis": analysis,
@@ -615,43 +597,44 @@ def request_missing_data(listing_id: str, db_path: str = None, dry_run: bool = F
     }
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
+def _load_evidence(path: str) -> DemandEvidence:
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(data, Mapping):
+        raise ValueError("evidence JSON must contain an object")
+    return DemandEvidence.from_mapping(data)
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    parser = argparse.ArgumentParser(description="ARGOS guarded seller-contact utility")
+    parser.add_argument("listing_id")
+    parser.add_argument("--db", dest="db_path")
+    parser.add_argument("--check", action="store_true", help="read-only completeness check")
+    parser.add_argument("--dry-run", action="store_true", help="validate gate and compose without sending")
+    parser.add_argument("--send", action="store_true", help="live send; requires S292 evidence JSON")
+    parser.add_argument("--evidence-json", help="path to serialized DemandEvidence")
+    args = parser.parse_args(argv)
+
+    if args.check:
+        print(json.dumps(analyze_missing_data(args.listing_id, args.db_path), indent=2, ensure_ascii=False, default=str))
+        return 0
+
+    if not args.evidence_json:
+        print("BLOCKED: --evidence-json is required for any seller-contact composition/send", file=sys.stderr)
+        return 2
+    try:
+        evidence = _load_evidence(args.evidence_json)
+        result = request_missing_data(
+            args.listing_id,
+            args.db_path,
+            dry_run=(args.dry_run or not args.send),
+            evidence=evidence,
+        )
+    except (PermissionError, TypeError, ValueError) as exc:
+        print(f"BLOCKED: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
+    return 0 if result.get("send_result", {}).get("sent") or result.get("send_result", {}).get("dry_run") or result.get("complete") else 1
+
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage:")
-        print("  python3 src/cove/seller_contact.py <listing_id>           # Send request email")
-        print("  python3 src/cove/seller_contact.py <listing_id> --dry-run # Preview email")
-        print("  python3 src/cove/seller_contact.py --check <listing_id>   # Check what's missing")
-        sys.exit(1)
-
-    dry_run = "--dry-run" in sys.argv
-
-    if sys.argv[1] == "--check" and len(sys.argv) >= 3:
-        listing_id = sys.argv[2]
-        analysis = analyze_missing_data(listing_id)
-        if "error" in analysis:
-            print(f"ERROR: {analysis['error']}")
-            sys.exit(1)
-        print(f"\n  === Data Completeness: {analysis['vehicle']} ===")
-        print(f"  Photos: {analysis['photo_count']}")
-        for key, has_it in analysis['data_completeness'].items():
-            status = "OK" if has_it else "MISSING"
-            print(f"  {key}: {status}")
-        if analysis['missing_photos']:
-            print(f"\n  Missing photo views ({len(analysis['missing_photos'])}):")
-            for view, desc in analysis['missing_photos']:
-                print(f"    - {desc}")
-        print(f"\n  Needs seller contact: {'YES' if analysis['needs_contact'] else 'NO'}")
-    else:
-        listing_id = sys.argv[1] if sys.argv[1] != "--dry-run" else sys.argv[2]
-        result = request_missing_data(listing_id, dry_run=dry_run)
-        if result.get("send_result", {}).get("sent"):
-            print(f"\n  Email sent to {result['send_result']['to']}")
-        elif result.get("send_result", {}).get("dry_run"):
-            print(f"\n  Dry run complete — review email above")
-        elif result.get("complete"):
-            print(f"\n  No action needed — listing is complete")
-        else:
-            error = result.get("send_result", {}).get("error", "Unknown error")
-            print(f"\n  Not sent: {error}")
+    raise SystemExit(main())
