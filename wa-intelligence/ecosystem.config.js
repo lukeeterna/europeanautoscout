@@ -1,9 +1,10 @@
 /**
  * ecosystem.config.js — ARGOS S292 production process manager.
  *
- * Transport remains single-writer: only argos-wa-daemon talks to WhatsApp.
- * argos-outreach-scheduler is queue-only and defaults to disabled until the
- * production rollout explicitly sets ARGOS_AUTOMATION_ENABLED=1.
+ * Transport remains single-writer: runtime_entrypoint.py performs only the
+ * first-boot PAUSED invariant and then execs wa-daemon.js. No second transport
+ * process exists. The scheduler is queue-only and defaults to disabled until
+ * the production rollout explicitly sets ARGOS_AUTOMATION_ENABLED=1.
  */
 'use strict';
 
@@ -36,8 +37,8 @@ const SHARED_ENV = {
     ARGOS_DB_PATH: path.join(BASE, 'dealer_network.sqlite'),
     BRIDGE_DB_PATH: dotEnv.BRIDGE_DB_PATH || '',
 
-    // S292 daemon runtime. Preserve the legacy LocalAuth identity/path so the
-    // rollout does not silently create a second WhatsApp session.
+    // Preserve the existing LocalAuth identity/path: rollout must reuse the
+    // authenticated WhatsApp session, not silently create a second one.
     ARGOS_WA_CLIENT_ID: dotEnv.ARGOS_WA_CLIENT_ID || dotEnv.WA_CLIENT_ID || 'argos-business',
     ARGOS_WA_SESSION_DIR: dotEnv.ARGOS_WA_SESSION_DIR || path.join(BASE, 'wa-sender'),
     ARGOS_WA_PORT: dotEnv.ARGOS_WA_PORT || '9191',
@@ -74,9 +75,9 @@ module.exports = {
     apps: [
         {
             name: 'argos-wa-daemon',
-            script: path.join(INTEL, 'wa-daemon.js'),
+            script: path.join(INTEL, 'runtime_entrypoint.py'),
             cwd: INTEL,
-            interpreter: 'node',
+            interpreter: PYTHON_313,
             ...common,
             max_restarts: 10,
             min_uptime: '30s',
