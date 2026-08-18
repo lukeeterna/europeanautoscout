@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """ARGOS template engine — S292 credibility-first, evidence-safe.
 
-Template-first remains the production rule.  Missing factual slots do not get
+Template-first remains the production rule. Missing factual slots do not get
 filled with invented defaults: a template that needs a vehicle/economic fact
 returns an empty string until the caller supplies that fact.
 """
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, Iterable, Mapping, Sequence
+from typing import Any, Dict, Mapping, Sequence
 
 ND = "n/d"
 
@@ -44,6 +44,11 @@ TEMPLATES: Dict[str, str] = {
         "Sono Azzurra, assistente di Luca Ferretti. Ho trovato il contatto della sua attività tramite {source}.\n"
         "Luca supporta operatori italiani nella ricerca e verifica di auto europee su richiesta.\n"
         "Non le sto proponendo un'auto a caso: volevo capire se questo tipo di supporto può servirle quando ha una richiesta specifica."
+    ),
+    "DEMAND_DISCOVERY_PROMPT": (
+        "Perfetto, {dealer_name}. Per partire da una necessità reale: ha in questo momento una richiesta specifica da coprire? "
+        "Se sì, mi indichi marca/modello e, se li ha già, anno, budget massimo e chilometraggio massimo. "
+        "Quello che non è definito resta aperto: non lo completo per ipotesi."
     ),
     "VEHICLE_REQUEST_ACK": (
         "Ricevuto. Ho registrato questa richiesta: {request_summary}.\n"
@@ -112,8 +117,6 @@ TEMPLATES: Dict[str, str] = {
 
 DEPRECATED_TEMPLATES = {"DAY1_VEHICLE_FIRST"}
 
-# Only non-factual presentation defaults live here. Factual vehicle/economic
-# fields deliberately have no default.
 SLOT_DEFAULTS: Dict[str, str] = {
     "source": "il sito/contatto pubblico della sua attività",
     "brand_focus": "auto premium",
@@ -165,6 +168,7 @@ TEMPLATE_MAP = {
     ("CURIOSITY", "CONTACTED"): "IDENTITY_RESPONSE",
     ("CURIOSITY", "ENGAGED"): "IDENTITY_RESPONSE",
     ("CURIOSITY", "DEMAND_DISCOVERY"): "IDENTITY_RESPONSE",
+    ("POSITIVE", "ENGAGED"): "DEMAND_DISCOVERY_PROMPT",
     ("VEHICLE_REQUEST", "DEMAND_DISCOVERY"): "VEHICLE_REQUEST_ACK",
     ("POSITIVE", "DEMAND_DISCOVERY"): "VEHICLE_REQUEST_ACK",
     ("VEHICLE_REQUEST", "MANDATE_CONFIRMED"): "VEHICLE_REQUEST_ACK",
@@ -222,12 +226,10 @@ def generate_cold_day1(
     vehicle: Mapping[str, Any] | None = None,
     profile: Mapping[str, Any] | None = None,
 ) -> str:
-    """Generate credibility-first Day1. Vehicle/profile cannot create an offer.
-
-    ``vehicle`` is accepted only for backward API compatibility and is ignored:
-    S292 retired vehicle-first outreach. ``profile`` may influence neither
-    mandate nor claims in this function.
-    """
+    """Generate credibility-first Day1; vehicle/profile cannot create an offer."""
+    del profile
+    # ``vehicle`` is accepted only for backward compatibility and intentionally ignored.
+    del vehicle
     template_id = select_day1_variant(dealer_brands)
     premium_hits = [
         str(brand).strip()
@@ -242,7 +244,6 @@ def generate_cold_day1(
     return fill_template(template_id, data)
 
 
-# Backward-compatible alias, intentionally credibility-only.
 TEMPLATES["DAY1_INTRO"] = TEMPLATES["DAY1_PREMIUM"]
 
 
