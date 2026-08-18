@@ -1,0 +1,195 @@
+name: ARGOS S292 Production Contract
+
+on:
+  push:
+    branches:
+      - sol/argos-canonicalization-20260817
+    paths:
+      - 'src/cove/**'
+      - 'wa-intelligence/**'
+      - 'tools/scripts/pdf_generator_enterprise.py'
+      - 'tools/scripts/argos_dealer_delivery.py'
+      - 'tools/scripts/argos_c10_smoke.py'
+      - 'tests/test_argos_*.py'
+      - '.github/workflows/argos-s292-contract.yml'
+  pull_request:
+    paths:
+      - 'src/cove/**'
+      - 'wa-intelligence/**'
+      - 'tools/scripts/pdf_generator_enterprise.py'
+      - 'tools/scripts/argos_dealer_delivery.py'
+      - 'tools/scripts/argos_c10_smoke.py'
+      - 'tests/test_argos_*.py'
+      - '.github/workflows/argos-s292-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Offline S292 production contracts
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Compile production Python modules
+        run: |
+          python -m py_compile \
+            src/cove/demand_contract.py \
+            src/cove/deal_economics.py \
+            src/cove/demand_orchestrator.py \
+            src/cove/dealer_matcher.py \
+            src/cove/dossier_standard.py \
+            src/cove/seller_contact.py \
+            src/cove/photo_coverage.py \
+            src/cove/second_brain_contract.py \
+            src/cove/db_schema.py \
+            src/cove/argos_grade.py \
+            wa-intelligence/demand_capture.py \
+            wa-intelligence/state_machine.py \
+            wa-intelligence/templates.py \
+            wa-intelligence/s292_outbound_policy.py \
+            wa-intelligence/outbound_guard.py \
+            wa-intelligence/response-analyzer.py \
+            wa-intelligence/post_send_update.py \
+            wa-intelligence/outreach_scheduler.py \
+            wa-intelligence/runtime_entrypoint.py \
+            tools/scripts/pdf_generator_enterprise.py \
+            tools/scripts/argos_dealer_delivery.py \
+            tools/scripts/argos_c10_smoke.py
+
+      - name: Parse Node production configuration
+        run: |
+          node --check wa-intelligence/wa-daemon.js
+          node --check wa-intelligence/ecosystem.config.js
+
+      - name: Validate C10 smoke CLI is side-effect free on help
+        run: python tools/scripts/argos_c10_smoke.py --help >/dev/null
+
+      - name: Run full ARGOS offline production suite
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m unittest -v \
+            tests.test_argos_s292_contract \
+            tests.test_argos_demand_orchestrator \
+            tests.test_argos_wa_policy \
+            tests.test_argos_photo_second_brain \
+            tests.test_argos_demand_capture \
+            tests.test_argos_runtime_production \
+            tests.test_argos_delivery_artifact \
+            tests.test_argos_runtime_entrypoint
+
+      - name: Assert single guarded WhatsApp transport boundary
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('wa-intelligence/wa-daemon.js').read_text(encoding='utf-8')
+          marker = 'async function guardedSend('
+          end_marker = '\nfunction persistInbound('
+          assert marker in text and end_marker in text, 'guardedSend boundary missing'
+          start = text.index(marker)
+          end = text.index(end_marker, start)
+          occurrences = []
+          offset = 0
+          needle = 'client.sendMessage('
+          while True:
+              idx = text.find(needle, offset)
+              if idx < 0:
+                  break
+              occurrences.append(idx)
+              offset = idx + len(needle)
+          assert occurrences, 'WhatsApp transport call missing'
+          assert all(start <= idx < end for idx in occurrences), (
+              f'client.sendMessage outside guardedSend at offsets {occurrences}'
+          )
+          assert 'LEGACY_TRANSPORT_RETIRED' in text, 'legacy multi/voice transport not retired'
+          print(f'PASS guardedSend owns {len(occurrences)} WhatsApp transport call sites')
+          PY
+
+      - name: Assert dealer-delivery sidecar matches daemon contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          delivery = Path('tools/scripts/argos_dealer_delivery.py').read_text(encoding='utf-8')
+          daemon = Path('wa-intelligence/wa-daemon.js').read_text(encoding='utf-8')
+          for key in ('dealer_ready', 'dealer_id', 'evidence_id', 'file_sha256'):
+              assert f'"{key}"' in delivery, f'delivery sidecar missing key {key}'
+              assert key in daemon, f'daemon metadata verifier missing key {key}'
+          assert '.metadata.json' in delivery, 'deterministic sidecar suffix missing'
+          assert 'verifyDossierMetadata' in daemon, 'daemon dossier verifier missing'
+          print('PASS dealer-delivery sidecar and daemon use the same transport contract')
+          PY
+
+      - name: Assert PM2 starts fail-closed single writer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          ecosystem = Path('wa-intelligence/ecosystem.config.js').read_text(encoding='utf-8')
+          entry = Path('wa-intelligence/runtime_entrypoint.py').read_text(encoding='utf-8')
+          assert "script: path.join(INTEL, 'runtime_entrypoint.py')" in ecosystem
+          assert "'agent_status', 'PAUSED'" in entry
+          assert "os.execv(node, [node, str(daemon)])" in entry
+          assert 'client.sendMessage(' not in entry
+          print('PASS PM2 first boot is PAUSED and execs the only writer')
+          PY
+
+      - name: Static anti-drift assertions
+        run: |
+          python - <<'PY'
+          import ast
+          import re
+          from pathlib import Path
+
+          checked_multiplier_files = [
+              Path('tools/scripts/pdf_generator_enterprise.py'),
+              Path('src/cove/deal_economics.py'),
+              Path('src/cove/dossier_standard.py'),
+          ]
+          forbidden_multipliers = {1.12, 1.15}
+          for path in checked_multiplier_files:
+              tree = ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
+              for node in ast.walk(tree):
+                  if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mult):
+                      for side in (node.left, node.right):
+                          if isinstance(side, ast.Constant) and isinstance(side.value, (int, float)):
+                              assert float(side.value) not in forbidden_multipliers, (
+                                  f'forbidden inferred market uplift {side.value} in {path}:{getattr(node, "lineno", "?")}'
+                              )
+
+          for path in [
+              Path('wa-intelligence/templates.py'),
+              Path('wa-intelligence/response-analyzer.py'),
+              Path('src/cove/demand_contract.py'),
+              Path('src/cove/second_brain_contract.py'),
+          ]:
+              text = path.read_text(encoding='utf-8').lower()
+              assert 'cliente fittizio' not in text, f'false handoff language in {path}'
+              assert 'mystery_shopper' not in text and 'mystery shopper' not in text, (
+                  f'synthetic handoff path in {path}'
+              )
+
+          pdf = Path('tools/scripts/pdf_generator_enterprise.py').read_text(encoding='utf-8')
+          forbidden_default_patterns = [
+              r'fuel_type:\s*str\s*=\s*["\'](?:Diesel|Benzina)["\']',
+              r'transmission:\s*str\s*=\s*["\']Automatico["\']',
+              r'color:\s*str\s*=\s*["\']Grigio["\']',
+              r'city\s*=\s*["\']Sud Italia["\']',
+          ]
+          for pattern in forbidden_default_patterns:
+              assert not re.search(pattern, pdf), f'forbidden PDF default: {pattern}'
+
+          print('PASS semantic anti-drift assertions')
+          PY

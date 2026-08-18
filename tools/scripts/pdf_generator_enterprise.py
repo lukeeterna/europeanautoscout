@@ -1,124 +1,222 @@
+"""ARGOS Automotive — production dealer dossier renderer (S292/P1).
+
+This module intentionally replaces the historical marketing-oriented PDF
+builder with an evidence renderer.  Its contract is simple:
+
+* missing facts render as ``n/d``;
+* no fuel/transmission/colour/owner/location defaults;
+* no +12/+15% market uplift and no fixed logistics/fee fallback;
+* CoVe, Vehicle Grade, deal economics and dossier readiness stay independent;
+* only images that passed ``src.cove.image_sanitizer`` may be embedded;
+* seller/source identity is rendered only when ``source_dossier`` is supplied;
+* dealer-delivery mode requires a traceable S292 mandate and DEALER_READY gate.
+
+Review artifacts may still be generated before the final gate, but they are
+visibly marked ``INTERNAL REVIEW — NOT DEALER READY`` and are not delivery
+artifacts.
 """
-ARGOS Automotive - Enterprise PDF Generator V2
-Professional vehicle dossiers for dealer delivery — ARGOS GRADE + real photos + 7 Criteri
+from __future__ import annotations
 
-V2 changes (Phase 03-02):
-  - ARGOS GRADE badge (A-E) prominently on cover
-  - Real HD photo downloaded from CDN
-  - 7 Criteri ARGOS Premium Verified section
-  - Financial analysis with ARGOS fee (success-fee model)
-  - Dealer watermark: "Riservato per {dealer_name}"
-  - Zero source references (no AutoScout24, no CoVe, no Claude)
-  - CLI: python3 pdf_generator_enterprise.py --listing <id> --dealer <name> --output <dir>
-
-CRITICAL BUSINESS REQUIREMENT:
-When dealer says "mandatemi la scheda" → system must deliver professional PDF
-No PDF capability = No deal capability = No revenue capability
-"""
-
+import argparse
+import hashlib
+import json
 import os
 import re
 import sys
-import argparse
 import tempfile
-from datetime import datetime
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
-import json
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
-# Lazy imports for optional heavy deps
-try:
-    import requests as _requests_module
-except ImportError:
-    _requests_module = None
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _SCRIPT_DIR.parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-# S196-P4: import sentinel costante. image_sanitizer.py guarda le sue deps pesanti
-# (PIL/cv2) con try/except — import della costante stringa funziona sempre.
-# sys.path setup pattern matcha argos_grade (~r.2033) e sanitize_all_images (~r.2043).
-_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_REPO_ROOT = os.path.dirname(os.path.dirname(_SCRIPT_DIR))
-if _REPO_ROOT not in sys.path:
-    sys.path.insert(0, _REPO_ROOT)
+from src.cove.demand_contract import (
+    DemandEvidence,
+    NOT_AVAILABLE,
+    NO_VERDICT,
+    require_listing_authorization,
+)
 from src.cove.image_sanitizer import SENTINEL_SKIP_PROMO
 
-# PDF generation imports
 try:
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.colors import HexColor
-    from reportlab.lib.units import mm
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
     from reportlab.lib import colors
+    from reportlab.lib.colors import HexColor
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import (
+        Image,
+        PageBreak,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
-    print("⚠️  WARNING: reportlab not installed. Install with: pip install reportlab")
+
+
+ND = NOT_AVAILABLE
+_VALID_GRADES = {"A", "B", "C", "D", "E"}
+_VALID_ECON_VERDICTS = {"PROCEED", "REVIEW", "REJECT", NO_VERDICT}
+
+
+def _known(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        value = value.strip()
+        return bool(value) and value not in {ND, NO_VERDICT, "DA_VERIFICARE", "UNKNOWN"}
+    return True
+
+
+def _safe_float(value: Any) -> Optional[float]:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _safe_int(value: Any) -> Optional[int]:
+    parsed = _safe_float(value)
+    return int(parsed) if parsed is not None else None
+
+
+def _display(value: Any) -> str:
+    if not _known(value):
+        return ND
+    if isinstance(value, bool):
+        return "sì" if value else "no"
+    return str(value)
+
+
+def _eur(value: Any) -> str:
+    parsed = _safe_float(value)
+    if parsed is None:
+        return ND
+    sign = "-" if parsed < 0 else ""
+    amount = f"{abs(int(round(parsed))):,}".replace(",", ".")
+    return f"{sign}EUR {amount}"
+
+
+def _pct(value: Any) -> str:
+    parsed = _safe_float(value)
+    if parsed is None:
+        return ND
+    return f"{parsed:.1%}"
+
+
+def _sha_payload(value: Mapping[str, Any]) -> str:
+    raw = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()[:16]
+
+
+def _load_json_object(path_or_json: Optional[str]) -> Optional[Mapping[str, Any]]:
+    if not path_or_json:
+        return None
+    path = Path(path_or_json)
+    if path.exists():
+        value = json.loads(path.read_text(encoding="utf-8"))
+    else:
+        value = json.loads(path_or_json)
+    if not isinstance(value, Mapping):
+        raise ValueError("JSON input must be an object")
+    return value
+
+
+def _load_demand_evidence(path_or_json: Optional[str]) -> Optional[DemandEvidence]:
+    value = _load_json_object(path_or_json)
+    return DemandEvidence.from_mapping(value) if value is not None else None
+
+
+def _table_columns(con: Any, table: str) -> set[str]:
+    try:
+        rows = con.execute(f"PRAGMA table_info('{table}')").fetchall()
+    except Exception:
+        return set()
+    return {str(row[1]) for row in rows if len(row) > 1}
+
+
+def _fetch_row(con: Any, table: str, listing_id: str) -> Dict[str, Any]:
+    columns = _table_columns(con, table)
+    if "listing_id" not in columns:
+        return {}
+    ordered = sorted(columns)
+    projection = ", ".join(f'"{name}"' for name in ordered)
+    order = " ORDER BY analyzed_at DESC" if table == "cove_results" and "analyzed_at" in columns else ""
+    row = con.execute(
+        f'SELECT {projection} FROM "{table}" WHERE listing_id = ?{order} LIMIT 1',
+        [listing_id],
+    ).fetchone()
+    return dict(zip(ordered, row)) if row else {}
+
 
 @dataclass
 class VehicleData:
-    """Complete vehicle data for PDF generation"""
+    """Truth-safe vehicle payload used by the PDF renderer.
+
+    Required legacy constructor fields are retained for compatibility.  The
+    value ``price_it_estimate`` may be None and has no default derivation.
+    """
+
     make: str
     model: str
     year: int
     km: int
     price_eu: int
-    price_it_estimate: int
+    price_it_estimate: Optional[int]
     confidence: float
 
-    # Enhanced data for professional sheet
-    engine: str = "Sconosciuto"
-    fuel_type: str = "Benzina"
-    transmission: str = "Automatico"
-    color: str = "Sconosciuto"
-    doors: int = 4
+    engine: str = ND
+    fuel_type: str = ND
+    transmission: str = ND
+    color: str = ND
+    doors: Optional[int] = None
 
-    # ARGOS scoring breakdown
-    km_score: int = 85
-    price_score: int = 92
-    age_score: int = 88
-    history_score: int = 75
+    km_score: Optional[int] = None
+    price_score: Optional[int] = None
+    age_score: Optional[int] = None
+    history_score: Optional[int] = None
 
-    # Source and verification
     source_url: str = ""
-    source_country: str = "Germania"
-    listing_date: str = ""
+    source_country: str = ND
+    listing_date: str = ND
 
-    # Professional details
     vin: Optional[str] = None
     first_registration: Optional[str] = None
     last_service: Optional[str] = None
-    previous_owners: int = 1
+    previous_owners: Optional[int] = None
 
-    # Image paths (local, watermarked)
     local_image_paths: List[str] = field(default_factory=list)
+    safe_images_verified: bool = False
 
-    # S70: Opportunity intelligence data (from ScraperCovePipeline)
-    opportunity_score: int = 0          # 0-100
-    discount_pct: float = 0.0           # % sotto media mercato
-    market_ref_price: float = 0.0       # Media mercato EU
-    estimated_margin: float = 0.0       # Margine stimato dopo import
-    risk_level: str = "MEDIUM"          # LOW | MEDIUM | HIGH
-    market_data_quality: str = "MEDIUM" # HIGH | MEDIUM | LOW
-    market_sample_size: int = 0         # Quanti listing comparabili
-    cove_status: str = ""               # PROCEED | VIN_CHECK
-    portal: str = ""                    # Portale di origine
+    opportunity_score: Optional[int] = None
+    discount_pct: Optional[float] = None
+    market_ref_price: Optional[float] = None
+    estimated_margin: Optional[float] = None
+    risk_level: str = ND
+    market_data_quality: str = ND
+    market_sample_size: Optional[int] = None
+    cove_status: str = ND
+    portal: str = ""
 
-    # Transport & import data (auto-populated by from_opportunity)
-    transport_cost: int = 0
-    transport_method: str = ""
-    transport_distance_km: int = 0
-    transport_notes: str = ""
-    import_cost_total_min: int = 0
-    import_cost_total_max: int = 0
-    import_days: int = 0
+    transport_cost: Optional[float] = None
+    transport_method: str = ND
+    transport_distance_km: Optional[int] = None
+    transport_notes: str = ND
+    import_cost_total_min: Optional[float] = None
+    import_cost_total_max: Optional[float] = None
+    import_days: Optional[int] = None
 
-    # S257: margin gate (asse "bonta' dell'AFFARE") — popolati dal runner Step 2c.
-    # Numeri REALI: mercato IT = mediana comparabili reali (NON prezzo_de x1.15),
-    # fee ARGOS = quota del surplus (NON flat 900). None = margin gate non eseguito.
-    margin_decision: Optional[str] = None        # "PASS" | "REJECT" | "NO_VERDICT"
+    margin_decision: str = NO_VERDICT
     chiavi_in_mano: Optional[float] = None
     spread_lordo: Optional[float] = None
     dealer_floor: Optional[float] = None
@@ -126,269 +224,397 @@ class VehicleData:
     fee_argos: Optional[float] = None
     margine_netto_dealer: Optional[float] = None
     margine_netto_pct: Optional[float] = None
+
     it_median: Optional[float] = None
     it_p25: Optional[float] = None
     it_p75: Optional[float] = None
     it_n: Optional[int] = None
     it_source: Optional[str] = None
-    relaxation_level: Optional[int] = None       # L0-L3 raggiunto dal filtro spec-aware
-    no_verdict: bool = False                      # True = comparabili insufficienti (n<min_n)
-    # S268: banda-come-prodotto + intervallo margine + onesta' del campione.
-    it_band_low: Optional[float] = None           # p25 banda prezzo IT (PRODOTTO)
-    it_band_high: Optional[float] = None          # p75 banda prezzo IT (PRODOTTO)
-    it_confidence: Optional[str] = None           # alta|media|bassa|NO_VERDICT
-    it_width_nature: Optional[str] = None         # config_esatta|incertezza_campione|fusione_trim|indeterminato
-    it_n_by_level: Optional[dict] = None          # {0:N0,1:N1,2:N2,3:N3} riga d'onesta'
-    it_scrape_date: Optional[str] = None          # GAP-2: data fotografia mercato
-    it_is_floor: bool = True                       # DELTA-2: N e' PAVIMENTO (campione cap), non totale mercato
-    it_n_priced: Optional[int] = None              # S299: annunci prezzati raccolti (fonte, NON ricalcolo)
-    it_pages_scraped: Optional[int] = None         # S299: pagine reali della scrape
-    it_terminated_by_empty: bool = False           # S299: True = scrape esaustivo (pagina vuota reale)
-    margine_netto_low: Optional[float] = None     # margine dealer al band_low (IT prezzo basso)
-    margine_netto_high: Optional[float] = None    # margine dealer al band_high (IT prezzo alto)
+    relaxation_level: Optional[int] = None
+    no_verdict: bool = False
+    it_band_low: Optional[float] = None
+    it_band_high: Optional[float] = None
+    it_confidence: Optional[str] = None
+    it_width_nature: Optional[str] = None
+    it_n_by_level: Optional[dict] = None
+    it_scrape_date: Optional[str] = None
+    it_is_floor: bool = False
+    it_n_priced: Optional[int] = None
+    it_pages_scraped: Optional[int] = None
+    it_terminated_by_empty: bool = False
+    margine_netto_low: Optional[float] = None
+    margine_netto_high: Optional[float] = None
     country_code: str = ""
     fraud_doc_obtained: bool = False
     fallback_declared: bool = False
 
+    deal_economics: Optional[Mapping[str, Any]] = None
+    listing_id: str = ND
+
+    def __post_init__(self) -> None:
+        self.make = str(self.make or ND).strip() or ND
+        self.model = str(self.model or ND).strip() or ND
+        self.year = int(self.year) if _safe_int(self.year) is not None else 0
+        self.km = int(self.km) if _safe_int(self.km) is not None else 0
+        self.price_eu = int(self.price_eu) if _safe_int(self.price_eu) is not None else 0
+        self.price_it_estimate = _safe_int(self.price_it_estimate)
+        conf = _safe_float(self.confidence)
+        self.confidence = conf if conf is not None and 0.0 <= conf <= 1.0 else 0.0
+        self.margin_decision = str(self.margin_decision or NO_VERDICT).upper()
+        if self.margin_decision not in {"PASS", "REJECT", "REVIEW", "CONDIZIONATO", NO_VERDICT}:
+            self.margin_decision = NO_VERDICT
+
     @classmethod
-    def from_opportunity(cls, opp, dealer_city: str = "Eboli") -> "VehicleData":
-        """Crea VehicleData da un Opportunity della pipeline, con trasporto e import."""
-        country_names = {
-            "DE": "Germania", "NL": "Olanda", "BE": "Belgio", "AT": "Austria",
-            "FR": "Francia", "SE": "Svezia", "DK": "Danimarca", "NO": "Norvegia",
-            "FI": "Finlandia", "PL": "Polonia", "CZ": "Rep. Ceca", "RO": "Romania",
-            "IT": "Italia", "ES": "Spagna", "PT": "Portogallo", "BG": "Bulgaria",
-            "LT": "Lituania", "LV": "Lettonia", "EE": "Estonia", "HR": "Croazia",
-        }
+    def from_opportunity(cls, opp: Any, dealer_city: str = ND) -> "VehicleData":
+        """Adapt an Opportunity without calculating missing market/cost facts."""
+        def attr(name: str, default: Any = None) -> Any:
+            return getattr(opp, name, default)
 
-        # Auto-calculate transport and import costs
-        transport_cost = 0
-        transport_method = ""
-        transport_km = 0
-        transport_notes = ""
-        import_min = 0
-        import_max = 0
-        import_days = 0
-        try:
-            from tools.transport_estimator import estimate_transport
-            t = estimate_transport(opp.country, dealer_city, opp.price_eur)
-            transport_cost = t.cost_recommended
-            transport_method = t.method_recommended
-            transport_km = t.distance_km
-            transport_notes = t.notes
-        except Exception:
-            pass
-        try:
-            from tools.import_checklist import generate_checklist
-            cl = generate_checklist(opp.country, opp.make, opp.model, opp.year, is_b2b=True, dealer_city=dealer_city)
-            import_min = cl.total_cost_min
-            import_max = cl.total_cost_max
-            import_days = cl.estimated_days
-        except Exception:
-            pass
+        explicit_economics = attr("deal_economics")
+        if explicit_economics is not None and not isinstance(explicit_economics, Mapping):
+            explicit_economics = None
 
-        it_sell_price = int(opp.market_ref_price * 1.12)  # +12% premium IT
         return cls(
-            make=opp.make,
-            model=opp.model,
-            year=opp.year,
-            km=opp.km,
-            price_eu=int(opp.price_eur),
-            price_it_estimate=it_sell_price,
-            confidence=opp.cove_confidence,
-            source_url="",  # MAI esporre URL del deal al dealer
-            source_country="Europa",  # ZERO riferimenti location
-            opportunity_score=opp.opportunity_score,
-            discount_pct=opp.discount_pct,
-            market_ref_price=opp.market_ref_price,
-            estimated_margin=opp.estimated_margin_eur,
-            risk_level=opp.risk_level,
-            market_data_quality=opp.market_data_quality,
-            market_sample_size=opp.market_sample_size,
-            cove_status=opp.cove_status,
-            portal="",  # MAI esporre portale al dealer
-            transport_cost=transport_cost,
-            transport_method=transport_method,
-            transport_distance_km=transport_km,
-            transport_notes=transport_notes,
-            import_cost_total_min=import_min,
-            import_cost_total_max=import_max,
-            import_days=import_days,
+            make=str(attr("make") or ND),
+            model=str(attr("model") or ND),
+            year=_safe_int(attr("year")) or 0,
+            km=_safe_int(attr("km")) or 0,
+            price_eu=_safe_int(attr("price_eur")) or 0,
+            price_it_estimate=_safe_int(attr("price_it_estimate")),
+            confidence=_safe_float(attr("cove_confidence")) or 0.0,
+            fuel_type=str(attr("fuel_type") or ND),
+            transmission=str(attr("transmission") or ND),
+            color=str(attr("color") or ND),
+            vin=attr("vin"),
+            listing_id=str(attr("listing_id") or ND),
+            opportunity_score=_safe_int(attr("opportunity_score")),
+            discount_pct=_safe_float(attr("discount_pct")),
+            market_ref_price=_safe_float(attr("market_ref_price")),
+            # Historical ``estimated_margin_eur`` is exposed only if an evidence
+            # container accompanies it; otherwise it remains n/d.
+            estimated_margin=(
+                _safe_float(attr("estimated_margin_eur"))
+                if isinstance(explicit_economics, Mapping)
+                else None
+            ),
+            risk_level=str(attr("risk_level") or ND),
+            market_data_quality=str(attr("market_data_quality") or ND),
+            market_sample_size=_safe_int(attr("market_sample_size")),
+            cove_status=str(attr("cove_status") or ND),
+            deal_economics=explicit_economics,
         )
+
 
 @dataclass
 class DealerInfo:
-    """Dealer information for personalized PDF"""
     name: str
     company: str
-    city: str
-    contact_person: str = "Direttore"
+    city: str = ND
+    contact_person: str = ND
+
+    def __post_init__(self) -> None:
+        self.name = str(self.name or ND).strip() or ND
+        self.company = str(self.company or self.name).strip() or self.name
+        self.city = str(self.city or ND).strip() or ND
+        self.contact_person = str(self.contact_person or ND).strip() or ND
 
 
-def _eur_fmt(n) -> str:
-    if n is None:
-        return "—"
-    return "EUR " + f"{int(round(n)):,}".replace(",", ".")
+def _sanitize_photo(
+    raw_path: str,
+    image_index: int,
+    listing_id: str,
+    output_dir: str,
+    seller_name: Optional[str] = None,
+) -> Optional[str]:
+    """C0 fail-closed sanitizer adapter. RAW is never returned on failure."""
+    try:
+        from src.cove.image_sanitizer import sanitize_image
+        result = sanitize_image(
+            raw_path,
+            output_dir=output_dir,
+            listing_id=listing_id,
+            image_index=image_index,
+            seller_name=seller_name,
+        )
+    except Exception:
+        return None
+    if not result or result == SENTINEL_SKIP_PROMO:
+        return None
+    path = Path(result)
+    return str(path) if path.is_file() and path.stat().st_size > 0 else None
 
 
-def _band_verdict(price_eu, band_low, band_high):
-    """S269 KEYSTONE — verdetto-affare onesto sull'INTERA banda IT.
-
-    Riusa evaluate_margin (unica source of truth) ai due bordi banda. Il
-    break-even NON e' hardcodato: floor_pct e chiavi-in-mano sono derivati
-    dall'output reale del gate, cosi' la soglia segue il gate se cambia.
-
-    band_low  = prezzo IT realizzato PEGGIORE per il dealer (caso sfavorevole)
-    band_high = prezzo IT realizzato MIGLIORE.
-    Ritorna (m_low, m_high, breakeven, status, label).
-    """
-    from tools.margin_gate import evaluate_margin
-    m_low = evaluate_margin(float(price_eu), float(band_low))
-    m_high = evaluate_margin(float(price_eu), float(band_high))
-    floor_pct = (m_low.dealer_floor_amount / float(band_low)) if band_low else 0.12
-    breakeven = (m_low.chiavi_in_mano / (1.0 - floor_pct)) if floor_pct < 1.0 else None
-    if m_low.decision == "PASS":
-        status = "PASS"
-        label = "PASS — affare valido (intera banda sopra il pavimento)"
-    elif m_high.decision == "REJECT":
-        status = "REJECT"
-        label = "REJECT — sotto il pavimento dealer sull'intera banda"
-    else:
-        be = int(round(breakeven)) if breakeven else 0
-        status = "CONDIZIONATO"
-        label = ("PASS CONDIZIONATO — valido solo se prezzo IT realizzato >= "
-                 + "EUR " + f"{be:,}".replace(",", ".")
-                 + "; sotto, il dealer non raggiunge il pavimento 12%")
-    return m_low, m_high, breakeven, status, label
+def _verified_economics(value: Optional[Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not isinstance(value, Mapping):
+        return None
+    source = str(value.get("source") or "").strip()
+    evidence_id = str(value.get("evidence_id") or "").strip()
+    verdict = str(value.get("verdict") or "").strip().upper()
+    margin = _safe_float(value.get("net_margin_eur"))
+    if not source or not evidence_id or margin is None or verdict not in _VALID_ECON_VERDICTS:
+        return None
+    result = dict(value)
+    result.update(
+        {
+            "source": source,
+            "evidence_id": evidence_id,
+            "verdict": verdict,
+            "net_margin_eur": margin,
+        }
+    )
+    return result
 
 
-def _fraud_source_certainty(country_code, doc_obtained=False):
-    """Classe-regime + grado certezza A/B/C sulla verifica km alla fonte.
-    OUTPUT country/register-free (C-GATE-FONTE-001 mode b): mai nominare
-    paese o registro nel PDF pre-pagamento. Ritorna (grade, status, note)."""
-    regime = {
-        "NL": ("A", "autonomo"),
-        "FR": ("B", "su richiesta"),
-        "BE": ("B", "contrattuale"),
-        "DE": ("C", "commerciale"),
-    }.get((country_code or "").upper(), ("C", "da confermare"))
-    grade, regime_word = regime
-    if grade == "A":
-        base_note = "documento km ufficiale del paese d'origine, consultazione autonoma"
-    elif grade == "B":
-        base_note = f"documento km ufficiale del paese d'origine, rilascio {regime_word}"
-    else:
-        base_note = "nessun registro pubblico nazionale nel paese d'origine; verifica via report tecnico indipendente"
-    if doc_obtained:
-        return (grade, f"Certezza {grade}", f"Documento ottenuto — {base_note}")
-    return ("—", "Documento non ancora ottenuto", base_note)
+def _vehicle_from_mapping(raw: Mapping[str, Any]) -> VehicleData:
+    dist = raw.get("_it_distribution") if isinstance(raw.get("_it_distribution"), Mapping) else {}
+    no_verdict = bool(dist.get("no_verdict"))
+    market_median = None if no_verdict else _safe_float(dist.get("median"))
+    market_low = None if no_verdict else _safe_float(dist.get("band_low", dist.get("p25")))
+    market_high = None if no_verdict else _safe_float(dist.get("band_high", dist.get("p75")))
 
-
-def _margin_verdict_rows(vehicle):
-    """Righe pure della sezione VERDETTO AFFARE (testabili senza reportlab).
-
-    NO_VERDICT o banda assente -> minimale: N+livello, NESSUNA banda, NESSUN
-    margine (FASE 3). Altrimenti tutte le voci sono INTERVALLI sui bordi banda.
-    Ritorna (rows, status, breakeven).
-    """
-    floor = ">=" if vehicle.it_is_floor else ""
-    n = vehicle.it_n or 0
-    lvl = vehicle.relaxation_level if vehicle.relaxation_level is not None else '-'
-    if vehicle.no_verdict or vehicle.it_band_low is None or vehicle.it_band_high is None:
-        rows = [
-            ['VERDETTO AFFARE', 'VALORE', 'NOTE'],
-            ['Prezzo acquisto EU', _eur_fmt(vehicle.price_eu), 'Annuncio estero reale'],
-            ['Verdetto', 'NO-VERDICT',
-             'Campione insufficiente per una banda affidabile — nessuna banda emessa'],
-        ]
-        return rows, "NO_VERDICT", None
-
-    m_low, m_high, breakeven, status, label = _band_verdict(
-        vehicle.price_eu, vehicle.it_band_low, vehicle.it_band_high)
-
-    def _rng(a, b):
-        return f"{_eur_fmt(a)} – {_eur_fmt(b)}"
-
-    _nbl = vehicle.it_n_by_level or {}
-    _n_exact = _nbl.get(2, _nbl.get('2', 0))
-    _prov = (f"banda su configurazione adiacente, campione trim N={_n_exact}"
-             if vehicle.fallback_declared else "banda a configurazione esatta")
-
-    rows = [
-        ['VERDETTO AFFARE', 'INTERVALLO (banda IT)', 'NOTE'],
-        ['Prezzo acquisto EU', _eur_fmt(vehicle.price_eu), 'Annuncio estero reale'],
-        ['Costo chiavi in mano', _eur_fmt(m_low.chiavi_in_mano), 'Incl. trasporto + immatricolazione'],
-        ['Prezzo mercato Italia', _rng(vehicle.it_band_low, vehicle.it_band_high),
-         f'Banda p25-p75, {floor}{n} comparabili — {_prov}'],
-        ['Spread lordo', _rng(m_low.spread_lordo, m_high.spread_lordo), 'Mercato IT meno chiavi in mano'],
-        ['Pavimento dealer (12%)', _rng(m_low.dealer_floor_amount, m_high.dealer_floor_amount),
-         'Minimo garantito al dealer'],
-        ['Surplus oltre pavimento', _rng(m_low.surplus, m_high.surplus),
-         'Eccedenza condivisibile (negativo = sotto pavimento)'],
-        ['Fee ARGOS', _rng(m_low.fee_argos, m_high.fee_argos),
-         'Solo su surplus reale, 0 se sotto pavimento'],
-        ['MARGINE NETTO DEALER', _rng(m_low.margine_netto_dealer, m_high.margine_netto_dealer), label],
-    ]
-    return rows, status, breakeven
-
-
-def _header_margin_envelope(price_eu, band_low, band_high):
-    """S270 FIX-A — inviluppo margine VALIDO per l'header, status-aware.
-
-    L'header NON deve mostrare il range grezzo di margine (band_low..band_high):
-    a band_low il margine puo' cadere su una regione che il verdetto STESSO
-    rifiuta (sotto il pavimento dealer) -> falso-PASS un layer su'.
-
-    Regola UNICA (geometrica, copre i 3 stati): il bound inferiore = margine al
-    prezzo IT realizzato MINIMO VALIDO = max(band_low, breakeven).
-      PASS         (band_low >= breakeven): bound_inf = margine a band_low.
-      CONDIZIONATO (band_low < breakeven <= band_high): bound_inf = margine a breakeven.
-      REJECT       (breakeven > band_high, regione valida vuota): 'n.d.' — MAI un range.
-
-    Ritorna (disp, bound_inf, status, breakeven). disp e' la stringa header
-    (es. "4.284-7.039 (se prezzo IT >= 35.699)" per il caso CONDIZIONATO).
-    """
-    from tools.margin_gate import evaluate_margin
-    m_low, m_high, breakeven, status, _lbl = _band_verdict(price_eu, band_low, band_high)
-
-    def _f(n):
-        return f"{int(round(n)):,}".replace(",", ".")
-
-    if status == "REJECT":
-        # Banda interamente sotto il pavimento: nessuna regione valida.
-        return "n.d.", None, status, breakeven
-    if status == "PASS":
-        bound_inf = m_low.margine_netto_dealer  # band_low gia' >= breakeven
-        disp = f"{_f(bound_inf)}-{_f(m_high.margine_netto_dealer)}"
-    else:  # CONDIZIONATO — bound inferiore al break-even, non a band_low
-        bound_inf = evaluate_margin(float(price_eu), float(breakeven)).margine_netto_dealer
-        disp = (f"{_f(bound_inf)}-{_f(m_high.margine_netto_dealer)}"
-                f" (se prezzo IT >= {_f(breakeven)})")
-    return disp, bound_inf, status, breakeven
+    economics = raw.get("deal_economics") if isinstance(raw.get("deal_economics"), Mapping) else None
+    return VehicleData(
+        make=str(raw.get("make") or ND),
+        model=str(raw.get("model") or ND),
+        year=_safe_int(raw.get("year")) or 0,
+        km=_safe_int(raw.get("km", raw.get("mileage"))) or 0,
+        price_eu=_safe_int(raw.get("price_eur", raw.get("price_eu"))) or 0,
+        price_it_estimate=_safe_int(raw.get("price_it_estimate", market_median)),
+        confidence=_safe_float(raw.get("_cove_confidence", raw.get("confidence"))) or 0.0,
+        engine=str(raw.get("engine") or ND),
+        fuel_type=str(raw.get("fuel_type", raw.get("fuel")) or ND),
+        transmission=str(raw.get("transmission") or ND),
+        color=str(raw.get("color") or ND),
+        doors=_safe_int(raw.get("doors")),
+        vin=(str(raw.get("vin")).strip() if raw.get("vin") else None),
+        previous_owners=_safe_int(raw.get("previous_owners")),
+        listing_id=str(raw.get("listing_id") or ND),
+        market_ref_price=_safe_float(raw.get("market_ref_price")),
+        margin_decision=str(raw.get("_margin_decision") or (NO_VERDICT if no_verdict else NO_VERDICT)),
+        chiavi_in_mano=_safe_float(raw.get("_margin_chiavi_in_mano")),
+        spread_lordo=_safe_float(raw.get("_margin_spread_lordo")),
+        dealer_floor=_safe_float(raw.get("_margin_dealer_floor")),
+        surplus=_safe_float(raw.get("_margin_surplus")),
+        fee_argos=_safe_float(raw.get("_margin_fee_argos")),
+        margine_netto_dealer=_safe_float(raw.get("_margin_netto_dealer")),
+        margine_netto_pct=_safe_float(raw.get("_margin_netto_pct")),
+        it_median=market_median,
+        it_p25=_safe_float(dist.get("p25")),
+        it_p75=_safe_float(dist.get("p75")),
+        it_n=_safe_int(dist.get("n")),
+        it_source=(str(dist.get("source")) if dist.get("source") else None),
+        relaxation_level=_safe_int(dist.get("relaxation_level")),
+        no_verdict=no_verdict,
+        it_band_low=market_low,
+        it_band_high=market_high,
+        it_confidence=(str(dist.get("confidence")) if dist.get("confidence") else None),
+        it_width_nature=(str(dist.get("width_nature")) if dist.get("width_nature") else None),
+        it_n_by_level=(dict(dist.get("n_by_level")) if isinstance(dist.get("n_by_level"), Mapping) else None),
+        it_scrape_date=(str(dist.get("scrape_date")) if dist.get("scrape_date") else None),
+        it_is_floor=bool(dist.get("is_floor", False)),
+        it_n_priced=_safe_int(dist.get("n_priced")),
+        it_pages_scraped=_safe_int(dist.get("pages_scraped")),
+        it_terminated_by_empty=bool(dist.get("terminated_by_empty", False)),
+        country_code=str(raw.get("country") or ""),
+        fraud_doc_obtained=bool(raw.get("_fraud_doc_obtained", False)),
+        fallback_declared=bool(dist.get("fallback_declared", raw.get("_it_fallback_declared", False))),
+        deal_economics=economics,
+    )
 
 
 class ARGOSPDFGenerator:
-    """
-    Professional PDF Generator for ARGOS Automotive
-    Enterprise-grade vehicle dossiers with brand identity
-    """
+    """Minimal enterprise renderer: visual polish without semantic invention."""
 
-    # Asset paths
-    LOGO_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'ARGOS_logo_sobrio_horizontal.png')
-    BADGE_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'ARGOS_APPROVED_sobrio.png')
+    LOGO_PATH = _REPO_ROOT / "assets" / "ARGOS_logo_sobrio_horizontal.png"
 
-    def __init__(self):
-        # Brand palette — dark/gold/white
-        self.brand_black = HexColor('#1A1A1A')
-        self.brand_dark = HexColor('#2D2D2D')
-        self.brand_gold = HexColor('#C8A446')
-        self.brand_gold_light = HexColor('#E8D5A0')
-        self.brand_white = colors.white
-        self.brand_gray = HexColor('#9CA3AF')
-        self.brand_light_bg = HexColor('#F9F9F9')
-        self.success_green = HexColor('#059669')
-        self.text_dark = HexColor('#1F2937')
-        self.text_secondary = HexColor('#6B7280')
+    def __init__(self) -> None:
+        self.brand_black = HexColor("#1A1A1A") if REPORTLAB_AVAILABLE else None
+        self.brand_gold = HexColor("#C8A446") if REPORTLAB_AVAILABLE else None
+        self.brand_gray = HexColor("#6B7280") if REPORTLAB_AVAILABLE else None
+        self.brand_light = HexColor("#F5F5F5") if REPORTLAB_AVAILABLE else None
+        self.success = HexColor("#166534") if REPORTLAB_AVAILABLE else None
+        self.warning = HexColor("#92400E") if REPORTLAB_AVAILABLE else None
+        self.danger = HexColor("#991B1B") if REPORTLAB_AVAILABLE else None
+
+    def _require_reportlab(self) -> None:
+        if not REPORTLAB_AVAILABLE:
+            raise RuntimeError("reportlab is required; text fallback is intentionally disabled")
+
+    def _style(self, name: str, *, size: int = 9, bold: bool = False, color: Any = None, align: int = 0) -> Any:
+        return ParagraphStyle(
+            name,
+            fontName="Helvetica-Bold" if bold else "Helvetica",
+            fontSize=size,
+            leading=size + 3,
+            textColor=color or self.brand_black,
+            alignment=align,
+        )
+
+    def _section_title(self, text: str) -> Paragraph:
+        return Paragraph(text, self._style("section", size=12, bold=True, color=self.brand_black))
+
+    def _kv_table(self, rows: Sequence[tuple[str, Any]]) -> Table:
+        data = [[Paragraph(str(label), self._style("lbl", bold=True)), Paragraph(_display(value), self._style("val"))] for label, value in rows]
+        table = Table(data, colWidths=[55 * mm, 115 * mm], repeatRows=0)
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (0, -1), self.brand_light),
+                    ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
+        return table
+
+    def _safe_images(self, vehicle: VehicleData) -> List[str]:
+        if not vehicle.safe_images_verified:
+            return []
+        result: List[str] = []
+        for value in vehicle.local_image_paths:
+            path = Path(value)
+            if path.is_file() and path.stat().st_size > 0:
+                result.append(str(path))
+        return result
+
+    def _image_grid(self, paths: Sequence[str]) -> Optional[Table]:
+        if not paths:
+            return None
+        cells: List[Any] = []
+        for path in paths[:3]:
+            try:
+                cells.append(Image(path, width=54 * mm, height=36 * mm, kind="proportional"))
+            except Exception:
+                cells.append(Paragraph(ND, self._style("imgnd")))
+        table = Table([cells], colWidths=[56 * mm] * len(cells))
+        table.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
+        return table
+
+    def _status_banner(self, delivery_authorized: bool, readiness: Optional[Mapping[str, Any]]) -> Table:
+        ready = bool(readiness and readiness.get("ready"))
+        if delivery_authorized and ready:
+            text = "DEALER READY — S292 gate + dossier readiness satisfied"
+            bg = self.success
+        else:
+            text = "INTERNAL REVIEW — NOT DEALER READY"
+            bg = self.warning
+        table = Table([[Paragraph(text, self._style("status", size=10, bold=True, color=colors.white, align=1))]], colWidths=[170 * mm])
+        table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), bg), ("BOX", (0, 0), (-1, -1), 0.5, bg), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
+        return table
+
+    def _dimension_table(
+        self,
+        vehicle: VehicleData,
+        grade_data: Optional[Mapping[str, Any]],
+        economics: Optional[Mapping[str, Any]],
+        readiness: Optional[Mapping[str, Any]],
+    ) -> Table:
+        grade = str((grade_data or {}).get("grade") or NO_VERDICT).upper()
+        if grade not in _VALID_GRADES:
+            grade = NO_VERDICT
+        grade_score = (grade_data or {}).get("score") if grade != NO_VERDICT else None
+        econ = _verified_economics(economics)
+        market_conf = (econ or {}).get("market_confidence") if econ else None
+        rows = [
+            ["DIMENSIONE", "VALORE", "SEMANTICA"],
+            ["CoVe confidence", _pct(vehicle.confidence), "confidence verifica CoVe"],
+            ["ARGOS Vehicle Grade", f"{grade}" + (f" ({grade_score:.2f})" if isinstance(grade_score, (int, float)) else ""), "qualità/evidenza veicolo"],
+            ["Deal economics", (econ or {}).get("verdict", NO_VERDICT), "economica evidenziata, separata"],
+            ["Market confidence", _pct(market_conf), "confidenza riferimento mercato"],
+            ["Dossier readiness", _pct((readiness or {}).get("dossier_readiness")), "completezza dossier, separata"],
+        ]
+        table = Table(rows, colWidths=[45 * mm, 45 * mm, 80 * mm], repeatRows=1)
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), self.brand_black),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
+        return table
+
+    def _economics_table(self, economics: Optional[Mapping[str, Any]]) -> Table:
+        econ = _verified_economics(economics)
+        if not econ:
+            return self._kv_table(
+                [
+                    ("Verdetto", NO_VERDICT),
+                    ("Motivo", "economica completa e provenienza non disponibili"),
+                ]
+            )
+        costs = econ.get("costs_eur") if isinstance(econ.get("costs_eur"), Mapping) else {}
+        rows: List[tuple[str, Any]] = [
+            ("Verdetto", econ["verdict"]),
+            ("Acquisto", _eur(econ.get("acquisition_eur"))),
+            ("Riferimento mercato", _eur(econ.get("market_reference_eur"))),
+        ]
+        for name, amount in sorted(costs.items()):
+            rows.append((f"Costo — {name}", _eur(amount)))
+        rows.extend(
+            [
+                ("Costi totali", _eur(econ.get("total_costs_eur"))),
+                ("Margine netto", _eur(econ.get("net_margin_eur"))),
+                ("Soglia dichiarata", _eur(econ.get("min_margin_eur"))),
+                ("Fonte", econ.get("source")),
+                ("Evidence ID", econ.get("evidence_id")),
+            ]
+        )
+        return self._kv_table(rows)
+
+    def _market_distribution_table(self, vehicle: VehicleData) -> Table:
+        if vehicle.no_verdict or vehicle.it_band_low is None or vehicle.it_band_high is None:
+            return self._kv_table(
+                [
+                    ("Stato", NO_VERDICT),
+                    ("Campione comparabili", vehicle.it_n if vehicle.it_n is not None else ND),
+                    ("Nota", "campione insufficiente o banda non disponibile; nessuna stima sostitutiva emessa"),
+                ]
+            )
+        return self._kv_table(
+            [
+                ("Banda mercato IT", f"{_eur(vehicle.it_band_low)} – {_eur(vehicle.it_band_high)}"),
+                ("Mediana", _eur(vehicle.it_median)),
+                ("N comparabili", vehicle.it_n if vehicle.it_n is not None else ND),
+                ("Livello rilassamento", vehicle.relaxation_level if vehicle.relaxation_level is not None else ND),
+                ("Confidence", vehicle.it_confidence or ND),
+                ("Natura ampiezza", vehicle.it_width_nature or ND),
+                ("Data fotografia", vehicle.it_scrape_date or ND),
+                ("Fallback configurazione", "sì" if vehicle.fallback_declared else "no"),
+            ]
+        )
+
+    def _legacy_margin_table(self, vehicle: VehicleData) -> Table:
+        values = {
+            "Costo chiavi in mano": vehicle.chiavi_in_mano,
+            "Spread lordo": vehicle.spread_lordo,
+            "Pavimento dealer": vehicle.dealer_floor,
+            "Surplus": vehicle.surplus,
+            "Fee ARGOS": vehicle.fee_argos,
+            "Margine netto dealer": vehicle.margine_netto_dealer,
+        }
+        if vehicle.margin_decision == NO_VERDICT or not any(_safe_float(v) is not None for v in values.values()):
+            return self._kv_table(
+                [
+                    ("Verdetto legacy margin gate", NO_VERDICT),
+                    ("Nota", "nessun valore mancante viene ricostruito dal renderer"),
+                ]
+            )
+        return self._kv_table(
+            [("Verdetto margin gate", vehicle.margin_decision)]
+            + [(label, _eur(value)) for label, value in values.items()]
+            + [("Margine netto %", _pct(vehicle.margine_netto_pct))]
+        )
 
     def generate_vehicle_sheet(
         self,
@@ -397,1165 +623,341 @@ class ARGOSPDFGenerator:
         output_path: str,
         grade_data: Optional[dict] = None,
         source_dossier: Optional[dict] = None,
+        *,
+        economics: Optional[Mapping[str, Any]] = None,
+        readiness: Optional[Mapping[str, Any]] = None,
+        delivery_authorized: bool = False,
     ) -> str:
-        # C-GATE-FONTE-001: source_dossier è renderizzato SOLO se passato esplicitamente.
-        # Il path dealer standard non lo passa mai → la fonte non può mai trapelare nel
-        # PDF preview. Unico caller legittimo: release_source_dossier() post-pagamento.
-        if not REPORTLAB_AVAILABLE:
-            return self._generate_fallback_text_report(vehicle, dealer, output_path)
-
+        self._require_reportlab()
+        output = Path(output_path)
+        output.parent.mkdir(parents=True, exist_ok=True)
         doc = SimpleDocTemplate(
-            output_path,
+            str(output),
             pagesize=A4,
-            rightMargin=15*mm,
-            leftMargin=15*mm,
-            topMargin=12*mm,
-            bottomMargin=15*mm
+            rightMargin=18 * mm,
+            leftMargin=18 * mm,
+            topMargin=15 * mm,
+            bottomMargin=15 * mm,
+            title=f"ARGOS dossier {vehicle.make} {vehicle.model}",
         )
 
-        story = []
-
-        # Logo header banner (with ARGOS GRADE if available)
-        story.append(self._create_logo_header(vehicle, dealer, grade_data=grade_data))
-        story.append(Spacer(1, 6*mm))
-
-        # Gold separator line
-        story.append(self._gold_line())
-        story.append(Spacer(1, 6*mm))
-
-        # Vehicle hero images (top 3 on cover page)
-        if vehicle.local_image_paths:
-            valid_imgs = [p for p in vehicle.local_image_paths if os.path.exists(p) and os.path.getsize(p) > 30000]
-            if valid_imgs:
-                hero_table = self._create_image_row(valid_imgs[:3])
-                if hero_table:
-                    story.append(hero_table)
-                    story.append(Spacer(1, 5*mm))
-
-        # Executive summary — key numbers (V2: uses grade_data for market price)
-        story.append(self._create_executive_summary(vehicle, grade_data=grade_data))
-        story.append(Spacer(1, 6*mm))
-
-        story.append(self._create_fraud_leva_section(vehicle))
-        story.append(Spacer(1, 6*mm))
-
-        # C-GATE-FONTE-001: sezione fonte veicolo (venditore/URL/contatti) renderizzata
-        # SOLO post-pagamento, quando release_source_dossier passa source_dossier.
-        if source_dossier:
-            story.append(self._create_source_section(source_dossier))
-            story.append(Spacer(1, 6*mm))
-
-        # Two-column: Vehicle details + Scoring side by side
-        story.append(self._create_details_and_scoring(vehicle, grade_data=grade_data))
-        story.append(Spacer(1, 6*mm))
-
-        # 7 Criteri ARGOS Premium Verified (V2 new section)
-        if grade_data:
-            story.append(self._create_7_criteri_section(vehicle, grade_data))
-            story.append(Spacer(1, 6*mm))
-
-        # Financial analysis (V2: includes ARGOS fee)
-        story.append(self._create_financial_analysis_v2(vehicle, grade_data=grade_data))
-        story.append(Spacer(1, 6*mm))
-
-        # S257: verdetto gate margine + distribuzione mercato IT (numeri reali)
-        if vehicle.margin_decision:
-            story.append(self._create_margin_verdict_section(vehicle))
-            story.append(Spacer(1, 6*mm))
-        if vehicle.it_median:
-            story.append(self._create_it_distribution_section(vehicle))
-            story.append(Spacer(1, 6*mm))
-
-        # Intelligence + Verification combined
-        if vehicle.opportunity_score > 0:
-            story.append(self._create_opportunity_intelligence(vehicle))
-            story.append(Spacer(1, 6*mm))
-
-        story.append(self._create_verification_section(vehicle, grade_data=grade_data))
-        story.append(Spacer(1, 6*mm))
-
-        # Gold separator + Footer
-        story.append(self._gold_line())
-        story.append(Spacer(1, 3*mm))
-        story.append(self._create_footer(dealer))
-
-        # ── Photo Gallery pages (all HD photos, 2x3 grid per page) ──────────
-        if vehicle.local_image_paths:
-            valid_imgs = [p for p in vehicle.local_image_paths if os.path.exists(p) and os.path.getsize(p) > 30000]
-            if len(valid_imgs) >= 1:  # Add gallery for any available photos
-                gallery = self._create_photo_gallery(valid_imgs, vehicle, dealer)
-                story.extend(gallery)
-
-        doc.build(story)
-        return output_path
-
-    def _gold_line(self):
-        """Create a gold horizontal separator line"""
-        line_data = [['', '']]
-        line_table = Table(line_data, colWidths=[180*mm, 0])
-        line_table.setStyle(TableStyle([
-            ('LINEABOVE', (0, 0), (0, 0), 1.5, self.brand_gold),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ]))
-        return line_table
-
-    def _create_image_row(self, image_paths: List[str]) -> Optional[Table]:
-        """Create a row of vehicle images for the PDF."""
-        if not REPORTLAB_AVAILABLE:
-            return None
-
-        valid_paths = [p for p in image_paths if os.path.exists(p) and os.path.getsize(p) > 30000]
-        if not valid_paths:
-            return None
-
-        # Calculate image dimensions to fit page width
-        page_width = A4[0] - 40*mm  # ~170mm usable
-        n_images = len(valid_paths)
-        img_width = (page_width - (n_images - 1) * 3*mm) / n_images
-        img_height = img_width * 0.65  # ~3:2 aspect ratio
-
-        cells = []
-        for path in valid_paths:
+        story: List[Any] = []
+        if self.LOGO_PATH.is_file():
             try:
-                img = Image(path, width=img_width, height=img_height)
-                img.hAlign = 'CENTER'
-                cells.append(img)
+                story.append(Image(str(self.LOGO_PATH), width=62 * mm, height=16 * mm, kind="proportional"))
             except Exception:
-                cells.append('')
+                pass
+        story.append(Paragraph("DOSSIER VEICOLO", self._style("title", size=20, bold=True)))
+        story.append(Paragraph(f"Preparato per: <b>{dealer.name}</b> — {dealer.company}", self._style("dealer", size=10, color=self.brand_gray)))
+        story.append(Spacer(1, 4 * mm))
+        story.append(self._status_banner(delivery_authorized, readiness))
+        story.append(Spacer(1, 5 * mm))
 
-        if not cells:
-            return None
+        safe_images = self._safe_images(vehicle)
+        grid = self._image_grid(safe_images)
+        if grid is not None:
+            story.append(grid)
+            story.append(Spacer(1, 5 * mm))
 
-        col_widths = [img_width + 1*mm] * len(cells)
-        tbl = Table([cells], colWidths=col_widths)
-        tbl.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 1),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 1),
-        ]))
-        return tbl
-
-    def _create_photo_gallery(self, image_paths: List[str], vehicle: VehicleData, dealer) -> list:
-        """Create multi-page photo gallery with 2x3 grid (6 photos per page)."""
-        from reportlab.platypus import PageBreak
-
-        elements = []
-        cols = 2
-        rows_per_page = 3
-        per_page = cols * rows_per_page
-
-        page_width = A4[0] - 30*mm  # usable width
-        page_height = A4[1] - 50*mm  # usable height (leave room for header/footer)
-        img_width = (page_width - 5*mm) / cols
-        img_height = (page_height - 30*mm) / rows_per_page  # leave room for title
-
-        for page_idx in range(0, len(image_paths), per_page):
-            page_imgs = image_paths[page_idx:page_idx + per_page]
-
-            elements.append(PageBreak())
-
-            # Gallery page header
-            title_style = ParagraphStyle('GalleryTitle', fontSize=11, fontName='Helvetica-Bold',
-                                          textColor=self.brand_black, leading=14)
-            page_num = page_idx // per_page + 1
-            total_pages = (len(image_paths) + per_page - 1) // per_page
-            elements.append(Paragraph(
-                f"<font color='#1A1A1A'><b>ARGOS</b></font>"
-                f"<font color='#C8A446'> AUTOMOTIVE</font>"
-                f" — Galleria Fotografica {vehicle.make} {vehicle.model} {vehicle.year}"
-                f" ({page_num}/{total_pages})",
-                title_style
-            ))
-            elements.append(Spacer(1, 2*mm))
-            elements.append(self._gold_line())
-            elements.append(Spacer(1, 4*mm))
-
-            # Build 2-column grid rows
-            grid_rows = []
-            for row_idx in range(0, len(page_imgs), cols):
-                row_imgs = page_imgs[row_idx:row_idx + cols]
-                cells = []
-                for path in row_imgs:
-                    try:
-                        img = Image(path, width=img_width, height=img_height)
-                        img.hAlign = 'CENTER'
-                        cells.append(img)
-                    except Exception:
-                        cells.append('')
-                # Pad incomplete row
-                while len(cells) < cols:
-                    cells.append('')
-                grid_rows.append(cells)
-
-            if grid_rows:
-                col_widths = [img_width + 2*mm] * cols
-                row_heights = [img_height + 3*mm] * len(grid_rows)
-                tbl = Table(grid_rows, colWidths=col_widths, rowHeights=row_heights)
-                tbl.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 1),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 1),
-                    ('TOPPADDING', (0, 0), (-1, -1), 1),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
-                ]))
-                elements.append(tbl)
-
-        return elements
-
-    def _create_logo_header(self, vehicle: VehicleData, dealer: DealerInfo, grade_data: Optional[dict] = None) -> Table:
-        """Clean header: ARGOS text brand + GRADE badge + vehicle + watermark"""
-
-        # Left: ARGOS brand text (no image dependency — always renders clean)
-        brand_style = ParagraphStyle('BrandLeft', fontSize=14, fontName='Helvetica-Bold',
-                                      textColor=self.brand_black, leading=16)
-        brand_cell = Paragraph(
-            "<font color='#1A1A1A'><b>ARGOS</b></font>"
-            "<font color='#C8A446'> AUTOMOTIVE</font>",
-            brand_style
+        story.append(self._section_title("Dati veicolo"))
+        story.append(Spacer(1, 2 * mm))
+        story.append(
+            self._kv_table(
+                [
+                    ("Veicolo", f"{_display(vehicle.make)} {_display(vehicle.model)}"),
+                    ("Anno", vehicle.year if vehicle.year > 0 else ND),
+                    ("Chilometraggio", f"{vehicle.km:,} km".replace(",", ".") if vehicle.km >= 0 else ND),
+                    ("Prezzo acquisizione osservato", _eur(vehicle.price_eu)),
+                    ("Carburante", vehicle.fuel_type),
+                    ("Cambio", vehicle.transmission),
+                    ("Colore", vehicle.color),
+                    ("Motore", vehicle.engine),
+                    ("Porte", vehicle.doors if vehicle.doors is not None else ND),
+                    ("VIN", vehicle.vin or ND),
+                    ("Prima immatricolazione", vehicle.first_registration or ND),
+                    ("Ultimo service", vehicle.last_service or ND),
+                    ("Proprietari precedenti", vehicle.previous_owners if vehicle.previous_owners is not None else ND),
+                ]
+            )
         )
+        story.append(Spacer(1, 5 * mm))
 
-        # Center: ARGOS GRADE badge
-        if grade_data and 'grade' in grade_data:
-            grade_cell = self._build_grade_badge(grade_data['grade'])
-        else:
-            grade_cell = Paragraph('', ParagraphStyle('Empty', fontSize=8))
+        story.append(self._section_title("Dimensioni ARGOS — separate"))
+        story.append(Spacer(1, 2 * mm))
+        effective_econ = economics or vehicle.deal_economics
+        story.append(self._dimension_table(vehicle, grade_data, effective_econ, readiness))
+        story.append(Spacer(1, 5 * mm))
 
-        # Right: vehicle title + watermark
-        title_style = ParagraphStyle('TitleRight', fontSize=10, fontName='Helvetica-Bold',
-                                      textColor=self.text_dark, alignment=2, leading=13)
-        right_text = Paragraph(
-            f"<b>{vehicle.make} {vehicle.model} {vehicle.year}</b><br/>"
-            f"<font size='7' color='#C8A446'>Riservato per {dealer.name}</font>",
-            title_style
+        story.append(self._section_title("Deal economics"))
+        story.append(Spacer(1, 2 * mm))
+        story.append(self._economics_table(effective_econ))
+        story.append(Spacer(1, 5 * mm))
+
+        story.append(self._section_title("Mercato Italia — evidenza disponibile"))
+        story.append(Spacer(1, 2 * mm))
+        story.append(self._market_distribution_table(vehicle))
+        story.append(Spacer(1, 5 * mm))
+
+        if vehicle.margin_decision != NO_VERDICT or any(
+            value is not None for value in (
+                vehicle.chiavi_in_mano,
+                vehicle.spread_lordo,
+                vehicle.dealer_floor,
+                vehicle.fee_argos,
+                vehicle.margine_netto_dealer,
+            )
+        ):
+            story.append(self._section_title("Margin gate — valori ricevuti"))
+            story.append(Spacer(1, 2 * mm))
+            story.append(self._legacy_margin_table(vehicle))
+            story.append(Spacer(1, 5 * mm))
+
+        if grade_data:
+            story.append(self._section_title("ARGOS Vehicle Grade — evidenza"))
+            story.append(Spacer(1, 2 * mm))
+            story.append(
+                self._kv_table(
+                    [
+                        ("Grade", grade_data.get("grade", NO_VERDICT)),
+                        ("Score", grade_data.get("score", ND)),
+                        ("Evidence coverage", _pct(grade_data.get("evidence_coverage"))),
+                        ("Evidenze mancanti", ", ".join(grade_data.get("missing_evidence", [])) or "nessuna"),
+                        ("Blocchi", ", ".join(grade_data.get("blocking_reasons", [])) or "nessuno"),
+                    ]
+                )
+            )
+            story.append(Spacer(1, 5 * mm))
+
+        if readiness:
+            story.append(self._section_title("Dossier readiness"))
+            story.append(Spacer(1, 2 * mm))
+            story.append(
+                self._kv_table(
+                    [
+                        ("Livello", readiness.get("level", ND)),
+                        ("Readiness", _pct(readiness.get("dossier_readiness"))),
+                        ("Dealer-ready", readiness.get("ready", False)),
+                        ("Mandatory mancanti", ", ".join(readiness.get("missing_mandatory", [])) or "nessuno"),
+                        ("Important mancanti", ", ".join(readiness.get("missing_important", [])) or "nessuno"),
+                        ("Prossima azione", readiness.get("next_action", ND)),
+                    ]
+                )
+            )
+            story.append(Spacer(1, 5 * mm))
+
+        # Source is an explicit release-layer payload only. Internal vehicle
+        # source fields are never rendered into the pre-payment dealer dossier.
+        if source_dossier:
+            story.append(self._section_title("Fonte veicolo — release autorizzata"))
+            story.append(Spacer(1, 2 * mm))
+            story.append(
+                self._kv_table(
+                    [
+                        ("Venditore", source_dossier.get("seller_name", ND)),
+                        ("URL", source_dossier.get("url", ND)),
+                        ("Telefono", source_dossier.get("phone", ND)),
+                        ("Email", source_dossier.get("email", ND)),
+                    ]
+                )
+            )
+            story.append(Spacer(1, 5 * mm))
+
+        if len(safe_images) > 3:
+            story.append(PageBreak())
+            story.append(self._section_title("Galleria immagini sanificate"))
+            story.append(Spacer(1, 3 * mm))
+            for start in range(3, len(safe_images), 3):
+                grid = self._image_grid(safe_images[start : start + 3])
+                if grid is not None:
+                    story.append(grid)
+                    story.append(Spacer(1, 4 * mm))
+
+        generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        story.append(Spacer(1, 5 * mm))
+        story.append(
+            Paragraph(
+                f"ARGOS Automotive — generato {generated}. I campi n/d non sono stati inferiti. "
+                "Questo dossier non sostituisce documenti del venditore o verifiche legali/fiscali.",
+                self._style("footer", size=7, color=self.brand_gray),
+            )
         )
+        doc.build(story)
+        return str(output.resolve())
+
+
+def _build_vehicle_from_db(listing_id: str, db_path: str) -> tuple[VehicleData, Dict[str, Any], Dict[str, Any]]:
+    import duckdb
+
+    con = duckdb.connect(db_path, read_only=True)
+    try:
+        cove = _fetch_row(con, "cove_results", listing_id)
+        listing = _fetch_row(con, "vehicle_listings", listing_id)
+    finally:
+        con.close()
+    if not cove:
+        raise ValueError(f"listing {listing_id!r} not found in cove_results")
+
+    merged = {**cove, **listing}
+    price = _safe_int(merged.get("price_eu", cove.get("price")))
+    km = _safe_int(merged.get("mileage", cove.get("km")))
+    year = _safe_int(merged.get("year"))
+    if price is None or km is None or year is None:
+        raise ValueError("listing is missing required observed price/km/year")
+
+    vehicle = VehicleData(
+        make=str(merged.get("make") or ND),
+        model=str(merged.get("model") or ND),
+        year=year,
+        km=km,
+        price_eu=price,
+        price_it_estimate=None,
+        confidence=_safe_float(cove.get("confidence")) or 0.0,
+        engine=str(merged.get("engine") or ND),
+        fuel_type=str(merged.get("fuel_type") or ND),
+        transmission=str(merged.get("transmission") or ND),
+        color=str(merged.get("color") or ND),
+        doors=_safe_int(merged.get("doors")),
+        vin=(str(merged.get("vin")).strip() if merged.get("vin") else None),
+        first_registration=(str(merged.get("first_registration")) if merged.get("first_registration") else None),
+        last_service=(str(merged.get("last_service")) if merged.get("last_service") else None),
+        previous_owners=_safe_int(merged.get("previous_owners")),
+        cove_status=str(cove.get("recommendation") or ND),
+        listing_id=listing_id,
+    )
+    return vehicle, cove, listing
+
+
+def _sanitize_listing_images(listing_id: str, db_path: str, output_dir: str) -> List[str]:
+    """Use the C0 batch sanitizer. Failure yields text-only dossier, never RAW."""
+    try:
+        from src.cove.image_sanitizer import sanitize_all_images
+        safe_dir = str(Path(output_dir).resolve() / "safe_images")
+        result = sanitize_all_images(listing_id, db_path=db_path, output_dir=safe_dir)
+    except Exception:
+        return []
+    safe: List[str] = []
+    for value in result or []:
+        if not value or value == SENTINEL_SKIP_PROMO:
+            continue
+        path = Path(value)
+        if path.is_file() and path.stat().st_size > 0:
+            safe.append(str(path))
+    return safe
+
+
+def generate_dossier_from_db(
+    listing_id: str,
+    dealer_name: str,
+    output_dir: str,
+    db_path: Optional[str] = None,
+    *,
+    demand_evidence: Optional[DemandEvidence] = None,
+    economics: Optional[Mapping[str, Any]] = None,
+    dealer_delivery: bool = False,
+    dealer_company: Optional[str] = None,
+    dealer_city: str = ND,
+) -> str:
+    """Generate a DB-backed review or dealer-delivery dossier.
+
+    ``dealer_delivery=True`` is fail-closed and requires both S292 listing
+    authorization and ``check_dossier_readiness(...).ready``.  Review mode may
+    be generated for engineering/internal work but is visibly marked as such.
+    """
+    db_path = db_path or str(_REPO_ROOT / "src" / "cove" / "data" / "cove_tracker.duckdb")
+    if not Path(db_path).is_file():
+        raise FileNotFoundError(f"DB not found: {db_path}")
+
+    vehicle, _, _ = _build_vehicle_from_db(listing_id, db_path)
+
+    from src.cove.argos_grade import compute_argos_grade
+    from src.cove.dossier_standard import check_dossier_readiness
+
+    grade_data = compute_argos_grade(listing_id, db_path=db_path)
+    readiness = check_dossier_readiness(
+        listing_id,
+        db_path=db_path,
+        demand_evidence=demand_evidence,
+        economics=economics,
+        vehicle_grade=grade_data,
+    )
+    readiness_data = readiness.as_dict()
+
+    if dealer_delivery:
+        require_listing_authorization(demand_evidence, listing_id)
+        if not readiness.ready:
+            raise PermissionError(
+                "DOSSIER_GATE: dealer delivery blocked; "
+                f"mandatory={readiness.missing_mandatory}; important={readiness.missing_important}"
+            )
+
+    vehicle.local_image_paths = _sanitize_listing_images(listing_id, db_path, output_dir)
+    vehicle.safe_images_verified = bool(vehicle.local_image_paths)
+    vehicle.deal_economics = economics
+
+    safe_dealer = re.sub(r"[^A-Za-z0-9._-]+", "_", dealer_name).strip("_") or "Dealer"
+    short_id = re.sub(r"[^A-Za-z0-9_-]+", "_", listing_id)[-16:]
+    filename = f"ARGOS_{vehicle.make}_{vehicle.model}_{vehicle.year}_{safe_dealer}_{short_id}.pdf"
+    output_path = str(Path(output_dir).resolve() / filename)
+    dealer = DealerInfo(
+        name=dealer_name,
+        company=dealer_company or dealer_name,
+        city=dealer_city,
+    )
+    return ARGOSPDFGenerator().generate_vehicle_sheet(
+        vehicle,
+        dealer,
+        output_path,
+        grade_data=grade_data,
+        economics=economics,
+        readiness=readiness_data,
+        delivery_authorized=dealer_delivery,
+    )
+
+
+def generate_dossier_from_data(
+    data_json: str,
+    dealer_name: str,
+    output_path: str,
+    *,
+    grade_data: Optional[Mapping[str, Any]] = None,
+    economics: Optional[Mapping[str, Any]] = None,
+) -> str:
+    """Render a deterministic internal-review dossier from supplied JSON.
+
+    Historical S268/S296 fixture drivers use this function.  It never marks the
+    artifact dealer-ready because a free-form JSON blob is not S292 evidence.
+    """
+    payload = json.loads(data_json)
+    if not isinstance(payload, Mapping):
+        raise ValueError("data JSON must be an object")
+    vehicles = payload.get("vehicles")
+    if isinstance(vehicles, list) and vehicles:
+        raw = vehicles[0]
+    else:
+        raw = payload
+    if not isinstance(raw, Mapping):
+        raise ValueError("vehicle payload must be an object")
+    vehicle = _vehicle_from_mapping(raw)
+    effective_econ = economics or vehicle.deal_economics
+    review = {
+        "level": "REVIEW",
+        "ready": False,
+        "dossier_readiness": None,
+        "missing_mandatory": ["s292_delivery_gate_not_evaluated"],
+        "missing_important": [],
+        "next_action": "Use generate_dossier_from_db(..., dealer_delivery=True) for dealer delivery",
+    }
+    dealer = DealerInfo(name=dealer_name, company=dealer_name, city=ND)
+    return ARGOSPDFGenerator().generate_vehicle_sheet(
+        vehicle,
+        dealer,
+        output_path,
+        grade_data=dict(grade_data or {}),
+        economics=effective_econ,
+        readiness=review,
+        delivery_authorized=False,
+    )
 
-        header_table = Table([[brand_cell, grade_cell, right_text]],
-                             colWidths=[60*mm, 28*mm, 92*mm])
-        header_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ]))
-        return header_table
-
-    def _build_grade_badge(self, grade_letter: str) -> Table:
-        """Build a prominent ARGOS GRADE letter badge cell."""
-        grade_colors = {
-            'A': HexColor('#059669'),   # green
-            'B': HexColor('#10B981'),   # light green
-            'C': HexColor('#C8A446'),   # gold
-            'D': HexColor('#F59E0B'),   # amber
-            'E': HexColor('#EF4444'),   # red
-        }
-        grade_color = grade_colors.get(grade_letter, self.brand_gold)
-
-        badge_data = [
-            [Paragraph(f"<b>{grade_letter}</b>",
-                       ParagraphStyle('GradeLetter', fontSize=20, fontName='Helvetica-Bold',
-                                      textColor=colors.white, alignment=1, leading=22))],
-            [Paragraph("ARGOS GRADE",
-                       ParagraphStyle('GradeLabel', fontSize=5.5, fontName='Helvetica-Bold',
-                                      textColor=colors.white, alignment=1, leading=7))],
-        ]
-        badge_table = Table(badge_data, colWidths=[22*mm], rowHeights=[8*mm, 4*mm])
-        badge_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), grade_color),
-            ('TOPPADDING', (0, 0), (0, 0), 2),
-            ('BOTTOMPADDING', (0, 0), (0, 0), 0),
-            ('TOPPADDING', (0, 1), (0, 1), 0),
-            ('BOTTOMPADDING', (0, 1), (0, 1), 2),
-            ('LEFTPADDING', (0, 0), (-1, -1), 2),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (0, 0), 'BOTTOM'),
-            ('VALIGN', (0, 1), (0, 1), 'TOP'),
-            ('BOX', (0, 0), (-1, -1), 1.5, colors.white),
-        ]))
-        return badge_table
-
-    def _create_executive_summary(self, vehicle: VehicleData, grade_data: Optional[dict] = None) -> Table:
-        """Key numbers in a clean dark box"""
-        score = grade_data.get('score', vehicle.confidence) if grade_data else vehicle.confidence
-        score_display = int(score * 100) if score <= 1.0 else int(score)
-
-        # Grade badge in summary box — use dynamic grade, not static image
-        grade_letter = grade_data.get('grade', '') if grade_data else ''
-        if grade_letter:
-            badge_cell = self._build_grade_badge(grade_letter)
-        else:
-            badge_cell = ''
-
-        # Format prices with dot separator (Italian convention) for readability
-        def _fmt(n):
-            return f"{int(round(n)):,}".replace(",", ".")
-
-        # S269: header coerente con la banda — niente mediana puntuale, niente
-        # fee flat 900, niente margine singolo. Mercato = banda; margine =
-        # intervallo. CoVe = "Qualita' auto" (asse AUTO), separato dall'affare.
-        if (vehicle.it_band_low is not None and vehicle.it_band_high is not None
-                and not vehicle.no_verdict):
-            market_disp = f'{_fmt(vehicle.it_band_low)}-{_fmt(vehicle.it_band_high)}'
-            # S270 FIX-A: inviluppo VALIDO (no range grezzo che il verdetto rifiuta).
-            margin_disp, _b_inf, _h_st, _h_be = _header_margin_envelope(
-                vehicle.price_eu, vehicle.it_band_low, vehicle.it_band_high)
-        else:
-            market_disp = 'n.d.'
-            margin_disp = 'n.d.'
-
-        # Il margine puo' portare la condizione "(se prezzo IT >= ...)": wrap in
-        # Paragraph cosi' va a capo invece di traboccare/clippare nella cella.
-        margin_cell = Paragraph(margin_disp, ParagraphStyle(
-            'hdr_margin', fontName='Helvetica-Bold', fontSize=9, leading=10,
-            textColor=self.brand_gold, alignment=1))
-
-        summary_data = [
-            [badge_cell,
-             f'{_fmt(vehicle.price_eu)}',
-             market_disp,
-             margin_cell,
-             f'{score_display}/100'],
-            ['',
-             'Prezzo EU',
-             'Banda mercato IT',
-             'Margine dealer (banda)',
-             'Qualita auto'],
-        ]
-
-        summary_table = Table(summary_data, colWidths=[24*mm, 38*mm, 38*mm, 38*mm, 32*mm])
-        summary_table.setStyle(TableStyle([
-            # Dark background
-            ('BACKGROUND', (0, 0), (-1, -1), self.brand_black),
-            # Numbers row — white bold, font reduced to avoid overlap
-            ('TEXTCOLOR', (1, 0), (-1, 0), self.brand_white),
-            ('FONTNAME', (1, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (1, 0), (-1, 0), 9),
-            ('ALIGN', (1, 0), (-1, 0), 'CENTER'),
-            # Gold for margin
-            ('TEXTCOLOR', (3, 0), (3, 0), self.brand_gold),
-            # Labels row — small gold
-            ('TEXTCOLOR', (1, 1), (-1, 1), self.brand_gold),
-            ('FONTNAME', (1, 1), (-1, 1), 'Helvetica'),
-            ('FONTSIZE', (1, 1), (-1, 1), 8),
-            ('ALIGN', (1, 1), (-1, 1), 'CENTER'),
-            # Badge spans 2 rows
-            ('SPAN', (0, 0), (0, 1)),
-            ('ALIGN', (0, 0), (0, 0), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            # Padding
-            ('TOPPADDING', (0, 0), (-1, 0), 8),
-            ('BOTTOMPADDING', (0, 1), (-1, 1), 8),
-            ('LEFTPADDING', (0, 0), (-1, -1), 4),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-            # Subtle gold borders between columns
-            ('LINEBEFORE', (2, 0), (2, 1), 0.5, self.brand_gold),
-            ('LINEBEFORE', (3, 0), (3, 1), 0.5, self.brand_gold),
-            ('LINEBEFORE', (4, 0), (4, 1), 0.5, self.brand_gold),
-            # Rounded corners effect via box
-            ('BOX', (0, 0), (-1, -1), 1, self.brand_gold),
-        ]))
-        return summary_table
-
-    def _create_details_and_scoring(self, vehicle: VehicleData, grade_data: Optional[dict] = None) -> Table:
-        """Two-column layout: vehicle details left, scoring right"""
-        # LEFT: Vehicle details
-        details_rows = [
-            ['Marca', vehicle.make],
-            ['Modello', vehicle.model],
-            ['Anno', str(vehicle.year)],
-            ['Chilometraggio', f'{vehicle.km:,} km'],
-            ['Carburante', vehicle.fuel_type],
-            ['Cambio', vehicle.transmission],
-        ]
-        if vehicle.color and vehicle.color not in ('Sconosciuto', 'N/A', ''):
-            details_rows.append(['Colore', vehicle.color])
-        if vehicle.vin:
-            details_rows.append(['VIN', vehicle.vin])
-        if vehicle.previous_owners and vehicle.previous_owners > 0:
-            details_rows.append(['Proprietari', str(vehicle.previous_owners)])
-
-        details_data = [['DETTAGLI VEICOLO', '']] + details_rows
-        details_table = Table(details_data, colWidths=[32*mm, 48*mm])
-        details_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
-            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (1, 1), (1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
-            ('TEXTCOLOR', (1, 1), (1, -1), self.text_dark),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
-            ('LINEBELOW', (0, 1), (-1, -1), 0.3, HexColor('#E5E7EB')),
-        ]))
-
-        # RIGHT: Scoring
-        scoring_rows = [
-            ['Chilometraggio', f'{vehicle.km_score}', self._get_score_assessment(vehicle.km_score)],
-            ['Prezzo', f'{vehicle.price_score}', self._get_score_assessment(vehicle.price_score)],
-            ['Eta Veicolo', f'{vehicle.age_score}', self._get_score_assessment(vehicle.age_score)],
-            ['Documentazione', f'{vehicle.history_score}', self._get_score_assessment(vehicle.history_score)],
-            ['TOTALE', f'{int((grade_data.get("score", vehicle.confidence) if grade_data else vehicle.confidence) * 100)}', 'CERTIFICATO'],
-        ]
-        scoring_data = [['ANALISI ARGOS', '', '']] + scoring_rows
-        scoring_table = Table(scoring_data, colWidths=[32*mm, 16*mm, 32*mm])
-        scoring_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
-            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
-            ('TEXTCOLOR', (1, 1), (1, -1), self.text_dark),
-            ('FONTNAME', (1, 1), (1, -1), 'Helvetica-Bold'),
-            ('TEXTCOLOR', (2, 1), (2, -1), self.success_green),
-            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-            ('ALIGN', (2, 0), (2, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
-            ('LINEBELOW', (0, 1), (-1, -2), 0.3, HexColor('#E5E7EB')),
-            # Total row highlighted
-            ('BACKGROUND', (0, -1), (-1, -1), self.brand_black),
-            ('TEXTCOLOR', (0, -1), (-1, -1), self.brand_gold),
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ]))
-
-        # Combine side by side
-        wrapper = Table([[details_table, Spacer(5*mm, 1), scoring_table]],
-                        colWidths=[80*mm, 5*mm, 80*mm])
-        wrapper.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ]))
-        return wrapper
-
-    def _create_7_criteri_section(self, vehicle: VehicleData, grade_data: dict) -> Table:
-        """7 Criteri ARGOS Premium Verified section (V2 new).
-
-        Each criterion shows SI / NO / Da verificare.
-        Zero source references — no mention of AutoScout24, CoVe, or any data source.
-        """
-        # Determine criterion values from grade_data components
-        components = grade_data.get('components', {})
-        fraud_val = components.get('fraud_flags', {}).get('raw_value', 'CLEAN')
-        photo_count = components.get('photo_count', {}).get('raw_value', 0)
-        recall_count = grade_data.get('recall_count', 0)
-        completeness_raw = components.get('data_completeness', {}).get('raw_value', '0/7 fields')
-
-        fraud_ok = str(fraud_val).upper() == 'CLEAN'
-        photos_ok = isinstance(photo_count, int) and photo_count > 0
-
-        # Parse completeness "3/7 fields" → int
-        try:
-            compl_num = int(str(completeness_raw).split('/')[0])
-        except Exception:
-            compl_num = 0
-
-        km_verified = compl_num >= 2   # mileage + at least one other field
-        delta_ok = True  # We always have price delta from CoVe (PROCEED = positive delta)
-
-        def _check(val: bool) -> str:
-            return "SI" if val else "Da verificare"
-
-        def _check_color(val: bool) -> object:
-            return self.success_green if val else HexColor('#F59E0B')
-
-        grade_letter = grade_data.get('grade', 'C')
-        grade_score = grade_data.get('score', 0.0)
-
-        # Use Paragraph for text wrapping in cells
-        cell_style = ParagraphStyle('CriteriCell', fontSize=8, fontName='Helvetica',
-                                     textColor=self.text_secondary, leading=10)
-        status_style_green = ParagraphStyle('StatusGreen', fontSize=9, fontName='Helvetica-Bold',
-                                            textColor=self.success_green, alignment=1, leading=11)
-        status_style_amber = ParagraphStyle('StatusAmber', fontSize=9, fontName='Helvetica-Bold',
-                                            textColor=HexColor('#F59E0B'), alignment=1, leading=11)
-
-        def _p(text, style=cell_style):
-            return Paragraph(text, style)
-
-        def _status(val: bool):
-            return _p("SI", status_style_green) if val else _p("Da verificare", status_style_amber)
-
-        criteri_rows = [
-            (_p("Km verificati"),               _status(km_verified),       _p("Dati km confermati")),
-            (_p("Zero flag frode"),             _status(fraud_ok),          _p("Nessun alert rilevato")),
-            (_p("HU / revisione"),              _p("Al ritiro", status_style_amber), _p("Verifica ispettiva in loco")),
-            (_p("Affidabilita modello"),        _p("SI", status_style_green), _p("Dati affidabilita disponibili")),
-            (_p("Delta mercato EU-IT"),         _status(delta_ok),          _p("Margine positivo verificato")),
-            (_p("Proprietari"),                 _p("Al ritiro", status_style_amber), _p("Verificabile da libretto")),
-            (_p("Foto HD originali"),           _status(photos_ok),         _p(f"{photo_count} foto verificate" if photos_ok else "Non disponibili")),
-        ]
-
-        # Build table — NO recall NHTSA (fonte USA, irrilevante per mercato EU)
-        header_style = ParagraphStyle('CriteriHeader', fontSize=9, fontName='Helvetica-Bold',
-                                       textColor=self.brand_gold, leading=11)
-        section_data = [[_p("7 CRITERI ARGOS PREMIUM VERIFIED", header_style),
-                         _p(f"GRADE {grade_letter}", header_style),
-                         _p(f"({grade_score:.2f})", header_style)]]
-        for criterion, status, detail in criteri_rows:
-            section_data.append([criterion, status, detail])
-
-        # Color logic: row 0 = header, rows 1-7 = criteri, row 8 = recalls
-        tbl = Table(section_data, colWidths=[55*mm, 30*mm, 95*mm])
-
-        row_styles = [
-            # Header
-            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
-            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('SPAN', (0, 0), (0, 0)),
-            # Body
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
-            ('TEXTCOLOR', (2, 1), (2, -1), self.text_secondary),
-            # Status col default dark
-            ('TEXTCOLOR', (1, 1), (1, -1), self.text_dark),
-            ('FONTNAME', (1, 1), (1, -1), 'Helvetica-Bold'),
-            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-            ('ALIGN', (2, 0), (2, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
-            ('LINEBELOW', (0, 1), (-1, -1), 0.3, HexColor('#E5E7EB')),
-            # BOX
-            ('BOX', (0, 0), (-1, -1), 0.5, self.brand_gold),
-        ]
-
-        # Color individual status cells
-        for i, (_, status, _detail) in enumerate(criteri_rows, 1):
-            if status == "SI":
-                row_styles.append(('TEXTCOLOR', (1, i), (1, i), self.success_green))
-            elif status == "NO":
-                row_styles.append(('TEXTCOLOR', (1, i), (1, i), HexColor('#EF4444')))
-            else:
-                row_styles.append(('TEXTCOLOR', (1, i), (1, i), HexColor('#F59E0B')))
-
-        tbl.setStyle(TableStyle(row_styles))
-        return tbl
-
-    @staticmethod
-    def _calc_ipt(power_kw: int, provincial_surcharge: float = 0.30) -> int:
-        """Calcola IPT reale: base 150.81 + (kW eccedenti 53) * 3.51 + maggiorazione provinciale.
-        Default surcharge 30% = province Sud Italia (Napoli, Bari, Cosenza, etc.)."""
-        base = 150.81
-        if power_kw > 53:
-            base += (power_kw - 53) * 3.51
-        return int(base * (1 + provincial_surcharge))
-
-    @staticmethod
-    def _calc_import_costs(power_kw: int, provincial_surcharge: float = 0.30) -> dict:
-        """Calcola costi immatricolazione reali per auto importata EU."""
-        ipt = ARGOSPDFGenerator._calc_ipt(power_kw, provincial_surcharge)
-        spese_fisse = 85   # ACI 27 + bollo 32 + DU 16 + motorizzazione 10.20
-        targhe = 42
-        agenzia = 400      # media agenzia pratiche nazionalizzazione
-        return {
-            'ipt': ipt,
-            'spese_fisse': spese_fisse,
-            'targhe': targhe,
-            'agenzia': agenzia,
-            'totale': ipt + spese_fisse + targhe + agenzia,
-        }
-
-    def _create_financial_analysis_v2(self, vehicle: VehicleData, grade_data: Optional[dict] = None) -> Table:
-        """V2: Financial breakdown with ARGOS success-fee model.
-
-        Costs: Prezzo EU + Trasporto bisarca + Immatricolazione REALE + Fee ARGOS
-        Margin: Prezzo mercato IT - costo chiavi in mano
-        """
-        transport = vehicle.transport_cost if vehicle.transport_cost > 0 else 750
-        power_kw = getattr(vehicle, '_power_kw', None) or 150
-        if grade_data and grade_data.get('power_kw'):
-            power_kw = grade_data['power_kw']
-        import_costs = self._calc_import_costs(power_kw)
-        immatricolazione = import_costs['totale']
-        ipt_detail = f"IPT EUR {import_costs['ipt']} + targhe + ACI + agenzia"
-        costo_chiavi_in_mano = vehicle.price_eu + transport + immatricolazione
-
-        # S269: SOLO itemizzazione costi. Mercato/margine/fee vivono UNA volta
-        # sola nel VERDETTO AFFARE (banda). Qui niente mediana puntuale, niente
-        # fee flat 900, niente margine singolo (eliminato il Frankenstein S268).
-        financial_data = [
-            ['ANALISI COSTI (CHIAVI IN MANO)', 'IMPORTO', 'NOTE'],
-            ['Prezzo acquisto EU', f'EUR {vehicle.price_eu:,}', 'IVA esclusa (reverse charge intra-UE)'],
-            ['Trasporto bisarca', f'EUR {transport:,}', 'Bisarca condivisa EU verso Sud Italia'],
-            ['Immatricolazione IT', f'EUR {immatricolazione:,}', ipt_detail],
-            ['COSTO CHIAVI IN MANO', f'EUR {costo_chiavi_in_mano:,}', 'Base del verdetto-affare'],
-        ]
-
-        financial_table = Table(financial_data, colWidths=[65*mm, 35*mm, 80*mm])
-        financial_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
-            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
-            ('TEXTCOLOR', (1, 1), (1, -1), self.text_dark),
-            ('TEXTCOLOR', (2, 1), (2, -1), self.text_secondary),
-            ('FONTNAME', (1, 1), (1, -1), 'Helvetica-Bold'),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('ALIGN', (2, 0), (2, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
-            ('LINEBELOW', (0, 1), (-1, -2), 0.3, HexColor('#E5E7EB')),
-            ('BACKGROUND', (0, -1), (-1, -1), self.brand_black),
-            ('TEXTCOLOR', (0, -1), (-1, -1), self.brand_gold),
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ]))
-        return financial_table
-
-    def _create_margin_verdict_section(self, vehicle: VehicleData) -> Table:
-        """S269: verdetto-affare onesto sulla BANDA. Tutte le voci sono
-        INTERVALLI calcolati ai bordi banda via evaluate_margin (unica source
-        of truth). NO_VERDICT/banda assente -> minimale, nessuna banda/margine.
-        Vedi _margin_verdict_rows + _band_verdict (KEYSTONE)."""
-        rows, status, _be = _margin_verdict_rows(vehicle)
-        last = len(rows) - 1
-        # S270 FIX-B: la col NOTE (in fondo il `label` del verdetto, lungo per
-        # CONDIZIONATO) eccede 70mm e veniva clippata. Wrap in Paragraph; sull'
-        # ultima riga il colore segue lo status (verde/rosso/oro) come da style.
-        if status == "PASS":
-            _label_color = self.success_green
-        elif status in ("REJECT", "NO_VERDICT"):
-            _label_color = HexColor('#EF4444')
-        else:
-            _label_color = self.brand_gold
-        _note_style = ParagraphStyle('mv_note', fontName='Helvetica', fontSize=8,
-                                     leading=9, textColor=self.text_secondary)
-        _label_style = ParagraphStyle('mv_label', fontName='Helvetica-Bold', fontSize=8,
-                                      leading=9, textColor=_label_color)
-        for _i, _r in enumerate(rows[1:], start=1):
-            _r[2] = Paragraph(str(_r[2]), _label_style if _i == last else _note_style)
-        table = Table(rows, colWidths=[60*mm, 50*mm, 70*mm])
-        style = [
-            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
-            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
-            ('TEXTCOLOR', (1, 1), (1, -1), self.text_dark),
-            ('TEXTCOLOR', (2, 1), (2, -1), self.text_secondary),
-            ('FONTNAME', (1, 1), (1, -1), 'Helvetica-Bold'),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('ALIGN', (2, 0), (2, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
-            ('LINEBELOW', (0, 1), (-1, -2), 0.3, HexColor('#E5E7EB')),
-            ('BACKGROUND', (0, last), (-1, last), self.brand_black),
-            ('TEXTCOLOR', (0, last), (-1, last), self.brand_gold),
-            ('FONTNAME', (0, last), (-1, last), 'Helvetica-Bold'),
-        ]
-        if status == "PASS":
-            style.append(('TEXTCOLOR', (2, last), (2, last), self.success_green))
-        elif status in ("REJECT", "NO_VERDICT"):
-            style.append(('TEXTCOLOR', (2, last), (2, last), HexColor('#EF4444')))
-        if len(rows) > 7:  # riga surplus solo nella tabella piena
-            style.append(('BACKGROUND', (0, 6), (-1, 6), HexColor('#FEF3C7')))
-        table.setStyle(TableStyle(style))
-        return table
-
-    def _create_it_distribution_section(self, vehicle: VehicleData) -> Table:
-        """S257: distribuzione del mercato IT (comparabili reali AutoScout24.it)."""
-        def _eur(n):
-            if n is None:
-                return "—"
-            return "EUR " + f"{int(round(n)):,}".replace(",", ".")
-
-        # S268: la BANDA (p25-p75) e' il PRODOTTO ("rifai-il-conto"), non la mediana
-        # puntuale con asterisco. N e' un PAVIMENTO: dichiarato col ">=" per non
-        # perdere credibilita' quando il dealer trova piu' auto di quante ne
-        # dichiariamo (DELTA-2). S299: la provenienza del campione (annunci/pagine/
-        # esaustivita') VIENE DALLA FONTE (dist), non da stringhe hardcoded.
-        n = vehicle.it_n or 0
-        lvl = vehicle.relaxation_level if vehicle.relaxation_level is not None else '-'
-        floor = ">=" if vehicle.it_is_floor else ""
-        no_verdict = bool(vehicle.no_verdict)
-        wn = vehicle.it_width_nature or ""
-        wn_label = {
-            "config_esatta": "Banda a configurazione esatta (trim non fuso)",
-            "incertezza_campione": "Larghezza = incertezza campione (trim esatto)",
-            "fusione_trim": "ATTENZIONE: larghezza gonfiata da fusione allestimenti",
-            "indeterminato": "Natura banda non verificabile (sub-pool trim < 2)",
-        }.get(wn, wn or "—")
-        nbl = vehicle.it_n_by_level or {}
-        if nbl:
-            nbl_str = " ".join(f"L{k}:{v}" for k, v in sorted(nbl.items(), key=lambda x: int(x[0])))
-            wn_label = f"{wn_label} · {nbl_str}"
-        # S299: descrizione campione dai campi FONTE (get_it_distribution), non hardcoded.
-        _np = vehicle.it_n_priced
-        _pg = vehicle.it_pages_scraped
-        if vehicle.it_terminated_by_empty and _np:
-            _sample = (f"scrape esaustivo: {_np} annunci IT"
-                       + (f" su {_pg} pagine" if _pg else "")
-                       + ", terminato a pagina vuota")
-        elif _np:
-            _sample = f"campione {_np} annunci AS24.it, non esaustivo"
-        else:
-            _sample = "campione non esaustivo"
-        if no_verdict:
-            n_note = (f"{floor}{n} comparabili a config esatta sotto-rappresentata "
-                      f"({_sample})")
-            row1 = ['Verdetto banda', 'NO-VERDICT', f'Config esatta sotto-rappresentata (livello L{lvl})']
-        else:
-            n_note = f"{floor}{n} comparabili ({_sample})"
-            band = f"{_eur(vehicle.it_band_low)} - {_eur(vehicle.it_band_high)}"
-            _nbl2 = vehicle.it_n_by_level or {}
-            _n_exact2 = _nbl2.get(2, _nbl2.get('2', 0))
-            _prov2 = (f"banda su configurazione adiacente, campione trim N={_n_exact2}"
-                      if vehicle.fallback_declared else "banda a configurazione esatta")
-            row1 = ['Banda prezzo IT (p25-p75)', band,
-                    f'Rifai il conto: {floor}{n} comparabili, livello L{lvl} — {_prov2}']
-
-        data = [
-            ['MERCATO ITALIA — BANDA PREZZO', 'VALORE', 'NOTE'],
-            row1,
-            ['Comparabili (pavimento)', f'{floor}{n}', n_note],
-            ['Confidenza banda', (vehicle.it_confidence or '—'), wn_label],
-            ['Rilevazione', (vehicle.it_scrape_date or '—'), 'Fotografia AS24.it di quel giorno (GAP-2)'],
-        ]
-
-        # S270 FIX-B: la col NOTE (n_note, wn_label con "L0:.. L1:.. L2:..") eccede
-        # la colonna 70mm -> reportlab CLIPPA stringhe grezze. Wrap in Paragraph
-        # cosi' il payload "rifai il conto" va a capo invece di essere tagliato.
-        _note_style = ParagraphStyle('it_note', fontName='Helvetica', fontSize=8,
-                                     leading=9, textColor=self.text_secondary)
-        for _r in data[1:]:
-            _r[2] = Paragraph(str(_r[2]), _note_style)
-
-        table = Table(data, colWidths=[65*mm, 45*mm, 70*mm])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
-            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
-            ('TEXTCOLOR', (1, 1), (1, -1), self.text_dark),
-            ('TEXTCOLOR', (2, 1), (2, -1), self.text_secondary),
-            ('FONTNAME', (1, 1), (1, -1), 'Helvetica-Bold'),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('ALIGN', (2, 0), (2, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
-            ('LINEBELOW', (0, 1), (-1, -1), 0.3, HexColor('#E5E7EB')),
-            # Banda row (PRODOTTO) — highlight
-            ('BACKGROUND', (0, 1), (-1, 1), self.brand_light_bg),
-            ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
-        ]))
-        return table
-
-    def _create_financial_analysis(self, vehicle: VehicleData) -> Table:
-        """Clean financial breakdown with brand styling"""
-        transport = vehicle.transport_cost if vehicle.transport_cost > 0 else 750
-        transport_note = vehicle.transport_method if vehicle.transport_method else "Bisarca condivisa"
-        if vehicle.transport_distance_km:
-            transport_note += f" ~{vehicle.transport_distance_km:,} km"
-
-        power_kw = getattr(vehicle, '_power_kw', None) or 150
-        import_admin = self._calc_import_costs(power_kw)['totale']
-        total_cost = vehicle.price_eu + transport + import_admin
-        gross_margin = vehicle.price_it_estimate - total_cost
-
-        financial_data = [
-            ['ANALISI FINANZIARIA', 'IMPORTO', 'NOTE'],
-            ['Prezzo acquisto', f'EUR {vehicle.price_eu:,}', 'Franco EU (IVA esclusa)'],
-            ['Trasporto', f'EUR {transport:,}', transport_note],
-            ['Immatricolazione IT', f'EUR {import_admin:,}', 'IPT + targhe'],
-            ['Costo totale chiavi in mano', f'EUR {total_cost:,}', ''],
-            ['', '', ''],
-            ['Prezzo mercato Italia', f'EUR {vehicle.price_it_estimate:,}', 'Media mercato IT'],
-            ['Margine stimato per il dealer', f'EUR {gross_margin:,}', 'Netto trasporto e pratiche'],
-        ]
-        if vehicle.import_days:
-            financial_data.append(['Tempistica stimata', f'{vehicle.import_days} gg', 'Da acquisto a targa IT'])
-
-        financial_table = Table(financial_data, colWidths=[60*mm, 35*mm, 45*mm])
-        financial_table.setStyle(TableStyle([
-            # Header
-            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
-            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            # Body
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
-            ('TEXTCOLOR', (1, 1), (1, -1), self.text_dark),
-            ('TEXTCOLOR', (2, 1), (2, -1), self.text_secondary),
-            ('FONTNAME', (1, 1), (1, -1), 'Helvetica-Bold'),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('ALIGN', (2, 0), (2, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
-            ('LINEBELOW', (0, 1), (-1, -3), 0.3, HexColor('#E5E7EB')),
-            # Total cost row
-            ('BACKGROUND', (0, 4), (-1, 4), self.brand_light_bg),
-            ('FONTNAME', (0, 4), (-1, 4), 'Helvetica-Bold'),
-            # Margin row — gold highlight
-            ('BACKGROUND', (0, -1), (-1, -1), self.brand_black),
-            ('TEXTCOLOR', (0, -1), (-1, -1), self.brand_gold),
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ]))
-        return financial_table
-
-    def _create_opportunity_intelligence(self, vehicle: VehicleData) -> Table:
-        """S70: Sezione Opportunity Intelligence con dati pipeline ARGOS."""
-        risk_label = {
-            "LOW": "Basso", "MEDIUM": "Medio", "HIGH": "Alto"
-        }.get(vehicle.risk_level, vehicle.risk_level)
-
-        quality_label = {
-            "HIGH": "Alta (20+ comparabili)",
-            "MEDIUM": "Media (5-20 comparabili)",
-            "LOW": "Limitata (<5 comparabili)",
-        }.get(vehicle.market_data_quality, vehicle.market_data_quality)
-
-        # Calcolo margine netto coerente con analisi finanziaria
-        transport = vehicle.transport_cost if vehicle.transport_cost > 0 else 750
-        power_kw = getattr(vehicle, '_power_kw', None) or 150
-        import_costs = self._calc_import_costs(power_kw)['totale']
-        net_margin = vehicle.price_it_estimate - vehicle.price_eu - transport - import_costs
-        delta_raw = int(vehicle.market_ref_price - vehicle.price_eu)
-
-        opp_data = [
-            ['INTELLIGENCE ARGOS™', 'VALORE', 'DETTAGLIO'],
-            ['Valutazione Opportunita', f'{vehicle.opportunity_score}/100', self._get_score_assessment(vehicle.opportunity_score)],
-            ['Differenza prezzo EU vs IT', f'EUR {delta_raw:,}', f'Media IT: EUR {vehicle.market_ref_price:,.0f}'],
-            ['Margine Netto Dealer', f'+EUR {net_margin:,}', 'Dopo trasporto e pratiche'],
-            ['Livello Rischio', risk_label, f'Affidabilita: {int(vehicle.confidence * 100)}%'],
-            ['Qualita Analisi', quality_label, f'{vehicle.market_sample_size} annunci analizzati'],
-            ['Copertura Mercato', 'Multi-portale EU', f'{vehicle.market_sample_size}+ fonti verificate'],
-        ]
-
-        opp_table = Table(opp_data, colWidths=[55*mm, 40*mm, 45*mm])
-        opp_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
-            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
-            ('TEXTCOLOR', (1, 1), (1, -1), self.text_dark),
-            ('FONTNAME', (1, 1), (1, -1), 'Helvetica-Bold'),
-            ('TEXTCOLOR', (2, 1), (2, -1), self.text_secondary),
-            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
-            ('LINEBELOW', (0, 1), (-1, -1), 0.3, HexColor('#E5E7EB')),
-        ]))
-        return opp_table
-
-    def _create_source_section(self, source_dossier: dict) -> Table:
-        """C-GATE-FONTE-001: sezione 'Fonte veicolo' renderizzata SOLO post-pagamento.
-
-        Mostra in chiaro venditore, città, telefono, portale e URL annuncio.
-        Mai invocata nel path dealer standard: richiede source_dossier esplicito,
-        passato unicamente da release_source_dossier (current_state==payment_confirmed).
-        """
-        value_style = ParagraphStyle(
-            'SourceValue', fontSize=9, fontName='Helvetica',
-            textColor=self.text_dark, leading=11,
-        )
-
-        def _cell(key: str, default: str = "N/D") -> "Paragraph":
-            v = source_dossier.get(key)
-            return Paragraph(str(v) if v else default, value_style)
-
-        source_data = [
-            ['FONTE VEICOLO — DOCUMENTO RISERVATO', ''],
-            ['Venditore', _cell('seller_name')],
-            ['Citta', _cell('seller_city')],
-            ['Telefono', _cell('seller_phone')],
-            ['Portale', _cell('portal')],
-            ['Annuncio (URL)', _cell('listing_url')],
-        ]
-
-        source_table = Table(source_data, colWidths=[45*mm, 95*mm])
-        source_table.setStyle(TableStyle([
-            ('SPAN', (0, 0), (1, 0)),
-            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
-            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 1), (0, -1), 9),
-            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
-            ('LINEBELOW', (0, 1), (-1, -1), 0.3, HexColor('#E5E7EB')),
-        ]))
-        return source_table
-
-    def _create_verification_section(self, vehicle: VehicleData, grade_data: dict = None) -> Table:
-        """Create verification section with REAL data from VIN verification pipeline."""
-
-        # Estrai dati reali dalla VIN verification (se disponibili)
-        vin_verif = (grade_data or {}).get("vin_verification", {})
-        vin_verified = vin_verif.get("verified", False)
-        vin_consistent = vin_verif.get("consistent", True)
-        vin_alerts = vin_verif.get("alerts", [])
-        nhtsa_dec = vin_verif.get("nhtsa_decode") or {}
-        freedec = vin_verif.get("freevindecoder") or {}
-        recall_count = (grade_data or {}).get("recall_count", 0)
-        recalls = (grade_data or {}).get("recalls", [])
-
-        # VIN decode status — onesto, mai "In attesa"
-        if vin_verified and vin_consistent:
-            vin_status = "Verificato"
-            vin_detail = f"VIN confermato — {nhtsa_dec.get('make', '')} {nhtsa_dec.get('model', '')} {nhtsa_dec.get('year', '')}"
-        elif vin_verified and not vin_consistent:
-            vin_status = "ATTENZIONE"
-            vin_detail = f"Discordanza: {', '.join(vin_alerts[:2])}"
-        elif vehicle.vin:
-            vin_status = "Disponibile"
-            vin_detail = f"VIN presente — verifica al ritiro"
-        else:
-            vin_status = "Al ritiro"
-            vin_detail = "VIN verificabile al ritiro del veicolo"
-
-        # Manufacturer check — BMW/Mercedes/Audi sempre confermabile da annuncio
-        manufacturer = freedec.get("manufacturer", "")
-        if manufacturer:
-            manuf_status = "Confermato"
-            manuf_detail = manufacturer
-        else:
-            manuf_status = "Confermato"
-            manuf_detail = f"{vehicle.make} — da annuncio portale certificato"
-
-        # Recall — onesto: verificabile su sito costruttore con VIN
-        if vehicle.vin:
-            recall_status = "Verificabile"
-            recall_detail = "Controllare su bmw.com/recall con VIN"
-        else:
-            recall_status = "Al ritiro"
-            recall_detail = "Verificabile con VIN al ritiro del veicolo"
-
-        # Trasporto — usa dati reali, mai "Da preventivare"
-        transport_cost = vehicle.transport_cost if vehicle.transport_cost > 0 else 750
-        transport_status = "Calcolata"
-        transport_detail = f"EUR {transport_cost:,} — bisarca condivisa EU verso Sud Italia"
-
-        # Tempistica — dati reali
-        if vehicle.import_days:
-            tempo_detail = f"{vehicle.import_days} gg lavorativi"
-        else:
-            tempo_detail = "14-21 gg lavorativi (trasporto + immatricolazione)"
-
-        cert_grade, cert_status, cert_note = _fraud_source_certainty(vehicle.country_code, vehicle.fraud_doc_obtained)
-
-        verification_data = [
-            ['VERIFICA ARGOS 100 PUNTI', 'STATUS', 'DETTAGLI'],
-            ['VIN Decode', vin_status, vin_detail],
-            ['Produttore (WMI)', manuf_status, manuf_detail],
-            ['Richiami costruttore', recall_status, recall_detail],
-            ['Annuncio originale', 'Verificato', 'Portale EU certificato'],
-            ['Prezzo aggiornato', 'Verificato', datetime.now().strftime('%d/%m/%Y')],
-            ['Foto veicolo', 'Disponibili' if vehicle.local_image_paths else 'Al ritiro', f'{len(vehicle.local_image_paths)} foto HD verificate' if vehicle.local_image_paths else 'Foto disponibili al ritiro'],
-            ['Coerenza dati/VIN', 'Coerente' if vin_consistent else 'ALERT',
-             'Nessuna incoerenza interna' if vin_consistent else (vin_alerts[0][:50] if vin_alerts else 'Verifica manuale')],
-            ['Verifica km alla fonte', cert_status, cert_note],
-            ['Stima trasporto', transport_status, transport_detail],
-            ['Tempistica consegna', 'Stimata', tempo_detail],
-        ]
-
-        verification_table = Table(verification_data, colWidths=[55*mm, 35*mm, 50*mm])
-        # Colori condizionali per status
-        alert_color = HexColor('#DC2626')  # rosso per ALERT/ATTENZIONE
-        amber_color = HexColor('#B45309')
-        status_styles = []
-        for row_idx, row in enumerate(verification_data[1:], start=1):
-            status = str(row[1])
-            status_upper = status.upper()
-            if status_upper in ('ATTENZIONE', 'ALERT'):
-                status_styles.append(('TEXTCOLOR', (1, row_idx), (1, row_idx), alert_color))
-                status_styles.append(('TEXTCOLOR', (2, row_idx), (2, row_idx), alert_color))
-            elif status.startswith('Documento non') or status == '—':
-                status_styles.append(('TEXTCOLOR', (1, row_idx), (1, row_idx), amber_color))
-
-        verification_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
-            ('TEXTCOLOR', (0, 0), (-1, 0), self.brand_gold),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('TEXTCOLOR', (0, 1), (0, -1), self.text_secondary),
-            ('TEXTCOLOR', (1, 1), (1, -1), self.success_green),
-            ('FONTNAME', (1, 1), (1, -1), 'Helvetica-Bold'),
-            ('TEXTCOLOR', (2, 1), (2, -1), self.text_secondary),
-            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-            *status_styles,  # override colore per righe ALERT
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 3),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
-            ('LINEBELOW', (0, 1), (-1, -1), 0.3, HexColor('#E5E7EB')),
-        ]))
-        return verification_table
-
-    def _create_fraud_leva_section(self, vehicle: "VehicleData") -> Table:
-        """Sezione leva anti-frode km — copy SOLO da KB, country/register-free (C-GATE-FONTE-001 mode b)."""
-        _, cert_status, cert_note = _fraud_source_certainty(vehicle.country_code, vehicle.fraud_doc_obtained)
-
-        _note_style = ParagraphStyle('FraudNote', fontName='Helvetica', fontSize=8,
-                                     leading=10, textColor=self.text_dark)
-        _label_style = ParagraphStyle('FraudLabel', fontName='Helvetica-Bold', fontSize=8,
-                                      leading=10, textColor=self.text_secondary)
-
-        rows = [
-            [Paragraph('<b>VERIFICA ANTI-FRODE ALLA FONTE</b>', ParagraphStyle(
-                'FraudHeader', fontName='Helvetica-Bold', fontSize=9,
-                textColor=self.brand_gold))],
-            [Paragraph(
-                'Rischio km import: le auto di importazione presentano circa 3x il tasso di anomalie '
-                'contachilometri rispetto alle domestiche (6,3% vs 2,1%, fonte commerciale dic 2025 — '
-                'ordine di grandezza, non certificato).',
-                _note_style)],
-            [Paragraph(
-                f'{cert_note}.',
-                _note_style)],
-            [Paragraph(
-                'Regola certezza: il livello di certezza A/B/C si assegna sul documento effettivamente '
-                'ottenuto, non sul paese di origine.',
-                _note_style)],
-        ]
-
-        table = Table(rows, colWidths=[180*mm])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), self.brand_dark),
-            ('LINEBELOW', (0, 0), (-1, 0), 1, self.brand_gold),
-            ('BACKGROUND', (0, 1), (-1, -1), self.brand_light_bg),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-            ('LINEBELOW', (0, 1), (-1, -1), 0.3, HexColor('#E5E7EB')),
-        ]))
-        return table
-
-    def _create_footer(self, dealer: DealerInfo = None) -> Paragraph:
-        """Professional footer with brand styling"""
-        footer_style = ParagraphStyle(
-            'FooterStyle', fontSize=8, textColor=self.text_secondary, spaceAfter=2*mm,
-            alignment=1  # Center
-        )
-
-        watermark = f"Documento riservato per {dealer.name} — {dealer.company}" if dealer else ""
-        footer_text = f"""
-        <font size="9" color="#1A1A1A"><b>ARGOS Automotive</b></font>
-        <font size="8" color="#C8A446"> | </font>
-        <font size="8">Azzurra — assistente di Luca Ferretti | ferretti.argosautomotive@gmail.com</font><br/>
-        <font size="7" color="#9CA3AF">Generato il {datetime.now().strftime('%d/%m/%Y')} |
-        {watermark}</font><br/>
-        <font size="7" color="#BABABA">Dati verificati al momento della creazione. Prezzi e disponibilita soggetti a variazione.</font>
-        """
-        return Paragraph(footer_text, footer_style)
-
-    def _get_km_assessment(self) -> str:
-        """Get assessment text for kilometers"""
-        return "Ottimo"  # Simplified for now
-
-    def _get_score_assessment(self, score: int) -> str:
-        """Get assessment text for ARGOS score"""
-        if score >= 85:
-            return "Eccellente"
-        elif score >= 75:
-            return "Buono"
-        elif score >= 65:
-            return "Accettabile"
-        else:
-            return "Da verificare"
-
-    def _generate_fallback_text_report(self, vehicle: VehicleData, dealer: DealerInfo, output_path: str) -> str:
-        """Generate fallback text report if reportlab not available"""
-
-        fallback_content = f"""
-=== ARGOS AUTOMOTIVE - SCHEDA TECNICA ===
-Protocollo ARGOS™ | Scheda Certificata
-
-VEICOLO: {vehicle.make} {vehicle.model} {vehicle.year}
-PREPARATO PER: {dealer.name} - {dealer.company}
-
-=== VALUTAZIONE ARGOS™ ===
-Punteggio Complessivo: {int(vehicle.confidence * 100)}/100 - CERTIFICATO
-Chilometraggio: {vehicle.km:,} km
-Prezzo Germania: €{vehicle.price_eu:,}
-Stima Italia: €{vehicle.price_it_estimate:,}
-Margine Stimato: €{vehicle.price_it_estimate - vehicle.price_eu:,}
-
-=== DETTAGLI VEICOLO ===
-Carburante: {vehicle.fuel_type}
-Cambio: {vehicle.transmission}
-Colore: {vehicle.color}
-VIN: {vehicle.vin or 'Da verificare'}
-
-=== ANALISI FINANZIARIA ===
-Costo totale stimato: €{vehicle.price_eu + 800:,}
-Commissione ARGOS: €800 (solo a deal chiuso)
-Margine netto stimato: €{vehicle.price_it_estimate - vehicle.price_eu - 800:,}
-
-=== CONTATTO ===
-ARGOS Automotive | Luca Ferretti
-Email: ferretti.argosautomotive@gmail.com
-Generato il {datetime.now().strftime('%d/%m/%Y alle %H:%M')}
-
-Nota: Installare 'reportlab' per PDF professionali: pip install reportlab
-        """
-
-        # Write text file
-        text_path = output_path.replace('.pdf', '.txt')
-        with open(text_path, 'w', encoding='utf-8') as f:
-            f.write(fallback_content)
-
-        print(f"📄 Fallback text report generated: {text_path}")
-        print("⚠️  For professional PDFs, install reportlab: pip install reportlab")
-
-        return text_path
 
 def generate_opportunity_dossier(
     opportunities: list,
@@ -1563,96 +965,44 @@ def generate_opportunity_dossier(
     dealer_company: str,
     dealer_city: str,
     output_dir: str = "/tmp/argos_dossier",
-    download_images: bool = True,
-    watermark: bool = True,
+    download_images: bool = False,
+    watermark: bool = False,
 ) -> List[str]:
+    """Legacy compatibility: generate INTERNAL REVIEW PDFs from Opportunities.
+
+    Network image downloading is intentionally not performed here.  Production
+    dealer delivery must use the DB-backed C0 sanitizer path.
     """
-    Genera un PDF per ogni opportunita dalla pipeline.
-    Scarica immagini HD con watermark ARGOS e le inserisce nel PDF.
-
-    REGOLA: ZERO riferimenti alla location del deal nei PDF.
-    Il dealer non deve sapere dove si trova il veicolo.
-
-    Args:
-        opportunities: Lista di Opportunity dalla ScraperCovePipeline
-        dealer_name, dealer_company, dealer_city: Info dealer
-        output_dir: Directory output
-        download_images: Se True, scarica immagini HD
-        watermark: Se True, applica watermark ARGOS
-
-    Returns: Lista di path PDF generati
-    """
-    os.makedirs(output_dir, exist_ok=True)
+    del download_images, watermark
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
     generator = ARGOSPDFGenerator()
-    dealer = DealerInfo(name=dealer_name, company=dealer_company, city=dealer_city)
-    paths = []
-
-    # Image downloader (lazy)
-    img_downloader = None
-    if download_images:
-        try:
-            from tools.scrapers.image_downloader import ImageDownloader, apply_watermark
-            img_downloader = ImageDownloader(cache_dir=os.path.join(output_dir, "_images"))
-        except ImportError:
-            pass
-
-    for i, opp in enumerate(opportunities, 1):
+    dealer = DealerInfo(dealer_name, dealer_company, dealer_city)
+    paths: List[str] = []
+    for index, opp in enumerate(opportunities, 1):
         vehicle = VehicleData.from_opportunity(opp, dealer_city=dealer_city)
-
-        # Download + watermark images
-        if img_downloader:
-            try:
-                image_urls = getattr(opp, 'image_urls', []) or []
-                listing_id = getattr(opp, 'listing_id', '') or f"opp_{i}"
-                portal = getattr(opp, 'portal', '') or 'unknown'
-
-                if not image_urls:
-                    # Try to extract from detail page
-                    detail_url = getattr(opp, 'listing_url', '')
-                    if detail_url:
-                        image_urls = img_downloader._extract_images_from_detail(detail_url, portal)
-
-                if image_urls:
-                    images = img_downloader.download_for_listing(
-                        listing_id=listing_id,
-                        portal=portal,
-                        image_urls=image_urls[:6],
-                    )
-                    seller = getattr(opp, 'seller_name', None) or getattr(opp, 'seller', None)
-                    safe_listing_id = re.sub(r'[^a-zA-Z0-9_-]', '_', listing_id)[:32]
-                    sanitized_dir = os.path.join(output_dir, "_sanitized", safe_listing_id)
-                    os.makedirs(sanitized_dir, exist_ok=True)
-                    # S192 FIX: clean is None now means EXCLUDE (promo-slide) —
-                    # do NOT fallback to RAW (would leak dealer URL/insegna).
-                    # Crash returns img.local_path (RAW) via _sanitize_photo fallback.
-                    sanitized_paths = []
-                    excluded_count = 0
-                    for idx, img in enumerate(images):
-                        clean = _sanitize_photo(img.local_path, idx, listing_id, sanitized_dir, seller_name=seller)
-                        if clean is None:
-                            excluded_count += 1
-                            continue  # skip image from PDF (promo-slide detected)
-                        base_path = clean
-                        if watermark:
-                            base_path = apply_watermark(base_path)
-                        sanitized_paths.append(base_path)
-                    if excluded_count > 0:
-                        print(f"  [SANITIZER] {excluded_count} image(s) excluded from PDF (promo-slide leak prevention)")
-                    if not sanitized_paths:
-                        print(f"  [WARN] All images excluded — PDF may have no photos. Listing: {listing_id}")
-                    vehicle.local_image_paths = sanitized_paths
-            except Exception as e:
-                print(f"Image download #{i}: {e}")
-
-        # Generate filename WITHOUT country/portal info
-        filename = f"ARGOS_{opp.make}_{opp.model}_{opp.year}_score{opp.opportunity_score}_{i:02d}.pdf"
-        filepath = os.path.join(output_dir, filename)
-        try:
-            generator.generate_vehicle_sheet(vehicle, dealer, filepath)
-            paths.append(filepath)
-        except Exception as e:
-            print(f"Errore PDF #{i}: {e}")
-
+        filename = re.sub(
+            r"[^A-Za-z0-9._-]+",
+            "_",
+            f"ARGOS_REVIEW_{vehicle.make}_{vehicle.model}_{vehicle.year}_{index:02d}.pdf",
+        )
+        output_path = str(Path(output_dir).resolve() / filename)
+        review = {
+            "level": "REVIEW",
+            "ready": False,
+            "dossier_readiness": None,
+            "missing_mandatory": ["s292_delivery_gate_not_evaluated"],
+            "missing_important": [],
+            "next_action": "Persist candidate and use DB-backed dealer-delivery gate",
+        }
+        generator.generate_vehicle_sheet(
+            vehicle,
+            dealer,
+            output_path,
+            economics=vehicle.deal_economics,
+            readiness=review,
+            delivery_authorized=False,
+        )
+        paths.append(output_path)
     return paths
 
 
@@ -1664,997 +1014,94 @@ def generate_combined_dossier(
     output_dir: str = "/tmp/argos_dossier",
     max_per_model: int = 5,
 ) -> str:
-    """
-    S72: Genera un UNICO PDF con le migliori opportunita' per il dealer.
-
-    Struttura:
-    - Cover page ARGOS con data e dealer
-    - Indice: "Migliori Opportunita' della Settimana"
-    - 1 pagina per veicolo: pricing + intelligence + margine
-    - Pagina finale: confronto side-by-side dei top deal
-    - Footer: ARGOS Automotive branding
-
-    REGOLA: ZERO source/location nei materiali dealer (E23/E24).
-
-    Returns: Path del PDF combinato
-    """
+    """Generate a truth-safe INTERNAL REVIEW summary; never a dealer-ready artifact."""
     if not REPORTLAB_AVAILABLE:
-        return ""
-
-    os.makedirs(output_dir, exist_ok=True)
-    today = datetime.now().strftime("%Y%m%d")
-    filename = f"ARGOS_Dossier_{dealer_company.replace(' ', '_')}_{today}.pdf"
-    filepath = os.path.join(output_dir, filename)
-
-    doc = SimpleDocTemplate(
-        filepath,
-        pagesize=A4,
-        rightMargin=18*mm,
-        leftMargin=18*mm,
-        topMargin=18*mm,
-        bottomMargin=18*mm,
-    )
-
+        raise RuntimeError("reportlab is required")
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    path = Path(output_dir) / f"ARGOS_REVIEW_{re.sub(r'[^A-Za-z0-9._-]+', '_', dealer_company)}_{datetime.now().strftime('%Y%m%d')}.pdf"
     gen = ARGOSPDFGenerator()
-    story = []
-
-    # ═══ COVER PAGE ═══
-    cover_style = ParagraphStyle(
-        'CoverStyle', fontSize=24, textColor=gen.argos_blue,
-        fontName='Helvetica-Bold', alignment=1, spaceAfter=8*mm,
-    )
-    sub_style = ParagraphStyle(
-        'SubStyle', fontSize=14, textColor=gen.argos_gray,
-        fontName='Helvetica', alignment=1, spaceAfter=4*mm,
-    )
-    story.append(Spacer(1, 40*mm))
-    story.append(Paragraph("ARGOS AUTOMOTIVE", cover_style))
-    story.append(Paragraph("Dossier Opportunita' Settimanale", sub_style))
-    story.append(Spacer(1, 10*mm))
-    story.append(Paragraph(
-        f"Preparato per: <b>{dealer_name}</b> — {dealer_company}",
-        ParagraphStyle('DealerLine', fontSize=12, textColor=gen.argos_gray,
-                        fontName='Helvetica', alignment=1, spaceAfter=3*mm),
-    ))
-    story.append(Paragraph(
-        f"Data: {datetime.now().strftime('%d/%m/%Y')}",
-        ParagraphStyle('DateLine', fontSize=11, textColor=gen.argos_gray,
-                        fontName='Helvetica', alignment=1),
-    ))
-    story.append(Spacer(1, 20*mm))
-
-    # Summary stats
-    if opportunities:
-        models = {}
-        for opp in opportunities:
-            key = f"{opp.make} {opp.model}"
-            models.setdefault(key, []).append(opp)
-
-        summary_data = [["MODELLO", "OPPORTUNITA'", "TOP SCORE", "TOP MARGINE"]]
-        for model_key, opps in sorted(models.items()):
-            top = opps[0]
-            margin_str = f"+EUR {top.estimated_margin_eur:,.0f}" if top.estimated_margin_eur > 0 else f"EUR {top.estimated_margin_eur:,.0f}"
-            summary_data.append([
-                model_key,
-                str(len(opps)),
-                f"{top.opportunity_score}/100",
-                margin_str,
-            ])
-
-        summary_tbl = Table(summary_data, colWidths=[45*mm, 30*mm, 30*mm, 40*mm])
-        summary_tbl.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), gen.argos_blue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.gray),
-        ]))
-        story.append(summary_tbl)
-
-    from reportlab.platypus import PageBreak
-    story.append(PageBreak())
-
-    # ═══ VEHICLE PAGES ═══
-    # Group by model, top N per model
-    displayed = 0
-    for model_key in sorted(models.keys()):
-        opps = models[model_key][:max_per_model]
-        for opp in opps:
-            displayed += 1
-            vehicle = VehicleData.from_opportunity(opp, dealer_city=dealer_city)
-
-            # Mini header
-            story.append(Paragraph(
-                f"<b>#{displayed} — {opp.make} {opp.model} {opp.year}</b>"
-                f" | Score: {opp.opportunity_score}/100",
-                ParagraphStyle('VehicleHeader', fontSize=14,
-                                textColor=gen.argos_blue, fontName='Helvetica-Bold',
-                                spaceAfter=4*mm),
-            ))
-
-            # Key metrics table
-            risk_it = {"LOW": "Basso", "MEDIUM": "Medio", "HIGH": "Alto"}.get(
-                opp.risk_level, opp.risk_level)
-            margin_str = f"+EUR {opp.estimated_margin_eur:,.0f}" if opp.estimated_margin_eur > 0 else f"EUR {opp.estimated_margin_eur:,.0f}"
-
-            metrics = [
-                ["PREZZO EU", "MEDIA MERCATO", "SCONTO", "MARGINE STIMATO", "RISCHIO"],
-                [
-                    f"EUR {opp.price_eur:,.0f}",
-                    f"EUR {opp.market_ref_price:,.0f}",
-                    f"-{opp.discount_pct:.1%}",
-                    margin_str,
-                    risk_it,
-                ],
-            ]
-            mtbl = Table(metrics, colWidths=[30*mm, 34*mm, 22*mm, 34*mm, 25*mm])
-            mtbl.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), gen.argos_gray),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.gray),
-                ('BACKGROUND', (3, 1), (3, 1),
-                 gen.success_green if opp.estimated_margin_eur > 2000 else gen.warning_orange),
-                ('TEXTCOLOR', (3, 1), (3, 1), colors.white),
-            ]))
-            story.append(mtbl)
-            story.append(Spacer(1, 3*mm))
-
-            # Vehicle details row
-            details = [
-                ["Anno", "Km", "Carburante", "Confidence", "CoVe Status"],
-                [
-                    str(opp.year),
-                    f"{opp.km:,} km",
-                    vehicle.fuel_type,
-                    f"{opp.cove_confidence:.0%}",
-                    opp.cove_status,
-                ],
-            ]
-            dtbl = Table(details, colWidths=[25*mm, 30*mm, 30*mm, 30*mm, 30*mm])
-            dtbl.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-            ]))
-            story.append(dtbl)
-
-            # Transport + import if available
-            if vehicle.transport_cost > 0:
-                total_cost = opp.price_eur + vehicle.transport_cost + ARGOSPDFGenerator._calc_import_costs(150)['totale']
-                story.append(Spacer(1, 2*mm))
-                cost_line = (
-                    f"Costo chiavi in mano: EUR {total_cost:,.0f} "
-                    f"(trasporto EUR {vehicle.transport_cost:,} + pratiche EUR 430)"
-                )
-                story.append(Paragraph(
-                    cost_line,
-                    ParagraphStyle('CostLine', fontSize=9, textColor=gen.argos_gray,
-                                    fontName='Helvetica'),
-                ))
-
-            story.append(Spacer(1, 8*mm))
-
-            # Page break every 3 vehicles
-            if displayed % 3 == 0:
-                story.append(PageBreak())
-
-    # ═══ FOOTER ═══
-    story.append(Spacer(1, 10*mm))
-    story.append(Paragraph(
-        f"<b>ARGOS Automotive</b> | Azzurra — assistente di Luca Ferretti<br/>"
-        f"<font size='8' color='#9CA3AF'>"
-        f"Dossier generato il {datetime.now().strftime('%d/%m/%Y alle %H:%M')} — "
-        f"Dati verificati da {len(opportunities)} annunci analizzati su 28+ portali EU, 19 paesi"
-        f"</font>",
-        ParagraphStyle('Footer', fontSize=9, textColor=gen.argos_gray, fontName='Helvetica'),
-    ))
-
-    doc.build(story)
-    return filepath
-
-
-# Example usage for Mario Orefice BMW
-def generate_mario_bmw_sheet():
-    """Generate professional sheet for Mario's BMW 330i"""
-
-    # Mario's BMW data
-    mario_bmw = VehicleData(
-        make="BMW",
-        model="330i",
-        year=2020,
-        km=45200,  # Corrected consistent data
-        price_eu=27800,
-        price_it_estimate=32500,
-        confidence=0.89,
-        engine="2.0L TwinPower Turbo",
-        fuel_type="Benzina",
-        transmission="Automatico 8 velocità",
-        color="Grigio Metallizzato",
-        doors=4,
-        km_score=88,
-        price_score=92,
-        age_score=85,
-        history_score=75,
-        source_country="Germania",
-        listing_date="10/03/2026",
-        first_registration="15/06/2020",
-        last_service="02/2026",
-        previous_owners=1
-    )
-
-    # Mario's dealer info
-    mario_dealer = DealerInfo(
-        name="Mario Orefice",
-        company="Mariauto Srl",
-        city="Napoli",
-        contact_person="Direttore Amministrativo"
-    )
-
-    # Generate PDF
-    generator = ARGOSPDFGenerator()
-    output_path = "/Users/macbook/Documents/combaretrovamiauto/MARIO_BMW_330i_ARGOS_Sheet.pdf"
-
-    try:
-        generated_path = generator.generate_vehicle_sheet(mario_bmw, mario_dealer, output_path)
-        print(f"✅ Professional PDF generated: {generated_path}")
-        return generated_path
-    except Exception as e:
-        print(f"❌ Error generating PDF: {e}")
-        return None
-
-# S158 fix: portal-specific URL upgrade rules (thumbnail → full-resolution).
-# Replicates tools/scrapers/image_downloader.PORTAL_IMAGE_UPGRADES so this module
-# can stay self-contained when invoked as subprocess via on_demand_runner.
-_IMG_UPGRADE_RULES = [
-    # AutoScout24 CDN: /250x188.webp → /2560x1920.webp (verified S158)
-    ("autoscout24", r"/\d+x\d+\.webp", "/2560x1920.webp"),
-    ("autoscout24", r"/\d+x\d+\.jpg", "/2560x1920.jpg"),
-    ("autoscout24", r"/resize/\d+x\d+>", "/resize/2560x1920>"),
-    # OLX Group (otomoto, standvirtual, autovit)
-    ("olx",         r";s=\d+x\d+", ";s=2048x1360"),
-    ("otomoto",     r";s=\d+x\d+", ";s=2048x1360"),
-    ("standvirtual", r";s=\d+x\d+", ";s=2048x1360"),
-    ("autovit",     r";s=\d+x\d+", ";s=2048x1360"),
-    # Schibsted (finn, blocket)
-    ("finn.no",     r"/dynamic/\d+w/", "/dynamic/1600w/"),
-    ("blocket",     r"/dynamic/\d+w/", "/dynamic/1600w/"),
-    # Marktplaats / 2dehands
-    ("marktplaats", r"\$_\d+\.JPG", "$_85.JPG"),
-    ("marktplaats", r"\$_\d+\.jpg", "$_85.jpg"),
-    ("2dehands",    r"\$_\d+\.JPG", "$_85.JPG"),
-    ("2dehands",    r"\$_\d+\.jpg", "$_85.jpg"),
-    # Willhaben
-    ("willhaben",   r"/rule/\w+/", "/rule/big/"),
-]
-
-
-def _upgrade_thumbnail_url(url: str) -> str:
-    """Best-effort upgrade of a thumbnail URL to full-resolution.
-    Domain-based detection (no portal arg needed). Returns original if no rule fires.
-    """
-    import re
-    upgraded = url
-    for domain_hint, pattern, replacement in _IMG_UPGRADE_RULES:
-        if domain_hint in url.lower():
-            upgraded = re.sub(pattern, replacement, upgraded)
-    return upgraded
-
-
-def _download_image_to_temp(url: str) -> Optional[str]:
-    """Download an image URL to a temp file. Returns local path or None on failure.
-
-    Zero source references — URL never appears in the PDF.
-    Used to embed real HD photos from CDN into the dossier.
-
-    S158: applies portal-specific URL upgrade (thumbnail → full-res) before fetch.
-    Falls back to the original URL if the upgraded variant 404s or returns empty.
-    """
-    if _requests_module is None:
-        return None
-
-    full_url = _upgrade_thumbnail_url(url)
-    candidates = [full_url] if full_url == url else [full_url, url]
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-        'Accept': 'image/webp,image/jpeg,image/*',
-    }
-
-    for candidate in candidates:
-        try:
-            resp = _requests_module.get(candidate, timeout=20, headers=headers)
-            if resp.status_code != 200 or len(resp.content) < 1000:
-                continue
-            content_type = resp.headers.get('Content-Type', 'image/jpeg')
-            ext = '.webp' if 'webp' in content_type else '.jpg'
-            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
-            tmp.write(resp.content)
-            tmp.close()
-            return tmp.name
-        except Exception as e:
-            print(f"  [warn] Photo download failed ({candidate[-50:]}): {e}")
+    doc = SimpleDocTemplate(str(path), pagesize=A4, rightMargin=18 * mm, leftMargin=18 * mm, topMargin=15 * mm, bottomMargin=15 * mm)
+    story: List[Any] = [
+        Paragraph("ARGOS AUTOMOTIVE — INTERNAL REVIEW", gen._style("ct", size=18, bold=True)),
+        Paragraph(f"Dealer: {_display(dealer_name)} — {_display(dealer_company)}", gen._style("cs", size=10, color=gen.brand_gray)),
+        Spacer(1, 5 * mm),
+        gen._status_banner(False, {"ready": False}),
+        Spacer(1, 6 * mm),
+    ]
+    counts: Dict[str, int] = {}
+    emitted = 0
+    for opp in opportunities:
+        vehicle = VehicleData.from_opportunity(opp, dealer_city=dealer_city)
+        key = f"{vehicle.make} {vehicle.model}"
+        counts.setdefault(key, 0)
+        if counts[key] >= max_per_model:
             continue
-
-    return None
-
-
-def _convert_webp_to_jpg(path: str) -> Optional[str]:
-    """Convert webp to jpg using Pillow if available. Returns new path or original."""
-    if not path or not path.endswith('.webp'):
-        return path
-    try:
-        from PIL import Image as PilImage
-        jpg_path = path.replace('.webp', '.jpg')
-        with PilImage.open(path) as im:
-            rgb = im.convert('RGB')
-            rgb.save(jpg_path, 'JPEG', quality=92)
-        os.unlink(path)
-        return jpg_path
-    except Exception:
-        # Pillow unavailable or conversion failed — return original path
-        return path
-
-
-# ── Image Sanitizer (subprocess with Python 3.12 — PaddleOCR requires it) ──
-
-# Python 3.12 has PaddleOCR installed; main process uses 3.14 which doesn't support it
-_SANITIZER_PYTHON = None
-
-def _find_sanitizer_python():
-    """Find Python with PaddleOCR installed. Cached."""
-    global _SANITIZER_PYTHON
-    if _SANITIZER_PYTHON is not None:
-        return _SANITIZER_PYTHON
-
-    import subprocess
-    # Priority order: dedicated venv (S159) > python3.12 > /usr/bin/python3 > python3.11 system
-    home = os.path.expanduser('~')
-    for py in [f'{home}/.argos-sanitizer-venv/bin/python', '/usr/local/bin/python3.12', '/usr/bin/python3', '/usr/local/bin/python3.11']:
-        try:
-            r = subprocess.run(
-                [py, '-c', 'from src.cove.image_sanitizer import sanitize_image; print("ok")'],
-                capture_output=True, text=True, timeout=30,
-                cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        counts[key] += 1
+        emitted += 1
+        if emitted > 1:
+            story.append(PageBreak())
+        story.append(gen._section_title(f"#{emitted} — {vehicle.make} {vehicle.model} {vehicle.year}"))
+        story.append(Spacer(1, 3 * mm))
+        story.append(
+            gen._kv_table(
+                [
+                    ("Prezzo acquisizione osservato", _eur(vehicle.price_eu)),
+                    ("Km", vehicle.km),
+                    ("CoVe confidence", _pct(vehicle.confidence)),
+                    ("Market reference", _eur(vehicle.market_ref_price)),
+                    ("Deal economics", (_verified_economics(vehicle.deal_economics) or {}).get("verdict", NO_VERDICT)),
+                ]
             )
-            if r.returncode == 0 and 'ok' in r.stdout:
-                _SANITIZER_PYTHON = py
-                print(f"[SANITIZER] Using {py} (has image_sanitizer)")
-                return py
-        except Exception:
-            continue
-
-    print("[SANITIZER] No Python with image_sanitizer found — photos will be RAW")
-    _SANITIZER_PYTHON = ''  # empty = not available
-    return ''
-
-
-def _sanitize_photo(image_path: str, image_index: int, listing_id: str, sanitized_dir: str, seller_name=None):
-    """
-    Sanitize a photo via subprocess (image_sanitizer + Apple Vision Framework).
-    Returns sanitized path, original path (if skip), or None (if crash).
-    """
-    py = _find_sanitizer_python()
-    if not py:
-        return image_path  # no image_sanitizer → RAW
-
-    import subprocess
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    sanitizer_script = os.path.join(project_root, 'src', 'cove', 'image_sanitizer.py')
-
-    if not os.path.exists(sanitizer_script):
-        print(f"  [SANITIZER] Script not found: {sanitizer_script}")
-        return image_path
-
-    # S191 MED-1: sanitize listing_id before injection into subprocess code template
-    # Defense-in-depth: repr() is safe for normal strings but a malicious listing_id
-    # with crafted escape sequences could theoretically break out. Whitelist alphanumerics.
-    safe_listing_id_sub = re.sub(r'[^a-zA-Z0-9_-]', '_', listing_id or '')[:64]
-
-    # Call sanitize_image() as subprocess — isolated Python env with PaddleOCR
-    code = f"""
-import sys, os, json
-sys.path.insert(0, {repr(project_root)})
-os.environ['PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK'] = 'True'
-from src.cove.image_sanitizer import sanitize_image
-result = sanitize_image(
-    image_path={repr(image_path)},
-    output_dir={repr(sanitized_dir)},
-    listing_id={repr(safe_listing_id_sub)},
-    image_index={image_index},
-    seller_name={repr(seller_name)},
-)
-print(json.dumps({{"result": result, "size": os.path.getsize(result) if result and os.path.exists(result) else 0}}))
-"""
-    try:
-        r = subprocess.run(
-            [py, '-c', code],
-            capture_output=True, text=True, timeout=120,
-            env={**os.environ, 'PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK': 'True'},
         )
-
-        # Parse result from last line of stdout
-        for line in reversed(r.stdout.strip().split('\n')):
-            line = line.strip()
-            if line.startswith('{'):
-                import json
-                data = json.loads(line)
-                result_path = data.get('result')
-                size = data.get('size', 0)
-
-                # S192 FIX / S196-P4: distinguish promo-skip (sentinel) from crash (None)
-                # SENTINEL_SKIP_PROMO importata a module-level (vedi top del file)
-                if result_path == SENTINEL_SKIP_PROMO:
-                    print(f"  [SANITIZER] img[{image_index}] EXCLUDED (promo-slide detected — dealer marketing)")
-                    return None  # signal exclude to caller
-                if result_path and os.path.exists(result_path) and size > 500:
-                    print(f"  [SANITIZER] img[{image_index}] OK ({size:,} bytes) → {os.path.basename(result_path)}")
-                    return result_path
-                elif result_path is None:
-                    # Crash inside sanitize_image — fallback RAW (legacy behavior)
-                    print(f"  [SANITIZER] img[{image_index}] returned None (crash) — using original RAW")
-                    return image_path
-                else:
-                    print(f"  [SANITIZER] img[{image_index}] output missing/empty — using original RAW")
-                    return image_path
-
-        # No JSON output found — check stderr for errors
-        if r.returncode != 0:
-            print(f"  [SANITIZER] img[{image_index}] subprocess failed (rc={r.returncode}): {r.stderr[-200:]}")
-            return None
-
-        print(f"  [SANITIZER] img[{image_index}] no output parsed — using original")
-        return image_path
-
-    except subprocess.TimeoutExpired:
-        print(f"  [SANITIZER] img[{image_index}] timeout (120s) — using original")
-        return image_path
-    except Exception as e:
-        print(f"  [SANITIZER] img[{image_index}] error: {e}")
-        return None
-
-
-def generate_dossier_from_data(
-    data_json: str,
-    dealer_name: str,
-    output_path: str,
-) -> str:
-    """Generate a PDF dossier from inline JSON data (no DB lookup needed).
-
-    Used by on_demand_runner when vehicles haven't been persisted to DuckDB yet.
-
-    Args:
-        data_json: JSON string with 'vehicles' list and 'search_params'.
-        dealer_name: Dealer name for watermark.
-        output_path: Full file path or directory for PDF output.
-
-    Returns:
-        Absolute path to generated PDF file.
-    """
-    def _translate_fuel(v):
-        m = {'petrol': 'Benzina', 'diesel': 'Diesel', 'hybrid': 'Ibrido',
-             'plugin_hybrid': 'Plug-in Hybrid', 'electric': 'Elettrico',
-             'lpg': 'GPL', 'cng': 'Metano', 'unknown': 'N/D', '': 'N/D'}
-        return m.get(str(v).lower().strip(), str(v) if v else 'N/D')
-
-    def _translate_transmission(v):
-        m = {'automatic': 'Automatico', 'manual': 'Manuale', 'unknown': 'N/D', '': 'N/D'}
-        return m.get(str(v).lower().strip(), str(v) if v else 'N/D')
-
-    def _translate_country(v):
-        m = {'DE': 'Germania', 'NL': 'Paesi Bassi', 'BE': 'Belgio', 'AT': 'Austria',
-             'FR': 'Francia', 'SE': 'Svezia', 'IT': 'Italia', '': 'Europa'}
-        return m.get(str(v).upper().strip(), str(v) if v else 'Europa')
-
-    data = json.loads(data_json)
-    vehicles = data.get('vehicles', [])
-    if not vehicles:
-        raise ValueError("No vehicles in data JSON")
-
-    best = vehicles[0]
-    make = best.get('make', 'Unknown')
-    model = best.get('model', 'Unknown')
-    year = best.get('year', 0)
-    km = best.get('km', 0)
-    price = best.get('price_eur', 0) or best.get('price', 0)
-    confidence = best.get('_cove_confidence', 0.7)
-
-    # Determine output directory and filename
-    if os.path.isdir(output_path):
-        output_dir = output_path
-        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-        safe_dealer = dealer_name.replace(' ', '_').replace('/', '_')
-        fname = f"ARGOS_{make}_{model}_{year}_{safe_dealer}_{ts}.pdf"
-        output_path = os.path.join(output_dir, fname)
-    else:
-        output_dir = os.path.dirname(output_path) or '.'
-
-    os.makedirs(output_dir, exist_ok=True)
-
-    # S257: prezzo mercato IT = mediana comparabili reali (margin gate Step 2c),
-    # NON piu' il falso prezzo_de x1.15. Fallback ×1.15 solo se il margin gate
-    # non e' stato eseguito (es. --listing mode, dati IT assenti).
-    it_dist = best.get('_it_distribution') or {}
-    _it_fallback = it_dist.get('fallback_declared')
-    if _it_fallback is None:
-        _it_fallback = (it_dist.get('relaxation_level') == 3) and not bool(it_dist.get('no_verdict'))
-    it_median = it_dist.get('median')
-    if it_median:
-        market_it = int(round(it_median))
-    else:
-        market_it = int(price * 1.15) if price else 0
-
-    # S268: INTERVALLO margine dealer dalla BANDA (p25-p75) IT — non punto singolo.
-    # band_low (IT prezzo basso) -> margine basso; band_high -> margine alto.
-    it_band_low = it_dist.get('band_low')
-    it_band_high = it_dist.get('band_high')
-    margine_netto_low = margine_netto_high = None
-    if it_band_low is not None and it_band_high is not None and price:
-        try:
-            from tools.margin_gate import evaluate_margin
-            margine_netto_low = evaluate_margin(float(price), float(it_band_low)).margine_netto_dealer
-            margine_netto_high = evaluate_margin(float(price), float(it_band_high)).margine_netto_dealer
-        except Exception:
-            pass
-
-    vehicle = VehicleData(
-        make=make,
-        model=model,
-        year=year,
-        km=km,
-        price_eu=int(price),
-        price_it_estimate=market_it,
-        confidence=float(confidence),
-        fuel_type=_translate_fuel(best.get('fuel_type', best.get('fuel', ''))),
-        transmission=_translate_transmission(best.get('transmission', '')),
-        color=best.get('color', '') or 'N/D',
-        source_country=_translate_country(best.get('country', '')),
-        source_url="",  # C-GATE-FONTE-001: fonte nascosta nel preview, esposta solo dal pdf_gated_source.py post-pagamento
-        vin=best.get('vin'),
-        km_score=int(confidence * 90),
-        price_score=int(confidence * 100),
-        age_score=85,
-        history_score=75,
-        # S257: numeri reali dal margin gate (Step 2c on_demand_runner)
-        margin_decision=best.get('_margin_decision'),
-        chiavi_in_mano=best.get('_margin_chiavi_in_mano'),
-        spread_lordo=best.get('_margin_spread_lordo'),
-        dealer_floor=best.get('_margin_dealer_floor'),
-        surplus=best.get('_margin_surplus'),
-        fee_argos=best.get('_margin_fee_argos'),
-        margine_netto_dealer=best.get('_margin_netto_dealer'),
-        margine_netto_pct=best.get('_margin_netto_pct'),
-        it_median=it_median,
-        it_p25=it_dist.get('p25'),
-        it_p75=it_dist.get('p75'),
-        it_n=it_dist.get('n'),
-        it_source=it_dist.get('source'),
-        relaxation_level=it_dist.get('relaxation_level'),
-        no_verdict=bool(it_dist.get('no_verdict')),
-        it_band_low=it_band_low,
-        it_band_high=it_band_high,
-        it_confidence=it_dist.get('confidence'),
-        it_width_nature=it_dist.get('width_nature'),
-        it_n_by_level=it_dist.get('n_by_level'),
-        it_scrape_date=it_dist.get('scrape_date'),
-        it_is_floor=bool(it_dist.get('is_floor', True)),
-        it_n_priced=it_dist.get('n_priced'),
-        it_pages_scraped=it_dist.get('pages_scraped'),
-        it_terminated_by_empty=bool(it_dist.get('terminated_by_empty', False)),
-        margine_netto_low=margine_netto_low,
-        margine_netto_high=margine_netto_high,
-        country_code=best.get('country', '') or '',
-        fraud_doc_obtained=bool(best.get('_fraud_doc_obtained', False)),
-        fallback_declared=bool(_it_fallback),
-    )
-    # NO-VERDICT (comparabili insufficienti a trim esatto): il verdetto affare NON
-    # e' ne' PASS ne' REJECT — il PDF deve dirlo esplicitamente col numero reale.
-    if it_dist.get('no_verdict'):
-        vehicle.margin_decision = 'NO_VERDICT'
-
-    dealer = DealerInfo(
-        name=dealer_name,
-        company=dealer_name,
-        city="Sud Italia",
-    )
-
-    # Download images — use image_urls list (enriched), fallback to image_url
-    image_urls = best.get('image_urls', [])
-    if isinstance(image_urls, str):
-        image_urls = [u.strip() for u in image_urls.split(',') if u.strip()]
-    if not image_urls:
-        single = best.get('image_url', '')
-        if single:
-            image_urls = [single]
-
-    # Filter to HD resolution only (1280x960 or larger)
-    hd_urls = [u for u in image_urls if '1280x960' in u or '1920x' in u or '1080x' in u]
-    if hd_urls:
-        image_urls = hd_urls
-
-    # Deduplicate image URLs by photo UUID (avoid downloading same photo in webp+jpg+multiple sizes)
-    # AS24 URL format: .../listing-UUID_photo-UUID.jpg/1280x960.webp
-    seen_photo_ids = set()
-    unique_urls = []
-    for u in image_urls:
-        parts = u.split('/')
-        # The photo UUID is in the second-to-last path segment (e.g. ...photo-UUID.jpg)
-        photo_part = parts[-2] if len(parts) >= 3 else u
-        # Extract just the photo UUID (after the listing UUID_)
-        if '_' in photo_part:
-            photo_id = photo_part.split('_', 1)[1]  # everything after listing UUID
-        else:
-            photo_id = photo_part
-        # Strip file extension for dedup
-        photo_id = photo_id.rsplit('.', 1)[0] if '.' in photo_id else photo_id
-
-        if photo_id not in seen_photo_ids:
-            seen_photo_ids.add(photo_id)
-            # Prefer .jpg URL over .webp (easier for ReportLab)
-            if u.endswith('.webp'):
-                jpg_alt = u.replace('.webp', '.jpg')
-                if jpg_alt in image_urls:
-                    unique_urls.append(jpg_alt)
-                else:
-                    unique_urls.append(u)
-            else:
-                unique_urls.append(u)
-
-    local_image_paths = []
-    for img_url in unique_urls[:6]:  # max 6 unique images
-        try:
-            local_path = _download_image_to_temp(img_url)
-            if local_path:
-                local_path = _convert_webp_to_jpg(local_path)
-                if local_path and os.path.exists(local_path) and os.path.getsize(local_path) > 500:
-                    local_image_paths.append(local_path)
-                    print(f"  Image OK: {os.path.getsize(local_path)} bytes — {img_url[-40:]}")
-                else:
-                    print(f"  Image too small or missing: {img_url[-40:]}")
-            else:
-                print(f"  Download failed: {img_url[-40:]}")
-        except Exception as e:
-            print(f"  Image error: {e} — {img_url[-40:]}")
-            continue
-    print(f"Downloaded {len(local_image_paths)} valid images from {len(unique_urls)} unique URLs")
-
-    # A5: Sanitize each photo (remove dealer text/watermarks) before PDF embed
-    listing_id = best.get('listing_id', 'unknown')
-    sanitized_dir = None
-    if local_image_paths:
-        import tempfile, shutil
-        sanitized_dir = tempfile.mkdtemp(prefix=f"argos_sanitized_{listing_id[:12]}_")
-        os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
-
-        sanitized_paths = []
-        for idx, img_path in enumerate(local_image_paths):
-            clean = _sanitize_photo(img_path, idx, listing_id, sanitized_dir)
-            if clean is not None:
-                sanitized_paths.append(clean)
-            else:
-                print(f"  [SANITIZER] img[{idx}] EXCLUDED (sanitizer failed)")
-
-        if sanitized_paths:
-            local_image_paths = sanitized_paths
-            print(f"[SANITIZER] {len(sanitized_paths)}/{len(local_image_paths)} photos sanitized")
-        else:
-            print("[SANITIZER] All photos failed — using originals")
-
-    vehicle.local_image_paths = local_image_paths
-
-    print(f"Generating PDF from data: {output_path} ({len(local_image_paths)} images)")
-    generator = ARGOSPDFGenerator()
-    generator.generate_vehicle_sheet(vehicle, dealer, output_path, grade_data=None)
-
-    # Cleanup temp images + sanitized dir
-    for p in local_image_paths:
-        if p and '/tmp/' in p:
-            try:
-                os.unlink(p)
-            except Exception:
-                pass
-    if sanitized_dir and os.path.exists(sanitized_dir):
-        import shutil
-        shutil.rmtree(sanitized_dir, ignore_errors=True)
-
-    file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
-    print(f"Done. PDF at: {output_path} ({file_size:,} bytes)")
-    return os.path.abspath(output_path)
-
-
-def generate_dossier_from_db(
-    listing_id: str,
-    dealer_name: str,
-    output_dir: str,
-    db_path: Optional[str] = None,
-) -> str:
-    """Generate a complete V2 PDF dossier from DuckDB for a given listing.
-
-    Fetches vehicle data from cove_results + vehicle_listings + vehicle_images,
-    computes ARGOS GRADE, downloads real photo, and generates the PDF.
-
-    Args:
-        listing_id: Listing ID in cove_results (e.g. "fresh_84aec3405b5d")
-        dealer_name: Dealer name for watermark (e.g. "Stile Car")
-        output_dir: Output directory for PDF
-        db_path: Path to cove_tracker.duckdb (None = auto-detect)
-
-    Returns:
-        Absolute path to generated PDF file.
-    """
-    # ── Locate DB ─────────────────────────────────────────────────────────────
-    if db_path is None:
-        # Default: src/cove/data/cove_tracker.duckdb relative to repo root
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        repo_root = os.path.dirname(os.path.dirname(script_dir))
-        db_path = os.path.join(repo_root, 'src', 'cove', 'data', 'cove_tracker.duckdb')
-
-    if not os.path.exists(db_path):
-        raise FileNotFoundError(f"DB not found: {db_path}")
-
-    # ── Import DuckDB ──────────────────────────────────────────────────────────
-    try:
-        import duckdb
-    except ImportError:
-        raise ImportError("duckdb not installed. Run: pip install duckdb")
-
-    # ── Fetch cove_results ─────────────────────────────────────────────────────
-    print(f"Loading data for listing {listing_id}...")
-    con = duckdb.connect(db_path, read_only=True)
-    try:
-        cove_row = con.execute(
-            """
-            SELECT listing_id, make, model, year, km, price, market_price,
-                   recommendation, confidence, fraud_overall
-            FROM cove_results WHERE listing_id = ?
-            """,
-            [listing_id],
-        ).fetchone()
-
-        if cove_row is None:
-            raise ValueError(f"Listing '{listing_id}' not found in cove_results")
-
-        (db_lid, make, model, year, km, price, market_price,
-         recommendation, confidence, fraud_overall) = cove_row
-
-        # Fetch vehicle_listings for enriched data
-        vl_row = con.execute(
-            """
-            SELECT vin, fuel_type, transmission, power_kw, color,
-                   mileage, price_eu, image_count
-            FROM vehicle_listings WHERE listing_id = ?
-            """,
-            [listing_id],
-        ).fetchone()
-
-        # Fetch primary image URL
-        img_row = con.execute(
-            """
-            SELECT image_url FROM vehicle_images
-            WHERE listing_id = ? AND image_type = 'listing'
-            LIMIT 1
-            """,
-            [listing_id],
-        ).fetchone()
-
-        # Fetch total image count
-        img_count_row = con.execute(
-            "SELECT COUNT(*) FROM vehicle_images WHERE listing_id = ?",
-            [listing_id],
-        ).fetchone()
-        total_imgs = img_count_row[0] if img_count_row else 0
-
-    finally:
-        con.close()
-
-    # ── Build VehicleData ──────────────────────────────────────────────────────
-    vin = None
-    fuel_type = "Diesel"
-    transmission = "Automatico"
-    power_kw = None
-    color = "Grigio"
-    mileage = km
-    price_eu = int(price)
-
-    if vl_row:
-        vin, fuel_type, transmission, power_kw, color, mileage, price_eu, _img_count = vl_row
-        fuel_type = fuel_type or "Diesel"
-        transmission = transmission or "Automatico"
-        color = color or "Grigio"
-        mileage = mileage or km
-        price_eu = int(price_eu or price)
-
-    # Market price IT: query prezzi reali IT dallo stesso DB se disponibili
-    market_it = 0
-    try:
-        con2 = duckdb.connect(db_path, read_only=True)
-        it_row = con2.execute(
-            """SELECT AVG(price) FROM cove_results
-               WHERE make = ? AND model = ? AND year = ?
-               AND source LIKE '%_it%' AND price > 0""",
-            [make, model, year],
-        ).fetchone()
-        con2.close()
-        if it_row and it_row[0] and it_row[0] > 0:
-            market_it = int(it_row[0])
-    except Exception:
-        pass
-    # Fallback: market_price CoVe + 15% premium IT (basato su delta medio EU-IT osservato)
-    if market_it == 0:
-        if market_price and market_price > 0:
-            market_it = int(market_price * 1.15)
-        else:
-            market_it = int(price * 1.15)
-
-    vehicle = VehicleData(
-        make=make,
-        model=model,
-        year=year,
-        km=int(mileage),
-        price_eu=price_eu,
-        price_it_estimate=market_it,
-        confidence=float(confidence),
-        fuel_type=fuel_type,
-        transmission=transmission,
-        color=color,
-        vin=vin,
-        # Score fields from CoVe confidence
-        km_score=int(confidence * 90),
-        price_score=int(confidence * 100),
-        age_score=85,
-        history_score=75,
-    )
-
-    dealer = DealerInfo(
-        name=dealer_name,
-        company=dealer_name,
-        city="Sud Italia",
-    )
-
-    # ── Compute ARGOS GRADE ────────────────────────────────────────────────────
-    print("Computing ARGOS GRADE...")
-    try:
-        # Add src/ to path so argos_grade can be imported
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        repo_root = os.path.dirname(os.path.dirname(script_dir))
-        if repo_root not in sys.path:
-            sys.path.insert(0, repo_root)
-        from src.cove.argos_grade import compute_argos_grade
-        grade_data = compute_argos_grade(listing_id, db_path=db_path)
-        print(f"  ARGOS GRADE: {grade_data.get('grade', '?')} (score: {grade_data.get('score', 0):.4f})")
-    except Exception as e:
-        print(f"  [warn] Grade computation failed: {e}. Continuing without grade.")
-        grade_data = None
-
-    # ── Download + SANITIZE photos (remove plate, dealer branding) ───────────
-    local_image_paths = []
-    print(f"Processing photos... ({total_imgs} images in DB)")
-
-    # Try sanitizer pipeline first (downloads + sanitizes all images)
-    try:
-        from src.cove.image_sanitizer import sanitize_all_images
-        safe_dir = os.path.join(os.path.abspath(output_dir), "safe_images")
-        safe_paths = sanitize_all_images(listing_id, db_path=db_path, output_dir=safe_dir)
-        if safe_paths:
-            local_image_paths = safe_paths
-            print(f"  {len(safe_paths)} photos sanitized (plates/dealer info removed)")
-    except Exception as e:
-        print(f"  [warn] Sanitizer failed ({e}), falling back to raw download")
-
-    # Fallback: raw download if sanitizer unavailable or failed
-    if not local_image_paths and img_row and img_row[0]:
-        image_url = img_row[0]
-        print(f"  Downloading raw photo (NO SANITIZATION)...")
-        local_path = _download_image_to_temp(image_url)
-        if local_path:
-            local_path = _convert_webp_to_jpg(local_path)
-            if local_path and os.path.exists(local_path) and os.path.getsize(local_path) > 500:
-                local_image_paths.append(local_path)
-                print(f"  WARNING: Photo NOT sanitized — may contain dealer/plate info!")
-
-    if not local_image_paths:
-        print("  [info] No usable images for this listing")
-
-    vehicle.local_image_paths = local_image_paths
-    vehicle._power_kw = power_kw if power_kw and power_kw > 0 else 150
-
-    # Pass power_kw in grade_data for financial calculations
-    if grade_data is None:
-        grade_data = {}
-    if power_kw and power_kw > 0:
-        grade_data['power_kw'] = power_kw
-
-    # ── Generate PDF ───────────────────────────────────────────────────────────
-    os.makedirs(output_dir, exist_ok=True)
-    safe_dealer = dealer_name.replace(' ', '_').replace('/', '_')
-    # Include short listing_id to avoid filename collisions
-    short_id = listing_id[-8:] if len(listing_id) > 8 else listing_id
-    filename = f"ARGOS_{make}_{model}_{year}_{safe_dealer}_{short_id}.pdf"
-    output_path = os.path.join(os.path.abspath(output_dir), filename)
-
-    print(f"Generating PDF: {output_path}")
-    generator = ARGOSPDFGenerator()
-    generator.generate_vehicle_sheet(vehicle, dealer, output_path, grade_data=grade_data)
-
-    # Cleanup temp images (only /tmp files, NOT safe_images)
-    for p in local_image_paths:
-        if p and '/tmp/' in p:
-            try:
-                os.unlink(p)
-            except Exception:
-                pass
-
-    file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
-    print(f"PDF generated: {output_path} ({file_size:,} bytes)")
-    return output_path
-
-
-def _cli_main():
-    """V2 CLI entry point: generate PDF from DB listing."""
-    parser = argparse.ArgumentParser(
-        description="ARGOS PDF Generator V2 — Generate dealer dossier from DB listing",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python3 tools/scripts/pdf_generator_enterprise.py \\
-      --listing fresh_84aec3405b5d \\
-      --dealer "Stile Car" \\
-      --output dossiers/
-
-  python3 tools/scripts/pdf_generator_enterprise.py \\
-      --listing fresh_84aec3405b5d \\
-      --dealer "Car Plus" \\
-      --output /tmp/argos_dossier/ \\
-      --db src/cove/data/cove_tracker.duckdb
-""",
-    )
-    parser.add_argument('--listing', required=False, help='Listing ID from cove_results DB')
-    parser.add_argument('--dealer', required=False, help='Dealer name for watermark (e.g. "Stile Car")')
-    parser.add_argument('--output', required=True, help='Output directory for PDF (or full path in --data mode)')
-    parser.add_argument('--db', default=None, help='Path to cove_tracker.duckdb (auto-detect if omitted)')
-    parser.add_argument('--data', default=None, help='JSON string with vehicle data (bypasses DB lookup)')
-
-    # Check if legacy mode (no --listing flag and no --data)
-    if len(sys.argv) == 1 or (not any(a.startswith('--') for a in sys.argv[1:])):
-        # Legacy: run generate_mario_bmw_sheet()
-        generate_mario_bmw_sheet()
-        return
-
-    args = parser.parse_args()
-
+    if emitted == 0:
+        story.append(Paragraph("Nessun candidato disponibile.", gen._style("none")))
+    doc.build(story)
+    return str(path.resolve())
+
+
+def _cli_main(argv: Optional[Sequence[str]] = None) -> int:
+    parser = argparse.ArgumentParser(description="ARGOS evidence-safe dealer dossier generator")
+    parser.add_argument("--listing", help="listing_id in cove_results")
+    parser.add_argument("--dealer", required=True, help="dealer display name")
+    parser.add_argument("--company", help="dealer company name")
+    parser.add_argument("--city", default=ND, help="dealer city only if known")
+    parser.add_argument("--output", required=True, help="output directory, or PDF path with --data")
+    parser.add_argument("--db", help="DuckDB path")
+    parser.add_argument("--data", help="JSON string or JSON file for INTERNAL REVIEW")
+    parser.add_argument("--evidence-json", help="DemandEvidence JSON/file for dealer delivery")
+    parser.add_argument("--economics-json", help="DealEconomics JSON/file")
+    parser.add_argument("--dealer-delivery", action="store_true", help="enforce S292 + DEALER_READY and mark artifact deliverable")
+    args = parser.parse_args(argv)
+
+    economics = _load_json_object(args.economics_json)
     if args.data:
-        # --data mode: accept JSON directly, generate PDF without DB
-        output_path = generate_dossier_from_data(
-            data_json=args.data,
-            dealer_name=args.dealer or 'Dealer',
+        data_value = Path(args.data).read_text(encoding="utf-8") if Path(args.data).is_file() else args.data
+        result = generate_dossier_from_data(
+            data_value,
+            dealer_name=args.dealer,
             output_path=args.output,
+            economics=economics,
         )
     elif args.listing:
-        if not args.dealer:
-            parser.error('--dealer is required when using --listing mode')
-        output_path = generate_dossier_from_db(
-            listing_id=args.listing,
+        evidence = _load_demand_evidence(args.evidence_json)
+        if args.dealer_delivery and evidence is None:
+            parser.error("--evidence-json is required with --dealer-delivery")
+        result = generate_dossier_from_db(
+            args.listing,
             dealer_name=args.dealer,
+            dealer_company=args.company,
+            dealer_city=args.city,
             output_dir=args.output,
             db_path=args.db,
+            demand_evidence=evidence,
+            economics=economics,
+            dealer_delivery=args.dealer_delivery,
         )
     else:
-        parser.error('Either --listing or --data is required')
-
-    print(f"Done. PDF at: {output_path}")
+        parser.error("either --listing or --data is required")
+    print(result)
+    return 0
 
 
 if __name__ == "__main__":
-    # V2: support both CLI (--listing) and legacy (no args) mode
-    if len(sys.argv) > 1:
-        _cli_main()
-    else:
-        # Legacy: Generate Mario's BMW sheet
-        generate_mario_bmw_sheet()
+    raise SystemExit(_cli_main())
