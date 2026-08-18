@@ -1,4 +1,4 @@
-name: ARGOS S292 Contract
+name: ARGOS S292 Production Contract
 
 on:
   push:
@@ -7,12 +7,14 @@ on:
     paths:
       - 'src/cove/**'
       - 'wa-intelligence/**'
+      - 'tools/scripts/pdf_generator_enterprise.py'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
   pull_request:
     paths:
       - 'src/cove/**'
       - 'wa-intelligence/**'
+      - 'tools/scripts/pdf_generator_enterprise.py'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
 
@@ -23,7 +25,7 @@ jobs:
   contract:
     name: Offline S292 production contracts
     runs-on: ubuntu-22.04
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,7 +35,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Compile changed production modules
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Compile production Python modules
         run: |
           python -m py_compile \
             src/cove/demand_contract.py \
@@ -45,12 +52,21 @@ jobs:
             src/cove/photo_coverage.py \
             src/cove/second_brain_contract.py \
             src/cove/db_schema.py \
+            src/cove/argos_grade.py \
+            wa-intelligence/demand_capture.py \
             wa-intelligence/state_machine.py \
             wa-intelligence/templates.py \
             wa-intelligence/s292_outbound_policy.py \
-            wa-intelligence/outbound_guard.py
+            wa-intelligence/outbound_guard.py \
+            wa-intelligence/response-analyzer.py \
+            wa-intelligence/post_send_update.py \
+            wa-intelligence/outreach_scheduler.py \
+            tools/scripts/pdf_generator_enterprise.py
 
-      - name: Run S292 offline contract suite
+      - name: Parse single-writer Node runtime
+        run: node --check wa-intelligence/wa-daemon.js
+
+      - name: Run full ARGOS offline production suite
         env:
           PYTHONPATH: .
         run: |
@@ -58,21 +74,48 @@ jobs:
             tests.test_argos_s292_contract \
             tests.test_argos_demand_orchestrator \
             tests.test_argos_wa_policy \
-            tests.test_argos_photo_second_brain
+            tests.test_argos_photo_second_brain \
+            tests.test_argos_demand_capture \
+            tests.test_argos_runtime_production
+
+      - name: Assert single guarded WhatsApp transport boundary
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('wa-intelligence/wa-daemon.js').read_text(encoding='utf-8')
+          marker = 'async function guardedSend('
+          end_marker = '\nfunction persistInbound('
+          assert marker in text and end_marker in text, 'guardedSend boundary missing'
+          start = text.index(marker)
+          end = text.index(end_marker, start)
+          occurrences = []
+          offset = 0
+          needle = 'client.sendMessage('
+          while True:
+              idx = text.find(needle, offset)
+              if idx < 0:
+                  break
+              occurrences.append(idx)
+              offset = idx + len(needle)
+          assert occurrences, 'WhatsApp transport call missing'
+          assert all(start <= idx < end for idx in occurrences), (
+              f'client.sendMessage outside guardedSend at offsets {occurrences}'
+          )
+          assert 'LEGACY_TRANSPORT_RETIRED' in text, 'legacy multi/voice transport not retired'
+          print(f'PASS guardedSend owns {len(occurrences)} WhatsApp transport call sites')
+          PY
 
       - name: Static anti-drift assertions
         run: |
           set -eu
           ! grep -R -n -E 'market_price[^\n]*\* *1\.(10|12|15)|price[^\n]*\* *1\.(10|12|15)' \
-            src/cove/demand_contract.py \
-            src/cove/deal_economics.py \
-            src/cove/demand_orchestrator.py \
-            src/cove/dealer_matcher.py \
-            src/cove/dossier_standard.py \
-            src/cove/seller_contact.py \
-            src/cove/db_schema.py
-          ! grep -R -n -E 'cliente fittizio' \
+            src/cove \
+            tools/scripts/pdf_generator_enterprise.py
+          ! grep -R -n -E 'cliente fittizio|mystery[ _-]?shopper' \
             wa-intelligence/templates.py \
             wa-intelligence/s292_outbound_policy.py \
+            wa-intelligence/response-analyzer.py \
             src/cove/demand_contract.py \
             src/cove/second_brain_contract.py
+          ! grep -n -E 'fuel_type: str = "(Diesel|Benzina)"|transmission: str = "Automatico"|color: str = "Grigio"|city="Sud Italia"|\+15%|\+12%' \
+            tools/scripts/pdf_generator_enterprise.py
