@@ -10,6 +10,7 @@ from pathlib import Path
 from src.cove.demand_contract import DemandEvidence
 from tools.scripts.argos_dealer_delivery import (
     METADATA_VERSION,
+    assert_candidate_matches_evidence,
     build_delivery_metadata,
     write_delivery_sidecar,
 )
@@ -36,6 +37,31 @@ class DealerDeliveryArtifactTests(unittest.TestCase):
 
     def tearDown(self):
         self.tmp.cleanup()
+
+    def test_candidate_match_is_rechecked_at_delivery_boundary(self):
+        candidate = assert_candidate_matches_evidence(
+            listing_id="listing-42",
+            make="BMW",
+            model="X3 xDrive20d",
+            year=2023,
+            km=42000,
+            price_eur=39000,
+            demand_evidence=self.evidence,
+        )
+        self.assertEqual(candidate.listing_id, "listing-42")
+
+    def test_wrong_vehicle_cannot_use_valid_mandate(self):
+        with self.assertRaises(PermissionError) as ctx:
+            assert_candidate_matches_evidence(
+                listing_id="listing-42",
+                make="Audi",
+                model="Q5",
+                year=2023,
+                km=42000,
+                price_eur=39000,
+                demand_evidence=self.evidence,
+            )
+        self.assertIn("candidate does not match commissioned request", str(ctx.exception))
 
     def test_metadata_matches_daemon_transport_contract(self):
         metadata = build_delivery_metadata(
