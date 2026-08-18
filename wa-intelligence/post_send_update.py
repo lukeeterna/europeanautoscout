@@ -1,59 +1,189 @@
 #!/usr/bin/env python3
-"""
-post_send_update.py — ARGOS Post-Send State Updater
-Called by wa-daemon.js AFTER successful /send to update state machine.
+"""ARGOS post-send state updater — idempotent S292 production boundary.
 
-Usage:
-    python3 post_send_update.py --db-path DB --dealer-id ID --template-id TPL
-
-Updates: increment_outbound + state transition (COLD→CONTACTED on DAY1).
-Returns JSON to stdout:
-    {"ok": true, "new_state": "CONTACTED", "outbound_count": 1}
+Called only after the WhatsApp transport has returned a real message id.  The
+``event_id`` is persisted transactionally so a retry cannot double-increment
+``outbound_count`` or replay a state transition.
 """
+from __future__ import annotations
 
 import argparse
 import json
-import sys
 import os
+import sqlite3
+import sys
+from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from state_machine import (
-    get_dealer_state, increment_outbound, get_transition,
-    update_state, ensure_state_columns
-)
+from state_machine import STATES, ensure_state_columns  # noqa: E402
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--db-path', required=True)
-    parser.add_argument('--dealer-id', required=True)
-    parser.add_argument('--template-id', required=True)
-    args = parser.parse_args()
-
-    ensure_state_columns(args.db_path)
-
-    # 1. Increment outbound counter
-    increment_outbound(args.db_path, args.dealer_id)
-
-    # 2. State transition for outbound
-    dealer = get_dealer_state(args.db_path, args.dealer_id)
-    current_state = dealer.get('conversation_state') or 'COLD'
-    outbound_count = dealer.get('outbound_count') or 0  # already incremented by step 1
-
-    # DAY1 templates trigger COLD → CONTACTED
-    if args.template_id.startswith('DAY1') and current_state == 'COLD':
-        new_state = get_transition('COLD', 'OUTBOUND_SENT')
-        update_state(args.db_path, args.dealer_id, new_state)
-    else:
-        new_state = current_state
-
-    print(json.dumps({
-        "ok": True,
-        "new_state": new_state,
-        "outbound_count": outbound_count
-    }))
+STEP_BY_TEMPLATE = {
+    "DAY1_INTRO": "DAY1_SENT",
+    "DAY1_PREMIUM": "DAY1_SENT",
+    "DAY1_MIXED": "DAY1_SENT",
+    "DAY1_GENERALIST": "DAY1_SENT",
+    "DAY7_RECOVERY": "DAY7_SENT",
+    "DAY12_FINAL": "DAY12_SENT",
+    "IDENTITY_RESPONSE": "IDENTITY_SENT",
+    "DEMAND_DISCOVERY_PROMPT": "DEMAND_DISCOVERY_SENT",
+    "VEHICLE_REQUEST_ACK": "REQUEST_ACK_SENT",
+    "VEHICLE_PROPOSAL": "VEHICLE_PROPOSAL_SENT",
+    "VEHICLE_DETAILS": "VEHICLE_DETAILS_SENT",
+    "CLOSING_PUSH": "CLOSING_SENT",
+}
 
 
-if __name__ == '__main__':
-    main()
+def _connect(db_path: str) -> sqlite3.Connection:
+    con = sqlite3.connect(db_path, timeout=10)
+    con.row_factory = sqlite3.Row
+    con.execute("PRAGMA journal_mode=WAL")
+    con.execute("PRAGMA busy_timeout=10000")
+    return con
+
+
+def _ensure_event_table(con: sqlite3.Connection) -> None:
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS argos_post_send_events (
+               event_id TEXT PRIMARY KEY,
+               dealer_id TEXT NOT NULL,
+               template_id TEXT NOT NULL,
+               state_before TEXT NOT NULL,
+               state_after TEXT NOT NULL,
+               applied_at TEXT NOT NULL
+           )"""
+    )
+
+
+def _next_state(current_state: str, template_id: str) -> str:
+    state = str(current_state or "COLD").upper()
+    template = str(template_id or "").upper()
+    if state not in STATES:
+        raise ValueError(f"unknown conversation state: {state}")
+    if state == "COLD" and template.startswith("DAY1"):
+        return "CONTACTED"
+    if state == "MANDATE_CONFIRMED" and template in {"VEHICLE_PROPOSAL", "VEHICLE_DETAILS"}:
+        return "CONVERTING"
+    return state
+
+
+def apply_post_send(
+    *,
+    db_path: str,
+    dealer_id: str,
+    template_id: str,
+    event_id: str,
+) -> dict:
+    dealer_id = str(dealer_id or "").strip()
+    template_id = str(template_id or "").strip().upper()
+    event_id = str(event_id or "").strip()
+    if not dealer_id or not template_id or not event_id:
+        raise ValueError("dealer_id, template_id and event_id are required")
+
+    ensure_state_columns(db_path)
+    con = _connect(db_path)
+    try:
+        _ensure_event_table(con)
+        con.execute("BEGIN IMMEDIATE")
+
+        existing = con.execute(
+            "SELECT state_before, state_after FROM argos_post_send_events WHERE event_id = ?",
+            [event_id],
+        ).fetchone()
+        if existing:
+            dealer = con.execute(
+                "SELECT conversation_state, outbound_count FROM conversations WHERE dealer_id = ?",
+                [dealer_id],
+            ).fetchone()
+            con.commit()
+            return {
+                "ok": True,
+                "idempotent": True,
+                "event_id": event_id,
+                "new_state": dealer["conversation_state"] if dealer else existing["state_after"],
+                "outbound_count": int((dealer["outbound_count"] if dealer else 0) or 0),
+            }
+
+        dealer = con.execute(
+            "SELECT conversation_state, outbound_count FROM conversations WHERE dealer_id = ?",
+            [dealer_id],
+        ).fetchone()
+        if not dealer:
+            raise LookupError(f"dealer not found: {dealer_id}")
+
+        state_before = str(dealer["conversation_state"] or "COLD").upper()
+        state_after = _next_state(state_before, template_id)
+        outbound_count = int(dealer["outbound_count"] or 0) + 1
+        now = datetime.now(timezone.utc).isoformat()
+        step = STEP_BY_TEMPLATE.get(template_id, f"{template_id}_SENT")
+
+        columns = {
+            str(row[1])
+            for row in con.execute("PRAGMA table_info('conversations')").fetchall()
+        }
+        if "current_step" in columns:
+            con.execute(
+                """UPDATE conversations
+                   SET outbound_count = ?, conversation_state = ?, state_updated_at = ?,
+                       current_step = ?
+                   WHERE dealer_id = ?""",
+                [outbound_count, state_after, now, step, dealer_id],
+            )
+        else:
+            con.execute(
+                """UPDATE conversations
+                   SET outbound_count = ?, conversation_state = ?, state_updated_at = ?
+                   WHERE dealer_id = ?""",
+                [outbound_count, state_after, now, dealer_id],
+            )
+
+        con.execute(
+            """INSERT INTO argos_post_send_events
+               (event_id, dealer_id, template_id, state_before, state_after, applied_at)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            [event_id, dealer_id, template_id, state_before, state_after, now],
+        )
+        con.commit()
+        return {
+            "ok": True,
+            "idempotent": False,
+            "event_id": event_id,
+            "new_state": state_after,
+            "outbound_count": outbound_count,
+        }
+    except Exception:
+        con.rollback()
+        raise
+    finally:
+        con.close()
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="ARGOS idempotent post-send updater")
+    parser.add_argument("--db-path", required=True)
+    parser.add_argument("--dealer-id", required=True)
+    parser.add_argument("--template-id", required=True)
+    parser.add_argument("--event-id", required=True)
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    try:
+        result = apply_post_send(
+            db_path=args.db_path,
+            dealer_id=args.dealer_id,
+            template_id=args.template_id,
+            event_id=args.event_id,
+        )
+    except Exception as exc:
+        result = {"ok": False, "error": type(exc).__name__, "reason": str(exc)}
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+        return 2
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
