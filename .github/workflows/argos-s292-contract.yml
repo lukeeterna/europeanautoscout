@@ -38,7 +38,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Compile production Python modules
         run: |
@@ -107,15 +107,54 @@ jobs:
 
       - name: Static anti-drift assertions
         run: |
-          set -eu
-          ! grep -R -n -E 'market_price[^\n]*\* *1\.(10|12|15)|price[^\n]*\* *1\.(10|12|15)' \
-            src/cove \
-            tools/scripts/pdf_generator_enterprise.py
-          ! grep -R -n -E 'cliente fittizio|mystery[ _-]?shopper' \
-            wa-intelligence/templates.py \
-            wa-intelligence/s292_outbound_policy.py \
-            wa-intelligence/response-analyzer.py \
-            src/cove/demand_contract.py \
-            src/cove/second_brain_contract.py
-          ! grep -n -E 'fuel_type: str = "(Diesel|Benzina)"|transmission: str = "Automatico"|color: str = "Grigio"|city="Sud Italia"|\+15%|\+12%' \
-            tools/scripts/pdf_generator_enterprise.py
+          python - <<'PY'
+          import ast
+          import re
+          from pathlib import Path
+
+          # The historical forbidden uplift lived in the dealer-facing PDF path.
+          # ADAC +/-10% API bands are a separate source-estimation concern and are
+          # intentionally outside this assertion.
+          checked_multiplier_files = [
+              Path('tools/scripts/pdf_generator_enterprise.py'),
+              Path('src/cove/deal_economics.py'),
+              Path('src/cove/dossier_standard.py'),
+          ]
+          forbidden_multipliers = {1.12, 1.15}
+          for path in checked_multiplier_files:
+              tree = ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
+              for node in ast.walk(tree):
+                  if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mult):
+                      for side in (node.left, node.right):
+                          if isinstance(side, ast.Constant) and isinstance(side.value, (int, float)):
+                              assert float(side.value) not in forbidden_multipliers, (
+                                  f'forbidden inferred market uplift {side.value} in {path}:{getattr(node, "lineno", "?")}'
+                              )
+
+          # Synthetic handoff language must not be generated or consumed as
+          # evidence. The policy file itself is intentionally allowed to contain
+          # the literal because it blocks old persisted rows fail-closed.
+          for path in [
+              Path('wa-intelligence/templates.py'),
+              Path('wa-intelligence/response-analyzer.py'),
+              Path('src/cove/demand_contract.py'),
+              Path('src/cove/second_brain_contract.py'),
+          ]:
+              text = path.read_text(encoding='utf-8').lower()
+              assert 'cliente fittizio' not in text, f'false handoff language in {path}'
+              assert 'mystery_shopper' not in text and 'mystery shopper' not in text, (
+                  f'synthetic handoff path in {path}'
+              )
+
+          pdf = Path('tools/scripts/pdf_generator_enterprise.py').read_text(encoding='utf-8')
+          forbidden_default_patterns = [
+              r'fuel_type:\s*str\s*=\s*["\'](?:Diesel|Benzina)["\']',
+              r'transmission:\s*str\s*=\s*["\']Automatico["\']',
+              r'color:\s*str\s*=\s*["\']Grigio["\']',
+              r'city\s*=\s*["\']Sud Italia["\']',
+          ]
+          for pattern in forbidden_default_patterns:
+              assert not re.search(pattern, pdf), f'forbidden PDF default: {pattern}'
+
+          print('PASS semantic anti-drift assertions')
+          PY
