@@ -8,6 +8,7 @@ on:
       - 'src/cove/**'
       - 'wa-intelligence/**'
       - 'tools/scripts/pdf_generator_enterprise.py'
+      - 'tools/scripts/argos_dealer_delivery.py'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
   pull_request:
@@ -15,6 +16,7 @@ on:
       - 'src/cove/**'
       - 'wa-intelligence/**'
       - 'tools/scripts/pdf_generator_enterprise.py'
+      - 'tools/scripts/argos_dealer_delivery.py'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
 
@@ -61,7 +63,8 @@ jobs:
             wa-intelligence/response-analyzer.py \
             wa-intelligence/post_send_update.py \
             wa-intelligence/outreach_scheduler.py \
-            tools/scripts/pdf_generator_enterprise.py
+            tools/scripts/pdf_generator_enterprise.py \
+            tools/scripts/argos_dealer_delivery.py
 
       - name: Parse single-writer Node runtime
         run: node --check wa-intelligence/wa-daemon.js
@@ -76,7 +79,8 @@ jobs:
             tests.test_argos_wa_policy \
             tests.test_argos_photo_second_brain \
             tests.test_argos_demand_capture \
-            tests.test_argos_runtime_production
+            tests.test_argos_runtime_production \
+            tests.test_argos_delivery_artifact
 
       - name: Assert single guarded WhatsApp transport boundary
         run: |
@@ -105,6 +109,20 @@ jobs:
           print(f'PASS guardedSend owns {len(occurrences)} WhatsApp transport call sites')
           PY
 
+      - name: Assert dealer-delivery sidecar matches daemon contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          delivery = Path('tools/scripts/argos_dealer_delivery.py').read_text(encoding='utf-8')
+          daemon = Path('wa-intelligence/wa-daemon.js').read_text(encoding='utf-8')
+          for key in ('dealer_ready', 'dealer_id', 'evidence_id', 'file_sha256'):
+              assert f'"{key}"' in delivery, f'delivery sidecar missing key {key}'
+              assert key in daemon, f'daemon metadata verifier missing key {key}'
+          assert '.metadata.json' in delivery, 'deterministic sidecar suffix missing'
+          assert 'verifyDossierMetadata' in daemon, 'daemon dossier verifier missing'
+          print('PASS dealer-delivery sidecar and daemon use the same transport contract')
+          PY
+
       - name: Static anti-drift assertions
         run: |
           python - <<'PY'
@@ -112,9 +130,6 @@ jobs:
           import re
           from pathlib import Path
 
-          # The historical forbidden uplift lived in the dealer-facing PDF path.
-          # ADAC +/-10% API bands are a separate source-estimation concern and are
-          # intentionally outside this assertion.
           checked_multiplier_files = [
               Path('tools/scripts/pdf_generator_enterprise.py'),
               Path('src/cove/deal_economics.py'),
@@ -131,9 +146,6 @@ jobs:
                                   f'forbidden inferred market uplift {side.value} in {path}:{getattr(node, "lineno", "?")}'
                               )
 
-          # Synthetic handoff language must not be generated or consumed as
-          # evidence. The policy file itself is intentionally allowed to contain
-          # the literal because it blocks old persisted rows fail-closed.
           for path in [
               Path('wa-intelligence/templates.py'),
               Path('wa-intelligence/response-analyzer.py'),
