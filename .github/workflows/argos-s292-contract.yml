@@ -9,6 +9,7 @@ on:
       - 'wa-intelligence/**'
       - 'tools/scripts/pdf_generator_enterprise.py'
       - 'tools/scripts/argos_dealer_delivery.py'
+      - 'tools/scripts/argos_c10_smoke.py'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
   pull_request:
@@ -17,6 +18,7 @@ on:
       - 'wa-intelligence/**'
       - 'tools/scripts/pdf_generator_enterprise.py'
       - 'tools/scripts/argos_dealer_delivery.py'
+      - 'tools/scripts/argos_c10_smoke.py'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
 
@@ -65,12 +67,16 @@ jobs:
             wa-intelligence/outreach_scheduler.py \
             wa-intelligence/runtime_entrypoint.py \
             tools/scripts/pdf_generator_enterprise.py \
-            tools/scripts/argos_dealer_delivery.py
+            tools/scripts/argos_dealer_delivery.py \
+            tools/scripts/argos_c10_smoke.py
 
       - name: Parse Node production configuration
         run: |
           node --check wa-intelligence/wa-daemon.js
           node --check wa-intelligence/ecosystem.config.js
+
+      - name: Validate C10 smoke CLI is side-effect free on help
+        run: python tools/scripts/argos_c10_smoke.py --help >/dev/null
 
       - name: Run full ARGOS offline production suite
         env:
