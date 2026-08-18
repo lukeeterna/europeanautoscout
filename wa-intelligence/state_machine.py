@@ -2,7 +2,7 @@
 """ARGOS conversation state machine — S292 demand-side semantics.
 
 A language classifier may detect interest or a vehicle request, but it cannot
-create a mandate. ``VEHICLE_REQUEST`` therefore enters DEMAND_DISCOVERY. The
+create a mandate. ``VEHICLE_REQUEST`` enters DEMAND_DISCOVERY. The
 MANDATE_CONFIRMED state is reachable only through ``record_verified_mandate``
 with traceable DemandEvidence satisfying the canonical sourcing gate.
 """
@@ -36,8 +36,8 @@ STATES = {
     },
     "ENGAGED": {
         "allowed_templates": [
-            "IDENTITY_RESPONSE", "OBJ_1_NO_INTEREST", "OBJ_2_FEE",
-            "OBJ_3_TRUST", "OBJ_4_TIMING", "OBJ_5_SOURCING",
+            "DEMAND_DISCOVERY_PROMPT", "IDENTITY_RESPONSE", "OBJ_1_NO_INTEREST",
+            "OBJ_2_FEE", "OBJ_3_TRUST", "OBJ_4_TIMING", "OBJ_5_SOURCING",
         ],
         "max_outbound": None,
         "requires_inbound": True,
@@ -71,6 +71,9 @@ STATES = {
 
 TRANSITIONS = {
     ("COLD", "OUTBOUND_SENT"): "CONTACTED",
+    ("COLD", "VEHICLE_REQUEST"): "DEMAND_DISCOVERY",
+    ("COLD", "CURIOSITY"): "ENGAGED",
+    ("COLD", "POSITIVE"): "ENGAGED",
     ("CONTACTED", "POSITIVE"): "ENGAGED",
     ("CONTACTED", "CURIOSITY"): "ENGAGED",
     ("CONTACTED", "OBJECTION"): "ENGAGED",
@@ -88,6 +91,8 @@ TRANSITIONS = {
     ("DEMAND_DISCOVERY", "NEGATIVE"): "ENGAGED",
     ("MANDATE_CONFIRMED", "POSITIVE"): "MANDATE_CONFIRMED",
     ("MANDATE_CONFIRMED", "VEHICLE_REQUEST"): "MANDATE_CONFIRMED",
+    ("MANDATE_CONFIRMED", "CURIOSITY"): "MANDATE_CONFIRMED",
+    ("MANDATE_CONFIRMED", "OBJECTION"): "MANDATE_CONFIRMED",
     ("MANDATE_CONFIRMED", "NEGATIVE"): "DEMAND_DISCOVERY",
 }
 
@@ -118,6 +123,7 @@ def ensure_state_columns(db_path: str) -> None:
         "ALTER TABLE conversations ADD COLUMN demand_evidence_id TEXT",
         "ALTER TABLE conversations ADD COLUMN demand_evidence_source TEXT",
         "ALTER TABLE conversations ADD COLUMN mandate_verified_at TEXT",
+        "ALTER TABLE conversations ADD COLUMN outreach_authorized INTEGER DEFAULT 0",
     ]
     try:
         for sql in migrations:
@@ -263,6 +269,12 @@ def get_verified_mandate(db_path: str, dealer_id: str) -> Optional[DemandEvidenc
 
 
 def can_send(db_path: str, dealer_id: str, template_id: str) -> tuple[bool, str]:
+    """Template/state/rate budget gate.
+
+    Responsive states allow one initial credibility message plus at most one
+    automatic response per dealer inbound. This avoids both spam and the legacy
+    off-by-one that blocked the first reply after DAY1.
+    """
     dealer = get_dealer_state(db_path, dealer_id)
     if not dealer:
         return False, "DEALER_NOT_FOUND"
@@ -272,16 +284,20 @@ def can_send(db_path: str, dealer_id: str, template_id: str) -> tuple[bool, str]
         return False, f"UNKNOWN_STATE: {state}"
     if template_id not in rules["allowed_templates"]:
         return False, f"TEMPLATE_NOT_ALLOWED: {template_id} in state {state}"
-    max_out = rules["max_outbound"]
+
     current_out = int(dealer.get("outbound_count") or 0)
+    max_out = rules["max_outbound"]
     if max_out is not None and current_out >= max_out:
         return False, f"CAP_REACHED: {current_out}/{max_out} in state {state}"
+
     if rules["requires_inbound"]:
         inbound_count = int(dealer.get("inbound_count") or 0)
         if inbound_count == 0:
             return False, f"REQUIRES_INBOUND: state {state} needs dealer response first"
-        if current_out > 0 and current_out >= inbound_count:
-            return False, f"WAIT_FOR_INBOUND: {current_out} out >= {inbound_count} in"
+        response_budget = inbound_count + 1
+        if current_out >= response_budget:
+            return False, f"WAIT_FOR_INBOUND: out={current_out}, in={inbound_count}"
+
     if state in {"ARCHIVED", "CLOSED_WON", "CLOSED_LOST"}:
         return False, f"DEALER_{state}"
     return True, "OK"
@@ -293,7 +309,7 @@ def is_duplicate(db_path: str, dealer_id: str, message_text: str, hours: int = 2
     con = _connect(db_path)
     try:
         recent = con.execute(
-            "SELECT body FROM messages WHERE dealer_id = ? AND direction = 'OUTBOUND' AND created_at > ? ORDER BY created_at DESC LIMIT 10",
+            "SELECT body FROM messages WHERE dealer_id = ? AND direction = 'OUTBOUND' AND created_at > ? ORDER BY created_at DESC LIMIT 20",
             [dealer_id, cutoff],
         ).fetchall()
     finally:
