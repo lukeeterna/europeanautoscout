@@ -2,17 +2,17 @@
 """ARGOS S292 dealer-delivery artifact boundary.
 
 This is the production entrypoint for a dossier that may leave ARGOS.
-``pdf_generator_enterprise.generate_dossier_from_db`` owns the evidence/readiness
-rendering gate; this module adds the transport contract required by the
-single-writer WhatsApp daemon.
+``pdf_generator_enterprise.generate_dossier_from_db`` owns evidence/readiness
+rendering; this module adds two final transport invariants:
 
-A successful result always contains two files:
-- the dealer-ready PDF;
-- ``<pdf>.metadata.json`` with dealer/evidence/listing binding and exact PDF
-  SHA-256.
+1. the concrete DB candidate must still match the explicit commissioned
+   vehicle criteria (make/model/year/km/budget/listing binding);
+2. a successful dealer-ready PDF gets an atomic ``<pdf>.metadata.json`` sidecar
+   containing dealer/evidence/listing binding and exact PDF SHA-256.
 
-A review PDF is never promoted here. Missing/invalid evidence or a failed
-readiness gate propagates as an exception and no dealer-ready sidecar is made.
+A review PDF is never promoted here. Missing evidence, a mismatching candidate,
+or a failed dossier-readiness gate propagates as an exception and no
+transport-ready sidecar is created.
 """
 from __future__ import annotations
 
@@ -27,7 +27,11 @@ from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from src.cove.demand_contract import DemandEvidence, require_listing_authorization
-from tools.scripts.pdf_generator_enterprise import generate_dossier_from_db
+from src.cove.demand_orchestrator import Candidate, candidate_matches_request
+from tools.scripts.pdf_generator_enterprise import (
+    _build_vehicle_from_db,
+    generate_dossier_from_db,
+)
 
 
 METADATA_VERSION = "argos-s292-delivery-v1"
@@ -99,6 +103,35 @@ class DealerDeliveryArtifact:
         }
 
 
+def assert_candidate_matches_evidence(
+    *,
+    listing_id: str,
+    make: str,
+    model: str,
+    year: int,
+    km: int,
+    price_eur: float,
+    demand_evidence: DemandEvidence,
+) -> Candidate:
+    """Re-run commissioned-request matching at the final delivery boundary."""
+    authorized = require_listing_authorization(demand_evidence, listing_id)
+    candidate = Candidate(
+        listing_id=str(listing_id),
+        make=str(make),
+        model=str(model),
+        year=int(year),
+        km=int(km),
+        price_eur=float(price_eur),
+    )
+    matches, mismatches = candidate_matches_request(candidate, authorized.vehicle_request)
+    if not matches:
+        raise PermissionError(
+            "S292_DELIVERY_GATE: candidate does not match commissioned request; "
+            + ",".join(mismatches)
+        )
+    return candidate
+
+
 def build_delivery_metadata(
     *,
     pdf_path: str,
@@ -139,8 +172,6 @@ def write_delivery_sidecar(
     metadata_path = Path(str(pdf) + ".metadata.json")
     _atomic_write_json(metadata_path, metadata)
 
-    # Read-back verification prevents a partial/corrupt sidecar from being
-    # returned as transport-ready.
     persisted = json.loads(metadata_path.read_text(encoding="utf-8"))
     for key in ("dealer_ready", "dealer_id", "evidence_id", "listing_id", "file_sha256"):
         if persisted.get(key) != metadata.get(key):
@@ -163,14 +194,31 @@ def generate_dealer_delivery(
     listing_id: str,
     dealer_name: str,
     output_dir: str,
-    db_path: Optional[str],
+    db_path: str,
     demand_evidence: DemandEvidence,
     economics: Optional[Mapping[str, Any]] = None,
     dealer_company: Optional[str] = None,
     dealer_city: str = "n/d",
 ) -> DealerDeliveryArtifact:
-    """Generate PDF and matching sidecar as the only production dossier path."""
+    """Generate PDF + sidecar through all S292 delivery gates."""
     authorized = require_listing_authorization(demand_evidence, listing_id)
+    if not str(db_path or "").strip():
+        raise ValueError("db_path is required for dealer delivery")
+
+    # Read the exact candidate that will be rendered and independently re-run
+    # the commissioned-request matcher. This prevents a wrong/stale caller from
+    # using a valid mandate to release an unrelated listing.
+    vehicle, _, _ = _build_vehicle_from_db(listing_id, db_path)
+    assert_candidate_matches_evidence(
+        listing_id=listing_id,
+        make=vehicle.make,
+        model=vehicle.model,
+        year=vehicle.year,
+        km=vehicle.km,
+        price_eur=vehicle.price_eu,
+        demand_evidence=authorized,
+    )
+
     pdf_path = generate_dossier_from_db(
         listing_id,
         dealer_name=dealer_name,
