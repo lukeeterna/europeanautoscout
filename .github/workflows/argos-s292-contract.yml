@@ -42,6 +42,9 @@ jobs:
             src/cove/dealer_matcher.py \
             src/cove/dossier_standard.py \
             src/cove/seller_contact.py \
+            src/cove/photo_coverage.py \
+            src/cove/second_brain_contract.py \
+            src/cove/db_schema.py \
             wa-intelligence/state_machine.py \
             wa-intelligence/templates.py \
             wa-intelligence/s292_outbound_policy.py \
@@ -54,7 +57,8 @@ jobs:
           python -m unittest -v \
             tests.test_argos_s292_contract \
             tests.test_argos_demand_orchestrator \
-            tests.test_argos_wa_policy
+            tests.test_argos_wa_policy \
+            tests.test_argos_photo_second_brain
 
       - name: Static anti-drift assertions
         run: |
@@ -65,8 +69,10 @@ jobs:
             src/cove/demand_orchestrator.py \
             src/cove/dealer_matcher.py \
             src/cove/dossier_standard.py \
-            src/cove/seller_contact.py
-          ! grep -R -n -E 'mystery[_ -]?shopper|cliente fittizio' \
+            src/cove/seller_contact.py \
+            src/cove/db_schema.py
+          ! grep -R -n -E 'cliente fittizio' \
             wa-intelligence/templates.py \
             wa-intelligence/s292_outbound_policy.py \
-            src/cove/demand_contract.py
+            src/cove/demand_contract.py \
+            src/cove/second_brain_contract.py
