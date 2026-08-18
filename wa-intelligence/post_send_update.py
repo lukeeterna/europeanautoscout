@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """ARGOS post-send state updater — idempotent S292 production boundary.
 
-Called only after the WhatsApp transport has returned a real message id.  The
-``event_id`` is persisted transactionally so a retry cannot double-increment
-``outbound_count`` or replay a state transition.
+Called only after the WhatsApp transport has returned and the outbound message
+has been persisted. ``event_id`` is normally the real WA message id. During a
+rolling upgrade an older daemon may omit it; in that case this module resolves
+the newest persisted outbound ``wa_msg_id`` for the same dealer/template and
+still fails closed if no traceable event can be found.
 """
 from __future__ import annotations
 
@@ -68,28 +70,62 @@ def _next_state(current_state: str, template_id: str) -> str:
     return state
 
 
+def _resolve_event_id(
+    con: sqlite3.Connection,
+    *,
+    dealer_id: str,
+    template_id: str,
+    event_id: str | None,
+) -> str:
+    explicit = str(event_id or "").strip()
+    if explicit:
+        return explicit
+    columns = {
+        str(row[1]) for row in con.execute("PRAGMA table_info('messages')").fetchall()
+    }
+    required = {"dealer_id", "direction", "wa_msg_id", "template_id"}
+    if not required.issubset(columns):
+        raise ValueError("event_id required: messages table cannot resolve wa_msg_id")
+    order_column = "created_at" if "created_at" in columns else "rowid"
+    row = con.execute(
+        f"""SELECT wa_msg_id FROM messages
+            WHERE dealer_id = ? AND direction = 'OUTBOUND'
+              AND template_id = ? AND wa_msg_id IS NOT NULL
+            ORDER BY {order_column} DESC LIMIT 1""",
+        [dealer_id, template_id],
+    ).fetchone()
+    if not row or not row[0]:
+        raise ValueError("event_id required: no persisted outbound wa_msg_id found")
+    return str(row[0])
+
+
 def apply_post_send(
     *,
     db_path: str,
     dealer_id: str,
     template_id: str,
-    event_id: str,
+    event_id: str | None = None,
 ) -> dict:
     dealer_id = str(dealer_id or "").strip()
     template_id = str(template_id or "").strip().upper()
-    event_id = str(event_id or "").strip()
-    if not dealer_id or not template_id or not event_id:
-        raise ValueError("dealer_id, template_id and event_id are required")
+    if not dealer_id or not template_id:
+        raise ValueError("dealer_id and template_id are required")
 
     ensure_state_columns(db_path)
     con = _connect(db_path)
     try:
         _ensure_event_table(con)
+        resolved_event_id = _resolve_event_id(
+            con,
+            dealer_id=dealer_id,
+            template_id=template_id,
+            event_id=event_id,
+        )
         con.execute("BEGIN IMMEDIATE")
 
         existing = con.execute(
             "SELECT state_before, state_after FROM argos_post_send_events WHERE event_id = ?",
-            [event_id],
+            [resolved_event_id],
         ).fetchone()
         if existing:
             dealer = con.execute(
@@ -100,7 +136,7 @@ def apply_post_send(
             return {
                 "ok": True,
                 "idempotent": True,
-                "event_id": event_id,
+                "event_id": resolved_event_id,
                 "new_state": dealer["conversation_state"] if dealer else existing["state_after"],
                 "outbound_count": int((dealer["outbound_count"] if dealer else 0) or 0),
             }
@@ -142,13 +178,13 @@ def apply_post_send(
             """INSERT INTO argos_post_send_events
                (event_id, dealer_id, template_id, state_before, state_after, applied_at)
                VALUES (?, ?, ?, ?, ?, ?)""",
-            [event_id, dealer_id, template_id, state_before, state_after, now],
+            [resolved_event_id, dealer_id, template_id, state_before, state_after, now],
         )
         con.commit()
         return {
             "ok": True,
             "idempotent": False,
-            "event_id": event_id,
+            "event_id": resolved_event_id,
             "new_state": state_after,
             "outbound_count": outbound_count,
         }
@@ -164,7 +200,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--db-path", required=True)
     parser.add_argument("--dealer-id", required=True)
     parser.add_argument("--template-id", required=True)
-    parser.add_argument("--event-id", required=True)
+    parser.add_argument("--event-id", default=None)
     return parser
 
 
