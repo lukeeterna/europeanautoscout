@@ -1,20 +1,16 @@
 #!/usr/bin/env python3
-"""ARGOS zero-founder ordinary-loop scheduler — queue-only S292 runtime.
+"""ARGOS zero-founder scheduler — queue-only, fail-closed S292 runtime.
 
-This process NEVER talks to WhatsApp.  It may only enqueue a fixed, guarded
-message into ``bridge_outbound``.  ``wa-daemon.js`` remains the single writer
-and re-runs the final outbound guard immediately before transport.
+The scheduler NEVER sends WhatsApp messages. It only enqueues fixed templates;
+``wa-daemon.js`` remains the single writer and re-runs the final guard before
+transport. A dealer is eligible only with ``outreach_authorized=1``.
 
-Eligibility is deliberately strict:
-- dealer must have ``outreach_authorized=1``;
-- state must be COLD/CONTACTED;
-- no inbound may have arrived after the last outbound;
-- fixed cadence: Day1, then Day7, then Day12 final;
-- every candidate passes ``outbound_guard.evaluate`` before queueing;
-- deterministic bridge row ids make every cycle idempotent.
+Cadence:
+- COLD/outbound=0 -> credibility-first Day1;
+- CONTACTED/outbound=1 and 7 days silent -> Day7 recovery;
+- CONTACTED/outbound=2 and 5 more days silent -> Day12 final.
 
-Set ``ARGOS_AUTOMATION_ENABLED=1`` to let the loop enqueue.  With the default
-value 0 the process stays alive but performs no mutations.
+Default runtime is disabled. Set ``ARGOS_AUTOMATION_ENABLED=1`` only at C10.
 """
 from __future__ import annotations
 
@@ -28,19 +24,17 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any, Optional
 
 _HERE = Path(__file__).resolve().parent
 _REPO = _HERE.parent
-if str(_HERE) not in sys.path:
-    sys.path.insert(0, str(_HERE))
-if str(_REPO) not in sys.path:
-    sys.path.insert(0, str(_REPO))
+for candidate in (str(_HERE), str(_REPO)):
+    if candidate not in sys.path:
+        sys.path.insert(0, candidate)
 
 from outbound_guard import evaluate as evaluate_outbound  # noqa: E402
-from state_machine import ensure_state_columns, get_dealer_state  # noqa: E402
+from state_machine import ensure_state_columns  # noqa: E402
 from templates import fill_template  # noqa: E402
-
 
 DAY7_SECONDS = 7 * 24 * 3600
 DAY12_AFTER_DAY7_SECONDS = 5 * 24 * 3600
@@ -69,6 +63,21 @@ def _columns(con: sqlite3.Connection, table: str) -> set[str]:
         return {str(row[1]) for row in con.execute(f"PRAGMA table_info('{table}')").fetchall()}
     except sqlite3.Error:
         return set()
+
+
+def _parse_ts(value: Any) -> Optional[float]:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        dt = datetime.fromisoformat(text)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.timestamp()
+    except ValueError:
+        return None
 
 
 def ensure_runtime_schema(db_path: str, bridge_path: str) -> None:
@@ -132,21 +141,6 @@ def ensure_runtime_schema(db_path: str, bridge_path: str) -> None:
         bcon.close()
 
 
-def _parse_ts(value: Any) -> Optional[float]:
-    text = str(value or "").strip()
-    if not text:
-        return None
-    try:
-        if text.endswith("Z"):
-            text = text[:-1] + "+00:00"
-        dt = datetime.fromisoformat(text)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt.timestamp()
-    except ValueError:
-        return None
-
-
 def _last_message_times(con: sqlite3.Connection, dealer_id: str) -> tuple[Optional[float], Optional[float]]:
     cols = _columns(con, "messages")
     if not {"dealer_id", "direction"}.issubset(cols):
@@ -158,7 +152,7 @@ def _last_message_times(con: sqlite3.Connection, dealer_id: str) -> tuple[Option
     def latest(direction: str) -> Optional[float]:
         row = con.execute(
             f"""SELECT {ts_col} FROM messages
-                WHERE dealer_id = ? AND direction = ? AND {ts_col} IS NOT NULL
+                WHERE dealer_id=? AND direction=? AND {ts_col} IS NOT NULL
                 ORDER BY {ts_col} DESC LIMIT 1""",
             [dealer_id, direction],
         ).fetchone()
@@ -175,12 +169,24 @@ def _source_for(row: sqlite3.Row) -> str:
     return "il sito/contatto pubblico della sua attività"
 
 
-def _candidate_for_row(
-    con: sqlite3.Connection,
-    row: sqlite3.Row,
-    *,
-    now_ts: float,
-) -> Optional[ScheduledCandidate]:
+def _eligible_rows(con: sqlite3.Connection) -> list[sqlite3.Row]:
+    cols = _columns(con, "conversations")
+    required = {"dealer_id", "phone_number", "conversation_state", "outbound_count", "outreach_authorized"}
+    if not required.issubset(cols):
+        return []
+    dealer_name_expr = "dealer_name" if "dealer_name" in cols else "dealer_id AS dealer_name"
+    extras = [key for key in ("public_source", "source", "profile_source") if key in cols]
+    extra_sql = (", " + ", ".join(extras)) if extras else ""
+    return con.execute(
+        f"""SELECT dealer_id, phone_number, conversation_state, outbound_count,
+                   outreach_authorized, {dealer_name_expr}{extra_sql}
+            FROM conversations
+            WHERE outreach_authorized=1
+              AND conversation_state IN ('COLD','CONTACTED')"""
+    ).fetchall()
+
+
+def _candidate(con: sqlite3.Connection, row: sqlite3.Row, now_ts: float) -> Optional[ScheduledCandidate]:
     dealer_id = str(row["dealer_id"] or "").strip()
     phone = str(row["phone_number"] or "").strip()
     state = str(row["conversation_state"] or "COLD").upper()
@@ -189,22 +195,18 @@ def _candidate_for_row(
         return None
 
     if state == "COLD" and outbound_count == 0:
-        template_id = "DAY1_GENERALIST"
-        message = fill_template(template_id, {"source": _source_for(row)})
-        if not message:
-            return None
-        return ScheduledCandidate(
-            dealer_id=dealer_id,
-            phone=phone,
-            template_id=template_id,
-            message=message,
-            state=state,
-            reason="authorized_day1",
+        # DAY1_PREMIUM is used intentionally even for an unprofiled dealer: its
+        # default brand_focus is generic "auto premium" and, unlike the legacy
+        # GENERALIST wording, it contains no availability/"in stock" language.
+        template_id = "DAY1_PREMIUM"
+        message = fill_template(
+            template_id,
+            {"source": _source_for(row), "brand_focus": "auto premium"},
         )
+        return ScheduledCandidate(dealer_id, phone, template_id, message, state, "authorized_day1") if message else None
 
     if state != "CONTACTED" or outbound_count not in {1, 2}:
         return None
-
     last_outbound, last_inbound = _last_message_times(con, dealer_id)
     if last_outbound is None:
         return None
@@ -212,51 +214,29 @@ def _candidate_for_row(
         return None
 
     age = max(0.0, now_ts - last_outbound)
+    dealer_name = str(row["dealer_name"] or "")
     if outbound_count == 1 and age >= DAY7_SECONDS:
-        template_id = "DAY7_RECOVERY"
-        message = fill_template(template_id, {"dealer_name": str(row["dealer_name"] or "")})
-        return ScheduledCandidate(dealer_id, phone, template_id, message, state, "authorized_day7") if message else None
+        message = fill_template("DAY7_RECOVERY", {"dealer_name": dealer_name})
+        return ScheduledCandidate(dealer_id, phone, "DAY7_RECOVERY", message, state, "authorized_day7") if message else None
     if outbound_count == 2 and age >= DAY12_AFTER_DAY7_SECONDS:
-        template_id = "DAY12_FINAL"
-        message = fill_template(template_id, {"dealer_name": str(row["dealer_name"] or "")})
-        return ScheduledCandidate(dealer_id, phone, template_id, message, state, "authorized_day12") if message else None
+        message = fill_template("DAY12_FINAL", {"dealer_name": dealer_name})
+        return ScheduledCandidate(dealer_id, phone, "DAY12_FINAL", message, state, "authorized_day12") if message else None
     return None
 
 
-def _eligible_rows(con: sqlite3.Connection) -> Iterable[sqlite3.Row]:
-    cols = _columns(con, "conversations")
-    required = {"dealer_id", "phone_number", "conversation_state", "outbound_count", "outreach_authorized"}
-    if not required.issubset(cols):
-        return []
-    dealer_name_expr = "dealer_name" if "dealer_name" in cols else "dealer_id AS dealer_name"
-    extra = []
-    for key in ("public_source", "source", "profile_source"):
-        if key in cols:
-            extra.append(key)
-    select_extra = (", " + ", ".join(extra)) if extra else ""
-    return con.execute(
-        f"""SELECT dealer_id, phone_number, conversation_state, outbound_count,
-                   outreach_authorized, {dealer_name_expr}{select_extra}
-            FROM conversations
-            WHERE outreach_authorized = 1
-              AND conversation_state IN ('COLD', 'CONTACTED')"""
-    ).fetchall()
-
-
-def _audit(
-    con: sqlite3.Connection,
-    *,
-    cycle_id: str,
-    dealer_id: str,
-    template_id: str,
-    decision: str,
-    reason: str,
-) -> None:
+def _audit(con: sqlite3.Connection, cycle_id: str, candidate: ScheduledCandidate, decision: str, reason: str) -> None:
     con.execute(
         """INSERT INTO argos_scheduler_audit
            (cycle_id, dealer_id, template_id, decision, reason, created_at)
            VALUES (?, ?, ?, ?, ?, ?)""",
-        [cycle_id, dealer_id, template_id, decision, reason, datetime.now(timezone.utc).isoformat()],
+        [
+            cycle_id,
+            candidate.dealer_id,
+            candidate.template_id,
+            decision,
+            reason,
+            datetime.now(timezone.utc).isoformat(),
+        ],
     )
 
 
@@ -311,12 +291,10 @@ def run_cycle(
     now_value = float(now_ts if now_ts is not None else time.time())
     cycle_id = "cycle_" + hashlib.sha256(f"{int(now_value)}|{db_path}".encode("utf-8")).hexdigest()[:16]
     con = _connect(db_path)
-    queued = 0
-    blocked = 0
-    candidates = 0
+    queued = blocked = candidates = 0
     try:
         for row in _eligible_rows(con):
-            candidate = _candidate_for_row(con, row, now_ts=now_value)
+            candidate = _candidate(con, row, now_value)
             if candidate is None:
                 continue
             candidates += 1
@@ -328,36 +306,15 @@ def run_cycle(
             )
             if not guard.get("ok"):
                 blocked += 1
-                _audit(
-                    con,
-                    cycle_id=cycle_id,
-                    dealer_id=candidate.dealer_id,
-                    template_id=candidate.template_id,
-                    decision="BLOCK",
-                    reason=str(guard.get("reason") or "UNKNOWN"),
-                )
+                _audit(con, cycle_id, candidate, "BLOCK", str(guard.get("reason") or "UNKNOWN"))
                 continue
             if dry_run:
-                _audit(
-                    con,
-                    cycle_id=cycle_id,
-                    dealer_id=candidate.dealer_id,
-                    template_id=candidate.template_id,
-                    decision="DRY_RUN",
-                    reason=candidate.reason,
-                )
+                _audit(con, cycle_id, candidate, "DRY_RUN", candidate.reason)
                 continue
             inserted, row_id = _enqueue(bridge_path, candidate, now_value)
             if inserted:
                 queued += 1
-            _audit(
-                con,
-                cycle_id=cycle_id,
-                dealer_id=candidate.dealer_id,
-                template_id=candidate.template_id,
-                decision="QUEUED" if inserted else "DEDUP",
-                reason=f"{candidate.reason}:{row_id}",
-            )
+            _audit(con, cycle_id, candidate, "QUEUED" if inserted else "DEDUP", f"{candidate.reason}:{row_id}")
         con.commit()
     finally:
         con.close()
