@@ -1,0 +1,72 @@
+name: ARGOS S292 Contract
+
+on:
+  push:
+    branches:
+      - sol/argos-canonicalization-20260817
+    paths:
+      - 'src/cove/**'
+      - 'wa-intelligence/**'
+      - 'tests/test_argos_*.py'
+      - '.github/workflows/argos-s292-contract.yml'
+  pull_request:
+    paths:
+      - 'src/cove/**'
+      - 'wa-intelligence/**'
+      - 'tests/test_argos_*.py'
+      - '.github/workflows/argos-s292-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Offline S292 production contracts
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile changed production modules
+        run: |
+          python -m py_compile \
+            src/cove/demand_contract.py \
+            src/cove/deal_economics.py \
+            src/cove/demand_orchestrator.py \
+            src/cove/dealer_matcher.py \
+            src/cove/dossier_standard.py \
+            src/cove/seller_contact.py \
+            wa-intelligence/state_machine.py \
+            wa-intelligence/templates.py \
+            wa-intelligence/s292_outbound_policy.py \
+            wa-intelligence/outbound_guard.py
+
+      - name: Run S292 offline contract suite
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m unittest -v \
+            tests.test_argos_s292_contract \
+            tests.test_argos_demand_orchestrator \
+            tests.test_argos_wa_policy
+
+      - name: Static anti-drift assertions
+        run: |
+          set -eu
+          ! grep -R -n -E 'market_price[^\n]*\* *1\.(10|12|15)|price[^\n]*\* *1\.(10|12|15)' \
+            src/cove/demand_contract.py \
+            src/cove/deal_economics.py \
+            src/cove/demand_orchestrator.py \
+            src/cove/dealer_matcher.py \
+            src/cove/dossier_standard.py \
+            src/cove/seller_contact.py
+          ! grep -R -n -E 'mystery[_ -]?shopper|cliente fittizio' \
+            wa-intelligence/templates.py \
+            wa-intelligence/s292_outbound_policy.py \
+            src/cove/demand_contract.py
