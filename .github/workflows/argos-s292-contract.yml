@@ -63,11 +63,14 @@ jobs:
             wa-intelligence/response-analyzer.py \
             wa-intelligence/post_send_update.py \
             wa-intelligence/outreach_scheduler.py \
+            wa-intelligence/runtime_entrypoint.py \
             tools/scripts/pdf_generator_enterprise.py \
             tools/scripts/argos_dealer_delivery.py
 
-      - name: Parse single-writer Node runtime
-        run: node --check wa-intelligence/wa-daemon.js
+      - name: Parse Node production configuration
+        run: |
+          node --check wa-intelligence/wa-daemon.js
+          node --check wa-intelligence/ecosystem.config.js
 
       - name: Run full ARGOS offline production suite
         env:
@@ -80,7 +83,8 @@ jobs:
             tests.test_argos_photo_second_brain \
             tests.test_argos_demand_capture \
             tests.test_argos_runtime_production \
-            tests.test_argos_delivery_artifact
+            tests.test_argos_delivery_artifact \
+            tests.test_argos_runtime_entrypoint
 
       - name: Assert single guarded WhatsApp transport boundary
         run: |
@@ -121,6 +125,19 @@ jobs:
           assert '.metadata.json' in delivery, 'deterministic sidecar suffix missing'
           assert 'verifyDossierMetadata' in daemon, 'daemon dossier verifier missing'
           print('PASS dealer-delivery sidecar and daemon use the same transport contract')
+          PY
+
+      - name: Assert PM2 starts fail-closed single writer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          ecosystem = Path('wa-intelligence/ecosystem.config.js').read_text(encoding='utf-8')
+          entry = Path('wa-intelligence/runtime_entrypoint.py').read_text(encoding='utf-8')
+          assert "script: path.join(INTEL, 'runtime_entrypoint.py')" in ecosystem
+          assert "'agent_status', 'PAUSED'" in entry
+          assert "os.execv(node, [node, str(daemon)])" in entry
+          assert 'client.sendMessage(' not in entry
+          print('PASS PM2 first boot is PAUSED and execs the only writer')
           PY
 
       - name: Static anti-drift assertions
