@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,6 +13,7 @@ SMOKE_PATH = ROOT / "tools" / "scripts" / "argos_c10_smoke.py"
 SPEC = importlib.util.spec_from_file_location("argos_c10_smoke", SMOKE_PATH)
 assert SPEC and SPEC.loader
 SMOKE = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = SMOKE
 SPEC.loader.exec_module(SMOKE)
 
 
