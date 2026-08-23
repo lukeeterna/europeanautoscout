@@ -54,6 +54,14 @@ const SHARED_ENV = {
     ARGOS_BUSINESS_END_HOUR: dotEnv.ARGOS_BUSINESS_END_HOUR || '18',
     ARGOS_BUSINESS_DAYS: dotEnv.ARGOS_BUSINESS_DAYS || '1,2,3,4,5',
 
+    // Non-secret approved template names are shared with the queue-only scheduler
+    // so it can persist the exact Meta template payload before the single writer
+    // claims a proactive row. Secrets stay daemon-only below.
+    META_WA_TEMPLATE_LANGUAGE: dotEnv.META_WA_TEMPLATE_LANGUAGE || 'it',
+    META_WA_TEMPLATE_DAY1_NAME: dotEnv.META_WA_TEMPLATE_DAY1_NAME || '',
+    META_WA_TEMPLATE_DAY7_NAME: dotEnv.META_WA_TEMPLATE_DAY7_NAME || '',
+    META_WA_TEMPLATE_DAY12_NAME: dotEnv.META_WA_TEMPLATE_DAY12_NAME || '',
+
     // Queue-only zero-founder loop. Intentionally OFF until rollout gate C10.
     ARGOS_AUTOMATION_ENABLED: dotEnv.ARGOS_AUTOMATION_ENABLED || '0',
     ARGOS_SCHEDULER_INTERVAL_SECONDS: dotEnv.ARGOS_SCHEDULER_INTERVAL_SECONDS || '900',
