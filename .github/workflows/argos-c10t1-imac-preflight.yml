@@ -14,8 +14,21 @@ jobs:
     name: Read-only iMac production facts
     runs-on: ubuntu-22.04
     timeout-minutes: 8
+    env:
+      IMAC_HOST_AVAILABLE: ${{ secrets.IMAC_HOST != '' }}
+      IMAC_USER_AVAILABLE: ${{ secrets.IMAC_USER != '' }}
+      IMAC_KEY_AVAILABLE: ${{ secrets.IMAC_SSH_KEY != '' }}
     steps:
+      - name: Report unavailable deployment lane
+        if: ${{ env.IMAC_HOST_AVAILABLE != 'true' || env.IMAC_USER_AVAILABLE != 'true' || env.IMAC_KEY_AVAILABLE != 'true' }}
+        run: |
+          echo 'C10T1_IMAC_PREFLIGHT=BLOCKED'
+          echo 'REASON=one_or_more_IMAC_HOST_IMAC_USER_IMAC_SSH_KEY_secrets_unavailable'
+          echo 'PRODUCTION_MUTATED=NO'
+          echo 'OUTBOUND=ZERO'
+
       - name: Probe iMac through existing Tailscale SSH lane
+        if: ${{ env.IMAC_HOST_AVAILABLE == 'true' && env.IMAC_USER_AVAILABLE == 'true' && env.IMAC_KEY_AVAILABLE == 'true' }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.IMAC_HOST }}
