@@ -70,3 +70,9 @@ test('40 external DB path is configurable and proactive template names reach sch
     assert.ok(Object.prototype.hasOwnProperty.call(scheduler.env, key), `scheduler missing ${key}`);
   }
 });
+
+test('41 direct daemon boot cannot seed ACTIVE runtime state', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', '..', 'wa-daemon.js'), 'utf8');
+  assert.doesNotMatch(source, /VALUES \('agent_status', 'ACTIVE', \?\)/);
+  assert.match(source, /VALUES \('agent_status', 'PAUSED', \?\)/);
+});
