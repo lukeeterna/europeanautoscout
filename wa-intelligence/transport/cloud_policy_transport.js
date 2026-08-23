@@ -1,9 +1,25 @@
 'use strict';
 
-const Database = require('better-sqlite3');
 const { TransportError } = require('./errors');
 
 const CUSTOMER_SERVICE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function defaultDatabaseFactory(dbPath) {
+  // Production wa-daemon already depends on better-sqlite3. Keep this require
+  // lazy so offline transport/unit tests can exercise the policy layer without
+  // installing native npm dependencies or weakening the runtime contract.
+  let Database;
+  try {
+    Database = require('better-sqlite3');
+  } catch (err) {
+    throw new TransportError(
+      'TRANSPORT_DB_DRIVER_MISSING',
+      'better-sqlite3 is required by the production Cloud policy transport',
+      { cause: err },
+    );
+  }
+  return new Database(dbPath, { readonly: true });
+}
 
 function normalizePhone(value) {
   return String(value || '').replace(/\D/g, '');
@@ -31,7 +47,12 @@ function consentValid(dealer) {
 }
 
 class CloudPolicyTransport {
-  constructor({ transport, env = process.env, nowFn = () => Date.now(), databaseFactory = (path) => new Database(path, { readonly: true }) } = {}) {
+  constructor({
+    transport,
+    env = process.env,
+    nowFn = () => Date.now(),
+    databaseFactory = defaultDatabaseFactory,
+  } = {}) {
     if (!transport) throw new TransportError('TRANSPORT_CONFIG_MISSING', 'underlying Cloud transport is required');
     this.transport = transport;
     this.env = env;
@@ -44,6 +65,9 @@ class CloudPolicyTransport {
   async initialize() {
     if (!this.dbPath) {
       throw new TransportError('TRANSPORT_CONFIG_MISSING', 'ARGOS_DB_PATH is required for Cloud policy enforcement');
+    }
+    if (!this.bridgeDbPath) {
+      throw new TransportError('TRANSPORT_CONFIG_MISSING', 'BRIDGE_DB_PATH is required for proactive Cloud template enforcement');
     }
     return this.transport.initialize();
   }
@@ -97,9 +121,6 @@ class CloudPolicyTransport {
   }
 
   _claimedMetaTemplate({ phone, body, dealer }) {
-    if (!this.bridgeDbPath) {
-      throw new TransportError('META_TEMPLATE_REQUIRED', 'No bridge database is configured for proactive template send');
-    }
     let db;
     try {
       db = this.databaseFactory(this.bridgeDbPath);
@@ -180,6 +201,7 @@ module.exports = {
   CloudPolicyTransport,
   CUSTOMER_SERVICE_WINDOW_MS,
   consentValid,
+  defaultDatabaseFactory,
   normalizePhone,
   phoneMatches,
 };
