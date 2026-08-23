@@ -4,17 +4,16 @@
  * ARGOS WhatsApp single-writer daemon — S292 production runtime.
  *
  * Design invariants:
- *   - exactly one transport boundary: guardedSend();
+ *   - exactly one outbound policy boundary: guardedSend();
+ *   - transport implementation is selected behind that boundary;
  *   - every text/document send has dealer_id + exact template_id;
- *   - final Python outbound_guard runs immediately before WhatsApp transport;
+ *   - final Python outbound_guard runs immediately before transport;
  *   - bridge rows without template_id are blocked, never guessed;
  *   - no simulated typing, human-like jitter, stealth or anti-ban behaviour;
  *   - no voice/multi-message legacy bypasses;
  *   - inbound dealer messages are persisted before deterministic analysis;
+ *   - Cloud API webhooks are signature-verified before JSON parsing;
  *   - policy failure is fail-closed and auditable.
- *
- * This file intentionally replaces the historical monolith at the same path,
- * so PM2 and existing deployment references keep a single active writer.
  */
 
 const fs = require('fs');
@@ -24,7 +23,13 @@ const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 const Database = require('better-sqlite3');
 const QRCode = require('qrcode');
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const { createTransport, TransportError } = require('./transport');
+const {
+  createBoundedSeenSet,
+  processWebhookPayload,
+  verifyWebhookChallenge,
+  verifyWebhookSignature,
+} = require('./transport/webhook');
 
 const ROOT = path.resolve(__dirname, '..');
 const DB_PATH = process.env.ARGOS_DB_PATH || path.join(ROOT, 'dealer_network.sqlite');
@@ -36,6 +41,7 @@ const POST_SEND_UPDATE = path.join(__dirname, 'post_send_update.py');
 const PORT = Number(process.env.ARGOS_WA_PORT || 9191);
 const HOST = process.env.ARGOS_BIND_HOST || '127.0.0.1';
 const API_KEY = process.env.ARGOS_API_KEY || '';
+const TRANSPORT_MODE = String(process.env.ARGOS_WA_TRANSPORT || 'wwebjs').trim().toLowerCase();
 const BUSINESS_START = Number(process.env.ARGOS_BUSINESS_START_HOUR || 9);
 const BUSINESS_END = Number(process.env.ARGOS_BUSINESS_END_HOUR || 18);
 const BUSINESS_DAYS = new Set(
@@ -54,12 +60,12 @@ const INBOUND_DEBOUNCE_MS = Math.min(
 const MAX_BODY_CHARS = 4000;
 const MAX_HTTP_BODY_BYTES = 1024 * 1024;
 
-let client = null;
-let connected = false;
+let activeTransport = null;
 let latestQrDataUrl = null;
 let bridgeTimer = null;
 let shuttingDown = false;
 const inboundBuffers = new Map();
+const webhookEchoSeen = createBoundedSeenSet();
 
 class GuardError extends Error {
   constructor(code, message, { transient = false } = {}) {
@@ -80,6 +86,14 @@ function sha256(value) {
 
 function normalizePhone(value) {
   return String(value || '').replace(/\D/g, '');
+}
+
+function transportConnected() {
+  try {
+    return Boolean(activeTransport && activeTransport.isConnected());
+  } catch (_) {
+    return false;
+  }
 }
 
 function dbOpen(file) {
@@ -308,9 +322,6 @@ function getDealerByPhone(phone) {
 }
 
 function outgoingTodayCount(dealerId = null) {
-  const localDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
-  // created_at is legacy text and may be UTC/local. 24h rolling count is safer than
-  // pretending we know its historical timezone representation.
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   if (dealerId) {
     return Number(
@@ -320,7 +331,6 @@ function outgoingTodayCount(dealerId = null) {
       `).get(dealerId, cutoff)?.n || 0,
     );
   }
-  void localDay;
   return Number(
     db.prepare(`
       SELECT COUNT(*) AS n FROM messages
@@ -375,8 +385,8 @@ function assertTransportPreconditions(dealer, phone) {
   if (!isBusinessHours()) {
     throw new GuardError('OUTSIDE_BUSINESS_HOURS', 'outside configured Europe/Rome business hours', { transient: true });
   }
-  if (!connected || !client) {
-    throw new GuardError('WHATSAPP_NOT_READY', 'WhatsApp client is not ready', { transient: true });
+  if (!transportConnected()) {
+    throw new GuardError('TRANSPORT_NOT_READY', 'WhatsApp transport is not ready', { transient: true });
   }
   const stored = normalizePhone(dealer.phone_number);
   const requested = normalizePhone(phone);
@@ -444,6 +454,12 @@ function persistOutbound({ dealerId, message, templateId, waMessageId }) {
   }
 }
 
+function transportGuardError(err) {
+  if (!(err instanceof TransportError)) return err;
+  const transient = err.code === 'TRANSPORT_DELIVERY_AMBIGUOUS' ? false : Boolean(err.transient);
+  return new GuardError(err.code || 'TRANSPORT_ERROR', err.message || 'transport error', { transient });
+}
+
 async function guardedSend({
   dealerId,
   phone,
@@ -460,36 +476,37 @@ async function guardedSend({
   }
   const policy = finalPolicyGuard(dealerId, templateId, text);
 
-  let media = null;
   if (documentPath) {
     verifyDossierMetadata({ dealer, filePath: documentPath, metadataPath: dossierMetadataPath });
-    media = MessageMedia.fromFilePath(documentPath);
   }
 
   const digits = normalizePhone(phone);
-  const chatId = `${digits}@c.us`;
-  const registered = await client.isRegisteredUser(chatId);
-  if (!registered) {
-    throw new GuardError('WHATSAPP_NOT_REGISTERED', 'target number is not registered');
-  }
-
   let sent;
-  if (media) {
-    sent = await client.sendMessage(chatId, media, {
-      caption: text,
-      sendMediaAsDocument: true,
+  try {
+    sent = documentPath
+      ? await activeTransport.sendDocument({ phone: digits, filePath: documentPath, caption: text })
+      : await activeTransport.sendText({ phone: digits, body: text });
+  } catch (err) {
+    const wrapped = transportGuardError(err);
+    audit('TRANSPORT_SEND_BLOCKED', dealerId, {
+      template_id: templateId,
+      code: wrapped.code || 'TRANSPORT_ERROR',
+      ambiguous: err instanceof TransportError ? Boolean(err.ambiguous) : false,
     });
-  } else {
-    sent = await client.sendMessage(chatId, text);
+    throw wrapped;
   }
 
-  const waMessageId = sent?.id?._serialized || `wa_${Date.now()}`;
+  const waMessageId = String(sent?.wa_msg_id || '');
+  if (!waMessageId) {
+    throw new GuardError('TRANSPORT_INVALID_RESPONSE', 'transport response is missing message id');
+  }
   persistOutbound({ dealerId, message: text, templateId, waMessageId });
   audit('OUTBOUND_SENT', dealerId, {
     template_id: templateId,
     phone_suffix: digits.slice(-4),
     wa_msg_id: waMessageId,
-    document: Boolean(media),
+    document: Boolean(documentPath),
+    transport: TRANSPORT_MODE,
     policy,
   });
   return { ok: true, wa_msg_id: waMessageId, policy };
@@ -668,7 +685,7 @@ function deferBridge(row, code, reason, attemptIncrement = true) {
 }
 
 async function pollBridgeOutbound() {
-  if (!bridgeDb || shuttingDown || !connected || runtimeStatus() !== 'ACTIVE' || !isBusinessHours()) return;
+  if (!bridgeDb || shuttingDown || !transportConnected() || runtimeStatus() !== 'ACTIVE' || !isBusinessHours()) return;
   for (const row of bridgeReadyRows()) {
     if (!claimBridgeRow(row.id)) continue;
     try {
@@ -725,6 +742,12 @@ function httpJson(res, status, payload) {
   res.end(body);
 }
 
+function httpText(res, status, text) {
+  const body = String(text || '');
+  res.writeHead(status, { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Length': Buffer.byteLength(body) });
+  res.end(body);
+}
+
 function requireApiKey(req, res) {
   if (!API_KEY) {
     httpJson(res, 503, { ok: false, error: 'ARGOS_API_KEY_NOT_CONFIGURED' });
@@ -741,7 +764,7 @@ function requireApiKey(req, res) {
   return true;
 }
 
-function readJsonBody(req) {
+function readRawBody(req) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
@@ -754,25 +777,86 @@ function readJsonBody(req) {
       }
       chunks.push(chunk);
     });
-    req.on('end', () => {
-      try {
-        resolve(chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {});
-      } catch (err) {
-        reject(err);
-      }
-    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
+}
+
+async function readJsonBody(req) {
+  const raw = await readRawBody(req);
+  return raw.length ? JSON.parse(raw.toString('utf8')) : {};
+}
+
+function auditWebhookStatus(status) {
+  audit('WHATSAPP_DELIVERY_STATUS', null, {
+    wa_msg_id: status.wa_msg_id,
+    status: status.status,
+    recipient_suffix: normalizePhone(status.recipient_id).slice(-4),
+    error_codes: status.error_codes,
+  });
+}
+
+async function handleWebhook(req, res, url) {
+  if (TRANSPORT_MODE !== 'cloud') {
+    return httpJson(res, 404, { ok: false, error: 'WEBHOOK_NOT_ENABLED' });
+  }
+
+  if (req.method === 'GET') {
+    const challenge = verifyWebhookChallenge(url.searchParams, process.env.META_WA_WEBHOOK_VERIFY_TOKEN || '');
+    if (challenge === null) return httpJson(res, 403, { ok: false, error: 'WEBHOOK_VERIFY_FAILED' });
+    return httpText(res, 200, challenge);
+  }
+
+  if (req.method !== 'POST') return httpJson(res, 405, { ok: false, error: 'METHOD_NOT_ALLOWED' });
+
+  let raw;
+  try {
+    raw = await readRawBody(req);
+  } catch (err) {
+    return httpJson(res, 413, { ok: false, error: 'WEBHOOK_BODY_REJECTED' });
+  }
+
+  const signature = String(req.headers['x-hub-signature-256'] || '');
+  const appSecret = String(process.env.META_APP_SECRET || '');
+  if (!verifyWebhookSignature(raw, signature, appSecret)) {
+    audit('WHATSAPP_WEBHOOK_SIGNATURE_REJECTED', null, {});
+    return httpJson(res, 403, { ok: false, error: 'INVALID_WEBHOOK_SIGNATURE' });
+  }
+
+  let payload;
+  try {
+    payload = raw.length ? JSON.parse(raw.toString('utf8')) : {};
+  } catch (_) {
+    return httpJson(res, 400, { ok: false, error: 'INVALID_WEBHOOK_JSON' });
+  }
+
+  try {
+    const result = await processWebhookPayload(payload, {
+      onInbound: handleInbound,
+      onStatus: auditWebhookStatus,
+      onAudit: (eventType, data) => audit(eventType, null, data),
+      seenEchoes: webhookEchoSeen,
+    });
+    return httpJson(res, 200, { ok: true, handled: result.handled });
+  } catch (err) {
+    audit('WHATSAPP_WEBHOOK_PROCESSING_ERROR', null, { error: err.message });
+    return httpJson(res, 500, { ok: false, error: 'WEBHOOK_PROCESSING_ERROR' });
+  }
 }
 
 async function handleHttp(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
+  if (url.pathname === '/webhooks/whatsapp') {
+    return handleWebhook(req, res, url);
+  }
+
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/status' || url.pathname === '/health')) {
     return httpJson(res, 200, {
       ok: true,
       runtime: 'argos-s292-single-writer',
-      connected,
+      connected: transportConnected(),
+      transport: TRANSPORT_MODE,
       agent_status: runtimeStatus(),
       business_hours: isBusinessHours(),
       bridge_enabled: Boolean(bridgeDb),
@@ -783,7 +867,9 @@ async function handleHttp(req, res) {
   }
 
   if (req.method === 'GET' && url.pathname === '/qr') {
-    if (!latestQrDataUrl) return httpJson(res, 404, { ok: false, error: 'QR_NOT_AVAILABLE' });
+    if (TRANSPORT_MODE !== 'wwebjs' || !latestQrDataUrl) {
+      return httpJson(res, 404, { ok: false, error: 'QR_NOT_AVAILABLE' });
+    }
     return httpJson(res, 200, { ok: true, qr_data_url: latestQrDataUrl });
   }
 
@@ -851,45 +937,40 @@ async function handleHttp(req, res) {
   return httpJson(res, 404, { ok: false, error: 'NOT_FOUND' });
 }
 
-function buildClient() {
-  const puppeteer = { headless: true };
-  if (process.env.CHROME_EXECUTABLE_PATH) puppeteer.executablePath = process.env.CHROME_EXECUTABLE_PATH;
-  return new Client({
-    authStrategy: new LocalAuth({
-      clientId: process.env.ARGOS_WA_CLIENT_ID || 'argos-s292',
-      dataPath: process.env.ARGOS_WA_SESSION_DIR || path.join(__dirname, '.wwebjs_auth'),
-    }),
-    puppeteer,
-  });
+function transportCallbacks() {
+  return {
+    onQr: async (qr) => {
+      try { latestQrDataUrl = await QRCode.toDataURL(qr); } catch (_) { latestQrDataUrl = null; }
+      audit('WHATSAPP_QR', null, { available: Boolean(latestQrDataUrl) });
+    },
+    onAuthenticated: () => audit('WHATSAPP_AUTHENTICATED', null, {}),
+    onReady: () => {
+      latestQrDataUrl = null;
+      audit('WHATSAPP_READY', null, { transport: 'wwebjs' });
+      startBridgePoller();
+    },
+    onMessage: handleInbound,
+    onAuthFailure: (message) => {
+      audit('WHATSAPP_AUTH_FAILURE', null, { message: String(message || '') });
+      if (!shuttingDown) setTimeout(() => process.exit(2), 500);
+    },
+    onDisconnected: (reason) => {
+      stopBridgePoller();
+      audit('WHATSAPP_DISCONNECTED', null, { reason: String(reason || '') });
+      if (!shuttingDown) setTimeout(() => process.exit(3), 500);
+    },
+  };
 }
 
 async function startWhatsapp() {
-  client = buildClient();
-  client.on('qr', async (qr) => {
-    connected = false;
-    try { latestQrDataUrl = await QRCode.toDataURL(qr); } catch (_) { latestQrDataUrl = null; }
-    audit('WHATSAPP_QR', null, { available: Boolean(latestQrDataUrl) });
+  activeTransport = createTransport({ env: process.env, callbacks: transportCallbacks() });
+  const result = await activeTransport.initialize();
+  audit('WHATSAPP_TRANSPORT_INITIALIZED', null, {
+    transport: TRANSPORT_MODE,
+    connected: transportConnected(),
+    phone_number_id: TRANSPORT_MODE === 'cloud' ? String(result?.phone_number_id || '') : undefined,
   });
-  client.on('authenticated', () => audit('WHATSAPP_AUTHENTICATED', null, {}));
-  client.on('ready', () => {
-    connected = true;
-    latestQrDataUrl = null;
-    audit('WHATSAPP_READY', null, {});
-    startBridgePoller();
-  });
-  client.on('message', handleInbound);
-  client.on('auth_failure', (message) => {
-    connected = false;
-    audit('WHATSAPP_AUTH_FAILURE', null, { message: String(message || '') });
-    if (!shuttingDown) setTimeout(() => process.exit(2), 500);
-  });
-  client.on('disconnected', (reason) => {
-    connected = false;
-    stopBridgePoller();
-    audit('WHATSAPP_DISCONNECTED', null, { reason: String(reason || '') });
-    if (!shuttingDown) setTimeout(() => process.exit(3), 500);
-  });
-  await client.initialize();
+  if (transportConnected()) startBridgePoller();
 }
 
 const server = http.createServer((req, res) => {
@@ -904,6 +985,7 @@ server.listen(PORT, HOST, () => {
   console.log(`[ARGOS] S292 single-writer listening on http://${HOST}:${PORT}`);
   console.log(`[ARGOS] DB=${DB_PATH}`);
   console.log(`[ARGOS] bridge=${BRIDGE_DB_PATH || 'disabled'}`);
+  console.log(`[ARGOS] transport=${TRANSPORT_MODE}`);
 });
 
 async function shutdown(signal) {
@@ -916,7 +998,7 @@ async function shutdown(signal) {
   inboundBuffers.clear();
   audit('DAEMON_SHUTDOWN', null, { signal });
   server.close();
-  try { if (client) await client.destroy(); } catch (_) {}
+  try { if (activeTransport) await activeTransport.shutdown(); } catch (_) {}
   try { if (bridgeDb) bridgeDb.close(); } catch (_) {}
   try { db.close(); } catch (_) {}
   process.exit(0);
@@ -936,7 +1018,7 @@ process.on('unhandledRejection', (err) => {
 });
 
 startWhatsapp().catch((err) => {
-  console.error('[ARGOS] WhatsApp init failed:', err);
-  audit('WHATSAPP_INIT_FAILED', null, { error: err.message });
+  console.error('[ARGOS] WhatsApp init failed:', err.message || String(err));
+  audit('WHATSAPP_INIT_FAILED', null, { code: err.code || 'ERROR', error: err.message });
   process.exit(4);
 });
