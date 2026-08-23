@@ -5,9 +5,11 @@ Runs on the production release tree before/after PM2 startup. It never changes
 Git, SQLite, PM2, WhatsApp or Meta state. Both supported transports are checked:
 
 * ``wwebjs`` keeps the historical LocalAuth/session requirements.
-* ``cloud`` requires the official Meta Cloud API configuration but performs no
-  live Graph API request during predeploy. The daemon's own read-only
-  ``initialize()`` validation is reflected through local ``/health`` postdeploy.
+* ``cloud`` requires the official Meta Cloud API configuration plus a public
+  HTTPS webhook URL. Predeploy performs no Graph API request. On the final
+  ``--require-connected`` postdeploy gate, the script also performs a harmless
+  GET webhook verification challenge against that public URL so inbound routing
+  is proven end-to-end without sending any WhatsApp message.
 
 In every mode C10 remains fail-closed: automation disabled, runtime not ACTIVE,
 no authorized dealer/pending approved bridge row unless explicitly overridden.
@@ -21,6 +23,7 @@ import shutil
 import sqlite3
 import subprocess
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -33,6 +36,7 @@ CLOUD_REQUIRED_ENV = (
     "META_WA_WABA_ID",
     "META_WA_WEBHOOK_VERIFY_TOKEN",
     "META_APP_SECRET",
+    "ARGOS_WA_WEBHOOK_PUBLIC_URL",
 )
 SUPPORTED_TRANSPORTS = {"wwebjs", "cloud"}
 
@@ -111,6 +115,33 @@ def _http_health(port: int) -> tuple[Optional[Mapping[str, Any]], str]:
         return None, str(exc)
 
 
+def _public_webhook_verify(public_url: str, verify_token: str) -> tuple[bool, str]:
+    """Verify the deployed HTTPS route using the same side-effect-free GET Meta uses."""
+    try:
+        parsed = urllib.parse.urlsplit(public_url)
+        if parsed.scheme != "https" or not parsed.netloc:
+            return False, "public webhook URL must be absolute HTTPS"
+        query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+        challenge = "argos-c10-webhook-ok"
+        query.extend(
+            [
+                ("hub.mode", "subscribe"),
+                ("hub.verify_token", verify_token),
+                ("hub.challenge", challenge),
+            ]
+        )
+        target = urllib.parse.urlunsplit(
+            (parsed.scheme, parsed.netloc, parsed.path, urllib.parse.urlencode(query), parsed.fragment)
+        )
+        request = urllib.request.Request(target, method="GET")
+        with urllib.request.urlopen(request, timeout=10) as response:
+            body = response.read(1024).decode("utf-8")
+            status = int(response.status)
+        return status == 200 and body == challenge, f"HTTP {status}, challenge_match={body == challenge}"
+    except (OSError, urllib.error.URLError, ValueError) as exc:
+        return False, f"webhook verification failed: {type(exc).__name__}"
+
+
 def _pm2_apps(repo_root: Path) -> tuple[dict[str, Mapping[str, Any]], str]:
     pm2 = shutil.which("pm2")
     if not pm2:
@@ -141,6 +172,13 @@ def _transport_checks(report: SmokeReport, env: Mapping[str, str], root: Path) -
         report.add("cloud_required_env", not missing, missing or "configured")
         graph_version = str(env.get("META_GRAPH_API_VERSION") or "v25.0").strip()
         report.add("cloud_graph_version", bool(graph_version), graph_version)
+        public_url = str(env.get("ARGOS_WA_WEBHOOK_PUBLIC_URL") or "").strip()
+        parsed = urllib.parse.urlsplit(public_url) if public_url else None
+        report.add(
+            "cloud_public_webhook_https",
+            bool(parsed and parsed.scheme == "https" and parsed.netloc),
+            "configured" if public_url else "missing",
+        )
         report.add(
             "existing_wa_session",
             True,
@@ -301,6 +339,8 @@ def predeploy_checks(
         "env_file": str(env_file),
         "port": int(env.get("ARGOS_WA_PORT") or 9191),
         "transport": transport,
+        "webhook_public_url": str(env.get("ARGOS_WA_WEBHOOK_PUBLIC_URL") or "").strip(),
+        "webhook_verify_token": str(env.get("META_WA_WEBHOOK_VERIFY_TOKEN") or "").strip(),
     }
     return report, context
 
@@ -339,6 +379,19 @@ def postdeploy_checks(
             report.add("whatsapp_connected", health.get("connected") is True, health.get("connected"))
         else:
             report.add("whatsapp_connected", True, health.get("connected"), required=False)
+
+    if context["transport"] == "cloud" and require_connected:
+        webhook_ok, webhook_detail = _public_webhook_verify(
+            context["webhook_public_url"], context["webhook_verify_token"]
+        )
+        report.add("cloud_public_webhook_verified", webhook_ok, webhook_detail)
+    else:
+        report.add(
+            "cloud_public_webhook_verified",
+            True,
+            "not required for this transport/gate",
+            required=False,
+        )
     return report
 
 
