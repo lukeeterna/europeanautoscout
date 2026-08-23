@@ -25,6 +25,8 @@ BRIDGE_DB_PATH=<absolute existing bridge.sqlite path>
 
 Back up both files before any process cutover. Never overwrite an earlier C10 backup. The release must fail rather than create a fresh empty production DB because a checkout moved.
 
+The Node runtime is release-owned and reproducible. `wa-intelligence/package.json` pins exact versions and `wa-intelligence/package-lock.json` is canonical lockfile v3. Cloud production installs with optional legacy `whatsapp-web.js` omitted.
+
 ## 2. Local secrets / `.env`
 
 Create `wa-intelligence/.env` locally on the iMac with mode `0600`. Never commit or paste its values.
@@ -106,11 +108,28 @@ Before canonical cutover, verify:
 - there is exactly one process capable of WhatsApp transport;
 - no second service is listening as another writer.
 
-Never run the retired `wa-intelligence/deploy.sh`; it exits fail-closed by design.
+Never run the retired `wa-intelligence/deploy.sh`; it exits fail-closed by design. The historical `.github/workflows/cd.yml` push/schedule deployment path is also retired and must not be restored.
 
-Production PM2 must enter the writer only through `runtime_entrypoint.py`. Do not start `wa-daemon.js` directly.
+Production PM2 must enter the writer only through `runtime_entrypoint.py`. Do not start `wa-daemon.js` directly. The daemon itself also seeds a missing runtime state as `PAUSED`, so even an accidental direct start cannot fail open.
 
-## 6. Predeploy gate
+## 6. Install the exact locked Node runtime
+
+From the exact release tree, before C10 predeploy:
+
+```bash
+npm ci --prefix wa-intelligence --omit=optional --no-audit --no-fund
+npm --prefix wa-intelligence run verify:runtime-deps
+```
+
+Required result:
+
+```text
+RUNTIME_DEPS=PASS
+```
+
+This proves that the exact lockfile can install and that `better-sqlite3` can load its native binary and execute a real in-memory SQLite query. `qrcode` must also load. Do not replace `npm ci` with `npm install`, do not regenerate the lock on the iMac, and do not install the optional legacy `whatsapp-web.js` package for the Cloud production cutover.
+
+## 7. Predeploy gate
 
 From the exact release tree:
 
@@ -126,6 +145,8 @@ Required outcome: every required check GREEN, including:
 
 - exact SHA and clean worktree;
 - Python 3.13 / Node / PM2 available;
+- `wa-intelligence/package.json` and `package-lock.json` present;
+- installed locked runtime dependencies actually load;
 - canonical daemon + all transport/policy adapters parse;
 - `.env` exists and is private (`0600` or equivalently no group/other bits);
 - `ARGOS_API_KEY` configured;
@@ -139,7 +160,7 @@ Required outcome: every required check GREEN, including:
 
 Do not proceed if predeploy is RED.
 
-## 7. Start canonical PM2 runtime — still PAUSED
+## 8. Start canonical PM2 runtime — still PAUSED
 
 Use only `wa-intelligence/ecosystem.config.js` from the candidate SHA. Start only the C10 canonical pair:
 
@@ -154,7 +175,7 @@ Do not restart unrelated dashboard/monitor/Telegram processes as part of this tr
 
 Do not call `/resume`.
 
-## 8. Postdeploy + official transport gate
+## 9. Postdeploy + official transport gate
 
 After PM2 reports the canonical daemon online:
 
@@ -179,7 +200,7 @@ For Cloud mode this proves, without sending a WhatsApp message:
 
 No live dealer message is sent by this smoke gate.
 
-## 9. Final C10 safety proof
+## 10. Final C10 safety proof
 
 Before persistence, verify directly from DB/health/process facts:
 
@@ -191,6 +212,8 @@ BRIDGE_APPROVED_PENDING=0
 OUTBOUND_DELTA=0
 SINGLE_WRITER=PASS
 LEGACY_SCHEDULER=DISABLED
+LEGACY_CD_RETIRED=PASS
+LOCKED_NODE_RUNTIME=PASS
 EXTERNAL_PRIMARY_DB=PASS
 EXTERNAL_BRIDGE_DB=PASS
 META_TEMPLATES_VALIDATED=PASS
@@ -201,7 +224,7 @@ Only after all C10 checks are GREEN may `pm2 save` persist the canonical process
 
 `pm2 save` is not authorization to contact dealers.
 
-## 10. Delivery ambiguity rule
+## 11. Delivery ambiguity rule
 
 The Cloud adapter performs no automatic transport retry.
 
@@ -215,13 +238,13 @@ That error is non-transient at the bridge boundary. The row is blocked for recon
 
 A failed media upload is different: it cannot itself contact the dealer, so it may be retried by a later bridge cycle.
 
-## 11. C11 is a separate gate
+## 12. C11 is a separate gate
 
 C10 ends with the official transport connected **while ARGOS is still PAUSED**.
 
 The first real WhatsApp send is a separate C11 controlled test to a recipient for whom valid consent is demonstrable. It must not be smuggled into C10. Only after that controlled result may normal activation/outreach be considered.
 
-## 12. Security closure
+## 13. Security closure
 
 A Telegram token was exposed during an earlier inspection and must be treated as compromised. Before declaring production security complete:
 
@@ -232,7 +255,7 @@ A Telegram token was exposed during an earlier inspection and must be treated as
 
 This requirement is independent of the WhatsApp Cloud API gate.
 
-## 13. GitHub/iMac automation lane
+## 14. GitHub/iMac automation lane
 
 Repository workflows may use `IMAC_HOST`, `IMAC_USER` and `IMAC_SSH_KEY` only to reach the target host. Their values must never be printed.
 
@@ -246,7 +269,7 @@ SSH_FAILED
 
 A blocked SSH lane is an infrastructure blocker, not a code PASS and not permission to bypass C10 manually or merge without the machine gate.
 
-## 14. Rollback
+## 15. Rollback
 
 Rollback changes only the transport selection and canonical process runtime; it must never restore the historical writer or legacy scheduler.
 
