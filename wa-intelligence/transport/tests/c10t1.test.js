@@ -9,6 +9,7 @@ const crypto = require('node:crypto');
 
 const {
   CloudApiTransport,
+  CloudPolicyTransport,
   createTransport,
   validateCloudEnvironment,
 } = require('..');
@@ -24,6 +25,8 @@ const {
 function cloudEnv(overrides = {}) {
   return {
     ARGOS_WA_TRANSPORT: 'cloud',
+    ARGOS_DB_PATH: '/tmp/argos-test-primary.sqlite',
+    BRIDGE_DB_PATH: '/tmp/argos-test-bridge.sqlite',
     META_GRAPH_API_VERSION: 'v25.0',
     META_WA_ACCESS_TOKEN: 'test-token-not-real',
     META_WA_PHONE_NUMBER_ID: '123456789',
@@ -63,9 +66,10 @@ test('03 unsupported transport mode fails closed', () => {
   assert.throws(() => createTransport({ env: { ARGOS_WA_TRANSPORT: 'other' } }), /Unsupported WhatsApp transport/);
 });
 
-test('04 cloud factory returns CloudApiTransport only with complete env', () => {
+test('04 cloud factory returns policy wrapper around official Cloud transport', () => {
   const transport = createTransport({ env: cloudEnv(), requestFn: async () => response(200, {}) });
-  assert.ok(transport instanceof CloudApiTransport);
+  assert.ok(transport instanceof CloudPolicyTransport);
+  assert.ok(transport.transport instanceof CloudApiTransport);
 });
 
 test('05 cloud initialize performs read-only phone id validation', async () => {
