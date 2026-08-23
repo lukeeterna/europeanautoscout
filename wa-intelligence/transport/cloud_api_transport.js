@@ -5,6 +5,7 @@ const https = require('https');
 const path = require('path');
 const crypto = require('crypto');
 const { TransportError } = require('./errors');
+const META_TEMPLATE_CONTRACT = require('../meta_templates.json');
 
 const DEFAULT_GRAPH_VERSION = 'v25.0';
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -118,6 +119,21 @@ function buildMultipartMediaBody(filePath) {
   return { boundary, body: Buffer.concat([head, file, tail]) };
 }
 
+function normalizeTemplateText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function templateRows(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+}
+
+function bodyComponent(row) {
+  return (Array.isArray(row?.components) ? row.components : [])
+    .find((component) => String(component?.type || '').toUpperCase() === 'BODY');
+}
+
 class CloudApiTransport {
   constructor({ env = process.env, requestFn = nodeHttpsRequest, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
     this.env = env;
@@ -127,7 +143,9 @@ class CloudApiTransport {
     this.accessToken = String(env.META_WA_ACCESS_TOKEN || '');
     this.phoneNumberId = String(env.META_WA_PHONE_NUMBER_ID || '');
     this.wabaId = String(env.META_WA_WABA_ID || '');
+    this.templateLanguage = String(env.META_WA_TEMPLATE_LANGUAGE || 'it');
     this.connected = false;
+    this.approvedTemplateNames = new Set();
   }
 
   _authHeaders(extra = {}) {
@@ -135,12 +153,31 @@ class CloudApiTransport {
   }
 
   _assertCoreConfig() {
-    if (!this.accessToken || !this.phoneNumberId) {
+    if (!this.accessToken || !this.phoneNumberId || !this.wabaId) {
       throw new TransportError(
         'TRANSPORT_CONFIG_MISSING',
-        'Cloud API access token and phone number id are required',
+        'Cloud API access token, phone number id and WABA id are required',
       );
     }
+  }
+
+  _configuredTemplateContracts() {
+    const configured = [];
+    let configuredCount = 0;
+    for (const [internalId, contract] of Object.entries(META_TEMPLATE_CONTRACT)) {
+      const envName = String(contract?.env_name || '');
+      const name = String(this.env[envName] || '').trim();
+      if (name) configuredCount += 1;
+      configured.push({ internalId, contract, envName, name });
+    }
+    if (configuredCount === 0) return [];
+    if (configuredCount !== configured.length) {
+      throw new TransportError(
+        'TRANSPORT_CONFIG_MISSING',
+        'All proactive Meta template names must be configured together',
+      );
+    }
+    return configured;
   }
 
   async _graphRequest({ method, endpoint, body = null, headers = {}, deliveryRequest = false }) {
@@ -178,6 +215,42 @@ class CloudApiTransport {
     return payload;
   }
 
+  async _validateConfiguredTemplates() {
+    const configured = this._configuredTemplateContracts();
+    this.approvedTemplateNames.clear();
+    if (!configured.length) return { configured: 0, approved: 0 };
+
+    for (const item of configured) {
+      const query = new URLSearchParams({
+        name: item.name,
+        fields: 'name,status,language,category,components',
+      }).toString();
+      const payload = await this._graphRequest({
+        method: 'GET',
+        endpoint: `${this.wabaId}/message_templates?${query}`,
+      });
+      const row = templateRows(payload).find((candidate) => String(candidate?.name || '') === item.name);
+      if (!row) {
+        throw new TransportError('META_TEMPLATE_NOT_FOUND', `Configured Meta template not found: ${item.internalId}`);
+      }
+      if (String(row.status || '').toUpperCase() !== 'APPROVED') {
+        throw new TransportError('META_TEMPLATE_NOT_APPROVED', `Meta template is not approved: ${item.internalId}`);
+      }
+      if (String(row.language || '') !== this.templateLanguage) {
+        throw new TransportError('META_TEMPLATE_LANGUAGE_MISMATCH', `Meta template language mismatch: ${item.internalId}`);
+      }
+      if (String(row.category || '').toUpperCase() !== String(item.contract.category || '').toUpperCase()) {
+        throw new TransportError('META_TEMPLATE_CATEGORY_MISMATCH', `Meta template category mismatch: ${item.internalId}`);
+      }
+      const body = bodyComponent(row);
+      if (!body || normalizeTemplateText(body.text) !== normalizeTemplateText(item.contract.body)) {
+        throw new TransportError('META_TEMPLATE_BODY_MISMATCH', `Meta template body mismatch: ${item.internalId}`);
+      }
+      this.approvedTemplateNames.add(item.name);
+    }
+    return { configured: configured.length, approved: this.approvedTemplateNames.size };
+  }
+
   async initialize() {
     this._assertCoreConfig();
     try {
@@ -188,14 +261,17 @@ class CloudApiTransport {
       if (!payload || String(payload.id || '') !== this.phoneNumberId) {
         throw new TransportError('TRANSPORT_INVALID_RESPONSE', 'Phone number id validation failed');
       }
+      const templates = await this._validateConfiguredTemplates();
       this.connected = true;
       return {
         connected: true,
         phone_number_id: this.phoneNumberId,
         display_phone_number: String(payload.display_phone_number || ''),
+        templates,
       };
     } catch (err) {
       this.connected = false;
+      this.approvedTemplateNames.clear();
       throw err;
     }
   }
@@ -204,20 +280,17 @@ class CloudApiTransport {
     return this.connected;
   }
 
-  async sendText({ phone, body }) {
+  async _postMessage(phone, messageObject) {
     if (!this.connected) {
       throw new TransportError('TRANSPORT_NOT_READY', 'Cloud API transport is not connected', { transient: true });
     }
     const digits = String(phone || '').replace(/\D/g, '');
-    if (!digits || !String(body || '').trim()) {
-      throw new TransportError('TRANSPORT_INVALID_ARGUMENT', 'phone and body are required');
-    }
+    if (!digits) throw new TransportError('TRANSPORT_INVALID_ARGUMENT', 'phone is required');
     const requestBody = Buffer.from(JSON.stringify({
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
       to: digits,
-      type: 'text',
-      text: { preview_url: false, body: String(body) },
+      ...messageObject,
     }), 'utf8');
     const payload = await this._graphRequest({
       method: 'POST',
@@ -236,6 +309,38 @@ class CloudApiTransport {
     return { ok: true, wa_msg_id: waMessageId };
   }
 
+  async sendText({ phone, body }) {
+    const text = String(body || '').trim();
+    if (!text) throw new TransportError('TRANSPORT_INVALID_ARGUMENT', 'body is required');
+    return this._postMessage(phone, {
+      type: 'text',
+      text: { preview_url: false, body: String(body) },
+    });
+  }
+
+  async sendTemplate({ phone, template }) {
+    const name = String(template?.name || '').trim();
+    const languageCode = String(template?.language?.code || '').trim();
+    if (!name || !languageCode) {
+      throw new TransportError('TRANSPORT_INVALID_ARGUMENT', 'template name and language are required');
+    }
+    const configured = this._configuredTemplateContracts();
+    if (configured.length && !this.approvedTemplateNames.has(name)) {
+      throw new TransportError('META_TEMPLATE_NOT_APPROVED', 'Template was not approved during transport initialization');
+    }
+    if (languageCode !== this.templateLanguage) {
+      throw new TransportError('META_TEMPLATE_LANGUAGE_MISMATCH', 'Template language differs from validated language');
+    }
+    const payload = {
+      name,
+      language: { code: languageCode },
+    };
+    if (Array.isArray(template.components) && template.components.length) {
+      payload.components = template.components;
+    }
+    return this._postMessage(phone, { type: 'template', template: payload });
+  }
+
   async sendDocument({ phone, filePath, caption }) {
     if (!this.connected) {
       throw new TransportError('TRANSPORT_NOT_READY', 'Cloud API transport is not connected', { transient: true });
@@ -245,8 +350,6 @@ class CloudApiTransport {
       throw new TransportError('TRANSPORT_INVALID_ARGUMENT', 'phone and existing filePath are required');
     }
 
-    // Media upload cannot contact the dealer; a lost upload response may be safely
-    // retried by a later bridge cycle. Only the final /messages POST is delivery-ambiguous.
     const multipart = buildMultipartMediaBody(filePath);
     const uploaded = await this._graphRequest({
       method: 'POST',
@@ -262,36 +365,20 @@ class CloudApiTransport {
       throw new TransportError('TRANSPORT_INVALID_RESPONSE', 'Graph API media upload response is missing id');
     }
 
-    const requestBody = Buffer.from(JSON.stringify({
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to: digits,
+    const sent = await this._postMessage(digits, {
       type: 'document',
       document: {
         id: mediaId,
         caption: String(caption || ''),
         filename: path.basename(filePath),
       },
-    }), 'utf8');
-    const payload = await this._graphRequest({
-      method: 'POST',
-      endpoint: `${this.phoneNumberId}/messages`,
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': String(requestBody.length),
-      },
-      body: requestBody,
-      deliveryRequest: true,
     });
-    const waMessageId = String(payload?.messages?.[0]?.id || '');
-    if (!waMessageId) {
-      throw new TransportError('TRANSPORT_INVALID_RESPONSE', 'Graph API response is missing message id');
-    }
-    return { ok: true, wa_msg_id: waMessageId, media_id: mediaId };
+    return { ...sent, media_id: mediaId };
   }
 
   async shutdown() {
     this.connected = false;
+    this.approvedTemplateNames.clear();
   }
 }
 
@@ -300,4 +387,6 @@ module.exports = {
   DEFAULT_GRAPH_VERSION,
   buildMultipartMediaBody,
   nodeHttpsRequest,
+  normalizeTemplateText,
+  templateRows,
 };
