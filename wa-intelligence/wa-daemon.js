@@ -190,7 +190,7 @@ function ensurePrimarySchema() {
 
   db.prepare(`
     INSERT OR IGNORE INTO argos_runtime_state(key, value, updated_at)
-    VALUES ('agent_status', 'ACTIVE', ?)
+    VALUES ('agent_status', 'PAUSED', ?)
   `).run(nowIso());
 }
 
