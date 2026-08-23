@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - sol/argos-canonicalization-20260817
+      - sol/argos-cloudapi-c10t1-gpt56
     paths:
       - 'src/cove/**'
       - 'wa-intelligence/**'
@@ -74,6 +75,11 @@ jobs:
         run: |
           node --check wa-intelligence/wa-daemon.js
           node --check wa-intelligence/ecosystem.config.js
+          node --check wa-intelligence/transport/index.js
+          node --check wa-intelligence/transport/errors.js
+          node --check wa-intelligence/transport/cloud_api_transport.js
+          node --check wa-intelligence/transport/wwebjs_transport.js
+          node --check wa-intelligence/transport/webhook.js
 
       - name: Validate C10 smoke CLI is side-effect free on help
         run: python tools/scripts/argos_c10_smoke.py --help >/dev/null
@@ -92,31 +98,84 @@ jobs:
             tests.test_argos_delivery_artifact \
             tests.test_argos_runtime_entrypoint
 
+      - name: Run C10T1 Cloud transport tests
+        run: node --test wa-intelligence/transport/tests/c10t1.test.js
+
       - name: Assert single guarded WhatsApp transport boundary
         run: |
           python - <<'PY'
           from pathlib import Path
-          text = Path('wa-intelligence/wa-daemon.js').read_text(encoding='utf-8')
+
+          root = Path('wa-intelligence')
+          daemon_path = root / 'wa-daemon.js'
+          legacy_path = root / 'transport' / 'wwebjs_transport.js'
+          daemon = daemon_path.read_text(encoding='utf-8')
+
           marker = 'async function guardedSend('
           end_marker = '\nfunction persistInbound('
-          assert marker in text and end_marker in text, 'guardedSend boundary missing'
-          start = text.index(marker)
-          end = text.index(end_marker, start)
+          assert marker in daemon and end_marker in daemon, 'guardedSend boundary missing'
+          start = daemon.index(marker)
+          end = daemon.index(end_marker, start)
+          guarded = daemon[start:end]
+
+          assert 'client.sendMessage(' not in daemon, 'raw whatsapp-web.js send leaked back into daemon'
+
+          transport_needles = ('activeTransport.sendText(', 'activeTransport.sendDocument(')
           occurrences = []
-          offset = 0
-          needle = 'client.sendMessage('
-          while True:
-              idx = text.find(needle, offset)
-              if idx < 0:
-                  break
-              occurrences.append(idx)
-              offset = idx + len(needle)
-          assert occurrences, 'WhatsApp transport call missing'
-          assert all(start <= idx < end for idx in occurrences), (
-              f'client.sendMessage outside guardedSend at offsets {occurrences}'
+          for needle in transport_needles:
+              offset = 0
+              while True:
+                  idx = daemon.find(needle, offset)
+                  if idx < 0:
+                      break
+                  occurrences.append((needle, idx))
+                  offset = idx + len(needle)
+          assert occurrences, 'transport send delegation missing from daemon'
+          assert all(start <= idx < end for _, idx in occurrences), (
+              f'transport send outside guardedSend: {occurrences}'
           )
-          assert 'LEGACY_TRANSPORT_RETIRED' in text, 'legacy multi/voice transport not retired'
-          print(f'PASS guardedSend owns {len(occurrences)} WhatsApp transport call sites')
+          assert 'activeTransport.sendText(' in guarded, 'guardedSend text delegation missing'
+          assert 'activeTransport.sendDocument(' in guarded, 'guardedSend document delegation missing'
+
+          assert "url.pathname === '/send'" in daemon and "url.pathname === '/send-doc'" in daemon
+          assert daemon.count('guardedSend({') >= 3, 'bridge/send/send-doc must route through guardedSend'
+          assert "url.pathname === '/send-multi'" in daemon
+          assert "url.pathname === '/send-voice'" in daemon
+          assert 'LEGACY_TRANSPORT_RETIRED' in daemon, 'legacy multi/voice transport not retired'
+
+          allowed_raw_send = legacy_path.as_posix()
+          raw_send_files = []
+          for path in root.rglob('*.js'):
+              rel = path.as_posix()
+              if '/node_modules/' in f'/{rel}/' or '/tests/' in f'/{rel}/' or rel.endswith('.test.js'):
+                  continue
+              if 'client.sendMessage(' in path.read_text(encoding='utf-8'):
+                  raw_send_files.append(rel)
+          assert raw_send_files == [allowed_raw_send], (
+              f'raw client.sendMessage allowed only in legacy adapter, found {raw_send_files}'
+          )
+          legacy = legacy_path.read_text(encoding='utf-8')
+          assert legacy.count('client.sendMessage(') >= 1, 'legacy adapter transport primitive missing'
+
+          webhook_start = daemon.index('async function handleWebhook(')
+          webhook_end = daemon.index('\nasync function handleHttp(', webhook_start)
+          webhook = daemon[webhook_start:webhook_end]
+          for forbidden in ('activeTransport.sendText(', 'activeTransport.sendDocument(', 'guardedSend('):
+              assert forbidden not in webhook, f'webhook became outbound trigger via {forbidden}'
+
+          for path in root.rglob('*.js'):
+              rel = path.as_posix()
+              if rel == daemon_path.as_posix() or '/tests/' in f'/{rel}/' or '/node_modules/' in f'/{rel}/':
+                  continue
+              text = path.read_text(encoding='utf-8')
+              assert 'activeTransport.sendText(' not in text and 'activeTransport.sendDocument(' not in text, (
+                  f'non-daemon consumer bypasses guardedSend in {rel}'
+              )
+
+          print(
+              'PASS guardedSend owns adapter sends; raw wwebjs primitive is confined to '
+              f'{allowed_raw_send}'
+          )
           PY
 
       - name: Assert dealer-delivery sidecar matches daemon contract
