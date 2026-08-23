@@ -44,6 +44,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
+          cache: npm
+          cache-dependency-path: wa-intelligence/package-lock.json
+
+      - name: Install locked Cloud runtime dependencies
+        run: npm ci --prefix wa-intelligence --omit=optional --no-audit --no-fund
+
+      - name: Execute native runtime dependency smoke
+        run: npm --prefix wa-intelligence run verify:runtime-deps
 
       - name: Compile production Python modules
         run: |
@@ -102,7 +110,7 @@ jobs:
             tests.test_argos_c10_transport_smoke
 
       - name: Run C10T1 Cloud transport tests
-        run: node --test wa-intelligence/transport/tests/*.test.js
+        run: npm --prefix wa-intelligence run test:transport
 
       - name: Assert single guarded WhatsApp transport boundary
         run: |
@@ -202,6 +210,8 @@ jobs:
           ecosystem = Path('wa-intelligence/ecosystem.config.js').read_text(encoding='utf-8')
           entry = Path('wa-intelligence/runtime_entrypoint.py').read_text(encoding='utf-8')
           smoke = Path('tools/scripts/argos_c10_smoke.py').read_text(encoding='utf-8')
+          package = Path('wa-intelligence/package.json').read_text(encoding='utf-8')
+          lock = Path('wa-intelligence/package-lock.json').read_text(encoding='utf-8')
           assert "script: path.join(INTEL, 'runtime_entrypoint.py')" in ecosystem
           assert "'agent_status', 'PAUSED'" in entry
           assert "os.execv(node, [node, str(daemon)])" in entry
@@ -209,6 +219,7 @@ jobs:
           assert "ARGOS_WA_TRANSPORT: dotEnv.ARGOS_WA_TRANSPORT || 'wwebjs'" in ecosystem
           assert 'ARGOS_DB_PATH: dotEnv.ARGOS_DB_PATH ||' in ecosystem
           assert 'env.get("ARGOS_DB_PATH")' in smoke
+          assert '"better-sqlite3": "13.0.3"' in package and '"better-sqlite3": "13.0.3"' in lock
           for key in (
               'META_WA_ACCESS_TOKEN',
               'META_WA_PHONE_NUMBER_ID',
@@ -223,7 +234,7 @@ jobs:
               'META_WA_TEMPLATE_DAY12_NAME',
           ):
               assert key in ecosystem and key in smoke, f'proactive Meta template wiring missing: {key}'
-          print('PASS PM2 first boot is PAUSED, external-state aware, transport-aware and execs the only writer')
+          print('PASS PM2 first boot is PAUSED, dependency-locked, external-state aware, transport-aware and execs the only writer')
           PY
 
       - name: Static anti-drift assertions
