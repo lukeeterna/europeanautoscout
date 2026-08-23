@@ -1,24 +1,16 @@
 #!/usr/bin/env python3
-"""ARGOS C10 production smoke gate — read-only, no outreach.
+"""ARGOS C10 production smoke gate — read-only, transport-aware, no outreach.
 
-This command is designed to run ON the iMac release tree immediately before
-and after PM2 startup. It never changes Git, SQLite, PM2 or WhatsApp state.
+Runs on the production release tree before/after PM2 startup. It never changes
+Git, SQLite, PM2, WhatsApp or Meta state. Both supported transports are checked:
 
-PREDEPLOY proves that starting the reviewed runtime cannot accidentally contact
-real dealers:
-- expected Git HEAD and clean worktree;
-- Python 3.13, Node and PM2 available;
-- production JS syntax valid;
-- primary DB, bridge DB and existing WhatsApp LocalAuth directory present;
-- ARGOS_API_KEY configured;
-- ARGOS_AUTOMATION_ENABLED != 1;
-- no already-authorized dealer and no approved/pending bridge row unless an
-  explicit command-line override is supplied;
-- persisted runtime state, if present, is not ACTIVE.
+* ``wwebjs`` keeps the historical LocalAuth/session requirements.
+* ``cloud`` requires the official Meta Cloud API configuration but performs no
+  live Graph API request during predeploy. The daemon's own read-only
+  ``initialize()`` validation is reflected through local ``/health`` postdeploy.
 
-POSTDEPLOY additionally reads local ``/health`` and PM2 metadata. The daemon
-must be the S292 single-writer and must remain PAUSED. Use ``--require-connected``
-only after QR/session authentication is expected to be complete.
+In every mode C10 remains fail-closed: automation disabled, runtime not ACTIVE,
+no authorized dealer/pending approved bridge row unless explicitly overridden.
 """
 from __future__ import annotations
 
@@ -28,12 +20,21 @@ import os
 import shutil
 import sqlite3
 import subprocess
-import sys
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Optional
+
+
+CLOUD_REQUIRED_ENV = (
+    "META_WA_ACCESS_TOKEN",
+    "META_WA_PHONE_NUMBER_ID",
+    "META_WA_WABA_ID",
+    "META_WA_WEBHOOK_VERIFY_TOKEN",
+    "META_APP_SECRET",
+)
+SUPPORTED_TRANSPORTS = {"wwebjs", "cloud"}
 
 
 @dataclass
@@ -128,6 +129,33 @@ def _pm2_apps(repo_root: Path) -> tuple[dict[str, Mapping[str, Any]], str]:
     return apps, ""
 
 
+def _transport_checks(report: SmokeReport, env: Mapping[str, str], root: Path) -> tuple[str, Path]:
+    transport = str(env.get("ARGOS_WA_TRANSPORT") or "wwebjs").strip().lower()
+    report.add("transport_supported", transport in SUPPORTED_TRANSPORTS, transport)
+
+    session_raw = str(env.get("ARGOS_WA_SESSION_DIR") or "").strip()
+    session_dir = Path(os.path.expanduser(session_raw)).resolve() if session_raw else (root / "wa-sender")
+
+    if transport == "cloud":
+        missing = [name for name in CLOUD_REQUIRED_ENV if not str(env.get(name) or "").strip()]
+        report.add("cloud_required_env", not missing, missing or "configured")
+        graph_version = str(env.get("META_GRAPH_API_VERSION") or "v25.0").strip()
+        report.add("cloud_graph_version", bool(graph_version), graph_version)
+        report.add(
+            "existing_wa_session",
+            True,
+            "not required for official Cloud API transport",
+            required=False,
+        )
+    elif transport == "wwebjs":
+        session_nonempty = session_dir.is_dir() and any(session_dir.iterdir())
+        report.add("existing_wa_session", session_nonempty, str(session_dir))
+    else:
+        report.add("existing_wa_session", False, f"unsupported transport: {transport}")
+
+    return transport, session_dir
+
+
 def predeploy_checks(
     *,
     repo_root: Path,
@@ -146,6 +174,11 @@ def predeploy_checks(
         intel / "runtime_entrypoint.py",
         intel / "outreach_scheduler.py",
         intel / "ecosystem.config.js",
+        intel / "transport" / "index.js",
+        intel / "transport" / "errors.js",
+        intel / "transport" / "cloud_api_transport.js",
+        intel / "transport" / "wwebjs_transport.js",
+        intel / "transport" / "webhook.js",
         root / "tools" / "scripts" / "argos_dealer_delivery.py",
     ]
     missing = [str(path.relative_to(root)) for path in required_files if not path.is_file()]
@@ -159,7 +192,11 @@ def predeploy_checks(
         actual_head = head.stdout.strip() if head.returncode == 0 else None
         report.add("git_head_readable", bool(actual_head), actual_head or head.stderr.strip())
         if expected_head:
-            report.add("expected_head", actual_head == expected_head, {"expected": expected_head, "actual": actual_head})
+            report.add(
+                "expected_head",
+                actual_head == expected_head,
+                {"expected": expected_head, "actual": actual_head},
+            )
         status = _run([git, "status", "--porcelain=v1"], cwd=root)
         dirty = [line for line in status.stdout.splitlines() if line.strip()]
         report.add("worktree_clean", status.returncode == 0 and not dirty, dirty[:20] or "clean")
@@ -175,28 +212,34 @@ def predeploy_checks(
     report.add("node_available", bool(node), node or "not found")
     report.add("pm2_available", bool(pm2), pm2 or "not found")
     if node:
-        for rel in ("wa-intelligence/wa-daemon.js", "wa-intelligence/ecosystem.config.js"):
+        node_files = (
+            "wa-intelligence/wa-daemon.js",
+            "wa-intelligence/ecosystem.config.js",
+            "wa-intelligence/transport/index.js",
+            "wa-intelligence/transport/errors.js",
+            "wa-intelligence/transport/cloud_api_transport.js",
+            "wa-intelligence/transport/wwebjs_transport.js",
+            "wa-intelligence/transport/webhook.js",
+        )
+        for rel in node_files:
             result = _run([node, "--check", rel], cwd=root)
             report.add(f"node_check:{rel}", result.returncode == 0, result.stderr.strip() or "PASS")
 
     report.add("env_file_present", env_file.is_file(), str(env_file))
-    api_key = env.get("ARGOS_API_KEY") or env.get("WA_API_KEY") or ""
+    api_key = str(env.get("ARGOS_API_KEY") or env.get("WA_API_KEY") or "")
     report.add("api_key_configured", bool(api_key.strip()), "configured" if api_key.strip() else "missing")
-    automation = (env.get("ARGOS_AUTOMATION_ENABLED") or "0").strip()
+    automation = str(env.get("ARGOS_AUTOMATION_ENABLED") or "0").strip()
     report.add("automation_disabled", automation != "1", f"ARGOS_AUTOMATION_ENABLED={automation}")
+
+    transport, session_dir = _transport_checks(report, env, root)
 
     primary_db = root / "dealer_network.sqlite"
     report.add("primary_db_present", primary_db.is_file(), str(primary_db))
 
-    bridge_raw = (env.get("BRIDGE_DB_PATH") or "").strip()
+    bridge_raw = str(env.get("BRIDGE_DB_PATH") or "").strip()
     bridge_db = Path(os.path.expanduser(bridge_raw)).resolve() if bridge_raw else None
     report.add("bridge_path_configured", bool(bridge_raw), bridge_raw or "missing")
     report.add("bridge_db_present", bool(bridge_db and bridge_db.is_file()), str(bridge_db) if bridge_db else "missing")
-
-    session_raw = (env.get("ARGOS_WA_SESSION_DIR") or "").strip()
-    session_dir = Path(os.path.expanduser(session_raw)).resolve() if session_raw else (root / "wa-sender")
-    session_nonempty = session_dir.is_dir() and any(session_dir.iterdir())
-    report.add("existing_wa_session", session_nonempty, str(session_dir))
 
     if primary_db.is_file():
         try:
@@ -221,9 +264,17 @@ def predeploy_checks(
                     primary_db,
                     "SELECT value FROM argos_runtime_state WHERE key='agent_status' LIMIT 1",
                 )
-                report.add("runtime_not_active_predeploy", str(state or "PAUSED").upper() != "ACTIVE", state or "absent")
+                report.add(
+                    "runtime_not_active_predeploy",
+                    str(state or "PAUSED").upper() != "ACTIVE",
+                    state or "absent",
+                )
             else:
-                report.add("runtime_not_active_predeploy", True, "state row absent -> entrypoint will seed PAUSED")
+                report.add(
+                    "runtime_not_active_predeploy",
+                    True,
+                    "state row absent -> entrypoint will seed PAUSED",
+                )
         except sqlite3.Error as exc:
             report.add("primary_db_readable", False, str(exc))
 
@@ -249,6 +300,7 @@ def predeploy_checks(
         "session_dir": str(session_dir),
         "env_file": str(env_file),
         "port": int(env.get("ARGOS_WA_PORT") or 9191),
+        "transport": transport,
     }
     return report, context
 
@@ -282,6 +334,7 @@ def postdeploy_checks(
         report.add("health_runtime", health.get("runtime") == "argos-s292-single-writer", health.get("runtime"))
         report.add("health_agent_paused", health.get("agent_status") == "PAUSED", health.get("agent_status"))
         report.add("health_bridge_enabled", health.get("bridge_enabled") is True, health.get("bridge_enabled"))
+        report.add("health_transport", health.get("transport") == context["transport"], health.get("transport"))
         if require_connected:
             report.add("whatsapp_connected", health.get("connected") is True, health.get("connected"))
         else:
@@ -290,7 +343,7 @@ def postdeploy_checks(
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="ARGOS C10 read-only no-outreach smoke gate")
+    parser = argparse.ArgumentParser(description="ARGOS C10 read-only transport-aware no-outreach smoke gate")
     parser.add_argument("--mode", choices=("predeploy", "postdeploy"), required=True)
     parser.add_argument("--repo-root", default=str(Path(__file__).resolve().parents[2]))
     parser.add_argument("--expected-head")
