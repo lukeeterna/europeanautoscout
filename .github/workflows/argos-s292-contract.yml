@@ -67,6 +67,7 @@ jobs:
             wa-intelligence/post_send_update.py \
             wa-intelligence/outreach_scheduler.py \
             wa-intelligence/runtime_entrypoint.py \
+            wa-intelligence/whatsapp_consent.py \
             tools/scripts/pdf_generator_enterprise.py \
             tools/scripts/argos_dealer_delivery.py \
             tools/scripts/argos_c10_smoke.py
@@ -78,6 +79,7 @@ jobs:
           node --check wa-intelligence/transport/index.js
           node --check wa-intelligence/transport/errors.js
           node --check wa-intelligence/transport/cloud_api_transport.js
+          node --check wa-intelligence/transport/cloud_policy_transport.js
           node --check wa-intelligence/transport/wwebjs_transport.js
           node --check wa-intelligence/transport/webhook.js
 
@@ -199,11 +201,14 @@ jobs:
           from pathlib import Path
           ecosystem = Path('wa-intelligence/ecosystem.config.js').read_text(encoding='utf-8')
           entry = Path('wa-intelligence/runtime_entrypoint.py').read_text(encoding='utf-8')
+          smoke = Path('tools/scripts/argos_c10_smoke.py').read_text(encoding='utf-8')
           assert "script: path.join(INTEL, 'runtime_entrypoint.py')" in ecosystem
           assert "'agent_status', 'PAUSED'" in entry
           assert "os.execv(node, [node, str(daemon)])" in entry
           assert 'client.sendMessage(' not in entry
           assert "ARGOS_WA_TRANSPORT: dotEnv.ARGOS_WA_TRANSPORT || 'wwebjs'" in ecosystem
+          assert 'ARGOS_DB_PATH: dotEnv.ARGOS_DB_PATH ||' in ecosystem
+          assert 'env.get("ARGOS_DB_PATH")' in smoke
           for key in (
               'META_WA_ACCESS_TOKEN',
               'META_WA_PHONE_NUMBER_ID',
@@ -212,7 +217,13 @@ jobs:
               'META_APP_SECRET',
           ):
               assert key in ecosystem, f'PM2 does not pass {key}'
-          print('PASS PM2 first boot is PAUSED, transport-aware and execs the only writer')
+          for key in (
+              'META_WA_TEMPLATE_DAY1_NAME',
+              'META_WA_TEMPLATE_DAY7_NAME',
+              'META_WA_TEMPLATE_DAY12_NAME',
+          ):
+              assert key in ecosystem and key in smoke, f'proactive Meta template wiring missing: {key}'
+          print('PASS PM2 first boot is PAUSED, external-state aware, transport-aware and execs the only writer')
           PY
 
       - name: Static anti-drift assertions
