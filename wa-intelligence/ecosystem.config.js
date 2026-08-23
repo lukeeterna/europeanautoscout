@@ -37,8 +37,11 @@ const SHARED_ENV = {
     ARGOS_DB_PATH: path.join(BASE, 'dealer_network.sqlite'),
     BRIDGE_DB_PATH: dotEnv.BRIDGE_DB_PATH || '',
 
-    // Preserve the existing LocalAuth identity/path: rollout must reuse the
-    // authenticated WhatsApp session, not silently create a second one.
+    // Transport defaults to the certified legacy adapter until the explicit
+    // Cloud API cutover gate supplies complete official Meta credentials.
+    ARGOS_WA_TRANSPORT: dotEnv.ARGOS_WA_TRANSPORT || 'wwebjs',
+
+    // Preserve the existing LocalAuth identity/path for legacy rollback.
     ARGOS_WA_CLIENT_ID: dotEnv.ARGOS_WA_CLIENT_ID || dotEnv.WA_CLIENT_ID || 'argos-business',
     ARGOS_WA_SESSION_DIR: dotEnv.ARGOS_WA_SESSION_DIR || path.join(BASE, 'wa-sender'),
     ARGOS_WA_PORT: dotEnv.ARGOS_WA_PORT || '9191',
@@ -51,6 +54,16 @@ const SHARED_ENV = {
     ARGOS_BUSINESS_START_HOUR: dotEnv.ARGOS_BUSINESS_START_HOUR || '9',
     ARGOS_BUSINESS_END_HOUR: dotEnv.ARGOS_BUSINESS_END_HOUR || '18',
     ARGOS_BUSINESS_DAYS: dotEnv.ARGOS_BUSINESS_DAYS || '1,2,3,4,5',
+
+    // Official WhatsApp Business Platform / Cloud API. Secrets remain local in
+    // wa-intelligence/.env and are never committed. Empty values fail closed
+    // when ARGOS_WA_TRANSPORT=cloud.
+    META_GRAPH_API_VERSION: dotEnv.META_GRAPH_API_VERSION || 'v25.0',
+    META_WA_ACCESS_TOKEN: dotEnv.META_WA_ACCESS_TOKEN || '',
+    META_WA_PHONE_NUMBER_ID: dotEnv.META_WA_PHONE_NUMBER_ID || '',
+    META_WA_WABA_ID: dotEnv.META_WA_WABA_ID || '',
+    META_WA_WEBHOOK_VERIFY_TOKEN: dotEnv.META_WA_WEBHOOK_VERIFY_TOKEN || '',
+    META_APP_SECRET: dotEnv.META_APP_SECRET || '',
 
     // Queue-only zero-founder loop. Intentionally OFF until rollout gate C10.
     ARGOS_AUTOMATION_ENABLED: dotEnv.ARGOS_AUTOMATION_ENABLED || '0',
