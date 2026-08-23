@@ -93,3 +93,14 @@ test('43 historical deploy.sh is fail-closed and cannot mutate production', () =
   assert.doesNotMatch(source, /pm2\s+start\s+ecosystem\.config\.js/);
   assert.doesNotMatch(source, /launchctl\s+load/);
 });
+
+test('44 temporary branch mutation workflows are absent from release candidate', () => {
+  const workflows = path.join(REPO_ROOT, '.github', 'workflows');
+  for (const name of [
+    'argos-c10t1-daemon-failclosed-patch.yml',
+    'argos-c10t1-lockfile-once.yml',
+    'argos-c10t1-smoke-deps-once.yml',
+  ]) {
+    assert.equal(fs.existsSync(path.join(workflows, name)), false, `${name} must not ship`);
+  }
+});
