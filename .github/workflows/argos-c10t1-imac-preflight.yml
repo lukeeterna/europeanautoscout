@@ -1,0 +1,106 @@
+name: ARGOS C10T1 iMac Read-Only Preflight
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/argos-c10t1-imac-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  imac-preflight:
+    name: Read-only iMac production facts
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    steps:
+      - name: Probe iMac through existing Tailscale SSH lane
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.IMAC_HOST }}
+          username: ${{ secrets.IMAC_USER }}
+          key: ${{ secrets.IMAC_SSH_KEY }}
+          port: 22
+          command_timeout: 5m
+          script: |
+            set -eu
+            echo '=== ARGOS_C10T1_IMAC_PREFLIGHT_BEGIN ==='
+            echo "HOSTNAME=$(hostname)"
+            echo "USER=$(id -un)"
+            echo "ARCH=$(uname -m)"
+            echo "MACOS=$(sw_vers -productVersion 2>/dev/null || echo unknown)"
+            echo "UTC_NOW=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+
+            echo '--- toolchain ---'
+            for tool in git node npm pm2 python3 python3.13 sqlite3 cloudflared tailscale; do
+              resolved="$(command -v "$tool" 2>/dev/null || true)"
+              if [ -n "$resolved" ]; then
+                echo "TOOL_${tool}=PRESENT:$resolved"
+              else
+                echo "TOOL_${tool}=ABSENT"
+              fi
+            done
+            node --version 2>/dev/null | sed 's/^/NODE_VERSION=/' || true
+            python3 --version 2>&1 | sed 's/^/PYTHON3_VERSION=/' || true
+            /usr/local/bin/python3.13 --version 2>&1 | sed 's/^/PYTHON313_VERSION=/' || true
+            pm2 --version 2>/dev/null | sed 's/^/PM2_VERSION=/' || true
+
+            echo '--- candidate repository roots ---'
+            found_repo=0
+            for repo in \
+              "$HOME/Documents/combaretrovamiauto-enterprise" \
+              "$HOME/Documents/app-antigravity-auto"; do
+              if [ -d "$repo/.git" ]; then
+                found_repo=1
+                echo "REPO_FOUND=$repo"
+                echo "REPO_BRANCH=$(git -C "$repo" branch --show-current 2>/dev/null || true)"
+                echo "REPO_HEAD=$(git -C "$repo" rev-parse HEAD 2>/dev/null || true)"
+                echo "REPO_DIRTY_COUNT=$(git -C "$repo" status --porcelain=v1 2>/dev/null | wc -l | tr -d ' ')"
+                origin="$(git -C "$repo" remote get-url origin 2>/dev/null || true)"
+                case "$origin" in
+                  *github.com/lukeeterna/europeanautoscout*) echo 'REPO_ORIGIN=EXPECTED' ;;
+                  *) echo 'REPO_ORIGIN=OTHER_OR_MISSING' ;;
+                esac
+              else
+                echo "REPO_ABSENT=$repo"
+              fi
+            done
+            echo "REPO_ANY=$found_repo"
+
+            echo '--- runtime state paths ---'
+            for path in \
+              "$HOME/Documents/combaretrovamiauto-enterprise/dealer_network.sqlite" \
+              "$HOME/Documents/combaretrovamiauto-enterprise/comm-broker/bridge.sqlite" \
+              "$HOME/Documents/app-antigravity-auto/dealer_network.sqlite" \
+              "$HOME/Documents/app-antigravity-auto/comm-broker/bridge.sqlite"; do
+              if [ -f "$path" ]; then
+                echo "STATE_FILE=PRESENT:$path:$(stat -f '%z' "$path" 2>/dev/null || wc -c < "$path")"
+              else
+                echo "STATE_FILE=ABSENT:$path"
+              fi
+            done
+
+            echo '--- env presence only; values never printed ---'
+            for envfile in \
+              "$HOME/Documents/combaretrovamiauto-enterprise/wa-intelligence/.env" \
+              "$HOME/Documents/app-antigravity-auto/wa-intelligence/.env"; do
+              if [ -f "$envfile" ]; then
+                echo "ENV_FILE=PRESENT:$envfile:$(stat -f '%Sp' "$envfile" 2>/dev/null || echo unknown)"
+              else
+                echo "ENV_FILE=ABSENT:$envfile"
+              fi
+            done
+
+            echo '--- process/listener facts ---'
+            pm2 ls --no-color 2>/dev/null | sed -n '1,40p' || true
+            launchctl list 2>/dev/null | grep -Ei 'argos|wa-daemon|scheduler' || true
+            lsof -nP -iTCP:9191 -sTCP:LISTEN 2>/dev/null || true
+            health="$(curl -fsS --max-time 2 http://127.0.0.1:9191/health 2>/dev/null || true)"
+            if [ -n "$health" ]; then
+              printf '%s' "$health" | python3 -c 'import json,sys; d=json.load(sys.stdin); safe={k:d.get(k) for k in ("runtime","transport","connected","agent_status","bridge_enabled","pending_bridge","global_outbound_24h")}; print("LOCAL_HEALTH="+json.dumps(safe,sort_keys=True))' 2>/dev/null || echo 'LOCAL_HEALTH=UNPARSEABLE'
+            else
+              echo 'LOCAL_HEALTH=UNREACHABLE'
+            fi
+
+            echo '=== ARGOS_C10T1_IMAC_PREFLIGHT_END ==='
