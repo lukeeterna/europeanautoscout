@@ -6,9 +6,10 @@ const { WwebjsTransport } = require('./wwebjs_transport');
 const { TransportError } = require('./errors');
 
 function validateCloudEnvironment(env = process.env) {
+  // Network identity/secrets are validated at factory time. Machine-local DB
+  // paths are validated by CloudPolicyTransport.initialize(), where they can be
+  // checked without forcing native SQLite dependencies into import-only tests.
   const required = [
-    'ARGOS_DB_PATH',
-    'BRIDGE_DB_PATH',
     'META_WA_ACCESS_TOKEN',
     'META_WA_PHONE_NUMBER_ID',
     'META_WA_WABA_ID',
