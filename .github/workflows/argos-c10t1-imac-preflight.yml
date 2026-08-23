@@ -1,6 +1,11 @@
 name: ARGOS C10T1 iMac Read-Only Preflight
 
 on:
+  push:
+    branches:
+      - sol/argos-cloudapi-c10t1-gpt56
+    paths:
+      - '.github/workflows/argos-c10t1-imac-preflight.yml'
   pull_request:
     paths:
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
