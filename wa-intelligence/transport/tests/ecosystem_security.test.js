@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ecosystem = require('../../ecosystem.config.js');
+const REPO_ROOT = path.join(__dirname, '..', '..', '..');
 
 const META_SECRET_KEYS = [
   'META_WA_ACCESS_TOKEN',
@@ -75,4 +76,20 @@ test('41 direct daemon boot cannot seed ACTIVE runtime state', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', '..', 'wa-daemon.js'), 'utf8');
   assert.doesNotMatch(source, /VALUES \('agent_status', 'ACTIVE', \?\)/);
   assert.match(source, /VALUES \('agent_status', 'PAUSED', \?\)/);
+});
+
+test('42 historical master-push and scheduled Day7 CD paths are retired', () => {
+  const source = fs.readFileSync(path.join(REPO_ROOT, '.github', 'workflows', 'cd.yml'), 'utf8');
+  assert.match(source, /LEGACY_CD_RETIRED=YES/);
+  assert.doesNotMatch(source, /appleboy\/ssh-action/);
+  assert.doesNotMatch(source, /git pull origin master/);
+  assert.doesNotMatch(source, /^\s*schedule:/m);
+  assert.doesNotMatch(source, /^\s*push:/m);
+});
+
+test('43 historical deploy.sh is fail-closed and cannot mutate production', () => {
+  const source = fs.readFileSync(path.join(REPO_ROOT, 'wa-intelligence', 'deploy.sh'), 'utf8');
+  assert.match(source, /RETIRED|retired/i);
+  assert.doesNotMatch(source, /pm2\s+start\s+ecosystem\.config\.js/);
+  assert.doesNotMatch(source, /launchctl\s+load/);
 });
