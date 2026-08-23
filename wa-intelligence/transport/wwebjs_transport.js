@@ -1,5 +1,6 @@
 'use strict';
 
+const path = require('path');
 const { TransportError } = require('./errors');
 
 class WwebjsTransport {
@@ -20,7 +21,7 @@ class WwebjsTransport {
     this.client = new Client({
       authStrategy: new LocalAuth({
         clientId: this.env.ARGOS_WA_CLIENT_ID || 'argos-s292',
-        dataPath: this.env.ARGOS_WA_SESSION_DIR,
+        dataPath: this.env.ARGOS_WA_SESSION_DIR || path.join(__dirname, '..', '.wwebjs_auth'),
       }),
       puppeteer,
     });
