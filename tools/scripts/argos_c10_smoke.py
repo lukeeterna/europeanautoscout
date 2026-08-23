@@ -6,13 +6,16 @@ Git, SQLite, PM2, WhatsApp or Meta state. Both supported transports are checked:
 
 * ``wwebjs`` keeps the historical LocalAuth/session requirements.
 * ``cloud`` requires the official Meta Cloud API configuration plus a public
-  HTTPS webhook URL. Predeploy performs no Graph API request. On the final
-  ``--require-connected`` postdeploy gate, the script also performs a harmless
-  GET webhook verification challenge against that public URL so inbound routing
-  is proven end-to-end without sending any WhatsApp message.
+  HTTPS webhook URL and the exact approved proactive template names. Predeploy
+  performs no Graph API request. On the final ``--require-connected`` postdeploy
+  gate, the script also performs a harmless GET webhook verification challenge
+  against that public URL so inbound routing is proven end-to-end without
+  sending any WhatsApp message.
 
 In every mode C10 remains fail-closed: automation disabled, runtime not ACTIVE,
 no authorized dealer/pending approved bridge row unless explicitly overridden.
+Production release trees must point explicitly to the existing external SQLite
+state via ``ARGOS_DB_PATH`` and ``BRIDGE_DB_PATH``.
 """
 from __future__ import annotations
 
@@ -37,6 +40,9 @@ CLOUD_REQUIRED_ENV = (
     "META_WA_WEBHOOK_VERIFY_TOKEN",
     "META_APP_SECRET",
     "ARGOS_WA_WEBHOOK_PUBLIC_URL",
+    "META_WA_TEMPLATE_DAY1_NAME",
+    "META_WA_TEMPLATE_DAY7_NAME",
+    "META_WA_TEMPLATE_DAY12_NAME",
 )
 SUPPORTED_TRANSPORTS = {"wwebjs", "cloud"}
 
@@ -172,6 +178,8 @@ def _transport_checks(report: SmokeReport, env: Mapping[str, str], root: Path) -
         report.add("cloud_required_env", not missing, missing or "configured")
         graph_version = str(env.get("META_GRAPH_API_VERSION") or "v25.0").strip()
         report.add("cloud_graph_version", bool(graph_version), graph_version)
+        template_language = str(env.get("META_WA_TEMPLATE_LANGUAGE") or "it").strip()
+        report.add("cloud_template_language", bool(template_language), template_language)
         public_url = str(env.get("ARGOS_WA_WEBHOOK_PUBLIC_URL") or "").strip()
         parsed = urllib.parse.urlsplit(public_url) if public_url else None
         report.add(
@@ -211,10 +219,13 @@ def predeploy_checks(
         intel / "wa-daemon.js",
         intel / "runtime_entrypoint.py",
         intel / "outreach_scheduler.py",
+        intel / "whatsapp_consent.py",
+        intel / "meta_templates.json",
         intel / "ecosystem.config.js",
         intel / "transport" / "index.js",
         intel / "transport" / "errors.js",
         intel / "transport" / "cloud_api_transport.js",
+        intel / "transport" / "cloud_policy_transport.js",
         intel / "transport" / "wwebjs_transport.js",
         intel / "transport" / "webhook.js",
         root / "tools" / "scripts" / "argos_dealer_delivery.py",
@@ -256,6 +267,7 @@ def predeploy_checks(
             "wa-intelligence/transport/index.js",
             "wa-intelligence/transport/errors.js",
             "wa-intelligence/transport/cloud_api_transport.js",
+            "wa-intelligence/transport/cloud_policy_transport.js",
             "wa-intelligence/transport/wwebjs_transport.js",
             "wa-intelligence/transport/webhook.js",
         )
@@ -264,6 +276,12 @@ def predeploy_checks(
             report.add(f"node_check:{rel}", result.returncode == 0, result.stderr.strip() or "PASS")
 
     report.add("env_file_present", env_file.is_file(), str(env_file))
+    if env_file.is_file():
+        try:
+            mode = env_file.stat().st_mode & 0o777
+            report.add("env_file_private", mode & 0o077 == 0, oct(mode))
+        except OSError as exc:
+            report.add("env_file_private", False, type(exc).__name__)
     api_key = str(env.get("ARGOS_API_KEY") or env.get("WA_API_KEY") or "")
     report.add("api_key_configured", bool(api_key.strip()), "configured" if api_key.strip() else "missing")
     automation = str(env.get("ARGOS_AUTOMATION_ENABLED") or "0").strip()
@@ -271,7 +289,9 @@ def predeploy_checks(
 
     transport, session_dir = _transport_checks(report, env, root)
 
-    primary_db = root / "dealer_network.sqlite"
+    primary_raw = str(env.get("ARGOS_DB_PATH") or "").strip()
+    primary_db = Path(os.path.expanduser(primary_raw)).resolve() if primary_raw else (root / "dealer_network.sqlite")
+    report.add("primary_path_configured", bool(primary_raw), primary_raw or "missing")
     report.add("primary_db_present", primary_db.is_file(), str(primary_db))
 
     bridge_raw = str(env.get("BRIDGE_DB_PATH") or "").strip()
