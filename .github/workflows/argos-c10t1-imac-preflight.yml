@@ -13,6 +13,8 @@ on:
 
 permissions:
   contents: read
+  issues: write
+  pull-requests: write
 
 jobs:
   imac-preflight:
@@ -33,6 +35,8 @@ jobs:
           echo 'OUTBOUND=ZERO'
 
       - name: Probe iMac through existing Tailscale SSH lane
+        id: ssh_probe
+        continue-on-error: true
         if: ${{ env.IMAC_HOST_AVAILABLE == 'true' && env.IMAC_USER_AVAILABLE == 'true' && env.IMAC_KEY_AVAILABLE == 'true' }}
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -122,3 +126,30 @@ jobs:
             fi
 
             echo '=== ARGOS_C10T1_IMAC_PREFLIGHT_END ==='
+
+      - name: Publish secret-enabled lane verdict to PR 3
+        if: ${{ always() && github.event_name == 'push' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SSH_OUTCOME: ${{ steps.ssh_probe.outcome }}
+        run: |
+          set -eu
+          if [ "$IMAC_HOST_AVAILABLE" != true ] || [ "$IMAC_USER_AVAILABLE" != true ] || [ "$IMAC_KEY_AVAILABLE" != true ]; then
+            verdict='BLOCKED_SECRETS'
+          elif [ "$SSH_OUTCOME" = success ]; then
+            verdict='PASS'
+          else
+            verdict='SSH_FAILED'
+          fi
+          body="C10T1_IMAC_LANE=${verdict}%0AHEAD=${GITHUB_SHA}%0APRODUCTION_MUTATED=NO%0AOUTBOUND=ZERO"
+          python3 - "$body" <<'PY' > /tmp/comment.json
+          import json,sys,urllib.parse
+          print(json.dumps({'body': urllib.parse.unquote(sys.argv[1])}))
+          PY
+          curl --fail --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/3/comments" \
+            --data-binary @/tmp/comment.json >/dev/null
