@@ -1,6 +1,7 @@
 """Offline production-runtime tests for ARGOS S292 automation boundaries."""
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 import sys
@@ -19,6 +20,7 @@ if str(ROOT) not in sys.path:
 from outreach_scheduler import run_cycle  # noqa: E402
 from post_send_update import apply_post_send  # noqa: E402
 from state_machine import ensure_state_columns  # noqa: E402
+from whatsapp_consent import ensure_consent_columns, grant_consent  # noqa: E402
 
 
 class RuntimeProductionTests(unittest.TestCase):
@@ -56,6 +58,7 @@ class RuntimeProductionTests(unittest.TestCase):
         con.commit()
         con.close()
         ensure_state_columns(self.db_path)
+        ensure_consent_columns(self.db_path)
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -67,6 +70,7 @@ class RuntimeProductionTests(unittest.TestCase):
         state: str = "COLD",
         outbound_count: int = 0,
         authorized: int = 0,
+        opted_in: bool = False,
     ) -> None:
         con = sqlite3.connect(self.db_path)
         con.execute(
@@ -79,6 +83,14 @@ class RuntimeProductionTests(unittest.TestCase):
         )
         con.commit()
         con.close()
+        if opted_in:
+            grant_consent(
+                db_path=self.db_path,
+                dealer_id=dealer_id,
+                source="offline_test_fixture",
+                evidence_id=f"consent-{dealer_id}",
+                granted_at="2026-08-01T10:00:00+00:00",
+            )
 
     def _message(self, dealer_id: str, direction: str, when: datetime, *, template_id: str | None = None, wa_id: str | None = None):
         con = sqlite3.connect(self.db_path)
@@ -105,7 +117,7 @@ class RuntimeProductionTests(unittest.TestCase):
         self.assertFalse(os.path.exists(self.bridge_path))
 
     def test_unauthorized_dealer_never_queues(self):
-        self._dealer("d-noauth", authorized=0)
+        self._dealer("d-noauth", authorized=0, opted_in=True)
         result = run_cycle(
             db_path=self.db_path,
             bridge_path=self.bridge_path,
@@ -114,8 +126,18 @@ class RuntimeProductionTests(unittest.TestCase):
         self.assertEqual(result["candidates"], 0)
         self.assertEqual(result["queued"], 0)
 
-    def test_authorized_day1_is_guarded_and_idempotent(self):
-        self._dealer("d-day1", authorized=1)
+    def test_internal_authorization_without_whatsapp_opt_in_never_queues(self):
+        self._dealer("d-no-consent", authorized=1, opted_in=False)
+        result = run_cycle(
+            db_path=self.db_path,
+            bridge_path=self.bridge_path,
+            enabled=True,
+        )
+        self.assertEqual(result["candidates"], 0)
+        self.assertEqual(result["queued"], 0)
+
+    def test_authorized_opted_in_day1_is_guarded_and_idempotent(self):
+        self._dealer("d-day1", authorized=1, opted_in=True)
         first = run_cycle(
             db_path=self.db_path,
             bridge_path=self.bridge_path,
@@ -134,7 +156,9 @@ class RuntimeProductionTests(unittest.TestCase):
 
         con = sqlite3.connect(self.bridge_path)
         row = con.execute(
-            "SELECT deal_id, template_id, action_type, approved_ts, sent_ts FROM bridge_outbound"
+            """SELECT deal_id, template_id, action_type, approved_ts, sent_ts,
+                      whatsapp_opt_in_evidence_id
+                 FROM bridge_outbound"""
         ).fetchone()
         con.close()
         self.assertEqual(row[0], "d-day1")
@@ -142,10 +166,52 @@ class RuntimeProductionTests(unittest.TestCase):
         self.assertEqual(row[2], "s292_scheduler")
         self.assertIsNotNone(row[3])
         self.assertIsNone(row[4])
+        self.assertEqual(row[5], "consent-d-day1")
+
+    def test_cloud_day1_persists_exact_meta_template_payload(self):
+        self._dealer("d-cloud", authorized=1, opted_in=True)
+        env = {
+            "META_WA_TEMPLATE_LANGUAGE": "it",
+            "META_WA_TEMPLATE_DAY1_NAME": "argos_day1_premium_v1",
+            "META_WA_TEMPLATE_DAY7_NAME": "argos_day7_recovery_v1",
+            "META_WA_TEMPLATE_DAY12_NAME": "argos_day12_final_v1",
+        }
+        result = run_cycle(
+            db_path=self.db_path,
+            bridge_path=self.bridge_path,
+            enabled=True,
+            transport_mode="cloud",
+            env=env,
+        )
+        self.assertEqual(result["queued"], 1)
+        con = sqlite3.connect(self.bridge_path)
+        raw, evidence = con.execute(
+            "SELECT meta_template_json, whatsapp_opt_in_evidence_id FROM bridge_outbound WHERE deal_id='d-cloud'"
+        ).fetchone()
+        con.close()
+        payload = json.loads(raw)
+        self.assertEqual(payload["name"], "argos_day1_premium_v1")
+        self.assertEqual(payload["language"]["code"], "it")
+        self.assertEqual(payload["internal_template_id"], "DAY1_PREMIUM")
+        self.assertEqual(len(payload["components"][0]["parameters"]), 2)
+        self.assertEqual(evidence, "consent-d-cloud")
+
+    def test_cloud_missing_template_config_blocks_without_enqueue(self):
+        self._dealer("d-cloud-missing", authorized=1, opted_in=True)
+        result = run_cycle(
+            db_path=self.db_path,
+            bridge_path=self.bridge_path,
+            enabled=True,
+            transport_mode="cloud",
+            env={},
+        )
+        self.assertEqual(result["candidates"], 1)
+        self.assertEqual(result["blocked"], 1)
+        self.assertEqual(result["queued"], 0)
 
     def test_day7_requires_no_newer_inbound(self):
         now = datetime.now(timezone.utc)
-        self._dealer("d-day7", state="CONTACTED", outbound_count=1, authorized=1)
+        self._dealer("d-day7", state="CONTACTED", outbound_count=1, authorized=1, opted_in=True)
         self._message("d-day7", "OUTBOUND", now - timedelta(days=8), template_id="DAY1_PREMIUM", wa_id="wa-old")
         result = run_cycle(
             db_path=self.db_path,
@@ -159,7 +225,7 @@ class RuntimeProductionTests(unittest.TestCase):
         con.close()
         self.assertEqual(template, "DAY7_RECOVERY")
 
-        self._dealer("d-inbound", state="CONTACTED", outbound_count=1, authorized=1)
+        self._dealer("d-inbound", state="CONTACTED", outbound_count=1, authorized=1, opted_in=True)
         self._message("d-inbound", "OUTBOUND", now - timedelta(days=8), template_id="DAY1_PREMIUM", wa_id="wa-old-2")
         self._message("d-inbound", "INBOUND", now - timedelta(days=1), wa_id="wa-in")
         result2 = run_cycle(
