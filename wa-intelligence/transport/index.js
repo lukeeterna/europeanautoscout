@@ -1,11 +1,14 @@
 'use strict';
 
 const { CloudApiTransport, DEFAULT_GRAPH_VERSION } = require('./cloud_api_transport');
+const { CloudPolicyTransport } = require('./cloud_policy_transport');
 const { WwebjsTransport } = require('./wwebjs_transport');
 const { TransportError } = require('./errors');
 
 function validateCloudEnvironment(env = process.env) {
   const required = [
+    'ARGOS_DB_PATH',
+    'BRIDGE_DB_PATH',
     'META_WA_ACCESS_TOKEN',
     'META_WA_PHONE_NUMBER_ID',
     'META_WA_WABA_ID',
@@ -31,11 +34,19 @@ function createTransport({
   callbacks = {},
   requestFn,
   moduleLoader,
+  databaseFactory,
+  nowFn,
 } = {}) {
   const mode = String(env.ARGOS_WA_TRANSPORT || 'wwebjs').trim().toLowerCase();
   if (mode === 'cloud') {
     validateCloudEnvironment(env);
-    return new CloudApiTransport({ env, requestFn });
+    const cloud = new CloudApiTransport({ env, requestFn });
+    return new CloudPolicyTransport({
+      transport: cloud,
+      env,
+      databaseFactory,
+      nowFn,
+    });
   }
   if (mode === 'wwebjs') {
     return new WwebjsTransport({ env, callbacks, moduleLoader });
@@ -45,6 +56,7 @@ function createTransport({
 
 module.exports = {
   CloudApiTransport,
+  CloudPolicyTransport,
   TransportError,
   WwebjsTransport,
   createTransport,
