@@ -222,6 +222,8 @@ def predeploy_checks(
         intel / "whatsapp_consent.py",
         intel / "meta_templates.json",
         intel / "ecosystem.config.js",
+        intel / "package.json",
+        intel / "package-lock.json",
         intel / "transport" / "index.js",
         intel / "transport" / "errors.js",
         intel / "transport" / "cloud_api_transport.js",
@@ -274,6 +276,19 @@ def predeploy_checks(
         for rel in node_files:
             result = _run([node, "--check", rel], cwd=root)
             report.add(f"node_check:{rel}", result.returncode == 0, result.stderr.strip() or "PASS")
+        runtime_deps = _run(
+            [
+                node,
+                "-e",
+                "const Database=require('better-sqlite3'); const db=new Database(':memory:'); db.prepare('SELECT 1').get(); db.close(); require('qrcode');",
+            ],
+            cwd=intel,
+        )
+        report.add(
+            "node_runtime_dependencies",
+            runtime_deps.returncode == 0,
+            runtime_deps.stderr.strip() or "better-sqlite3+qrcode PASS",
+        )
 
     report.add("env_file_present", env_file.is_file(), str(env_file))
     if env_file.is_file():
