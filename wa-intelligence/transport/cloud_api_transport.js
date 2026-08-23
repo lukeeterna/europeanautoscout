@@ -28,7 +28,7 @@ function sanitizeGraphError(statusCode, payload) {
       statusCode,
       metaCode: error.code ?? null,
       metaType: error.type ?? null,
-      transient: statusCode === 429 || statusCode >= 500,
+      transient: statusCode === 429,
     },
   );
 }
@@ -43,14 +43,9 @@ function nodeHttpsRequest({
   ambiguousOnNetworkFailure = false,
 }) {
   return new Promise((resolve, reject) => {
-    let transmitted = false;
+    let submitted = false;
     const req = https.request(
-      {
-        hostname,
-        method,
-        path: requestPath,
-        headers,
-      },
+      { hostname, method, path: requestPath, headers },
       (res) => {
         const chunks = [];
         let size = 0;
@@ -73,10 +68,10 @@ function nodeHttpsRequest({
     );
 
     req.on('error', (err) => {
-      if (ambiguousOnNetworkFailure && transmitted) {
+      if (ambiguousOnNetworkFailure && submitted) {
         reject(new TransportError(
           'TRANSPORT_DELIVERY_AMBIGUOUS',
-          'Transport outcome is ambiguous; automatic retry is forbidden',
+          'Message delivery outcome is ambiguous; automatic retry is forbidden',
           { ambiguous: true, transient: false, cause: err },
         ));
         return;
@@ -89,7 +84,7 @@ function nodeHttpsRequest({
     });
 
     req.setTimeout(timeoutMs, () => req.destroy(new Error('request timeout')));
-    transmitted = true;
+    submitted = true;
     req.end(body || undefined);
   });
 }
@@ -120,10 +115,7 @@ function buildMultipartMediaBody(filePath) {
     'utf8',
   );
   const tail = Buffer.from(`\r\n--${boundary}--\r\n`, 'utf8');
-  return {
-    boundary,
-    body: Buffer.concat([head, file, tail]),
-  };
+  return { boundary, body: Buffer.concat([head, file, tail]) };
 }
 
 class CloudApiTransport {
@@ -139,10 +131,7 @@ class CloudApiTransport {
   }
 
   _authHeaders(extra = {}) {
-    return {
-      Authorization: `Bearer ${this.accessToken}`,
-      ...extra,
-    };
+    return { Authorization: `Bearer ${this.accessToken}`, ...extra };
   }
 
   _assertCoreConfig() {
@@ -154,7 +143,7 @@ class CloudApiTransport {
     }
   }
 
-  async _graphRequest({ method, endpoint, body = null, headers = {}, ambiguousOnNetworkFailure = false }) {
+  async _graphRequest({ method, endpoint, body = null, headers = {}, deliveryRequest = false }) {
     this._assertCoreConfig();
     const response = await this.requestFn({
       hostname: 'graph.facebook.com',
@@ -163,11 +152,28 @@ class CloudApiTransport {
       headers: this._authHeaders(headers),
       body,
       timeoutMs: this.timeoutMs,
-      ambiguousOnNetworkFailure,
+      ambiguousOnNetworkFailure: deliveryRequest,
     });
     const payload = parseJsonBuffer(response.body);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw sanitizeGraphError(response.statusCode, payload);
+      const remote = sanitizeGraphError(response.statusCode, payload);
+      if (response.statusCode === 401 || response.statusCode === 403 || remote.metaCode === 190) {
+        this.connected = false;
+      }
+      if (deliveryRequest && response.statusCode >= 500) {
+        throw new TransportError(
+          'TRANSPORT_DELIVERY_AMBIGUOUS',
+          `Message delivery outcome is ambiguous after HTTP ${response.statusCode}; automatic retry is forbidden`,
+          {
+            ambiguous: true,
+            transient: false,
+            statusCode: response.statusCode,
+            metaCode: remote.metaCode,
+            metaType: remote.metaType,
+          },
+        );
+      }
+      throw remote;
     }
     return payload;
   }
@@ -211,10 +217,7 @@ class CloudApiTransport {
       recipient_type: 'individual',
       to: digits,
       type: 'text',
-      text: {
-        preview_url: false,
-        body: String(body),
-      },
+      text: { preview_url: false, body: String(body) },
     }), 'utf8');
     const payload = await this._graphRequest({
       method: 'POST',
@@ -224,7 +227,7 @@ class CloudApiTransport {
         'Content-Length': String(requestBody.length),
       },
       body: requestBody,
-      ambiguousOnNetworkFailure: true,
+      deliveryRequest: true,
     });
     const waMessageId = String(payload?.messages?.[0]?.id || '');
     if (!waMessageId) {
@@ -242,6 +245,8 @@ class CloudApiTransport {
       throw new TransportError('TRANSPORT_INVALID_ARGUMENT', 'phone and existing filePath are required');
     }
 
+    // Media upload cannot contact the dealer; a lost upload response may be safely
+    // retried by a later bridge cycle. Only the final /messages POST is delivery-ambiguous.
     const multipart = buildMultipartMediaBody(filePath);
     const uploaded = await this._graphRequest({
       method: 'POST',
@@ -251,7 +256,6 @@ class CloudApiTransport {
         'Content-Length': String(multipart.body.length),
       },
       body: multipart.body,
-      ambiguousOnNetworkFailure: true,
     });
     const mediaId = String(uploaded?.id || '');
     if (!mediaId) {
@@ -277,7 +281,7 @@ class CloudApiTransport {
         'Content-Length': String(requestBody.length),
       },
       body: requestBody,
-      ambiguousOnNetworkFailure: true,
+      deliveryRequest: true,
     });
     const waMessageId = String(payload?.messages?.[0]?.id || '');
     if (!waMessageId) {
