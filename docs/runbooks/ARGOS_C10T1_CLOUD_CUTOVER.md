@@ -14,16 +14,16 @@ Record it as:
 CANDIDATE_SHA=<exact 40-char Git SHA>
 ```
 
-On the iMac, create/use a dedicated release tree for that exact SHA. Do not deploy into the historical `app-antigravity-auto` source tree and do not touch `ARGOS_C0_FREEZE_20260814_193356`.
+On the iMac, create/use a dedicated release tree for that exact SHA. Do not deploy into or rewrite the historical source tree and do not touch frozen historical evidence.
 
-The historical production databases remain external state:
+Production SQLite files are **external state**, not release artifacts. Resolve their actual machine-local paths before cutover, then configure both explicitly in `.env`:
 
 ```text
-PRIMARY_DB=/Users/gianlucadistasi/Documents/app-antigravity-auto/dealer_network.sqlite
-BRIDGE_DB=/Users/gianlucadistasi/Documents/app-antigravity-auto/comm-broker/bridge.sqlite
+ARGOS_DB_PATH=<absolute existing dealer_network.sqlite path>
+BRIDGE_DB_PATH=<absolute existing bridge.sqlite path>
 ```
 
-Back them up before any cutover. Never overwrite an earlier C10 backup.
+Back up both files before any process cutover. Never overwrite an earlier C10 backup. The release must fail rather than create a fresh empty production DB because a checkout moved.
 
 ## 2. Local secrets / `.env`
 
@@ -32,10 +32,11 @@ Create `wa-intelligence/.env` locally on the iMac with mode `0600`. Never commit
 Required safety settings:
 
 ```text
+ARGOS_DB_PATH=<existing primary SQLite path>
+BRIDGE_DB_PATH=<existing bridge SQLite path>
 ARGOS_WA_TRANSPORT=cloud
 ARGOS_AUTOMATION_ENABLED=0
 ARGOS_API_KEY=<local secret>
-BRIDGE_DB_PATH=<existing bridge.sqlite absolute path>
 ```
 
 Required official Meta settings:
@@ -50,15 +51,44 @@ META_APP_SECRET=<Meta app secret>
 ARGOS_WA_WEBHOOK_PUBLIC_URL=https://<public-host>/webhooks/whatsapp
 ```
 
-`ARGOS_WA_WEBHOOK_PUBLIC_URL` must be a public HTTPS route whose origin is the canonical daemon on localhost port 9191. Expose **only** the webhook path; do not publish `/send`, `/resume`, `/pause`, `/qr` or the health/admin endpoints to the Internet.
+Required proactive-template settings:
 
-The Cloud transport fails closed if required Meta credentials are incomplete.
+```text
+META_WA_TEMPLATE_LANGUAGE=it
+META_WA_TEMPLATE_DAY1_NAME=<approved template name>
+META_WA_TEMPLATE_DAY7_NAME=<approved template name>
+META_WA_TEMPLATE_DAY12_NAME=<approved template name>
+```
 
-## 3. Meta onboarding / coexistence
+The three Meta templates must be approved and their BODY text/language/category must match `wa-intelligence/meta_templates.json`. Cloud initialization revalidates these definitions read-only before reporting connected.
 
-Use the official WhatsApp Business Platform onboarding for the business number. If the account is eligible for WhatsApp Business App + Cloud API coexistence, use the provider/Meta coexistence onboarding flow rather than attempting another `whatsapp-web.js` QR pairing.
+`ARGOS_WA_WEBHOOK_PUBLIC_URL` must be a public HTTPS route whose origin is the canonical daemon on localhost port 9191. Expose **only** `/webhooks/whatsapp`; do not publish `/send`, `/send-doc`, `/resume`, `/pause`, `/qr`, `/health`, `/status` or `/` to the Internet.
 
-ARGOS already treats coexistence events conservatively:
+The Cloud transport fails closed if required credentials/configuration are incomplete.
+
+## 3. WhatsApp consent is a separate production gate
+
+`outreach_authorized=1` is ARGOS' internal business authorization. It is **not** WhatsApp opt-in and a public/business phone number is not consent evidence.
+
+Business-initiated WhatsApp outreach requires traceable consent with all of:
+
+```text
+whatsapp_opt_in=1
+whatsapp_opt_in_at=<timestamp>
+whatsapp_opt_in_source=<source>
+whatsapp_opt_in_evidence_id=<traceable evidence id>
+whatsapp_opt_out_at=NULL
+```
+
+Use `wa-intelligence/whatsapp_consent.py grant` only when such evidence really exists. Revocation uses `revoke` and immediately invalidates proactive authorization.
+
+Outside the 24-hour customer-service window, ARGOS Cloud sends only the exact Meta template persisted in the claimed bridge row, and only when that row references the dealer's current opt-in evidence. A replaced/revoked consent cannot authorize an older queued row. Free-form documents are blocked outside the 24-hour window.
+
+## 4. Meta onboarding / coexistence
+
+Use the official WhatsApp Business Platform onboarding for the business number. If the account is eligible for WhatsApp Business App + Cloud API coexistence, use the official coexistence onboarding flow rather than attempting another `whatsapp-web.js` QR pairing.
+
+ARGOS treats coexistence events conservatively:
 
 - `messages` text events -> existing inbound pipeline;
 - delivery `statuses` -> audit only;
@@ -67,18 +97,20 @@ ARGOS already treats coexistence events conservatively:
 
 Do not enable outreach during onboarding.
 
-## 4. Legacy runtime must remain retired
+## 5. Legacy runtime must remain retired
 
-Before the canonical cutover, verify:
+Before canonical cutover, verify:
 
 - `com.argos.scheduler` is disabled/unloaded;
-- the historical `wa-daemon.js` is not running;
-- there is only one process capable of WhatsApp transport;
+- the historical writer is not running in parallel;
+- there is exactly one process capable of WhatsApp transport;
 - no second service is listening as another writer.
 
-Never run the retired `wa-intelligence/deploy.sh`; it now exits fail-closed by design.
+Never run the retired `wa-intelligence/deploy.sh`; it exits fail-closed by design.
 
-## 5. Predeploy gate
+Production PM2 must enter the writer only through `runtime_entrypoint.py`. Do not start `wa-daemon.js` directly.
+
+## 6. Predeploy gate
 
 From the exact release tree:
 
@@ -90,38 +122,39 @@ From the exact release tree:
   --pretty
 ```
 
-Required outcome: all required checks GREEN, including:
+Required outcome: every required check GREEN, including:
 
 - exact SHA and clean worktree;
 - Python 3.13 / Node / PM2 available;
-- canonical daemon + both transport adapters parse;
-- `.env` present and `ARGOS_API_KEY` configured;
+- canonical daemon + all transport/policy adapters parse;
+- `.env` exists and is private (`0600` or equivalently no group/other bits);
+- `ARGOS_API_KEY` configured;
+- `ARGOS_DB_PATH` and `BRIDGE_DB_PATH` explicitly point to existing SQLite state;
 - `ARGOS_WA_TRANSPORT=cloud` with complete Meta configuration;
+- all Day1/Day7/Day12 proactive template names configured;
 - public webhook URL is HTTPS;
 - `ARGOS_AUTOMATION_ENABLED != 1`;
-- primary DB and bridge DB readable;
-- no authorized dealer;
-- no approved/pending bridge row;
+- no authorized dealer and no approved/pending bridge row during C10;
 - runtime not ACTIVE.
 
 Do not proceed if predeploy is RED.
 
-## 6. Start canonical PM2 runtime — still PAUSED
+## 7. Start canonical PM2 runtime — still PAUSED
 
-Use only `wa-intelligence/ecosystem.config.js` from the candidate SHA.
-
-The canonical processes are:
+Use only `wa-intelligence/ecosystem.config.js` from the candidate SHA. Start only the C10 canonical pair:
 
 ```text
 argos-wa-daemon
 argos-outreach-scheduler
 ```
 
-`runtime_entrypoint.py` seeds a missing runtime state as `PAUSED` before executing the single Node writer. The scheduler remains queue-only and `ARGOS_AUTOMATION_ENABLED=0` keeps it inert.
+Do not restart unrelated dashboard/monitor/Telegram processes as part of this transport cutover.
+
+`runtime_entrypoint.py` seeds a missing runtime state as `PAUSED`, ensures consent columns exist, and only then `exec`s the single Node writer. The scheduler remains queue-only and `ARGOS_AUTOMATION_ENABLED=0` keeps it inert.
 
 Do not call `/resume`.
 
-## 7. Postdeploy + official transport gate
+## 8. Postdeploy + official transport gate
 
 After PM2 reports the canonical daemon online:
 
@@ -141,14 +174,14 @@ For Cloud mode this proves, without sending a WhatsApp message:
 - health reports `transport=cloud`;
 - `agent_status=PAUSED`;
 - bridge enabled;
-- Cloud transport `connected=true` after the daemon's read-only Phone Number ID/token validation;
+- Cloud transport `connected=true` after read-only Phone Number ID/token/template validation;
 - the public HTTPS webhook route answers the Meta-style GET verification challenge correctly.
 
 No live dealer message is sent by this smoke gate.
 
-## 8. Final C10 safety proof
+## 9. Final C10 safety proof
 
-Before persistence, verify directly from DB/health:
+Before persistence, verify directly from DB/health/process facts:
 
 ```text
 RUNTIME_STATUS=PAUSED
@@ -158,13 +191,17 @@ BRIDGE_APPROVED_PENDING=0
 OUTBOUND_DELTA=0
 SINGLE_WRITER=PASS
 LEGACY_SCHEDULER=DISABLED
+EXTERNAL_PRIMARY_DB=PASS
+EXTERNAL_BRIDGE_DB=PASS
+META_TEMPLATES_VALIDATED=PASS
+PUBLIC_WEBHOOK=PASS
 ```
 
 Only after all C10 checks are GREEN may `pm2 save` persist the canonical process list.
 
 `pm2 save` is not authorization to contact dealers.
 
-## 9. Delivery ambiguity rule
+## 10. Delivery ambiguity rule
 
 The Cloud adapter performs no automatic transport retry.
 
@@ -174,19 +211,19 @@ If a final `/messages` POST times out, resets, or returns a 5xx after submission
 TRANSPORT_DELIVERY_AMBIGUOUS
 ```
 
-That error is non-transient at the bridge boundary. The row is blocked for manual reconciliation rather than automatically resent, preventing duplicate dealer contact.
+That error is non-transient at the bridge boundary. The row is blocked for reconciliation rather than automatically resent, preventing duplicate dealer contact.
 
 A failed media upload is different: it cannot itself contact the dealer, so it may be retried by a later bridge cycle.
 
-## 10. C11 is a separate gate
+## 11. C11 is a separate gate
 
 C10 ends with the official transport connected **while ARGOS is still PAUSED**.
 
-The first real WhatsApp send is a later C11 controlled founder test and must not be smuggled into C10. Only after that controlled test may normal activation/outreach be considered.
+The first real WhatsApp send is a separate C11 controlled test to a recipient for whom valid consent is demonstrable. It must not be smuggled into C10. Only after that controlled result may normal activation/outreach be considered.
 
-## 11. Security closure
+## 12. Security closure
 
-A Telegram token was exposed during an earlier C10 inspection and must be treated as compromised. Before declaring production security complete:
+A Telegram token was exposed during an earlier inspection and must be treated as compromised. Before declaring production security complete:
 
 1. rotate the token at the provider;
 2. store the replacement only in the local iMac `.env`;
@@ -195,10 +232,24 @@ A Telegram token was exposed during an earlier C10 inspection and must be treate
 
 This requirement is independent of the WhatsApp Cloud API gate.
 
-## 12. Rollback
+## 13. GitHub/iMac automation lane
+
+Repository workflows may use `IMAC_HOST`, `IMAC_USER` and `IMAC_SSH_KEY` only to reach the target host. Their values must never be printed.
+
+`argos-c10t1-imac-preflight.yml` is read-only and reports one of:
+
+```text
+PASS
+BLOCKED_SECRETS
+SSH_FAILED
+```
+
+A blocked SSH lane is an infrastructure blocker, not a code PASS and not permission to bypass C10 manually or merge without the machine gate.
+
+## 14. Rollback
 
 Rollback changes only the transport selection and canonical process runtime; it must never restore the historical writer or legacy scheduler.
 
-The code retains `ARGOS_WA_TRANSPORT=wwebjs` for controlled rollback/testing, but the historical QR pairing was demonstrated unreliable. Therefore `wwebjs` is **not** a production-readiness substitute for a failed Cloud API cutover.
+The code retains `ARGOS_WA_TRANSPORT=wwebjs` for controlled diagnostic/rollback testing, but the historical QR pairing was demonstrated unreliable. Therefore `wwebjs` is **not** a production-readiness substitute for a failed Cloud API cutover.
 
 If Cloud validation fails, leave ARGOS `PAUSED`, keep automation `0`, restore no outbound path, and investigate before another cutover attempt.
