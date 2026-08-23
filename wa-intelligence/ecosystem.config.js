@@ -34,7 +34,9 @@ if (fs.existsSync(dotEnvPath)) {
 const SHARED_ENV = {
     NODE_ENV: 'production',
     TZ: 'Europe/Rome',
-    ARGOS_DB_PATH: path.join(BASE, 'dealer_network.sqlite'),
+    // A release tree must point to the canonical external state DB rather than
+    // silently creating/using a DB next to the release checkout.
+    ARGOS_DB_PATH: dotEnv.ARGOS_DB_PATH || path.join(BASE, 'dealer_network.sqlite'),
     BRIDGE_DB_PATH: dotEnv.BRIDGE_DB_PATH || '',
 
     // Transport mode is non-secret and may be visible to observability processes.
