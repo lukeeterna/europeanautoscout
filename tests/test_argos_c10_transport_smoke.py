@@ -27,6 +27,10 @@ class C10TransportSmokeTests(unittest.TestCase):
             "META_WA_WEBHOOK_VERIFY_TOKEN": "verify-local",
             "META_APP_SECRET": "secret-local",
             "ARGOS_WA_WEBHOOK_PUBLIC_URL": "https://example.invalid/webhooks/whatsapp",
+            "META_WA_TEMPLATE_LANGUAGE": "it",
+            "META_WA_TEMPLATE_DAY1_NAME": "argos_day1_test",
+            "META_WA_TEMPLATE_DAY7_NAME": "argos_day7_test",
+            "META_WA_TEMPLATE_DAY12_NAME": "argos_day12_test",
         }
         env.update(overrides)
         return env
@@ -49,6 +53,15 @@ class C10TransportSmokeTests(unittest.TestCase):
             failed = {c["name"] for c in report.checks if c["required"] and not c["ok"]}
             self.assertIn("cloud_required_env", failed)
             self.assertIn("cloud_public_webhook_https", failed)
+
+    def test_cloud_mode_requires_all_proactive_template_names(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = SMOKE.SmokeReport("predeploy")
+            env = self._cloud_env(META_WA_TEMPLATE_DAY7_NAME="")
+            SMOKE._transport_checks(report, env, Path(tmp))
+            self.assertFalse(report.ok)
+            failed = next(c for c in report.checks if c["name"] == "cloud_required_env")
+            self.assertIn("META_WA_TEMPLATE_DAY7_NAME", failed["detail"])
 
     def test_wwebjs_mode_still_requires_existing_session(self):
         with tempfile.TemporaryDirectory() as tmp:
