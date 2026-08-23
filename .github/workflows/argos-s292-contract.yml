@@ -96,10 +96,11 @@ jobs:
             tests.test_argos_demand_capture \
             tests.test_argos_runtime_production \
             tests.test_argos_delivery_artifact \
-            tests.test_argos_runtime_entrypoint
+            tests.test_argos_runtime_entrypoint \
+            tests.test_argos_c10_transport_smoke
 
       - name: Run C10T1 Cloud transport tests
-        run: node --test wa-intelligence/transport/tests/c10t1.test.js
+        run: node --test wa-intelligence/transport/tests/*.test.js
 
       - name: Assert single guarded WhatsApp transport boundary
         run: |
@@ -202,7 +203,16 @@ jobs:
           assert "'agent_status', 'PAUSED'" in entry
           assert "os.execv(node, [node, str(daemon)])" in entry
           assert 'client.sendMessage(' not in entry
-          print('PASS PM2 first boot is PAUSED and execs the only writer')
+          assert "ARGOS_WA_TRANSPORT: dotEnv.ARGOS_WA_TRANSPORT || 'wwebjs'" in ecosystem
+          for key in (
+              'META_WA_ACCESS_TOKEN',
+              'META_WA_PHONE_NUMBER_ID',
+              'META_WA_WABA_ID',
+              'META_WA_WEBHOOK_VERIFY_TOKEN',
+              'META_APP_SECRET',
+          ):
+              assert key in ecosystem, f'PM2 does not pass {key}'
+          print('PASS PM2 first boot is PAUSED, transport-aware and execs the only writer')
           PY
 
       - name: Static anti-drift assertions
