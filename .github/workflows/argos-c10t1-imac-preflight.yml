@@ -1,4 +1,5 @@
 name: ARGOS C10T1 iMac Read-Only Preflight
+# Fail closed unless the real iMac probe executes successfully.
 
 on:
   push:
