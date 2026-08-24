@@ -5,6 +5,7 @@ on:
     branches:
       - sol/argos-canonicalization-20260817
       - sol/argos-cloudapi-c10t1-gpt56
+      - sol/argos-wwebjs-c10-production
     paths:
       - 'src/cove/**'
       - 'wa-intelligence/**'
@@ -13,6 +14,7 @@ on:
       - 'tools/scripts/argos_c10_smoke.py'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
+      - '.github/workflows/argos-c10t1-imac-preflight.yml'
   pull_request:
     paths:
       - 'src/cove/**'
@@ -22,6 +24,7 @@ on:
       - 'tools/scripts/argos_c10_smoke.py'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
+      - '.github/workflows/argos-c10t1-imac-preflight.yml'
 
 permissions:
   contents: read
