@@ -12,6 +12,7 @@ on:
     paths:
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
       - 'tools/scripts/argos_c10_machine_probe.sh'
+      - 'tools/scripts/bootstrap_argos_runner_macbook.sh'
   workflow_dispatch:
 
 permissions:
