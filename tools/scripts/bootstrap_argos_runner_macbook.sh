@@ -31,6 +31,23 @@ echo "ARGOS_IMAC_SSH=PASS"
 mkdir -p "$TARGET_DIR"
 cd "$TARGET_DIR"
 
+# GitHub Runner treats either .runner or .runner_migrated as configured.
+# If a previous ARGOS bootstrap stopped before registration, remove only
+# partial registration metadata inside the dedicated ARGOS directory.
+# Never touch the FLUXION source runner or any worktree/runtime state.
+if [[ ! -f .runner && ! -f .runner_migrated ]]; then
+  for stale in \
+    .credentials \
+    .credentials_rsaparams \
+    .credentials_migrated \
+    .service; do
+    if [[ -f "$stale" || -L "$stale" ]]; then
+      rm -f -- "$stale"
+      echo "STALE_ARGOS_RUNNER_STATE_REMOVED=$stale"
+    fi
+  done
+fi
+
 if [[ ! -x ./config.sh ]]; then
   SOURCE=""
   for candidate in "$HOME/actions-runner-fluxion" "$HOME/actions-runner"; do
@@ -44,7 +61,9 @@ if [[ ! -x ./config.sh ]]; then
     echo "RUNNER_BINARY_SOURCE=existing_compatible_install"
     rsync -a \
       --exclude '.runner' \
+      --exclude '.runner_migrated' \
       --exclude '.credentials' \
+      --exclude '.credentials_migrated' \
       --exclude '.credentials_rsaparams' \
       --exclude '.service' \
       --exclude '.env' \
@@ -73,7 +92,7 @@ fi
 
 runner_name="argos-$(scutil --get LocalHostName 2>/dev/null || hostname | cut -d. -f1)"
 
-if [[ ! -f .runner ]]; then
+if [[ ! -f .runner && ! -f .runner_migrated ]]; then
   token="$(gh api --method POST "repos/$REPO/actions/runners/registration-token" --jq '.token')"
   [[ -n "$token" ]] || fail "could not obtain repository runner registration token"
   ./config.sh \
