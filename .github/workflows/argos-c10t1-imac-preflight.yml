@@ -1,5 +1,9 @@
 name: ARGOS C10T1 iMac Read-Only Preflight
-# Fail closed unless the real iMac probe executes successfully.
+
+# Production-machine evidence is deliberately NOT run on pull_request.
+# This repository is public: only the controlled production branch or a manual
+# dispatch may reach the self-hosted MacBook runner, which then uses the
+# MacBook's existing strict SSH trust to inspect the iMac read-only.
 
 on:
   push:
@@ -7,9 +11,7 @@ on:
       - sol/argos-wwebjs-c10-production
     paths:
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
-  pull_request:
-    paths:
-      - '.github/workflows/argos-c10t1-imac-preflight.yml'
+      - 'tools/scripts/argos_c10_machine_probe.sh'
   workflow_dispatch:
 
 permissions:
@@ -17,135 +19,67 @@ permissions:
   issues: write
   pull-requests: write
 
+concurrency:
+  group: argos-c10-machine-readonly
+  cancel-in-progress: false
+
 jobs:
   imac-preflight:
     name: Read-only iMac production facts
-    runs-on: ubuntu-22.04
-    timeout-minutes: 8
-    env:
-      IMAC_HOST_AVAILABLE: ${{ secrets.IMAC_HOST != '' }}
-      IMAC_USER_AVAILABLE: ${{ secrets.IMAC_USER != '' }}
-      IMAC_KEY_AVAILABLE: ${{ secrets.IMAC_SSH_KEY != '' }}
+    runs-on: [self-hosted, macbook, argos]
+    timeout-minutes: 10
+
     steps:
-      - name: Report unavailable deployment lane
-        if: ${{ env.IMAC_HOST_AVAILABLE != 'true' || env.IMAC_USER_AVAILABLE != 'true' || env.IMAC_KEY_AVAILABLE != 'true' }}
-        run: |
-          echo 'C10T1_IMAC_PREFLIGHT=BLOCKED'
-          echo 'REASON=one_or_more_IMAC_HOST_IMAC_USER_IMAC_SSH_KEY_secrets_unavailable'
-          echo 'PRODUCTION_MUTATED=NO'
-          echo 'OUTBOUND=ZERO'
-
-      - name: Probe iMac through existing Tailscale SSH lane
-        id: ssh_probe
-        continue-on-error: true
-        if: ${{ env.IMAC_HOST_AVAILABLE == 'true' && env.IMAC_USER_AVAILABLE == 'true' && env.IMAC_KEY_AVAILABLE == 'true' }}
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
         with:
-          host: ${{ secrets.IMAC_HOST }}
-          username: ${{ secrets.IMAC_USER }}
-          key: ${{ secrets.IMAC_SSH_KEY }}
-          port: 22
-          command_timeout: 5m
-          script: |
-            set -eu
-            echo '=== ARGOS_C10T1_IMAC_PREFLIGHT_BEGIN ==='
-            echo "HOSTNAME=$(hostname)"
-            echo "USER=$(id -un)"
-            echo "ARCH=$(uname -m)"
-            echo "MACOS=$(sw_vers -productVersion 2>/dev/null || echo unknown)"
-            echo "UTC_NOW=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          fetch-depth: 1
 
-            echo '--- toolchain ---'
-            for tool in git node npm pm2 python3 python3.13 sqlite3 cloudflared tailscale; do
-              resolved="$(command -v "$tool" 2>/dev/null || true)"
-              if [ -n "$resolved" ]; then
-                echo "TOOL_${tool}=PRESENT:$resolved"
-              else
-                echo "TOOL_${tool}=ABSENT"
-              fi
-            done
-            node --version 2>/dev/null | sed 's/^/NODE_VERSION=/' || true
-            python3 --version 2>&1 | sed 's/^/PYTHON3_VERSION=/' || true
-            /usr/local/bin/python3.13 --version 2>&1 | sed 's/^/PYTHON313_VERSION=/' || true
-            pm2 --version 2>/dev/null | sed 's/^/PM2_VERSION=/' || true
+      - name: Verify isolated MacBook lane
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -s)" = "Darwin"
+          command -v ssh >/dev/null
+          command -v python3 >/dev/null
+          test -f tools/scripts/argos_c10_machine_probe.sh
+          echo "RUNNER_LANE=SELF_HOSTED_MACBOOK_ARGOS"
+          echo "EXPECTED_SHA=$GITHUB_SHA"
+          echo "PRODUCTION_MUTATION=NONE"
+          echo "OUTBOUND_ACTION=NONE"
 
-            echo '--- candidate repository roots ---'
-            found_repo=0
-            for repo in \
-              "$HOME/Documents/combaretrovamiauto-enterprise" \
-              "$HOME/Documents/app-antigravity-auto"; do
-              if [ -d "$repo/.git" ]; then
-                found_repo=1
-                echo "REPO_FOUND=$repo"
-                echo "REPO_BRANCH=$(git -C "$repo" branch --show-current 2>/dev/null || true)"
-                echo "REPO_HEAD=$(git -C "$repo" rev-parse HEAD 2>/dev/null || true)"
-                echo "REPO_DIRTY_COUNT=$(git -C "$repo" status --porcelain=v1 2>/dev/null | wc -l | tr -d ' ')"
-                origin="$(git -C "$repo" remote get-url origin 2>/dev/null || true)"
-                case "$origin" in
-                  *github.com/lukeeterna/europeanautoscout*) echo 'REPO_ORIGIN=EXPECTED' ;;
-                  *) echo 'REPO_ORIGIN=OTHER_OR_MISSING' ;;
-                esac
-              else
-                echo "REPO_ABSENT=$repo"
-              fi
-            done
-            echo "REPO_ANY=$found_repo"
+      - name: Probe iMac read-only and classify C10
+        id: machine_probe
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -uo pipefail
+          : > /tmp/argos-c10-machine-evidence.txt
+          bash tools/scripts/argos_c10_machine_probe.sh "$GITHUB_SHA" \
+            2>&1 | tee /tmp/argos-c10-machine-evidence.txt
+          exit "${PIPESTATUS[0]}"
 
-            echo '--- runtime state paths ---'
-            for path in \
-              "$HOME/Documents/combaretrovamiauto-enterprise/dealer_network.sqlite" \
-              "$HOME/Documents/combaretrovamiauto-enterprise/comm-broker/bridge.sqlite" \
-              "$HOME/Documents/app-antigravity-auto/dealer_network.sqlite" \
-              "$HOME/Documents/app-antigravity-auto/comm-broker/bridge.sqlite"; do
-              if [ -f "$path" ]; then
-                echo "STATE_FILE=PRESENT:$path:$(stat -f '%z' "$path" 2>/dev/null || wc -c < "$path")"
-              else
-                echo "STATE_FILE=ABSENT:$path"
-              fi
-            done
-
-            echo '--- env presence only; values never printed ---'
-            for envfile in \
-              "$HOME/Documents/combaretrovamiauto-enterprise/wa-intelligence/.env" \
-              "$HOME/Documents/app-antigravity-auto/wa-intelligence/.env"; do
-              if [ -f "$envfile" ]; then
-                echo "ENV_FILE=PRESENT:$envfile:$(stat -f '%Sp' "$envfile" 2>/dev/null || echo unknown)"
-              else
-                echo "ENV_FILE=ABSENT:$envfile"
-              fi
-            done
-
-            echo '--- process/listener facts ---'
-            pm2 ls --no-color 2>/dev/null | sed -n '1,40p' || true
-            launchctl list 2>/dev/null | grep -Ei 'argos|wa-daemon|scheduler' || true
-            lsof -nP -iTCP:9191 -sTCP:LISTEN 2>/dev/null || true
-            health="$(curl -fsS --max-time 2 http://127.0.0.1:9191/health 2>/dev/null || true)"
-            if [ -n "$health" ]; then
-              printf '%s' "$health" | python3 -c 'import json,sys; d=json.load(sys.stdin); safe={k:d.get(k) for k in ("runtime","transport","connected","agent_status","bridge_enabled","pending_bridge","global_outbound_24h")}; print("LOCAL_HEALTH="+json.dumps(safe,sort_keys=True))' 2>/dev/null || echo 'LOCAL_HEALTH=UNPARSEABLE'
-            else
-              echo 'LOCAL_HEALTH=UNREACHABLE'
-            fi
-
-            echo '=== ARGOS_C10T1_IMAC_PREFLIGHT_END ==='
-
-      - name: Publish secret-enabled lane verdict to PR 4
-        if: ${{ always() && github.event_name != 'pull_request' }}
+      - name: Publish safe machine evidence to PR 4
+        if: ${{ always() }}
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          SSH_OUTCOME: ${{ steps.ssh_probe.outcome }}
+          PROBE_OUTCOME: ${{ steps.machine_probe.outcome }}
         run: |
-          set -eu
-          if [ "$IMAC_HOST_AVAILABLE" != true ] || [ "$IMAC_USER_AVAILABLE" != true ] || [ "$IMAC_KEY_AVAILABLE" != true ]; then
-            verdict='BLOCKED_SECRETS'
-          elif [ "$SSH_OUTCOME" = success ]; then
-            verdict='PASS'
-          else
-            verdict='SSH_FAILED'
-          fi
-          body="C10T1_IMAC_LANE=${verdict}%0AHEAD=${GITHUB_SHA}%0APRODUCTION_MUTATED=NO%0AOUTBOUND=ZERO"
-          python3 - "$body" <<'PY' > /tmp/comment.json
-          import json,sys,urllib.parse
-          print(json.dumps({'body': urllib.parse.unquote(sys.argv[1])}))
+          set -euo pipefail
+          evidence=/tmp/argos-c10-machine-evidence.txt
+          touch "$evidence"
+          summary="$(grep -E '^(EXPECTED_SHA|WRITER_ONLINE_COUNT|WRITER_PID|WRITER_CWD|WRITER_SCRIPT|WRITER_TRANSPORT|WRITER_AUTOMATION_ENABLED|DEPLOYED_SHA|SCHEDULER_STATUS|SCHEDULER_CWD|PORT_9191_LISTENER_COUNT|HEALTH_(TRANSPORT|CONNECTED|AGENT_STATUS|BRIDGE_ENABLED|PENDING_BRIDGE|GLOBAL_OUTBOUND_24H)|PRIMARY_DB_(PRESENT|QUICK_CHECK)|DB_AGENT_STATUS|OUTBOUND_TOTAL|BRIDGE_DB_(PRESENT|QUICK_CHECK)|BRIDGE_PENDING_APPROVED|WA_SENDER_AUTH_(PRESENT|PROFILES|FILE_COUNT|LATEST_MTIME_UTC|LOCKLIKE_COUNT)|LEGACY_WWEBJS_AUTH_(PRESENT|PROFILES|FILE_COUNT|LATEST_MTIME_UTC|LOCKLIKE_COUNT)|C10_MACHINE|BLOCKERS)=' "$evidence" | tail -n 80 || true)"
+          python3 - "$PROBE_OUTCOME" "$GITHUB_SHA" "$summary" <<'PY' >/tmp/argos-pr-comment.json
+          import json, sys
+          outcome, sha, summary = sys.argv[1:]
+          body = (
+              "C10T1_MACHINE_PROBE=" + outcome.upper() + "\n"
+              + "HEAD=" + sha + "\n"
+              + "PRODUCTION_MUTATED=NO\nOUTBOUND_ACTION=NONE\n\n```text\n"
+              + (summary or "NO_MACHINE_EVIDENCE") + "\n```"
+          )
+          print(json.dumps({"body": body}))
           PY
           curl --fail --silent --show-error \
             -X POST \
@@ -153,22 +87,17 @@ jobs:
             -H 'Accept: application/vnd.github+json' \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/4/comments" \
-            --data-binary @/tmp/comment.json >/dev/null
+            --data-binary @/tmp/argos-pr-comment.json >/dev/null
 
-      - name: Enforce fail-closed preflight verdict
+      - name: Enforce real C10 machine verdict
         if: ${{ always() }}
+        shell: bash
         env:
-          SSH_OUTCOME: ${{ steps.ssh_probe.outcome }}
+          PROBE_OUTCOME: ${{ steps.machine_probe.outcome }}
         run: |
-          set -eu
-          if [ "$IMAC_HOST_AVAILABLE" != true ] || [ "$IMAC_USER_AVAILABLE" != true ] || [ "$IMAC_KEY_AVAILABLE" != true ]; then
-            echo 'C10T1_IMAC_PREFLIGHT=BLOCKED'
-            echo 'REASON=one_or_more_IMAC_HOST_IMAC_USER_IMAC_SSH_KEY_secrets_unavailable'
-            exit 78
-          fi
-          if [ "$SSH_OUTCOME" != success ]; then
-            echo 'C10T1_IMAC_PREFLIGHT=RED'
-            echo "REASON=ssh_probe_${SSH_OUTCOME}"
-            exit 1
-          fi
+          set -euo pipefail
+          evidence=/tmp/argos-c10-machine-evidence.txt
+          test "$PROBE_OUTCOME" = success
+          grep -qx 'C10_MACHINE=GREEN' "$evidence"
+          grep -qx 'BLOCKERS=NONE' "$evidence"
           echo 'C10T1_IMAC_PREFLIGHT=PASS'
