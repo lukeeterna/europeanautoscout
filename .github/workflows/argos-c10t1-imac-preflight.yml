@@ -44,6 +44,7 @@ jobs:
           command -v ssh >/dev/null
           command -v python3 >/dev/null
           test -f tools/scripts/argos_c10_machine_probe.sh
+          test -f tools/scripts/bootstrap_argos_runner_macbook.sh
           echo "RUNNER_LANE=SELF_HOSTED_MACBOOK_ARGOS"
           echo "EXPECTED_SHA=$GITHUB_SHA"
           echo "PRODUCTION_MUTATION=NONE"
