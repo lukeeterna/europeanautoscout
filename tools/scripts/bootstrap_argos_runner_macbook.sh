@@ -5,6 +5,7 @@ REPO="lukeeterna/europeanautoscout"
 TARGET_DIR="${ARGOS_RUNNER_DIR:-$HOME/actions-runner-argos}"
 IMAC_HOST="${ARGOS_IMAC_HOST:-iMac-di-gianluca.local}"
 IMAC_USER="${ARGOS_IMAC_USER:-gianlucadistasi}"
+EXPECTED_REPO_URL="https://github.com/$REPO"
 
 fail() { echo "BLOCKED: $*" >&2; exit 2; }
 
@@ -12,6 +13,7 @@ fail() { echo "BLOCKED: $*" >&2; exit 2; }
 command -v gh >/dev/null 2>&1 || fail "GitHub CLI (gh) is required"
 command -v ssh >/dev/null 2>&1 || fail "ssh is required"
 command -v rsync >/dev/null 2>&1 || fail "rsync is required"
+command -v python3 >/dev/null 2>&1 || fail "python3 is required"
 
 gh auth status -h github.com >/dev/null 2>&1 || fail "gh is not authenticated to github.com"
 gh repo view "$REPO" >/dev/null 2>&1 || fail "current gh identity cannot access $REPO"
@@ -31,21 +33,97 @@ echo "ARGOS_IMAC_SSH=PASS"
 mkdir -p "$TARGET_DIR"
 cd "$TARGET_DIR"
 
-# GitHub Runner treats either .runner or .runner_migrated as configured.
-# If a previous ARGOS bootstrap stopped before registration, remove only
-# partial registration metadata inside the dedicated ARGOS directory.
-# Never touch the FLUXION source runner or any worktree/runtime state.
-if [[ ! -f .runner && ! -f .runner_migrated ]]; then
+runner_name="argos-$(scutil --get LocalHostName 2>/dev/null || hostname | cut -d. -f1)"
+
+runner_api_status() {
+  gh api "repos/$REPO/actions/runners" \
+    --jq ".runners[] | select(.name == \"$runner_name\") | [.status, (.busy|tostring), (.labels|map(.name)|join(\",\"))] | @tsv" \
+    | tail -n1
+}
+
+remove_target_registration_metadata() {
+  # This function is intentionally scoped to TARGET_DIR. It must never call
+  # svc.sh when metadata belongs to another runner (for example FLUXION),
+  # because that could stop the other runner's real LaunchAgent.
   for stale in \
+    .runner \
+    .runner_migrated \
     .credentials \
-    .credentials_rsaparams \
     .credentials_migrated \
-    .service; do
+    .credentials_rsaparams \
+    .service \
+    .env; do
     if [[ -f "$stale" || -L "$stale" ]]; then
       rm -f -- "$stale"
       echo "STALE_ARGOS_RUNNER_STATE_REMOVED=$stale"
     fi
   done
+}
+
+local_runner_identity() {
+  local meta=""
+  if [[ -f .runner ]]; then
+    meta=.runner
+  elif [[ -f .runner_migrated ]]; then
+    meta=.runner_migrated
+  else
+    return 1
+  fi
+  python3 - "$meta" <<'PY'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+try:
+    data = json.loads(p.read_text(encoding="utf-8"))
+except Exception:
+    print("UNPARSEABLE\tUNPARSEABLE")
+    raise SystemExit(0)
+name = str(data.get("agentName") or data.get("name") or "")
+url = str(data.get("gitHubUrl") or data.get("githubUrl") or data.get("serverUrl") or "")
+print(f"{name}\t{url}")
+PY
+}
+
+# Reject copied/foreign registration metadata before touching svc.sh.
+# The first failed bootstrap proved this matters: metadata inside the ARGOS
+# directory referenced the FLUXION runner service. Removing these local copies
+# does not mutate the real FLUXION runner directory or LaunchAgent.
+if identity="$(local_runner_identity 2>/dev/null)"; then
+  local_name="${identity%%$'\t'*}"
+  local_url="${identity#*$'\t'}"
+  local_is_argos=false
+  [[ "$local_name" == "$runner_name" ]] && local_is_argos=true
+  repo_matches=false
+  case "$local_url" in
+    "$EXPECTED_REPO_URL"|"$EXPECTED_REPO_URL/"|*"github.com/$REPO"*) repo_matches=true ;;
+  esac
+
+  if [[ "$local_is_argos" != true || "$repo_matches" != true ]]; then
+    echo "FOREIGN_RUNNER_METADATA=DETECTED"
+    echo "FOREIGN_RUNNER_NAME=${local_name:-UNKNOWN}"
+    echo "FOREIGN_RUNNER_REPO_MATCH=$repo_matches"
+    remove_target_registration_metadata
+  else
+    api_status="$(runner_api_status || true)"
+    if [[ -z "$api_status" ]]; then
+      echo "STALE_ARGOS_REGISTRATION=LOCAL_ONLY"
+      # Only an ARGOS-owned service metadata file is eligible for cleanup.
+      # Never stop/uninstall a service unless its recorded label is ARGOS-owned.
+      if [[ -f .service ]]; then
+        service_label="$(cat .service 2>/dev/null || true)"
+        case "$service_label" in
+          *europeanautoscout*|*"$runner_name"*)
+            ./svc.sh stop >/dev/null 2>&1 || true
+            ./svc.sh uninstall >/dev/null 2>&1 || true
+            ;;
+          *) echo "FOREIGN_SERVICE_METADATA=PRESERVED_FROM_EXECUTION" ;;
+        esac
+      fi
+      remove_target_registration_metadata
+    else
+      echo "RUNNER_CONFIGURATION=EXISTING_VALID"
+    fi
+  fi
 fi
 
 if [[ ! -x ./config.sh ]]; then
@@ -90,25 +168,29 @@ fi
 
 [[ -x ./config.sh ]] || fail "runner config.sh is unavailable"
 
-runner_name="argos-$(scutil --get LocalHostName 2>/dev/null || hostname | cut -d. -f1)"
-
 if [[ ! -f .runner && ! -f .runner_migrated ]]; then
   token="$(gh api --method POST "repos/$REPO/actions/runners/registration-token" --jq '.token')"
   [[ -n "$token" ]] || fail "could not obtain repository runner registration token"
   ./config.sh \
     --unattended \
-    --url "https://github.com/$REPO" \
+    --url "$EXPECTED_REPO_URL" \
     --token "$token" \
     --name "$runner_name" \
     --labels "macbook,argos" \
     --work "_work" \
     --replace
   unset token
-else
-  echo "RUNNER_CONFIGURATION=EXISTING"
 fi
 
+# At this point service metadata must belong to the newly configured ARGOS runner.
 if [[ -x ./svc.sh ]]; then
+  if [[ -f .service ]]; then
+    service_label="$(cat .service 2>/dev/null || true)"
+    case "$service_label" in
+      *europeanautoscout*|*"$runner_name"*) ;;
+      *) fail "refusing to operate a non-ARGOS service from the ARGOS runner directory" ;;
+    esac
+  fi
   if ! ./svc.sh status >/dev/null 2>&1; then
     ./svc.sh install
   fi
@@ -118,7 +200,7 @@ else
   fail "svc.sh missing; refusing non-persistent runner"
 fi
 
-status="$(gh api "repos/$REPO/actions/runners" --jq ".runners[] | select(.name == \"$runner_name\") | [.status, (.busy|tostring), (.labels|map(.name)|join(\",\"))] | @tsv" | tail -n1)"
+status="$(runner_api_status || true)"
 [[ -n "$status" ]] || fail "runner registered locally but not visible through GitHub API"
 
 printf 'ARGOS_RUNNER=%s\t%s\n' "$runner_name" "$status"
