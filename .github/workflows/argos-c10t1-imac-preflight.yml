@@ -4,6 +4,10 @@ name: ARGOS C10T1 iMac Read-Only Preflight
 # This repository is public: only the controlled production branch or a manual
 # dispatch may reach the self-hosted MacBook runner, which then uses the
 # MacBook's existing strict SSH trust to inspect the iMac read-only.
+#
+# IMPORTANT: this MacBook runs macOS 11.7.10. GitHub's Node 24 action runtime is
+# built for newer macOS and cannot execute here. Keep this workflow shell-native:
+# no Node-based actions are permitted in the machine lane.
 
 on:
   push:
@@ -31,10 +35,29 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Checkout exact candidate
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+      - name: Native exact-SHA checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v git >/dev/null
+          test -n "${GITHUB_WORKSPACE:-}"
+          test -n "${RUNNER_WORKSPACE:-}"
+          case "$GITHUB_WORKSPACE" in
+            "$RUNNER_WORKSPACE"/*) ;;
+            *) echo "BLOCKED: unexpected GITHUB_WORKSPACE=$GITHUB_WORKSPACE" >&2; exit 70 ;;
+          esac
+
+          # Clean only this repository's Actions workspace. Never touch the
+          # runner installation, FLUXION workspace, or the iMac production tree.
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+          git init -q "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE"
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach --force FETCH_HEAD
+          actual_sha="$(git rev-parse HEAD)"
+          test "$actual_sha" = "$GITHUB_SHA"
+          echo "NATIVE_CHECKOUT_SHA=$actual_sha"
 
       - name: Verify isolated MacBook lane
         shell: bash
