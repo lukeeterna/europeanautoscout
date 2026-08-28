@@ -38,7 +38,6 @@ BACKUP_DIR=""
 export PATH="$HOME_DIR/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 
 fail() { echo "CUTOVER_BLOCKED=$*" >&2; exit 20; }
-run_py() { "$PY313" "$@"; }
 
 [[ -x "$PM2" ]] || fail "PM2_MISSING"
 [[ -x "$PY313" ]] || fail "PYTHON313_MISSING"
@@ -50,9 +49,11 @@ command -v npm >/dev/null || fail "NPM_MISSING"
 [[ -d "$SESSION_DIR/session-$CLIENT_ID" ]] || fail "LOCALAUTH_PROFILE_MISSING"
 
 # Read current writer facts without printing its raw command/environment.
-readarray -t writer_rows < <(ps -axo pid=,command= | awk '/[w]a-daemon\.js/ && /[n]ode/ {print $1}')
-[[ "${#writer_rows[@]}" -eq 1 ]] || fail "PRE_SINGLE_WRITER_COUNT_${#writer_rows[@]}"
-OLD_PID="${writer_rows[0]}"
+# Keep this compatible with Apple's Bash 3.2: do not use readarray/mapfile.
+writer_pids="$(ps -axo pid=,command= | awk '/[w]a-daemon\.js/ && /[n]ode/ {print $1}')"
+writer_count="$(printf '%s\n' "$writer_pids" | awk 'NF{n++} END{print n+0}')"
+[[ "$writer_count" -eq 1 ]] || fail "PRE_SINGLE_WRITER_COUNT_${writer_count}"
+OLD_PID="$(printf '%s\n' "$writer_pids" | awk 'NF{print; exit}')"
 OLD_CWD="$(/usr/sbin/lsof -a -p "$OLD_PID" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -n1)"
 [[ -n "$OLD_CWD" ]] || fail "OLD_CWD_UNKNOWN"
 OLD_ROOT="$(cd "$OLD_CWD/.." && pwd -P)"
@@ -62,11 +63,12 @@ OLD_SHA="$(git -C "$OLD_ROOT" rev-parse HEAD 2>/dev/null || true)"
 
 echo "PRE_WRITER_COUNT=1"
 echo "PRE_DEPLOYED_SHA=$OLD_SHA"
-echo "PRE_AGENT_STATUS=$("$PY313" - "$CANONICAL_PRIMARY" <<'PY'
+PRE_STATE="$("$PY313" - "$CANONICAL_PRIMARY" <<'PY'
 import sqlite3,sys
 p=sys.argv[1]; c=sqlite3.connect(f'file:{p}?mode=ro',uri=True); r=c.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status'").fetchone(); print((r[0] if r else 'ABSENT').upper()); c.close()
 PY
 )"
+echo "PRE_AGENT_STATUS=$PRE_STATE"
 PRE_OUTBOUND="$("$PY313" - "$CANONICAL_PRIMARY" <<'PY'
 import sqlite3,sys
 p=sys.argv[1]; c=sqlite3.connect(f'file:{p}?mode=ro',uri=True); print(c.execute("SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'").fetchone()[0]); c.close()
@@ -74,11 +76,7 @@ PY
 )"
 echo "PRE_OUTBOUND_TOTAL=$PRE_OUTBOUND"
 [[ "$PRE_OUTBOUND" == "77" ]] || fail "OUTBOUND_BASELINE_NOT_77"
-[[ "$("$PY313" - "$CANONICAL_PRIMARY" <<'PY'
-import sqlite3,sys
-p=sys.argv[1]; c=sqlite3.connect(f'file:{p}?mode=ro',uri=True); r=c.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status'").fetchone(); print((r[0] if r else '').upper()); c.close()
-PY
-)" == "PAUSED" ]] || fail "AGENT_NOT_PAUSED"
+[[ "$PRE_STATE" == "PAUSED" ]] || fail "AGENT_NOT_PAUSED"
 
 # Prepare immutable exact-SHA release before any production process mutation.
 if [[ -e "$RELEASE" ]]; then
@@ -108,7 +106,7 @@ CHROME="$CHROME_FALLBACK"
 [[ -x "$CHROME" ]] || fail "CHROME_EXECUTABLE_MISSING"
 
 # Update only non-secret operational keys. All unrelated secret values remain
-# byte-for-byte from the local .env copy and are never printed.
+# from the local .env copy and are never printed.
 "$PY313" - "$RELEASE/wa-intelligence/.env" "$CANONICAL_PRIMARY" "$CANONICAL_BRIDGE" "$SESSION_DIR" "$CLIENT_ID" "$CHROME" <<'PY'
 from pathlib import Path
 import os,sys
