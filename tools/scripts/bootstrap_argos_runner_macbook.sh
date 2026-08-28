@@ -182,7 +182,7 @@ if [[ ! -f .runner && ! -f .runner_migrated ]]; then
   unset token
 fi
 
-# At this point service metadata must belong to the newly configured ARGOS runner.
+# At this point service metadata must belong to the configured ARGOS runner.
 if [[ -x ./svc.sh ]]; then
   if [[ -f .service ]]; then
     service_label="$(cat .service 2>/dev/null || true)"
@@ -191,17 +191,46 @@ if [[ -x ./svc.sh ]]; then
       *) fail "refusing to operate a non-ARGOS service from the ARGOS runner directory" ;;
     esac
   fi
-  if ! ./svc.sh status >/dev/null 2>&1; then
+
+  # On macOS svc.sh status may print "not installed" while returning exit 0.
+  # Treat the textual state as authoritative so registration cannot be falsely
+  # reported PASS while GitHub still sees the runner offline.
+  service_status="$(./svc.sh status 2>&1 || true)"
+  if printf '%s\n' "$service_status" | grep -Eqi 'not installed|not found'; then
+    echo "ARGOS_RUNNER_SERVICE=INSTALLING"
     ./svc.sh install
   fi
-  ./svc.sh start >/dev/null 2>&1 || true
-  ./svc.sh status
+
+  ./svc.sh start >/dev/null
+  service_status="$(./svc.sh status 2>&1 || true)"
+  printf '%s\n' "$service_status"
+  if printf '%s\n' "$service_status" | grep -Eqi 'not installed|not found'; then
+    fail "ARGOS runner service is still not installed after svc.sh install"
+  fi
 else
   fail "svc.sh missing; refusing non-persistent runner"
 fi
 
-status="$(runner_api_status || true)"
+# GitHub registration is eventually consistent for a few seconds after the
+# LaunchAgent starts. Bound the check and fail closed unless the runner becomes
+# online with the expected labels.
+status=""
+for _ in $(seq 1 15); do
+  status="$(runner_api_status || true)"
+  case "$status" in
+    online$'\t'*) break ;;
+  esac
+  sleep 2
+done
 [[ -n "$status" ]] || fail "runner registered locally but not visible through GitHub API"
+case "$status" in
+  online$'\t'*) ;;
+  *) fail "runner is registered but did not become online" ;;
+esac
+case "$status" in
+  *macbook*argos*) ;;
+  *) fail "runner online without required macbook,argos labels" ;;
+esac
 
 printf 'ARGOS_RUNNER=%s\t%s\n' "$runner_name" "$status"
 echo "ARGOS_RUNNER_BOOTSTRAP=PASS"
