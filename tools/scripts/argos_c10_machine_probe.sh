@@ -30,6 +30,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -46,6 +47,31 @@ legacy_auth = home / "Documents/app-antigravity-auto/wa-intelligence/.wwebjs_aut
 
 def run(args, timeout=15):
     return subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout, check=False)
+
+
+def resolve_executable(name):
+    found = shutil.which(name)
+    if found:
+        return found
+
+    candidates = []
+    if name == "pm2":
+        # Non-interactive SSH does not source the user's NVM shell setup.
+        # Search only executable paths; never read shell profiles or npm config.
+        candidates.extend(sorted(home.glob(".nvm/versions/node/*/bin/pm2"), reverse=True))
+        candidates.extend([
+            Path("/usr/local/bin/pm2"),
+            Path("/opt/homebrew/bin/pm2"),
+            home / ".local/bin/pm2",
+        ])
+
+    for candidate in candidates:
+        try:
+            if candidate.is_file() and os.access(str(candidate), os.X_OK):
+                return str(candidate)
+        except OSError:
+            continue
+    return None
 
 
 def one_line(value):
@@ -99,7 +125,16 @@ def git_head_from(app):
             return r.stdout.strip(), str(p)
     return "UNKNOWN", "UNKNOWN"
 
-pm2_cmd = run(["pm2", "jlist"])
+pm2_bin = resolve_executable("pm2")
+if not pm2_bin:
+    print("PM2_BIN=NOT_FOUND")
+    print("PM2_JLIST=FAIL")
+    print("C10_MACHINE=RED")
+    print("BLOCKERS=PM2_BIN_UNAVAILABLE")
+    raise SystemExit(20)
+print(f"PM2_BIN={one_line(pm2_bin)}")
+
+pm2_cmd = run([pm2_bin, "jlist"])
 if pm2_cmd.returncode != 0:
     print("PM2_JLIST=FAIL")
     print("C10_MACHINE=RED")
