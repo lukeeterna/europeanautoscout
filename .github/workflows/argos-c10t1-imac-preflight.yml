@@ -16,6 +16,7 @@ on:
     paths:
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
       - 'tools/scripts/argos_c10_machine_probe.sh'
+      - 'tools/scripts/argos_c10_runtime_diag.sh'
       - 'tools/scripts/bootstrap_argos_runner_macbook.sh'
   workflow_dispatch:
 
@@ -67,13 +68,21 @@ jobs:
           command -v ssh >/dev/null
           command -v python3 >/dev/null
           test -f tools/scripts/argos_c10_machine_probe.sh
+          test -f tools/scripts/argos_c10_runtime_diag.sh
           test -f tools/scripts/bootstrap_argos_runner_macbook.sh
           bash -n tools/scripts/argos_c10_machine_probe.sh
+          bash -n tools/scripts/argos_c10_runtime_diag.sh
           bash -n tools/scripts/bootstrap_argos_runner_macbook.sh
           echo "RUNNER_LANE=SELF_HOSTED_MACBOOK_ARGOS"
           echo "EXPECTED_SHA=$GITHUB_SHA"
           echo "PRODUCTION_MUTATION=NONE"
           echo "OUTBOUND_ACTION=NONE"
+
+      - name: Diagnose DB and LocalAuth runtime read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/scripts/argos_c10_runtime_diag.sh "$GITHUB_SHA"
 
       - name: Probe iMac read-only and classify C10
         id: machine_probe
