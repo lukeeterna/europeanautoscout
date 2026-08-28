@@ -24,7 +24,9 @@ HOME_DIR="$HOME"
 RELEASE="$HOME_DIR/Documents/argos-c10-release-$SHORT"
 CANONICAL_PRIMARY="$HOME_DIR/Documents/app-antigravity-auto/dealer_network.sqlite"
 CANONICAL_BRIDGE="$HOME_DIR/Documents/app-antigravity-auto/comm-broker/bridge.sqlite"
-SESSION_DIR="$HOME_DIR/Documents/app-antigravity-auto/wa-intelligence/.wwebjs_auth"
+# Preserve the production LocalAuth identity exactly as the live writer uses it:
+# dataPath=wa-sender + clientId=argos-business -> wa-sender/session-argos-business.
+SESSION_DIR="$HOME_DIR/Documents/app-antigravity-auto/wa-sender"
 CLIENT_ID="argos-business"
 PM2="$HOME_DIR/.npm-global/bin/pm2"
 PY313="/usr/local/bin/python3.13"
