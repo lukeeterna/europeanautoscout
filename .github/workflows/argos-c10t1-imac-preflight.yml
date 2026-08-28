@@ -8,7 +8,7 @@ name: ARGOS C10T1 iMac Read-Only Preflight
 # IMPORTANT: this MacBook runs macOS 11.7.10. GitHub's Node 24 action runtime is
 # built for newer macOS and cannot execute here. Keep this workflow shell-native:
 # no Node-based actions are permitted in the machine lane.
-# C10 cutover arm: proxy-safe staging + pinned node-gyp build Python enabled.
+# C10 cutover arm: proxy-safe staging, pinned node-gyp Python, clean locked deps.
 
 on:
   push:
