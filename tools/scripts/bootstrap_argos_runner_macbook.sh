@@ -199,14 +199,23 @@ if [[ -x ./svc.sh ]]; then
   if printf '%s\n' "$service_status" | grep -Eqi 'not installed|not found'; then
     echo "ARGOS_RUNNER_SERVICE=INSTALLING"
     ./svc.sh install
+    service_status="$(./svc.sh status 2>&1 || true)"
   fi
 
-  ./svc.sh start >/dev/null
+  if printf '%s\n' "$service_status" | grep -q '^Started:$'; then
+    echo "ARGOS_RUNNER_SERVICE=ALREADY_STARTED"
+  elif printf '%s\n' "$service_status" | grep -q '^Stopped$'; then
+    echo "ARGOS_RUNNER_SERVICE=STARTING"
+    ./svc.sh start >/dev/null
+  else
+    printf '%s\n' "$service_status"
+    fail "ARGOS runner service state is indeterminate"
+  fi
+
   service_status="$(./svc.sh status 2>&1 || true)"
   printf '%s\n' "$service_status"
-  if printf '%s\n' "$service_status" | grep -Eqi 'not installed|not found'; then
-    fail "ARGOS runner service is still not installed after svc.sh install"
-  fi
+  printf '%s\n' "$service_status" | grep -q '^Started:$' \
+    || fail "ARGOS runner service did not reach Started state"
 else
   fail "svc.sh missing; refusing non-persistent runner"
 fi
@@ -223,14 +232,15 @@ for _ in $(seq 1 15); do
   sleep 2
 done
 [[ -n "$status" ]] || fail "runner registered locally but not visible through GitHub API"
-case "$status" in
-  online$'\t'*) ;;
-  *) fail "runner is registered but did not become online" ;;
-esac
-case "$status" in
-  *macbook*argos*) ;;
-  *) fail "runner online without required macbook,argos labels" ;;
-esac
+
+IFS=$'\t' read -r runner_state runner_busy runner_labels <<< "$status"
+[[ "$runner_state" == "online" ]] || fail "runner is registered but did not become online"
+for required_label in self-hosted macbook argos; do
+  case ",$runner_labels," in
+    *",$required_label,"*) ;;
+    *) fail "runner online without required label: $required_label" ;;
+  esac
+done
 
 printf 'ARGOS_RUNNER=%s\t%s\n' "$runner_name" "$status"
 echo "ARGOS_RUNNER_BOOTSTRAP=PASS"
