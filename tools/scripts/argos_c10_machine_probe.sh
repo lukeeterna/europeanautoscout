@@ -50,24 +50,39 @@ def run(args, timeout=15):
     return subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout, check=False)
 
 
-def resolve_executable(name):
+def executable_candidate(path):
+    try:
+        return str(path) if path.is_file() and os.access(str(path), os.X_OK) else None
+    except OSError:
+        return None
+
+
+def resolve_executable(name, writer_cwd=None):
     found = shutil.which(name)
     if found:
         return found
     candidates = []
     if name == "pm2":
+        if writer_cwd and writer_cwd != "UNKNOWN":
+            wc = Path(writer_cwd)
+            candidates.extend([wc / "node_modules/.bin/pm2", wc.parent / "node_modules/.bin/pm2"])
         candidates.extend(sorted(home.glob(".nvm/versions/node/*/bin/pm2"), reverse=True))
         candidates.extend([
             Path("/usr/local/bin/pm2"),
             Path("/opt/homebrew/bin/pm2"),
+            Path("/usr/local/lib/node_modules/pm2/bin/pm2"),
+            Path("/opt/homebrew/lib/node_modules/pm2/bin/pm2"),
             home / ".local/bin/pm2",
+            home / ".npm-global/bin/pm2",
+            home / ".npm-packages/bin/pm2",
+            home / ".volta/bin/pm2",
+            home / "Documents/app-antigravity-auto/wa-sender/node_modules/.bin/pm2",
+            home / "Documents/app-antigravity-auto/wa-intelligence/node_modules/.bin/pm2",
         ])
     for candidate in candidates:
-        try:
-            if candidate.is_file() and os.access(str(candidate), os.X_OK):
-                return str(candidate)
-        except OSError:
-            continue
+        resolved = executable_candidate(candidate)
+        if resolved:
+            return resolved
     return None
 
 
@@ -113,10 +128,8 @@ def process_table():
 
 
 def process_cwd(pid):
-    lsof = resolve_executable("lsof") or "/usr/sbin/lsof"
+    lsof = shutil.which("lsof") or "/usr/sbin/lsof"
     result = run([lsof, "-a", "-p", str(pid), "-d", "cwd", "-Fn"], timeout=8)
-    if result.returncode not in (0, 1):
-        return "UNKNOWN"
     for line in result.stdout.splitlines():
         if line.startswith("n/"):
             return line[1:]
@@ -124,8 +137,8 @@ def process_cwd(pid):
 
 
 def selected_process_env(pid, keys):
-    # Read same-user process environment in memory, but emit only explicitly
-    # allowlisted non-secret runtime flags. Raw ps output is never printed.
+    # Raw same-user environment is held only in memory. Only allowlisted,
+    # non-secret operational fields below are emitted.
     result = run(["ps", "eww", "-p", str(pid), "-o", "command="], timeout=8)
     text = result.stdout if result.returncode == 0 else ""
     values = {}
@@ -175,17 +188,6 @@ def git_head_from_paths(*raw_paths):
     return "UNKNOWN", "UNKNOWN"
 
 
-# PM2 CLI is optional evidence only. Non-interactive SSH on this machine does
-# not currently expose the CLI, so writer truth is derived from the live macOS
-# process table, parent supervisor, cwd, listener, /health and databases.
-pm2_bin = resolve_executable("pm2")
-print(f"PM2_BIN={one_line(pm2_bin or 'NOT_FOUND')}")
-if pm2_bin:
-    pm2_cmd = run([pm2_bin, "jlist"])
-    print("PM2_JLIST=" + ("PASS" if pm2_cmd.returncode == 0 else "FAIL_OPTIONAL"))
-else:
-    print("PM2_JLIST=UNAVAILABLE_OPTIONAL")
-
 processes = process_table()
 by_pid = {pid: (ppid, command) for pid, ppid, command in processes}
 writer_rows = [row for row in processes if "wa-daemon.js" in row[2] and "node" in row[2].lower()]
@@ -200,7 +202,16 @@ parent_command = by_pid.get(writer_ppid, (None, ""))[1] if writer_ppid else ""
 parent_lower = parent_command.lower()
 writer_supervisor = "PM2" if ("pm2" in parent_lower or "god daemon" in parent_lower) else "UNKNOWN"
 
-safe_env = selected_process_env(writer_pid, ("ARGOS_WA_TRANSPORT", "ARGOS_AUTOMATION_ENABLED")) if writer_pid else {}
+safe_keys = (
+    "ARGOS_WA_TRANSPORT",
+    "ARGOS_AUTOMATION_ENABLED",
+    "ARGOS_WA_SESSION_DIR",
+    "ARGOS_WA_CLIENT_ID",
+    "CHROME_EXECUTABLE_PATH",
+    "ARGOS_DB_PATH",
+    "BRIDGE_DB_PATH",
+)
+safe_env = selected_process_env(writer_pid, safe_keys) if writer_pid else {}
 transport = str(safe_env.get("ARGOS_WA_TRANSPORT") or "UNKNOWN").lower()
 automation = str(safe_env.get("ARGOS_AUTOMATION_ENABLED") or "UNKNOWN")
 
@@ -210,10 +221,23 @@ print(f"WRITER_SCRIPT={one_line(writer_script)}")
 print(f"WRITER_SUPERVISOR={writer_supervisor}")
 print(f"WRITER_TRANSPORT={one_line(transport)}")
 print(f"WRITER_AUTOMATION_ENABLED={one_line(automation)}")
+print(f"WRITER_SESSION_DIR={one_line(safe_env.get('ARGOS_WA_SESSION_DIR') or 'UNKNOWN')}")
+print(f"WRITER_CLIENT_ID={one_line(safe_env.get('ARGOS_WA_CLIENT_ID') or 'UNKNOWN')}")
+print(f"WRITER_CHROME_EXECUTABLE={one_line(safe_env.get('CHROME_EXECUTABLE_PATH') or 'UNKNOWN')}")
+print(f"WRITER_PRIMARY_DB_PATH={one_line(safe_env.get('ARGOS_DB_PATH') or 'UNKNOWN')}")
+print(f"WRITER_BRIDGE_DB_PATH={one_line(safe_env.get('BRIDGE_DB_PATH') or 'UNKNOWN')}")
 
 deployed_sha, deployed_root = git_head_from_paths(writer_cwd, writer_script)
 print(f"DEPLOYED_SHA={deployed_sha}")
 print(f"DEPLOYED_GIT_ROOT={deployed_root}")
+
+pm2_bin = resolve_executable("pm2", writer_cwd)
+print(f"PM2_BIN={one_line(pm2_bin or 'NOT_FOUND')}")
+if pm2_bin:
+    pm2_cmd = run([pm2_bin, "jlist"])
+    print("PM2_JLIST=" + ("PASS" if pm2_cmd.returncode == 0 else "FAIL_OPTIONAL"))
+else:
+    print("PM2_JLIST=UNAVAILABLE_OPTIONAL")
 
 scheduler_rows = [row for row in processes if "outreach_scheduler.py" in row[2]]
 if len(scheduler_rows) == 1:
@@ -227,7 +251,7 @@ else:
     print("SCHEDULER_STATUS=MULTIPLE")
     print("SCHEDULER_CWD=AMBIGUOUS")
 
-lsof = resolve_executable("lsof") or "/usr/sbin/lsof"
+lsof = shutil.which("lsof") or "/usr/sbin/lsof"
 listeners = run([lsof, "-nP", "-iTCP:9191", "-sTCP:LISTEN", "-t"])
 listener_pids = sorted({line.strip() for line in listeners.stdout.splitlines() if line.strip()})
 print(f"PORT_9191_LISTENER_COUNT={len(listener_pids)}")
@@ -244,8 +268,7 @@ except Exception as exc:
 for key in ("runtime", "transport", "connected", "agent_status", "bridge_enabled", "pending_bridge", "global_outbound_24h"):
     print(f"HEALTH_{key.upper()}={one_line(health.get(key, 'UNKNOWN'))}")
 
-# Prefer the live health transport if process env is not exposed by macOS ps.
-if transport == "unknown" and str(health.get("transport") or "").strip():
+if transport == "unknown" and str(health.get("transport") or "").strip().lower() not in ("", "unknown"):
     transport = str(health.get("transport")).lower()
 
 agent_status = db_scalar(primary_db, "SELECT value FROM argos_runtime_state WHERE key='agent_status' LIMIT 1")
@@ -296,29 +319,39 @@ def describe_auth_root(label, root):
 describe_auth_root("WA_SENDER_AUTH", session_root)
 describe_auth_root("LEGACY_WWEBJS_AUTH", legacy_auth)
 
-# PM2 default log paths are stable even when its CLI is not on PATH. Inspect
-# only allowlisted connection/status lines and redact long identifiers.
+# Read only status/connection events. Never emit QR payloads, phone numbers,
+# tokens or arbitrary log lines.
 print("RECENT_DAEMON_SAFE_EVENTS_BEGIN")
-safe_keywords = ("consent_schema", "initial_agent_status", "transport=", "qr", "connected", "disconnected", "auth_failure", "ready")
-for path in (
+safe_keywords = ("consent_schema", "initial_agent_status", "transport=", "qr", "connected", "disconnected", "auth_failure", "ready", "authenticated")
+log_paths = (
+    Path("/tmp/argos-wa-daemon-out.log"),
+    Path("/tmp/argos-wa-daemon-err.log"),
+    Path("/tmp/argos-wa-daemon-combined.log"),
     home / ".pm2/logs/argos-wa-daemon-out.log",
     home / ".pm2/logs/argos-wa-daemon-error.log",
-):
+)
+seen_lines = set()
+for path in log_paths:
     if not path.is_file():
         continue
     try:
-        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-800:]
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-1200:]
     except OSError:
         continue
     for line in lines:
         lower = line.lower()
-        if not ("23/08/2026" in line or "2026-08-23" in line):
-            continue
         if not any(k in lower for k in safe_keywords):
             continue
-        line = re.sub(r"\b\d{7,}\b", "[NUMBER]", line)
-        line = re.sub(r"\b[A-Za-z0-9_-]{32,}\b", "[REDACTED]", line)
-        print(line[:500])
+        # Never print a QR payload or long identifiers; retain event class only.
+        if "qr" in lower:
+            line = "WWEBJS_EVENT=QR_REQUIRED"
+        else:
+            line = re.sub(r"\b\d{7,}\b", "[NUMBER]", line)
+            line = re.sub(r"\b[A-Za-z0-9_./:+-]{32,}\b", "[REDACTED]", line)
+            line = line[:500]
+        if line not in seen_lines:
+            seen_lines.add(line)
+            print(line)
 print("RECENT_DAEMON_SAFE_EVENTS_END")
 
 blockers = []
