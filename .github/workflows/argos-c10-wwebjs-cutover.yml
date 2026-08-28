@@ -102,6 +102,54 @@ jobs:
           raise SystemExit(21)
           PY
 
+      - name: Stage exact-SHA release with proxy bypass
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh \
+            -o BatchMode=yes \
+            -o ConnectTimeout=10 \
+            -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=5 \
+            -o ServerAliveCountMax=2 \
+            gianlucadistasi@iMac-di-gianluca.local \
+            "bash -s -- '$GITHUB_SHA'" <<'REMOTE'
+          set -euo pipefail
+          SHA="$1"
+          SHORT="${SHA:0:12}"
+          RELEASE="$HOME/Documents/argos-c10-release-$SHORT"
+          TMP="${RELEASE}.stage.$$"
+          cleanup() { rm -rf "$TMP"; }
+          trap cleanup EXIT
+
+          if [[ -e "$RELEASE" ]]; then
+            if [[ -d "$RELEASE/.git" ]] && [[ "$(git -C "$RELEASE" rev-parse HEAD 2>/dev/null || true)" == "$SHA" ]]; then
+              echo "RELEASE_STAGE=EXACT_ALREADY"
+              exit 0
+            fi
+            echo "RELEASE_STAGE=BLOCKED_EXISTING_MISMATCH" >&2
+            exit 20
+          fi
+
+          mkdir -p "$TMP"
+          git init -q "$TMP"
+          git -C "$TMP" remote add origin https://github.com/lukeeterna/europeanautoscout.git
+          HTTP_PROXY= HTTPS_PROXY= ALL_PROXY= http_proxy= https_proxy= all_proxy= \
+            git -C "$TMP" \
+              -c http.proxy= \
+              -c https.proxy= \
+              -c protocol.version=2 \
+              fetch --no-tags --depth=1 origin "$SHA"
+          git -C "$TMP" checkout --detach --force FETCH_HEAD
+          test "$(git -C "$TMP" rev-parse HEAD)" = "$SHA"
+          mv "$TMP" "$RELEASE"
+          trap - EXIT
+          echo "RELEASE_STAGE=PASS"
+          echo "RELEASE_STAGE_SHA=$SHA"
+          echo "PRODUCTION_PROCESS_MUTATION=NONE"
+          echo "OUTBOUND_ACTION=NONE"
+          REMOTE
+
       - name: Execute rollback-safe zero-outbound cutover
         id: cutover
         shell: bash
