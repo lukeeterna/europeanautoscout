@@ -30,6 +30,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import sqlite3
 import subprocess
@@ -53,18 +54,14 @@ def resolve_executable(name):
     found = shutil.which(name)
     if found:
         return found
-
     candidates = []
     if name == "pm2":
-        # Non-interactive SSH does not source the user's NVM shell setup.
-        # Search only executable paths; never read shell profiles or npm config.
         candidates.extend(sorted(home.glob(".nvm/versions/node/*/bin/pm2"), reverse=True))
         candidates.extend([
             Path("/usr/local/bin/pm2"),
             Path("/opt/homebrew/bin/pm2"),
             home / ".local/bin/pm2",
         ])
-
     for candidate in candidates:
         try:
             if candidate.is_file() and os.access(str(candidate), os.X_OK):
@@ -103,11 +100,63 @@ def db_table_columns(path, table):
         con.close()
 
 
-def git_head_from(app):
-    env = app.get("pm2_env") or {}
+def process_table():
+    result = run(["ps", "-axo", "pid=,ppid=,command="], timeout=10)
+    rows = []
+    if result.returncode != 0:
+        return rows
+    for raw in result.stdout.splitlines():
+        match = re.match(r"^\s*(\d+)\s+(\d+)\s+(.*)$", raw)
+        if match:
+            rows.append((int(match.group(1)), int(match.group(2)), match.group(3)))
+    return rows
+
+
+def process_cwd(pid):
+    lsof = resolve_executable("lsof") or "/usr/sbin/lsof"
+    result = run([lsof, "-a", "-p", str(pid), "-d", "cwd", "-Fn"], timeout=8)
+    if result.returncode not in (0, 1):
+        return "UNKNOWN"
+    for line in result.stdout.splitlines():
+        if line.startswith("n/"):
+            return line[1:]
+    return "UNKNOWN"
+
+
+def selected_process_env(pid, keys):
+    # Read same-user process environment in memory, but emit only explicitly
+    # allowlisted non-secret runtime flags. Raw ps output is never printed.
+    result = run(["ps", "eww", "-p", str(pid), "-o", "command="], timeout=8)
+    text = result.stdout if result.returncode == 0 else ""
+    values = {}
+    for key in keys:
+        match = re.search(r"(?:^|\s)" + re.escape(key) + r"=([^\s]+)", text)
+        if match:
+            values[key] = match.group(1)
+    return values
+
+
+def script_path_from_command(command, cwd):
+    try:
+        tokens = shlex.split(command)
+    except ValueError:
+        tokens = command.split()
+    for token in tokens:
+        if token.endswith("wa-daemon.js"):
+            p = Path(token).expanduser()
+            if not p.is_absolute() and cwd != "UNKNOWN":
+                p = Path(cwd) / p
+            try:
+                return str(p.resolve())
+            except OSError:
+                return str(p)
+    return "UNKNOWN"
+
+
+def git_head_from_paths(*raw_paths):
     candidates = []
-    for raw in (env.get("pm_cwd"), env.get("pm_exec_path")):
-        if not raw:
+    for raw in raw_paths:
+        if not raw or raw == "UNKNOWN":
             continue
         p = Path(str(raw)).expanduser()
         candidates.extend([p, p.parent, p.parent.parent])
@@ -125,63 +174,61 @@ def git_head_from(app):
             return r.stdout.strip(), str(p)
     return "UNKNOWN", "UNKNOWN"
 
+
+# PM2 CLI is optional evidence only. Non-interactive SSH on this machine does
+# not currently expose the CLI, so writer truth is derived from the live macOS
+# process table, parent supervisor, cwd, listener, /health and databases.
 pm2_bin = resolve_executable("pm2")
-if not pm2_bin:
-    print("PM2_BIN=NOT_FOUND")
-    print("PM2_JLIST=FAIL")
-    print("C10_MACHINE=RED")
-    print("BLOCKERS=PM2_BIN_UNAVAILABLE")
-    raise SystemExit(20)
-print(f"PM2_BIN={one_line(pm2_bin)}")
+print(f"PM2_BIN={one_line(pm2_bin or 'NOT_FOUND')}")
+if pm2_bin:
+    pm2_cmd = run([pm2_bin, "jlist"])
+    print("PM2_JLIST=" + ("PASS" if pm2_cmd.returncode == 0 else "FAIL_OPTIONAL"))
+else:
+    print("PM2_JLIST=UNAVAILABLE_OPTIONAL")
 
-pm2_cmd = run([pm2_bin, "jlist"])
-if pm2_cmd.returncode != 0:
-    print("PM2_JLIST=FAIL")
-    print("C10_MACHINE=RED")
-    print("BLOCKERS=PM2_JLIST_UNAVAILABLE")
-    raise SystemExit(20)
+processes = process_table()
+by_pid = {pid: (ppid, command) for pid, ppid, command in processes}
+writer_rows = [row for row in processes if "wa-daemon.js" in row[2] and "node" in row[2].lower()]
+print(f"WRITER_ONLINE_COUNT={len(writer_rows)}")
 
-try:
-    apps = json.loads(pm2_cmd.stdout)
-except json.JSONDecodeError:
-    print("PM2_JLIST=UNPARSEABLE")
-    print("C10_MACHINE=RED")
-    print("BLOCKERS=PM2_JLIST_UNPARSEABLE")
-    raise SystemExit(20)
+writer_pid = writer_rows[0][0] if len(writer_rows) == 1 else None
+writer_ppid = writer_rows[0][1] if len(writer_rows) == 1 else None
+writer_command = writer_rows[0][2] if len(writer_rows) == 1 else ""
+writer_cwd = process_cwd(writer_pid) if writer_pid else "UNKNOWN"
+writer_script = script_path_from_command(writer_command, writer_cwd) if writer_pid else "UNKNOWN"
+parent_command = by_pid.get(writer_ppid, (None, ""))[1] if writer_ppid else ""
+parent_lower = parent_command.lower()
+writer_supervisor = "PM2" if ("pm2" in parent_lower or "god daemon" in parent_lower) else "UNKNOWN"
 
-writers = [a for a in apps if a.get("name") == "argos-wa-daemon" and (a.get("pm2_env") or {}).get("status") == "online"]
-schedulers = [a for a in apps if a.get("name") == "argos-outreach-scheduler"]
-print("PM2_JLIST=PASS")
-print(f"WRITER_ONLINE_COUNT={len(writers)}")
+safe_env = selected_process_env(writer_pid, ("ARGOS_WA_TRANSPORT", "ARGOS_AUTOMATION_ENABLED")) if writer_pid else {}
+transport = str(safe_env.get("ARGOS_WA_TRANSPORT") or "UNKNOWN").lower()
+automation = str(safe_env.get("ARGOS_AUTOMATION_ENABLED") or "UNKNOWN")
 
-writer = writers[0] if len(writers) == 1 else None
-writer_env = (writer or {}).get("pm2_env") or {}
-writer_pid = (writer or {}).get("pid")
-writer_cwd = writer_env.get("pm_cwd") or "UNKNOWN"
-writer_script = writer_env.get("pm_exec_path") or "UNKNOWN"
-transport = str(writer_env.get("ARGOS_WA_TRANSPORT") or "UNKNOWN").lower()
-automation = str(writer_env.get("ARGOS_AUTOMATION_ENABLED") or "UNKNOWN")
-
-print(f"WRITER_PID={one_line(writer_pid)}")
+print(f"WRITER_PID={one_line(writer_pid or 'UNKNOWN')}")
 print(f"WRITER_CWD={one_line(writer_cwd)}")
 print(f"WRITER_SCRIPT={one_line(writer_script)}")
+print(f"WRITER_SUPERVISOR={writer_supervisor}")
 print(f"WRITER_TRANSPORT={one_line(transport)}")
 print(f"WRITER_AUTOMATION_ENABLED={one_line(automation)}")
 
-deployed_sha, deployed_root = git_head_from(writer) if writer else ("UNKNOWN", "UNKNOWN")
+deployed_sha, deployed_root = git_head_from_paths(writer_cwd, writer_script)
 print(f"DEPLOYED_SHA={deployed_sha}")
 print(f"DEPLOYED_GIT_ROOT={deployed_root}")
 
-if schedulers:
-    scheduler = schedulers[0]
-    se = scheduler.get("pm2_env") or {}
-    print(f"SCHEDULER_STATUS={one_line(se.get('status') or 'UNKNOWN')}")
-    print(f"SCHEDULER_CWD={one_line(se.get('pm_cwd') or 'UNKNOWN')}")
-else:
+scheduler_rows = [row for row in processes if "outreach_scheduler.py" in row[2]]
+if len(scheduler_rows) == 1:
+    scheduler_pid = scheduler_rows[0][0]
+    print("SCHEDULER_STATUS=ONLINE")
+    print(f"SCHEDULER_CWD={one_line(process_cwd(scheduler_pid))}")
+elif not scheduler_rows:
     print("SCHEDULER_STATUS=ABSENT")
     print("SCHEDULER_CWD=ABSENT")
+else:
+    print("SCHEDULER_STATUS=MULTIPLE")
+    print("SCHEDULER_CWD=AMBIGUOUS")
 
-listeners = run(["lsof", "-nP", "-iTCP:9191", "-sTCP:LISTEN", "-t"])
+lsof = resolve_executable("lsof") or "/usr/sbin/lsof"
+listeners = run([lsof, "-nP", "-iTCP:9191", "-sTCP:LISTEN", "-t"])
 listener_pids = sorted({line.strip() for line in listeners.stdout.splitlines() if line.strip()})
 print(f"PORT_9191_LISTENER_COUNT={len(listener_pids)}")
 print("PORT_9191_PIDS=" + (",".join(listener_pids) if listener_pids else "NONE"))
@@ -196,6 +243,10 @@ except Exception as exc:
 
 for key in ("runtime", "transport", "connected", "agent_status", "bridge_enabled", "pending_bridge", "global_outbound_24h"):
     print(f"HEALTH_{key.upper()}={one_line(health.get(key, 'UNKNOWN'))}")
+
+# Prefer the live health transport if process env is not exposed by macOS ps.
+if transport == "unknown" and str(health.get("transport") or "").strip():
+    transport = str(health.get("transport")).lower()
 
 agent_status = db_scalar(primary_db, "SELECT value FROM argos_runtime_state WHERE key='agent_status' LIMIT 1")
 outbound_total = db_scalar(primary_db, "SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'")
@@ -245,34 +296,36 @@ def describe_auth_root(label, root):
 describe_auth_root("WA_SENDER_AUTH", session_root)
 describe_auth_root("LEGACY_WWEBJS_AUTH", legacy_auth)
 
-if writer:
-    safe_keywords = ("consent_schema", "initial_agent_status", "transport=", "qr", "connected", "disconnected", "auth_failure", "ready")
-    print("RECENT_DAEMON_SAFE_EVENTS_BEGIN")
-    for log_key in ("pm_out_log_path", "pm_err_log_path"):
-        raw_path = writer_env.get(log_key)
-        if not raw_path:
+# PM2 default log paths are stable even when its CLI is not on PATH. Inspect
+# only allowlisted connection/status lines and redact long identifiers.
+print("RECENT_DAEMON_SAFE_EVENTS_BEGIN")
+safe_keywords = ("consent_schema", "initial_agent_status", "transport=", "qr", "connected", "disconnected", "auth_failure", "ready")
+for path in (
+    home / ".pm2/logs/argos-wa-daemon-out.log",
+    home / ".pm2/logs/argos-wa-daemon-error.log",
+):
+    if not path.is_file():
+        continue
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-800:]
+    except OSError:
+        continue
+    for line in lines:
+        lower = line.lower()
+        if not ("23/08/2026" in line or "2026-08-23" in line):
             continue
-        path = Path(str(raw_path))
-        if not path.is_file():
+        if not any(k in lower for k in safe_keywords):
             continue
-        try:
-            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-800:]
-        except OSError:
-            continue
-        for line in lines:
-            lower = line.lower()
-            if not ("23/08/2026" in line or "2026-08-23" in line):
-                continue
-            if not any(k in lower for k in safe_keywords):
-                continue
-            line = re.sub(r"\b\d{7,}\b", "[NUMBER]", line)
-            line = re.sub(r"\b[A-Za-z0-9_-]{32,}\b", "[REDACTED]", line)
-            print(line[:500])
-    print("RECENT_DAEMON_SAFE_EVENTS_END")
+        line = re.sub(r"\b\d{7,}\b", "[NUMBER]", line)
+        line = re.sub(r"\b[A-Za-z0-9_-]{32,}\b", "[REDACTED]", line)
+        print(line[:500])
+print("RECENT_DAEMON_SAFE_EVENTS_END")
 
 blockers = []
-if len(writers) != 1:
+if len(writer_rows) != 1:
     blockers.append("SINGLE_WRITER")
+if writer_pid and writer_supervisor != "PM2":
+    blockers.append("WRITER_SUPERVISOR_NOT_PM2")
 if len(listener_pids) != 1:
     blockers.append("PORT_9191_SINGLE_LISTENER")
 if str(agent_status or "").upper() != "PAUSED":
