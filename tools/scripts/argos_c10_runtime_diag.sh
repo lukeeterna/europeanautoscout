@@ -56,11 +56,26 @@ def db_facts(label, path):
     con = sqlite3.connect(f'file:{p}?mode=ro', uri=True, timeout=5)
     try:
         quick = con.execute('PRAGMA quick_check').fetchone()[0]
-        state = con.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status' LIMIT 1").fetchone()
-        outbound = con.execute("SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'").fetchone()[0]
+        tables = {str(row[0]) for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
         print(f'{label}_QUICK_CHECK={quick}')
-        print(f'{label}_AGENT_STATUS={(state[0] if state else "ABSENT")}')
-        print(f'{label}_OUTBOUND_TOTAL={outbound}')
+        if 'argos_runtime_state' in tables:
+            state = con.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status' LIMIT 1").fetchone()
+            print(f'{label}_AGENT_STATUS={(state[0] if state else "ABSENT")}')
+        else:
+            print(f'{label}_AGENT_STATUS=NOT_APPLICABLE')
+        if 'messages' in tables:
+            outbound = con.execute("SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'").fetchone()[0]
+            print(f'{label}_OUTBOUND_TOTAL={outbound}')
+        else:
+            print(f'{label}_OUTBOUND_TOTAL=NOT_APPLICABLE')
+        if 'bridge_outbound' in tables:
+            cols = {str(row[1]) for row in con.execute("PRAGMA table_info('bridge_outbound')").fetchall()}
+            if {'approved_ts', 'sent_ts'}.issubset(cols):
+                condition = 'approved_ts IS NOT NULL AND sent_ts IS NULL'
+                if 'template_id' in cols:
+                    condition += ' AND template_id IS NOT NULL'
+                pending = con.execute(f'SELECT COUNT(*) FROM bridge_outbound WHERE {condition}').fetchone()[0]
+                print(f'{label}_PENDING_APPROVED={pending}')
         print(f'{label}_SIZE={p.stat().st_size}')
     finally:
         con.close()
