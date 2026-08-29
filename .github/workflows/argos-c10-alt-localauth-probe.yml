@@ -1,0 +1,95 @@
+name: ARGOS C10 Alternate LocalAuth Probe
+
+# Tests a temporary copy of the legacy LocalAuth profile. The original profile,
+# production databases, PM2 processes and outbound paths are never modified.
+on:
+  push:
+    branches:
+      - sol/argos-wwebjs-c10-production
+    paths:
+      - '.github/workflows/argos-c10-alt-localauth-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: argos-c10-alt-localauth-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Probe legacy LocalAuth snapshot
+    runs-on: [self-hosted, macbook, argos]
+    timeout-minutes: 5
+    steps:
+      - name: Probe copied legacy profile without outbound
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -s)" = Darwin
+          echo 'PRODUCTION_MUTATION=NONE'
+          echo 'ORIGINAL_LOCALAUTH_MUTATION=NONE'
+          echo 'OUTBOUND_ACTION=NONE'
+          ssh \
+            -o BatchMode=yes \
+            -o ConnectTimeout=10 \
+            -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=5 \
+            -o ServerAliveCountMax=2 \
+            gianlucadistasi@iMac-di-gianluca.local 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          LEGACY="$HOME/Documents/app-antigravity-auto/wa-intelligence/.wwebjs_auth"
+          RELEASE="$HOME/Documents/argos-c10-release-8cef4dae517f/wa-intelligence"
+          CHROME="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+          TMP="$(mktemp -d /tmp/argos-alt-auth.XXXXXX)"
+          cleanup() { rm -rf "$TMP"; }
+          trap cleanup EXIT
+
+          test -d "$LEGACY/session-argos-business"
+          test -d "$RELEASE/node_modules/whatsapp-web.js"
+          test -x "$CHROME"
+          if ps -axo command= | grep -F "$LEGACY" | grep -i '[c]hrome' >/dev/null; then
+            echo 'ALT_LOCALAUTH=BLOCKED_PROFILE_IN_USE'
+            exit 20
+          fi
+
+          mkdir -p "$TMP/auth"
+          cp -R "$LEGACY"/. "$TMP/auth"/
+          export ARGOS_ALT_AUTH_TMP="$TMP/auth"
+          export ARGOS_ALT_RELEASE="$RELEASE"
+          export ARGOS_ALT_CHROME="$CHROME"
+
+          node <<'NODE'
+          const path = require('path');
+          const root = process.env.ARGOS_ALT_RELEASE;
+          const dataPath = process.env.ARGOS_ALT_AUTH_TMP;
+          const executablePath = process.env.ARGOS_ALT_CHROME;
+          const { Client, LocalAuth } = require(path.join(root, 'node_modules/whatsapp-web.js'));
+          let client;
+          let done = false;
+          let authenticated = false;
+
+          function emit(status) {
+            if (done) return;
+            done = true;
+            console.log(`ALT_LOCALAUTH_STATUS=${status}`);
+            console.log(`ALT_LOCALAUTH_AUTHENTICATED=${authenticated ? 'YES' : 'NO'}`);
+            Promise.resolve(client?.destroy()).catch(() => {}).finally(() => process.exit(0));
+          }
+
+          client = new Client({
+            authStrategy: new LocalAuth({ clientId: 'argos-business', dataPath }),
+            puppeteer: { headless: true, executablePath },
+          });
+          client.on('qr', () => emit('QR_REQUIRED'));
+          client.on('authenticated', () => { authenticated = true; console.log('ALT_LOCALAUTH_EVENT=AUTHENTICATED'); });
+          client.on('ready', () => emit('READY'));
+          client.on('auth_failure', () => emit('AUTH_FAILURE'));
+          client.on('disconnected', () => emit('DISCONNECTED'));
+          setTimeout(() => emit('TIMEOUT'), 90000);
+          client.initialize().catch(() => emit('INIT_FAILED'));
+          NODE
+
+          echo 'ALT_LOCALAUTH_PROBE=PASS_DIAGNOSTIC'
+          REMOTE
