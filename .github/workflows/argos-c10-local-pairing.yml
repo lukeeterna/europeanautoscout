@@ -1,14 +1,12 @@
 name: ARGOS C10 Local Pairing
 
-# QR material never enters logs or GitHub artifacts. The self-hosted MacBook
-# fetches it over the existing strict SSH lane and renders it only in a local
-# temporary HTML file. C10 remains PAUSED with zero outbound throughout pairing.
+# Pairing is an explicit human gate. It MUST NOT run on push or retry QR
+# acquisition automatically: repeated device-link attempts can leave the phone
+# in a temporary "try again later" state. QR material never enters logs or
+# GitHub artifacts. The self-hosted MacBook fetches exactly one current QR over
+# the existing strict SSH lane and renders it only in a local temporary HTML
+# file. C10 remains PAUSED with zero outbound throughout pairing.
 on:
-  push:
-    branches:
-      - sol/argos-wwebjs-c10-production
-    paths:
-      - '.github/workflows/argos-c10-local-pairing.yml'
   workflow_dispatch:
 
 permissions:
@@ -29,6 +27,8 @@ jobs:
         run: |
           set -euo pipefail
           echo 'PAIRING_CHANNEL=LOCAL_MACBOOK_ONLY'
+          echo 'PAIRING_POLICY=MANUAL_SINGLE_SHOT'
+          echo 'PAIRING_AUTOMATIC_RETRY=DISABLED'
           echo 'GITHUB_QR_EXPOSURE=NONE'
           echo 'OUTBOUND_ACTION=NONE'
           ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
@@ -51,7 +51,7 @@ jobs:
               raise SystemExit(20)
           PY
 
-      - name: Render QR only on MacBook screen
+      - name: Render one QR only on MacBook screen
         shell: bash
         run: |
           set -euo pipefail
@@ -60,20 +60,18 @@ jobs:
           cleanup() { rm -f "$html"; }
           trap cleanup EXIT
 
-          for _ in $(seq 1 12); do
-            if ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
-              -o ServerAliveInterval=5 -o ServerAliveCountMax=2 \
-              gianlucadistasi@iMac-di-gianluca.local \
-              'curl --fail --silent --max-time 3 http://127.0.0.1:9191/qr' \
-              | HTML_PATH="$html" python3 -c 'import json,os,sys,html; d=json.load(sys.stdin); q=d.get("qr_data_url"); assert isinstance(q,str) and q.startswith("data:image/"); p=os.environ["HTML_PATH"]; open(p,"w",encoding="utf-8").write("<!doctype html><meta charset=utf-8><title>ARGOS C10 Pairing</title><style>body{font-family:-apple-system,sans-serif;text-align:center;padding:30px}img{width:min(70vw,560px);height:auto}p{font-size:20px}</style><h1>ARGOS C10 — WhatsApp pairing</h1><p>WhatsApp → Dispositivi collegati → Collega un dispositivo</p><img alt=QR src=\""+html.escape(q,quote=True)+"\">")'; then
-              break
-            fi
-            sleep 5
-          done
+          ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=5 -o ServerAliveCountMax=2 \
+            gianlucadistasi@iMac-di-gianluca.local \
+            'curl --fail --silent --max-time 3 http://127.0.0.1:9191/qr' \
+            | HTML_PATH="$html" python3 -c 'import json,os,sys,html; d=json.load(sys.stdin); q=d.get("qr_data_url"); assert isinstance(q,str) and q.startswith("data:image/"); p=os.environ["HTML_PATH"]; open(p,"w",encoding="utf-8").write("<!doctype html><meta charset=utf-8><title>ARGOS C10 Pairing</title><style>body{font-family:-apple-system,sans-serif;text-align:center;padding:30px}img{width:min(70vw,560px);height:auto}p{font-size:20px}</style><h1>ARGOS C10 — WhatsApp pairing</h1><p>Single-shot: WhatsApp → Dispositivi collegati → Collega un dispositivo</p><img alt=QR src=\""+html.escape(q,quote=True)+"\">")'
           test -s "$html"
           /usr/bin/open "$html"
+          echo 'PAIRING_QR_FETCH_COUNT=1'
           echo 'PAIRING_QR_OPENED_LOCALLY=YES'
 
+          # Passive health observation only. This loop never requests a new QR,
+          # creates a new pairing challenge, resumes ARGOS or sends a message.
           connected=0
           for _ in $(seq 1 72); do
             verdict="$(ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
