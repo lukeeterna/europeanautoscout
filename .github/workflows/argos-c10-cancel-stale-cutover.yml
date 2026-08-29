@@ -3,6 +3,7 @@ name: ARGOS C10 Cancel Stale Cutover
 # One-shot safety workflow. Cancels the already-started automatic cutover that
 # was armed before pairing was changed to manual single-shot. No machine access,
 # production mutation or outbound action occurs here.
+# Trigger arm: cancel run 33266820761 before another LocalAuth retry completes.
 on:
   push:
     branches:
