@@ -39,6 +39,7 @@ jobs:
             -o ServerAliveCountMax=2 \
             gianlucadistasi@iMac-di-gianluca.local 'bash -s' <<'REMOTE'
           set -euo pipefail
+          export PATH="$HOME/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
           LEGACY="$HOME/Documents/app-antigravity-auto/wa-intelligence/.wwebjs_auth"
           RELEASE="$HOME/Documents/argos-c10-release-8cef4dae517f/wa-intelligence"
           CHROME="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
@@ -46,6 +47,7 @@ jobs:
           cleanup() { rm -rf "$TMP"; }
           trap cleanup EXIT
 
+          command -v node >/dev/null
           test -d "$LEGACY/session-argos-business"
           test -d "$RELEASE/node_modules/whatsapp-web.js"
           test -x "$CHROME"
