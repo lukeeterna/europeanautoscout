@@ -1,16 +1,12 @@
 name: ARGOS C10 WhatsApp Web Cutover
 
-# This workflow is intentionally armed only by a change to the canonical C10T1
-# workflow (or an explicit manual dispatch). Creating/editing this file alone
-# cannot mutate production. The cutover job also waits for S292 GREEN on the
-# exact same SHA before invoking the rollback-safe machine script.
+# Production cutover is an explicit manual gate. It MUST NOT run because a C10T1
+# comment, diagnostic or source commit changed. This matters especially while
+# WhatsApp device linking is temporarily rejecting pairing attempts. A manual
+# dispatch still requires S292 GREEN on the exact same SHA before the rollback-
+# safe machine script is allowed to mutate PM2.
 
 on:
-  push:
-    branches:
-      - sol/argos-wwebjs-c10-production
-    paths:
-      - '.github/workflows/argos-c10t1-imac-preflight.yml'
   workflow_dispatch:
 
 permissions:
@@ -187,7 +183,7 @@ jobs:
           machine=/tmp/argos-c10-postcutover-machine.txt
           touch "$cut" "$machine"
           safe_cut="$(grep -E '^(CUTOVER|CUTOVER_BLOCKED|EXPECTED_SHA|PRE_WRITER_COUNT|PRE_DEPLOYED_SHA|PRE_AGENT_STATUS|PRE_OUTBOUND_TOTAL|WWEBJS_VERSION|WWEBJS_LOAD|DB_BACKUP|PREDEPLOY|LOCALAUTH_BROWSER_SHUTDOWN|WWEBJS_CONNECTED|POST_OUTBOUND_TOTAL|POST_OUTBOUND_DELTA|POST_AGENT_STATUS|POST_SINGLE_WRITER|POST_PORT_9191_SINGLE_LISTENER|PM2_SAVE|EXACT_SHA|TRANSPORT|RUNTIME_STATUS|ARGOS_AUTOMATION_ENABLED|OUTBOUND_TOTAL|OUTBOUND_DELTA|ROLLBACK|ROLLBACK_OUTBOUND_TOTAL|ROLLBACK_AGENT_STATUS)=' "$cut" | tail -n 100 || true)"
-          safe_machine="$(grep -E '^(WRITER_ONLINE_COUNT|WRITER_TRANSPORT|WRITER_AUTOMATION_ENABLED|DEPLOYED_SHA|PORT_9191_LISTENER_COUNT|HEALTH_(TRANSPORT|CONNECTED|AGENT_STATUS|BRIDGE_ENABLED|PENDING_BRIDGE|GLOBAL_OUTBOUND_24H)|PRIMARY_DB_QUICK_CHECK|DB_AGENT_STATUS|OUTBOUND_TOTAL|BRIDGE_DB_QUICK_CHECK|BRIDGE_PENDING_APPROVED|C10_MACHINE|BLOCKERS)=' "$machine" | tail -n 80 || true)"
+          safe_machine="$(grep -E '^(WRITER_ONLINE_COUNT|WRITER_TRANSPORT|WRITER_AUTOMATION_ENABLED|DEPLOYED_SHA|PORT_9191_SINGLE_LISTENER|HEALTH_(TRANSPORT|CONNECTED|AGENT_STATUS|BRIDGE_ENABLED|PENDING_BRIDGE|GLOBAL_OUTBOUND_24H)|PRIMARY_DB_QUICK_CHECK|DB_AGENT_STATUS|OUTBOUND_TOTAL|BRIDGE_DB_QUICK_CHECK|BRIDGE_PENDING_APPROVED|C10_MACHINE|BLOCKERS)=' "$machine" | tail -n 80 || true)"
           python3 - "$GITHUB_SHA" "$CUTOVER_OUTCOME" "$MACHINE_OUTCOME" "$safe_cut" "$safe_machine" <<'PY' >/tmp/argos-cutover-comment.json
           import json,sys
           sha, cut, machine, a, b = sys.argv[1:]
