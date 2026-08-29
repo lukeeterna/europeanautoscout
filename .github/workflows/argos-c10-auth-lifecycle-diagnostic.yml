@@ -1,0 +1,113 @@
+name: ARGOS C10 LocalAuth Lifecycle Diagnostic
+
+# Read-only postmortem of the most recent whatsapp-web.js lifecycle events.
+# This workflow never runs on pull_request because the repository is public and
+# the job targets the isolated self-hosted ARGOS MacBook runner.
+on:
+  push:
+    branches:
+      - sol/argos-wwebjs-c10-production
+    paths:
+      - '.github/workflows/argos-c10-auth-lifecycle-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: argos-c10-auth-lifecycle-readonly
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Read-only LocalAuth lifecycle facts
+    runs-on: [self-hosted, macbook, argos]
+    timeout-minutes: 5
+    steps:
+      - name: Read sanitized WhatsApp lifecycle from iMac audit DB
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -s)" = Darwin
+          command -v ssh >/dev/null
+          echo 'DIAG_MUTATION=NONE'
+          echo 'OUTBOUND_ACTION=NONE'
+          ssh \
+            -o BatchMode=yes \
+            -o ConnectTimeout=10 \
+            -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=5 \
+            -o ServerAliveCountMax=2 \
+            gianlucadistasi@iMac-di-gianluca.local python3 <<'PY'
+          import json
+          import re
+          import sqlite3
+          from pathlib import Path
+
+          db_path = Path.home() / 'Documents/app-antigravity-auto/dealer_network.sqlite'
+          if not db_path.is_file():
+              print('AUTH_DIAG=BLOCKED_DB_MISSING')
+              raise SystemExit(20)
+
+          allowed = {
+              'WHATSAPP_QR',
+              'WHATSAPP_AUTHENTICATED',
+              'WHATSAPP_READY',
+              'WHATSAPP_AUTH_FAILURE',
+              'WHATSAPP_DISCONNECTED',
+              'WHATSAPP_INIT_FAILED',
+              'WHATSAPP_TRANSPORT_INITIALIZED',
+              'DAEMON_SHUTDOWN',
+          }
+
+          def redact(value):
+              text = str(value or '').replace('\n', ' ').replace('\r', ' ')
+              text = re.sub(r'https?://\S+', '<url>', text)
+              text = re.sub(r'(?i)(token|secret|key|session|cookie)[=: ]+\S+', r'\1=<redacted>', text)
+              text = re.sub(r'\b\d{6,}\b', '<digits>', text)
+              text = re.sub(r'[A-Za-z0-9_\-+/=]{32,}', '<opaque>', text)
+              return text[:180]
+
+          def detail(event, raw):
+              try:
+                  obj = json.loads(raw or '{}')
+              except Exception:
+                  return 'payload=unparseable'
+              if event == 'WHATSAPP_QR':
+                  return 'available=' + str(bool(obj.get('available'))).lower()
+              if event == 'WHATSAPP_AUTH_FAILURE':
+                  return 'message=' + redact(obj.get('message'))
+              if event == 'WHATSAPP_DISCONNECTED':
+                  return 'reason=' + redact(obj.get('reason'))
+              if event == 'WHATSAPP_INIT_FAILED':
+                  return 'code=' + redact(obj.get('code')) + ';error=' + redact(obj.get('error'))
+              if event == 'WHATSAPP_TRANSPORT_INITIALIZED':
+                  return 'transport=' + redact(obj.get('transport')) + ';connected=' + str(bool(obj.get('connected'))).lower()
+              if event == 'WHATSAPP_READY':
+                  return 'transport=' + redact(obj.get('transport'))
+              if event == 'DAEMON_SHUTDOWN':
+                  return 'signal=' + redact(obj.get('signal'))
+              return 'ok=true'
+
+          con = sqlite3.connect(f'file:{db_path}?mode=ro', uri=True, timeout=5)
+          try:
+              quick = con.execute('PRAGMA quick_check').fetchone()[0]
+              print(f'AUTH_DIAG_DB_QUICK_CHECK={quick}')
+              cols = {row[1] for row in con.execute("PRAGMA table_info('audit_log')")}
+              if not {'event_type', 'payload'}.issubset(cols):
+                  print('AUTH_DIAG=BLOCKED_AUDIT_SCHEMA')
+                  raise SystemExit(21)
+              time_expr = "COALESCE(timestamp_it, created_at, '')" if {'timestamp_it', 'created_at'}.issubset(cols) else ("timestamp_it" if 'timestamp_it' in cols else ("created_at" if 'created_at' in cols else "''"))
+              placeholders = ','.join('?' for _ in allowed)
+              rows = con.execute(
+                  f"SELECT {time_expr}, event_type, payload FROM audit_log WHERE event_type IN ({placeholders}) ORDER BY rowid DESC LIMIT 40",
+                  tuple(sorted(allowed)),
+              ).fetchall()
+          finally:
+              con.close()
+
+          print(f'AUTH_DIAG_EVENT_COUNT={len(rows)}')
+          for idx, (ts, event, payload) in enumerate(rows, 1):
+              print(f'WA_EVENT_{idx:02d}={redact(ts)}|{event}|{detail(event, payload)}')
+          print('AUTH_DIAG=PASS_READ_ONLY')
+          PY
