@@ -9,6 +9,7 @@ name: ARGOS C10T1 iMac Read-Only Preflight
 # built for newer macOS and cannot execute here. Keep this workflow shell-native:
 # no Node-based actions are permitted in the machine lane.
 # C10 cutover arm: preserve live wa-sender/session-argos-business LocalAuth identity.
+# Pairing throttle guard: local pairing is manual single-shot; C10 stays fail-closed.
 
 on:
   push:
