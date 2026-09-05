@@ -10,6 +10,7 @@ record with traceable WhatsApp opt-in evidence.
 
 The controlled recipient must be a fresh COLD record with outbound_count=0, so
 the pilot cannot accidentally reuse a real or previously contacted dealer.
+The normal production business-hours policy remains mandatory even for C11.
 No phone number, API key, consent evidence id or other secret is emitted.
 """
 from __future__ import annotations
@@ -199,6 +200,7 @@ def run_preflight(
         report.add("connected", health.get("connected") is True, bool(health.get("connected")))
         report.add("transport_wwebjs", str(health.get("transport") or "").lower() == "wwebjs", str(health.get("transport")))
         report.add("runtime_paused", str(health.get("agent_status") or "").upper() == "PAUSED", str(health.get("agent_status")))
+        report.add("business_hours", health.get("business_hours") is True, bool(health.get("business_hours")))
         report.add("bridge_enabled", health.get("bridge_enabled") is True, bool(health.get("bridge_enabled")))
         report.add("health_pending_bridge_zero", int(health.get("pending_bridge") or 0) == 0, int(health.get("pending_bridge") or 0))
         report.add("health_outbound_24h_zero", int(health.get("global_outbound_24h") or 0) == 0, int(health.get("global_outbound_24h") or 0))
