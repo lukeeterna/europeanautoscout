@@ -1,8 +1,8 @@
 """Offline regressions that must be GREEN before WhatsApp device pairing.
 
-No test contacts WhatsApp or any dealer.  This module protects the final send
-boundary and the workflow topology so pairing/cutover cannot silently become an
-automatic side effect of ordinary repository pushes.
+No test contacts WhatsApp or any dealer. This module protects the final send
+boundary and the workflow topology so pairing/cutover/pilot cannot silently
+become an automatic side effect of ordinary repository pushes.
 """
 from __future__ import annotations
 
@@ -81,10 +81,6 @@ class FinalOutboundBoundaryTests(unittest.TestCase):
         )
 
     def _message(self) -> str:
-        # Use the existing premium credibility-first copy. DAY1_GENERALIST
-        # intentionally mentions keeping a vehicle "in stock" and is correctly
-        # rejected by the legacy NO-OFFER-DAY1 validator, so it is not a valid
-        # positive fixture for testing the authorization/consent boundary.
         return templates.fill_template(
             "DAY1_PREMIUM",
             {
@@ -140,15 +136,15 @@ class WorkflowSafetyTests(unittest.TestCase):
         return (ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8")
 
     def _on_block(self, name: str) -> str:
-        text = self._workflow(name)
-        return text.split("\npermissions:", 1)[0]
+        return self._workflow(name).split("\npermissions:", 1)[0]
 
-    def test_pairing_and_mutating_machine_workflows_are_manual_only(self) -> None:
+    def test_pairing_mutation_and_live_pilot_workflows_are_manual_only(self) -> None:
         manual_only = (
             "argos-c10-local-pairing.yml",
             "argos-c10-wwebjs-cutover.yml",
             "argos-c10-alt-localauth-probe.yml",
             "argos-c10-auth-lifecycle-diagnostic.yml",
+            "argos-c11-controlled-pilot.yml",
         )
         for name in manual_only:
             with self.subTest(name=name):
@@ -182,6 +178,22 @@ class WorkflowSafetyTests(unittest.TestCase):
         self.assertNotIn("curl /resume", script)
         self.assertIn("TARGET_RUNTIME_STATUS=PAUSED", script)
         self.assertIn("TARGET_AUTOMATION_ENABLED=0", script)
+
+    def test_c11_live_pilot_is_one_shot_fail_closed(self) -> None:
+        workflow = self._workflow("argos-c11-controlled-pilot.yml")
+        self.assertIn("Require real C10 machine GREEN immediately before pilot", workflow)
+        self.assertIn("C10_MACHINE=GREEN", workflow)
+        self.assertIn("C11_PREFLIGHT=GREEN", workflow)
+        self.assertIn("ARGOS_C11_TEST_DEALER_ID", workflow)
+        self.assertIn("C11_SINGLE_SEND_ACK=PASS", workflow)
+        self.assertIn("C11_OUTBOUND_DELTA=1", workflow)
+        self.assertIn("C11_TEST_RECIPIENT_DEAUTHORIZED=YES", workflow)
+        self.assertIn("C11_RUNTIME_STATUS=PAUSED", workflow)
+        self.assertIn("trap cleanup EXIT INT TERM", workflow)
+        self.assertEqual(workflow.count("http://127.0.0.1:9191/send)"), 1)
+        self.assertNotIn("/send-doc", workflow)
+        self.assertNotIn("/send-multi", workflow)
+        self.assertNotIn("/send-voice", workflow)
 
     def test_health_surface_exposes_required_observability_without_secrets(self) -> None:
         daemon = (WA_DIR / "wa-daemon.js").read_text(encoding="utf-8")
@@ -220,6 +232,7 @@ class WorkflowSafetyTests(unittest.TestCase):
             "GMAIL_FERRETTI_APP_PASSWORD",
             "ARGOS_ADMIN_SECRET",
             "ARGOS_TELEGRAM_CHAT_ID",
+            "ARGOS_C11_TEST_DEALER_ID",
         ):
             self.assertIn(key, values)
             self.assertEqual(values[key], "", f"{key} must be a blank local-only placeholder")
