@@ -1,0 +1,80 @@
+name: ARGOS Post-Pilot Production Contract
+
+on:
+  push:
+    branches:
+      - sol/argos-wwebjs-c10-production
+    paths:
+      - '.github/workflows/argos-postpilot-contract.yml'
+      - '.github/workflows/argos-c11-controlled-pilot.yml'
+      - 'tools/scripts/argos_postpilot_readiness.py'
+      - 'tests/test_argos_postpilot_readiness.py'
+  pull_request:
+    paths:
+      - '.github/workflows/argos-postpilot-contract.yml'
+      - '.github/workflows/argos-c11-controlled-pilot.yml'
+      - 'tools/scripts/argos_postpilot_readiness.py'
+      - 'tests/test_argos_postpilot_readiness.py'
+
+permissions:
+  contents: read
+
+jobs:
+  postpilot-contract:
+    name: Offline persistence restore and provenance contract
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile post-pilot gate
+        run: |
+          python -m py_compile \
+            tools/scripts/argos_postpilot_readiness.py \
+            tests/test_argos_postpilot_readiness.py
+
+      - name: Run post-pilot regressions
+        env:
+          PYTHONPATH: .
+        run: python -m unittest -v tests.test_argos_postpilot_readiness
+
+      - name: Assert live pilot and post-pilot boundaries remain fail-closed
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          pilot = Path('.github/workflows/argos-c11-controlled-pilot.yml').read_text(encoding='utf-8')
+          gate = Path('tools/scripts/argos_postpilot_readiness.py').read_text(encoding='utf-8')
+          pilot_on = pilot.split('\npermissions:', 1)[0]
+
+          assert 'workflow_dispatch:' in pilot_on
+          assert '\n  push:' not in pilot_on
+          assert 'pull_request:' not in pilot_on
+          assert 'C11_PRE_C10_MACHINE=GREEN' in pilot
+          assert 'C11_OUTBOUND_DELTA=1' in pilot
+          assert 'C11_TEST_RECIPIENT_DEAUTHORIZED=YES' in pilot
+          assert 'C11_RUNTIME_STATUS=PAUSED' in pilot
+          assert 'C11_CONNECTED=YES' in pilot
+
+          # The readiness gate may inspect localhost health and temporary
+          # SQLite backups only. It must never activate or send.
+          assert '/resume' not in gate
+          assert '/send' not in gate
+          assert 'src.backup(dst)' in gate
+          assert 'TemporaryDirectory' in gate
+          assert 'expected_outbound_total=78' in gate
+          assert 'authorized_recipients_zero' in gate
+          assert 'reboot_proven' in gate
+          print('POSTPILOT_OFFLINE_CONTRACT=GREEN')
+          print('EXPECTED_C11_OUTBOUND_DELTA=1')
+          print('EXPECTED_POSTPILOT_OUTBOUND_TOTAL=78')
+          print('PRODUCTION_DB_MUTATION=NONE')
+          print('RESTORE_TARGET=TEMPORARY_ONLY')
+          print('REBOOT_PROOF=REQUIRED_FOR_MACHINE_GATE')
+          PY
