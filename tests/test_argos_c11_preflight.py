@@ -55,6 +55,7 @@ class C11PreflightTests(unittest.TestCase):
             );
             CREATE TABLE messages (
                 id TEXT PRIMARY KEY,
+                dealer_id TEXT,
                 direction TEXT NOT NULL
             );
             INSERT INTO conversations (
@@ -72,8 +73,8 @@ class C11PreflightTests(unittest.TestCase):
             """
         )
         con.executemany(
-            "INSERT INTO messages(id, direction) VALUES (?, 'OUTBOUND')",
-            [(f"out-{i:03d}",) for i in range(77)],
+            "INSERT INTO messages(id, dealer_id, direction) VALUES (?, ?, 'OUTBOUND')",
+            [(f"out-{i:03d}", f"legacy-{i:03d}") for i in range(77)],
         )
         con.commit()
         con.close()
@@ -185,6 +186,22 @@ class C11PreflightTests(unittest.TestCase):
         self.assertFalse(report.ok)
         self.assertFalse(next(x for x in report.checks if x["name"] == "controlled_test_state_cold")["ok"])
         self.assertFalse(next(x for x in report.checks if x["name"] == "controlled_test_outbound_count_zero")["ok"])
+
+    def test_historical_outbound_for_controlled_recipient_is_red(self) -> None:
+        con = sqlite3.connect(self.primary)
+        con.execute("DELETE FROM messages WHERE id='out-000'")
+        con.execute(
+            "INSERT INTO messages(id, dealer_id, direction) VALUES ('controlled-out', 'controlled-test', 'OUTBOUND')"
+        )
+        con.commit()
+        con.close()
+        report = self.run_gate()
+        self.assertFalse(report.ok)
+        baseline = next(x for x in report.checks if x["name"] == "outbound_baseline_expected")
+        history = next(x for x in report.checks if x["name"] == "controlled_test_historical_outbound_zero")
+        self.assertTrue(baseline["ok"])
+        self.assertFalse(history["ok"])
+        self.assertEqual(history["detail"], 1)
 
     def test_pending_approved_bridge_row_is_red(self) -> None:
         con = sqlite3.connect(self.bridge)
