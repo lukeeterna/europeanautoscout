@@ -11,6 +11,7 @@ name: ARGOS C10T1 iMac Read-Only Preflight
 # C10 cutover arm: preserve live wa-sender/session-argos-business LocalAuth identity.
 # Pairing throttle guard: local pairing is manual single-shot; C10 stays fail-closed.
 # Exact-SHA arm after disabling automatic pairing and automatic production cutover.
+# Production gate arm: post-pilot readiness tooling must parse on the same MacBook lane.
 
 on:
   push:
@@ -21,6 +22,7 @@ on:
       - '.github/workflows/argos-c10-wwebjs-cutover.yml'
       - 'tools/scripts/argos_c10_machine_probe.sh'
       - 'tools/scripts/argos_c10_runtime_diag.sh'
+      - 'tools/scripts/argos_postpilot_readiness.py'
       - 'tools/scripts/bootstrap_argos_runner_macbook.sh'
       - 'wa-intelligence/tools/argos_c10_wwebjs_cutover.sh'
   workflow_dispatch:
@@ -74,6 +76,7 @@ jobs:
           command -v python3 >/dev/null
           test -f tools/scripts/argos_c10_machine_probe.sh
           test -f tools/scripts/argos_c10_runtime_diag.sh
+          test -f tools/scripts/argos_postpilot_readiness.py
           test -f tools/scripts/bootstrap_argos_runner_macbook.sh
           test -f wa-intelligence/tools/argos_c10_wwebjs_cutover.sh
           test -f .github/workflows/argos-c10-wwebjs-cutover.yml
@@ -81,9 +84,11 @@ jobs:
           bash -n tools/scripts/argos_c10_runtime_diag.sh
           bash -n tools/scripts/bootstrap_argos_runner_macbook.sh
           bash -n wa-intelligence/tools/argos_c10_wwebjs_cutover.sh
+          python3 -m py_compile tools/scripts/argos_postpilot_readiness.py
           echo "RUNNER_LANE=SELF_HOSTED_MACBOOK_ARGOS"
           echo "EXPECTED_SHA=$GITHUB_SHA"
           echo "CUTOVER_TOOLING_PRESENT=YES"
+          echo "POSTPILOT_TOOLING_PARSE=PASS"
           echo "PRODUCTION_MUTATION=NONE"
           echo "OUTBOUND_ACTION=NONE"
 
