@@ -153,11 +153,18 @@ class WorkflowSafetyTests(unittest.TestCase):
                 self.assertNotIn("\n  push:", block)
                 self.assertNotIn("pull_request:", block)
 
-    def test_pairing_is_single_qr_fetch_not_a_qr_retry_loop(self) -> None:
+    def test_pairing_is_single_staged_qr_not_a_retry_loop(self) -> None:
         pairing = self._workflow("argos-c10-local-pairing.yml")
-        self.assertEqual(pairing.count("http://127.0.0.1:9191/qr"), 1)
+        helper = (WA_DIR / "tools" / "argos_c10_pairing_helper.js").read_text(encoding="utf-8")
+        self.assertNotIn("http://127.0.0.1:9191/qr", pairing)
+        self.assertEqual(helper.count("client.initialize()"), 1)
+        self.assertIn("firstQrCaptured", helper)
+        self.assertIn("if (firstQrCaptured || finished) return;", helper)
         self.assertIn("PAIRING_QR_FETCH_COUNT=1", pairing)
         self.assertIn("PAIRING_AUTOMATIC_RETRY=DISABLED", pairing)
+        self.assertIn("PAIRING_READY_PROFILE=STAGED", pairing)
+        self.assertIn("CANONICAL_LOCALAUTH_MUTATION=NONE", pairing)
+        self.assertIn("PRODUCTION_PROCESS_MUTATION=NONE", pairing)
         self.assertIn("OUTBOUND_ACTION=NONE", pairing)
 
     def test_cutover_has_backup_rollback_exact_sha_and_zero_outbound_contract(self) -> None:
@@ -165,6 +172,10 @@ class WorkflowSafetyTests(unittest.TestCase):
         script = (WA_DIR / "tools" / "argos_c10_wwebjs_cutover.sh").read_text(encoding="utf-8")
         self.assertIn("Require S292 GREEN on this exact SHA", workflow)
         self.assertIn("S292_EXACT_SHA=GREEN", workflow)
+        self.assertIn("Promote staged READY LocalAuth with rollback boundary", workflow)
+        self.assertIn("PAIRING_PROFILE_PROMOTION=PASS", workflow)
+        self.assertIn("PAIRING_PROFILE_ROLLBACK=ATTEMPTED", workflow)
+        self.assertIn("PAIRING_SOURCE=STAGED_READY", workflow)
         for marker in (
             "DB_BACKUP=PASS",
             "PREDEPLOY=GREEN",
