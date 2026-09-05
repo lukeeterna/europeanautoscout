@@ -9,6 +9,8 @@ on:
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
       - '.github/workflows/argos-prepairing-contract.yml'
       - 'tests/test_argos_pre_pairing_readiness.py'
+      - 'tests/test_argos_c11_preflight.py'
+      - 'tools/scripts/argos_c11_preflight.py'
       - 'wa-intelligence/outbound_guard.py'
       - 'wa-intelligence/whatsapp_consent.py'
       - 'wa-intelligence/state_machine.py'
@@ -21,6 +23,8 @@ on:
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
       - '.github/workflows/argos-prepairing-contract.yml'
       - 'tests/test_argos_pre_pairing_readiness.py'
+      - 'tests/test_argos_c11_preflight.py'
+      - 'tools/scripts/argos_c11_preflight.py'
       - 'wa-intelligence/outbound_guard.py'
       - 'wa-intelligence/whatsapp_consent.py'
       - 'wa-intelligence/state_machine.py'
@@ -45,18 +49,23 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Compile final outbound boundary
+      - name: Compile final outbound and C11 boundaries
         run: |
           python -m py_compile \
             wa-intelligence/outbound_guard.py \
             wa-intelligence/whatsapp_consent.py \
             wa-intelligence/state_machine.py \
-            tests/test_argos_pre_pairing_readiness.py
+            tools/scripts/argos_c11_preflight.py \
+            tests/test_argos_pre_pairing_readiness.py \
+            tests/test_argos_c11_preflight.py
 
       - name: Run pre-pairing production regressions
         env:
           PYTHONPATH: .
-        run: python -m unittest -v tests.test_argos_pre_pairing_readiness
+        run: |
+          python -m unittest -v \
+            tests.test_argos_pre_pairing_readiness \
+            tests.test_argos_c11_preflight
 
       - name: Assert pairing remains the only deferred external gate
         run: |
@@ -67,9 +76,16 @@ jobs:
           pairing = (root / '.github/workflows/argos-c10-local-pairing.yml').read_text(encoding='utf-8')
           cutover = (root / '.github/workflows/argos-c10-wwebjs-cutover.yml').read_text(encoding='utf-8')
           alt = (root / '.github/workflows/argos-c10-alt-localauth-probe.yml').read_text(encoding='utf-8')
+          auth_diag = (root / '.github/workflows/argos-c10-auth-lifecycle-diagnostic.yml').read_text(encoding='utf-8')
           guard = (root / 'wa-intelligence/outbound_guard.py').read_text(encoding='utf-8')
+          c11 = (root / 'tools/scripts/argos_c11_preflight.py').read_text(encoding='utf-8')
 
-          for name, text in {'pairing': pairing, 'cutover': cutover, 'alternate LocalAuth probe': alt}.items():
+          for name, text in {
+              'pairing': pairing,
+              'cutover': cutover,
+              'alternate LocalAuth probe': alt,
+              'LocalAuth lifecycle diagnostic': auth_diag,
+          }.items():
               on_block = text.split('\npermissions:', 1)[0]
               assert 'workflow_dispatch:' in on_block, f'{name} lost manual dispatch'
               assert '\n  push:' not in on_block, f'{name} became push-triggered'
@@ -77,8 +93,12 @@ jobs:
 
           assert 'OUTREACH_NOT_AUTHORIZED' in guard
           assert 'WHATSAPP_OPT_IN_REQUIRED' in guard
+          assert '/resume' in c11 and '/send' in c11  # documented forbidden side effects
+          assert 'urllib.request.urlopen' in c11      # GET /health only
+          assert 'expected_outbound_baseline' in c11
           print('PREPAIRING_EXTERNAL_GATE=WHATSAPP_DEVICE_LINK_PAIRING')
           print('AUTOMATIC_PAIRING=DISABLED')
           print('AUTOMATIC_CUTOVER=DISABLED')
           print('FINAL_SEND_AUTHORIZATION_CONSENT=ENFORCED')
+          print('C11_PREFLIGHT=OFFLINE_CERTIFIED_CONTRACT')
           PY
