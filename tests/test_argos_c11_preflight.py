@@ -96,6 +96,7 @@ class C11PreflightTests(unittest.TestCase):
             "connected": True,
             "transport": "wwebjs",
             "agent_status": "PAUSED",
+            "business_hours": True,
             "bridge_enabled": True,
             "pending_bridge": 0,
             "global_outbound_24h": 0,
@@ -134,6 +135,13 @@ class C11PreflightTests(unittest.TestCase):
         report = self.run_gate(health_payload=health)
         self.assertFalse(report.ok)
         self.assertFalse(next(x for x in report.checks if x["name"] == "connected")["ok"])
+
+    def test_outside_business_hours_is_red(self) -> None:
+        health = dict(self.health)
+        health["business_hours"] = False
+        report = self.run_gate(health_payload=health)
+        self.assertFalse(report.ok)
+        self.assertFalse(next(x for x in report.checks if x["name"] == "business_hours")["ok"])
 
     def test_second_authorized_recipient_is_red(self) -> None:
         con = sqlite3.connect(self.primary)
