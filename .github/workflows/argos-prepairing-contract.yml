@@ -1,0 +1,84 @@
+name: ARGOS Pre-Pairing Production Contract
+
+on:
+  push:
+    branches:
+      - sol/argos-wwebjs-c10-production
+    paths:
+      - '.github/workflows/argos-c10-*.yml'
+      - '.github/workflows/argos-c10t1-imac-preflight.yml'
+      - '.github/workflows/argos-prepairing-contract.yml'
+      - 'tests/test_argos_pre_pairing_readiness.py'
+      - 'wa-intelligence/outbound_guard.py'
+      - 'wa-intelligence/whatsapp_consent.py'
+      - 'wa-intelligence/state_machine.py'
+      - 'wa-intelligence/wa-daemon.js'
+      - 'wa-intelligence/.env.example'
+      - 'wa-intelligence/tools/argos_c10_wwebjs_cutover.sh'
+  pull_request:
+    paths:
+      - '.github/workflows/argos-c10-*.yml'
+      - '.github/workflows/argos-c10t1-imac-preflight.yml'
+      - '.github/workflows/argos-prepairing-contract.yml'
+      - 'tests/test_argos_pre_pairing_readiness.py'
+      - 'wa-intelligence/outbound_guard.py'
+      - 'wa-intelligence/whatsapp_consent.py'
+      - 'wa-intelligence/state_machine.py'
+      - 'wa-intelligence/wa-daemon.js'
+      - 'wa-intelligence/.env.example'
+      - 'wa-intelligence/tools/argos_c10_wwebjs_cutover.sh'
+
+permissions:
+  contents: read
+
+jobs:
+  prepairing:
+    name: Offline pre-pairing safety and recovery contracts
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile final outbound boundary
+        run: |
+          python -m py_compile \
+            wa-intelligence/outbound_guard.py \
+            wa-intelligence/whatsapp_consent.py \
+            wa-intelligence/state_machine.py \
+            tests/test_argos_pre_pairing_readiness.py
+
+      - name: Run pre-pairing production regressions
+        env:
+          PYTHONPATH: .
+        run: python -m unittest -v tests.test_argos_pre_pairing_readiness
+
+      - name: Assert pairing remains the only deferred external gate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+          pairing = (root / '.github/workflows/argos-c10-local-pairing.yml').read_text(encoding='utf-8')
+          cutover = (root / '.github/workflows/argos-c10-wwebjs-cutover.yml').read_text(encoding='utf-8')
+          alt = (root / '.github/workflows/argos-c10-alt-localauth-probe.yml').read_text(encoding='utf-8')
+          guard = (root / 'wa-intelligence/outbound_guard.py').read_text(encoding='utf-8')
+
+          for name, text in {'pairing': pairing, 'cutover': cutover, 'alternate LocalAuth probe': alt}.items():
+              on_block = text.split('\npermissions:', 1)[0]
+              assert 'workflow_dispatch:' in on_block, f'{name} lost manual dispatch'
+              assert '\n  push:' not in on_block, f'{name} became push-triggered'
+              assert 'pull_request:' not in on_block, f'{name} became PR-triggered'
+
+          assert 'OUTREACH_NOT_AUTHORIZED' in guard
+          assert 'WHATSAPP_OPT_IN_REQUIRED' in guard
+          print('PREPAIRING_EXTERNAL_GATE=WHATSAPP_DEVICE_LINK_PAIRING')
+          print('AUTOMATIC_PAIRING=DISABLED')
+          print('AUTOMATIC_CUTOVER=DISABLED')
+          print('FINAL_SEND_AUTHORIZATION_CONSENT=ENFORCED')
+          PY
