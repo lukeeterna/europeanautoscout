@@ -1,14 +1,9 @@
 name: ARGOS C10 LocalAuth Lifecycle Diagnostic
 
 # Read-only postmortem of the most recent whatsapp-web.js lifecycle events.
-# This workflow never runs on pull_request because the repository is public and
-# the job targets the isolated self-hosted ARGOS MacBook runner.
+# The repository is public and this targets the isolated self-hosted ARGOS
+# MacBook runner, so machine diagnostics are explicit manual gates only.
 on:
-  push:
-    branches:
-      - sol/argos-wwebjs-c10-production
-    paths:
-      - '.github/workflows/argos-c10-auth-lifecycle-diagnostic.yml'
   workflow_dispatch:
 
 permissions:
