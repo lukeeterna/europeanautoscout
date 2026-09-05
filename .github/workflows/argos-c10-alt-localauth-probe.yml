@@ -2,12 +2,9 @@ name: ARGOS C10 Alternate LocalAuth Probe
 
 # Tests a temporary copy of the legacy LocalAuth profile. The original profile,
 # production databases, PM2 processes and outbound paths are never modified.
+# This diagnostic initializes a WhatsApp Web client, so it is an explicit human
+# gate and MUST NOT run automatically from a push.
 on:
-  push:
-    branches:
-      - sol/argos-wwebjs-c10-production
-    paths:
-      - '.github/workflows/argos-c10-alt-localauth-probe.yml'
   workflow_dispatch:
 
 permissions:
