@@ -8,10 +8,11 @@ that the exact deployed release is connected while still PAUSED and that the
 only internally authorized recipient is the explicitly named controlled test
 record with traceable WhatsApp opt-in evidence.
 
-The controlled recipient must be a fresh COLD record with outbound_count=0, so
-the pilot cannot accidentally reuse a real or previously contacted dealer.
-The normal production business-hours policy remains mandatory even for C11.
-No phone number, API key, consent evidence id or other secret is emitted.
+The controlled recipient must be a fresh COLD record with outbound_count=0 and
+zero historical OUTBOUND rows, so the pilot cannot accidentally reuse a real or
+previously contacted dealer. The normal production business-hours policy remains
+mandatory even for C11. No phone number, API key, consent evidence id or other
+secret is emitted.
 """
 from __future__ import annotations
 
@@ -222,6 +223,7 @@ def run_preflight(
                 "whatsapp_opt_out_at",
             }
             report.add("consent_schema", required.issubset(cols), "present" if required.issubset(cols) else "incomplete")
+            selected: dict[str, Any] = {}
             if required.issubset(cols):
                 rows = con.execute(
                     """SELECT dealer_id, phone_number, outreach_authorized,
@@ -259,8 +261,18 @@ def run_preflight(
                     report.outbound_baseline == int(expected_outbound_baseline),
                     {"expected": int(expected_outbound_baseline), "actual": report.outbound_baseline},
                 )
+                if "dealer_id" in msg_cols:
+                    row = con.execute(
+                        "SELECT COUNT(*) FROM messages WHERE dealer_id=? AND UPPER(direction)='OUTBOUND'",
+                        [dealer_id],
+                    ).fetchone()
+                    prior = int(row[0] if row else 0)
+                    report.add("controlled_test_historical_outbound_zero", prior == 0, prior)
+                else:
+                    report.add("controlled_test_historical_outbound_zero", False, "messages.dealer_id missing")
             else:
                 report.add("outbound_baseline_readable", False, "messages.direction missing")
+                report.add("controlled_test_historical_outbound_zero", False, "messages.direction missing")
         finally:
             con.close()
     except sqlite3.Error as exc:
