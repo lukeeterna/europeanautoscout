@@ -8,6 +8,8 @@ that the exact deployed release is connected while still PAUSED and that the
 only internally authorized recipient is the explicitly named controlled test
 record with traceable WhatsApp opt-in evidence.
 
+The controlled recipient must be a fresh COLD record with outbound_count=0, so
+the pilot cannot accidentally reuse a real or previously contacted dealer.
 No phone number, API key, consent evidence id or other secret is emitted.
 """
 from __future__ import annotations
@@ -209,6 +211,8 @@ def run_preflight(
                 "dealer_id",
                 "phone_number",
                 "outreach_authorized",
+                "conversation_state",
+                "outbound_count",
                 "whatsapp_opt_in",
                 "whatsapp_opt_in_at",
                 "whatsapp_opt_in_source",
@@ -219,6 +223,7 @@ def run_preflight(
             if required.issubset(cols):
                 rows = con.execute(
                     """SELECT dealer_id, phone_number, outreach_authorized,
+                              conversation_state, outbound_count,
                               whatsapp_opt_in, whatsapp_opt_in_at,
                               whatsapp_opt_in_source, whatsapp_opt_in_evidence_id,
                               whatsapp_opt_out_at
@@ -237,6 +242,10 @@ def run_preflight(
                 report.add("controlled_test_phone_present", phone_present, "present" if phone_present else "missing")
                 valid_consent = bool(selected) and _consent_valid(selected)
                 report.add("controlled_test_whatsapp_opt_in", valid_consent, "valid" if valid_consent else "invalid")
+                state = str(selected.get("conversation_state") or "COLD").upper() if selected else ""
+                report.add("controlled_test_state_cold", state == "COLD", state or "missing")
+                outbound_count = int(selected.get("outbound_count") or 0) if selected else -1
+                report.add("controlled_test_outbound_count_zero", outbound_count == 0, outbound_count)
 
             msg_cols = _columns(con, "messages")
             if "direction" in msg_cols:
