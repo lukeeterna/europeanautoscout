@@ -45,6 +45,8 @@ class C11PreflightTests(unittest.TestCase):
                 dealer_id TEXT PRIMARY KEY,
                 phone_number TEXT,
                 outreach_authorized INTEGER DEFAULT 0,
+                conversation_state TEXT DEFAULT 'COLD',
+                outbound_count INTEGER DEFAULT 0,
                 whatsapp_opt_in INTEGER DEFAULT 0,
                 whatsapp_opt_in_at TEXT,
                 whatsapp_opt_in_source TEXT,
@@ -57,11 +59,13 @@ class C11PreflightTests(unittest.TestCase):
             );
             INSERT INTO conversations (
                 dealer_id, phone_number, outreach_authorized,
+                conversation_state, outbound_count,
                 whatsapp_opt_in, whatsapp_opt_in_at,
                 whatsapp_opt_in_source, whatsapp_opt_in_evidence_id,
                 whatsapp_opt_out_at
             ) VALUES (
                 'controlled-test', '+390000000001', 1,
+                'COLD', 0,
                 1, '2026-09-05T10:00:00+00:00',
                 'controlled_test_fixture', 'evidence-secret-001', NULL
             );
@@ -122,6 +126,7 @@ class C11PreflightTests(unittest.TestCase):
         self.assertNotIn("+390000000001", rendered)
         self.assertNotIn("evidence-secret-001", rendered)
         self.assertNotIn("local-test-key", rendered)
+        self.assertNotIn("controlled-test", rendered)
 
     def test_disconnected_is_red(self) -> None:
         health = dict(self.health)
@@ -135,9 +140,11 @@ class C11PreflightTests(unittest.TestCase):
         con.execute(
             """INSERT INTO conversations (
                    dealer_id, phone_number, outreach_authorized,
+                   conversation_state, outbound_count,
                    whatsapp_opt_in, whatsapp_opt_in_at,
                    whatsapp_opt_in_source, whatsapp_opt_in_evidence_id
-               ) VALUES ('other', '+390000000002', 1, 1, '2026-09-05T10:00:00+00:00', 'fixture', 'other-proof')"""
+               ) VALUES ('other', '+390000000002', 1, 'COLD', 0, 1,
+                         '2026-09-05T10:00:00+00:00', 'fixture', 'other-proof')"""
         )
         con.commit()
         con.close()
@@ -158,6 +165,18 @@ class C11PreflightTests(unittest.TestCase):
         self.assertFalse(report.ok)
         check = next(x for x in report.checks if x["name"] == "controlled_test_whatsapp_opt_in")
         self.assertFalse(check["ok"])
+
+    def test_nonfresh_controlled_recipient_is_red(self) -> None:
+        con = sqlite3.connect(self.primary)
+        con.execute(
+            "UPDATE conversations SET conversation_state='CONTACTED', outbound_count=1 WHERE dealer_id='controlled-test'"
+        )
+        con.commit()
+        con.close()
+        report = self.run_gate()
+        self.assertFalse(report.ok)
+        self.assertFalse(next(x for x in report.checks if x["name"] == "controlled_test_state_cold")["ok"])
+        self.assertFalse(next(x for x in report.checks if x["name"] == "controlled_test_outbound_count_zero")["ok"])
 
     def test_pending_approved_bridge_row_is_red(self) -> None:
         con = sqlite3.connect(self.bridge)
