@@ -6,12 +6,14 @@ on:
       - sol/argos-wwebjs-c10-production
     paths:
       - '.github/workflows/argos-postpilot-contract.yml'
+      - '.github/workflows/argos-postpilot-machine-gate.yml'
       - '.github/workflows/argos-c11-controlled-pilot.yml'
       - 'tools/scripts/argos_postpilot_readiness.py'
       - 'tests/test_argos_postpilot_readiness.py'
   pull_request:
     paths:
       - '.github/workflows/argos-postpilot-contract.yml'
+      - '.github/workflows/argos-postpilot-machine-gate.yml'
       - '.github/workflows/argos-c11-controlled-pilot.yml'
       - 'tools/scripts/argos_postpilot_readiness.py'
       - 'tests/test_argos_postpilot_readiness.py'
@@ -50,12 +52,16 @@ jobs:
           from pathlib import Path
 
           pilot = Path('.github/workflows/argos-c11-controlled-pilot.yml').read_text(encoding='utf-8')
+          machine = Path('.github/workflows/argos-postpilot-machine-gate.yml').read_text(encoding='utf-8')
           gate = Path('tools/scripts/argos_postpilot_readiness.py').read_text(encoding='utf-8')
           pilot_on = pilot.split('\npermissions:', 1)[0]
+          machine_on = machine.split('\npermissions:', 1)[0]
 
-          assert 'workflow_dispatch:' in pilot_on
-          assert '\n  push:' not in pilot_on
-          assert 'pull_request:' not in pilot_on
+          for name, block in {'C11 pilot': pilot_on, 'post-pilot reboot': machine_on}.items():
+              assert 'workflow_dispatch:' in block, f'{name} lost manual dispatch'
+              assert '\n  push:' not in block, f'{name} became push-triggered'
+              assert 'pull_request:' not in block, f'{name} became PR-triggered'
+
           assert 'C11_PRE_C10_MACHINE=GREEN' in pilot
           assert 'C11_OUTBOUND_DELTA=1' in pilot
           assert 'C11_TEST_RECIPIENT_DEAUTHORIZED=YES' in pilot
@@ -71,10 +77,30 @@ jobs:
           assert 'expected_outbound_total=78' in gate
           assert 'authorized_recipients_zero' in gate
           assert 'reboot_proven' in gate
+
+          # A reboot is an explicit post-C11 operation, never automatic. The
+          # machine gate must prove a down/up transition, exact outbound total,
+          # one writer and post-reboot persistence before GREEN.
+          assert "REBOOT_IMAC_AFTER_C11" in machine
+          assert "sudo -n -v" in machine
+          assert "/sbin/shutdown -r now" in machine
+          assert "IMAC_REBOOT_DOWN_TRANSITION=PASS" in machine
+          assert "IMAC_REBOOT_UP_TRANSITION=PASS" in machine
+          assert "PRE_WRITER_COUNT=1" in machine
+          assert "POST_WRITER_COUNT=1" in machine
+          assert "--pre-reboot-boot-epoch" in machine
+          assert "POST_OUTBOUND_TOTAL=78" in machine
+          assert "REBOOT_PERSISTENCE=PASS" in machine
+          assert "RESTORE_DRILL=PASS" in machine
+          assert "RECOVERY=PASS" in machine
+          assert "PROVENANCE_EXACT_SHA=PASS" in machine
+          assert "POSTPILOT_MACHINE=GREEN" in machine
+
           print('POSTPILOT_OFFLINE_CONTRACT=GREEN')
           print('EXPECTED_C11_OUTBOUND_DELTA=1')
           print('EXPECTED_POSTPILOT_OUTBOUND_TOTAL=78')
           print('PRODUCTION_DB_MUTATION=NONE')
           print('RESTORE_TARGET=TEMPORARY_ONLY')
           print('REBOOT_PROOF=REQUIRED_FOR_MACHINE_GATE')
+          print('POSTPILOT_MACHINE_DISPATCH=MANUAL_ONLY')
           PY
