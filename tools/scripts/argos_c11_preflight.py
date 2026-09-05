@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """ARGOS C11 controlled-pilot preflight — read-only and zero-outbound.
 
-This gate is intentionally safe to prepare before WhatsApp device pairing.  It
+This gate is intentionally safe to prepare before WhatsApp device pairing. It
 never calls /resume, /send or /send-doc and never writes SQLite, Git, PM2 or
-LocalAuth state.  After pairing, C11 may proceed only when this preflight proves
+LocalAuth state. After pairing, C11 may proceed only when this preflight proves
 that the exact deployed release is connected while still PAUSED and that the
 only internally authorized recipient is the explicitly named controlled test
 record with traceable WhatsApp opt-in evidence.
@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sqlite3
 import subprocess
 import urllib.error
@@ -123,6 +122,7 @@ def run_preflight(
     bridge_db_path: Path,
     expected_head: str,
     test_dealer_id: str,
+    expected_outbound_baseline: int = 77,
     health_payload: Optional[Mapping[str, Any]] = None,
     health_url: str = "http://127.0.0.1:9191/health",
 ) -> Report:
@@ -139,11 +139,13 @@ def run_preflight(
         return report
 
     try:
-        report.add("primary_db_quick_check", _quick_check(primary) == "ok", "ok")
+        quick = _quick_check(primary)
+        report.add("primary_db_quick_check", quick == "ok", quick)
     except sqlite3.Error as exc:
         report.add("primary_db_quick_check", False, type(exc).__name__)
     try:
-        report.add("bridge_db_quick_check", _quick_check(bridge) == "ok", "ok")
+        quick = _quick_check(bridge)
+        report.add("bridge_db_quick_check", quick == "ok", quick)
     except sqlite3.Error as exc:
         report.add("bridge_db_quick_check", False, type(exc).__name__)
 
@@ -174,7 +176,11 @@ def run_preflight(
         str(env.get("ARGOS_WA_TRANSPORT") or "wwebjs").strip().lower() == "wwebjs",
         str(env.get("ARGOS_WA_TRANSPORT") or "wwebjs").strip().lower(),
     )
-    report.add("api_key_configured", bool(str(env.get("ARGOS_API_KEY") or "").strip()), "configured" if env.get("ARGOS_API_KEY") else "missing")
+    report.add(
+        "api_key_configured",
+        bool(str(env.get("ARGOS_API_KEY") or "").strip()),
+        "configured" if str(env.get("ARGOS_API_KEY") or "").strip() else "missing",
+    )
     report.add(
         "loopback_bind",
         str(env.get("ARGOS_BIND_HOST") or "127.0.0.1").strip() in {"127.0.0.1", "localhost"},
@@ -221,19 +227,27 @@ def run_preflight(
                 ).fetchall()
                 report.add("exactly_one_authorized_recipient", len(rows) == 1, len(rows))
                 selected = dict(rows[0]) if len(rows) == 1 else {}
+                is_controlled = bool(selected) and str(selected.get("dealer_id") or "") == dealer_id
                 report.add(
                     "authorized_recipient_is_controlled_test",
-                    bool(selected) and str(selected.get("dealer_id") or "") == dealer_id,
-                    "match" if selected and str(selected.get("dealer_id") or "") == dealer_id else "mismatch",
+                    is_controlled,
+                    "match" if is_controlled else "mismatch",
                 )
-                report.add("controlled_test_phone_present", bool(str(selected.get("phone_number") or "").strip()), "present" if selected and selected.get("phone_number") else "missing")
-                report.add("controlled_test_whatsapp_opt_in", bool(selected) and _consent_valid(selected), "valid" if selected and _consent_valid(selected) else "invalid")
+                phone_present = bool(str(selected.get("phone_number") or "").strip())
+                report.add("controlled_test_phone_present", phone_present, "present" if phone_present else "missing")
+                valid_consent = bool(selected) and _consent_valid(selected)
+                report.add("controlled_test_whatsapp_opt_in", valid_consent, "valid" if valid_consent else "invalid")
 
             msg_cols = _columns(con, "messages")
             if "direction" in msg_cols:
                 row = con.execute("SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'").fetchone()
                 report.outbound_baseline = int(row[0] if row else 0)
                 report.add("outbound_baseline_readable", True, report.outbound_baseline)
+                report.add(
+                    "outbound_baseline_expected",
+                    report.outbound_baseline == int(expected_outbound_baseline),
+                    {"expected": int(expected_outbound_baseline), "actual": report.outbound_baseline},
+                )
             else:
                 report.add("outbound_baseline_readable", False, "messages.direction missing")
         finally:
@@ -268,6 +282,7 @@ def main() -> int:
     parser.add_argument("--bridge-db-path", required=True)
     parser.add_argument("--expected-head", required=True)
     parser.add_argument("--test-dealer-id", required=True)
+    parser.add_argument("--expected-outbound-baseline", type=int, default=77)
     parser.add_argument("--health-url", default="http://127.0.0.1:9191/health")
     parser.add_argument("--pretty", action="store_true")
     args = parser.parse_args()
@@ -278,6 +293,7 @@ def main() -> int:
         bridge_db_path=Path(args.bridge_db_path),
         expected_head=str(args.expected_head),
         test_dealer_id=str(args.test_dealer_id),
+        expected_outbound_baseline=int(args.expected_outbound_baseline),
         health_url=str(args.health_url),
     )
     print(json.dumps(report.as_dict(), ensure_ascii=False, sort_keys=True, indent=2 if args.pretty else None))
