@@ -81,16 +81,23 @@ class FinalOutboundBoundaryTests(unittest.TestCase):
         )
 
     def _message(self) -> str:
+        # Use the existing premium credibility-first copy. DAY1_GENERALIST
+        # intentionally mentions keeping a vehicle "in stock" and is correctly
+        # rejected by the legacy NO-OFFER-DAY1 validator, so it is not a valid
+        # positive fixture for testing the authorization/consent boundary.
         return templates.fill_template(
-            "DAY1_GENERALIST",
-            {"source": "contatto di test autorizzato"},
+            "DAY1_PREMIUM",
+            {
+                "source": "contatto di test autorizzato",
+                "brand_focus": "BMW",
+            },
         )
 
     def _evaluate(self) -> dict:
         return outbound_guard.evaluate(
             db_path=self.db_path,
             dealer_id="c11-test",
-            template_id="DAY1_GENERALIST",
+            template_id="DAY1_PREMIUM",
             message=self._message(),
         )
 
