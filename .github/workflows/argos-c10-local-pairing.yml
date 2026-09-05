@@ -1,11 +1,11 @@
 name: ARGOS C10 Local Pairing
 
 # Pairing is an explicit human gate. It MUST NOT run on push or retry QR
-# acquisition automatically: repeated device-link attempts can leave the phone
-# in a temporary "try again later" state. QR material never enters logs or
-# GitHub artifacts. The self-hosted MacBook fetches exactly one current QR over
-# the existing strict SSH lane and renders it only in a local temporary HTML
-# file. C10 remains PAUSED with zero outbound throughout pairing.
+# acquisition automatically. QR material never enters logs or artifacts.
+# A fresh LocalAuth profile is created in isolated staging and becomes a
+# cutover-ready credential snapshot only after WhatsApp Web emits READY.
+# Production PM2, production DBs and the canonical LocalAuth profile are never
+# mutated by this workflow. C10 remains PAUSED with zero outbound throughout.
 on:
   workflow_dispatch:
 
@@ -18,98 +18,272 @@ concurrency:
 
 jobs:
   pair:
-    name: Pair existing LocalAuth session locally
+    name: Pair isolated LocalAuth profile locally
     runs-on: [self-hosted, macbook, argos]
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
-      - name: Verify paused zero-outbound preconditions
+      - name: Native exact-SHA checkout
         shell: bash
         run: |
           set -euo pipefail
-          echo 'PAIRING_CHANNEL=LOCAL_MACBOOK_ONLY'
+          test -n "${GITHUB_WORKSPACE:-}"
+          test -n "${RUNNER_WORKSPACE:-}"
+          case "$GITHUB_WORKSPACE" in
+            "$RUNNER_WORKSPACE"/*) ;;
+            *) echo "BLOCKED: unexpected GITHUB_WORKSPACE=$GITHUB_WORKSPACE" >&2; exit 70 ;;
+          esac
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+          git init -q "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE"
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach --force FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          branch_sha="$(git ls-remote https://github.com/${GITHUB_REPOSITORY}.git refs/heads/sol/argos-wwebjs-c10-production | awk '{print $1}')"
+          test "$branch_sha" = "$GITHUB_SHA"
+          test -f wa-intelligence/tools/argos_c10_pairing_helper.js
+          node --check wa-intelligence/tools/argos_c10_pairing_helper.js
+          echo "PAIRING_CHECKOUT_SHA=$GITHUB_SHA"
           echo 'PAIRING_POLICY=MANUAL_SINGLE_SHOT'
           echo 'PAIRING_AUTOMATIC_RETRY=DISABLED'
           echo 'GITHUB_QR_EXPOSURE=NONE'
+          echo 'PRODUCTION_MUTATION=NONE'
           echo 'OUTBOUND_ACTION=NONE'
+
+      - name: Verify paused zero-outbound production preconditions
+        shell: bash
+        run: |
+          set -euo pipefail
           ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
             -o ServerAliveInterval=5 -o ServerAliveCountMax=2 \
             gianlucadistasi@iMac-di-gianluca.local python3 <<'PY'
-          import json, sqlite3, urllib.request
+          import sqlite3
           from pathlib import Path
           db=Path.home()/'Documents/app-antigravity-auto/dealer_network.sqlite'
+          bridge=Path.home()/'Documents/app-antigravity-auto/comm-broker/bridge.sqlite'
           c=sqlite3.connect(f'file:{db}?mode=ro',uri=True,timeout=5)
           try:
-              state=c.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status'").fetchone()[0]
+              quick=c.execute('PRAGMA quick_check').fetchone()[0]
+              row=c.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status'").fetchone()
+              state=(row[0] if row else 'ABSENT')
               outbound=c.execute("SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'").fetchone()[0]
           finally: c.close()
-          with urllib.request.urlopen('http://127.0.0.1:9191/health',timeout=3) as r:
-              h=json.load(r)
+          b=sqlite3.connect(f'file:{bridge}?mode=ro',uri=True,timeout=5)
+          try:
+              bquick=b.execute('PRAGMA quick_check').fetchone()[0]
+              cols={r[1] for r in b.execute("PRAGMA table_info('bridge_outbound')")}
+              pending=0
+              if {'approved_ts','sent_ts'}.issubset(cols):
+                  cond='approved_ts IS NOT NULL AND sent_ts IS NULL'
+                  if 'template_id' in cols: cond += ' AND template_id IS NOT NULL'
+                  pending=b.execute(f'SELECT COUNT(*) FROM bridge_outbound WHERE {cond}').fetchone()[0]
+          finally: b.close()
+          print(f'PAIR_PRE_PRIMARY_QUICK_CHECK={quick}')
+          print(f'PAIR_PRE_BRIDGE_QUICK_CHECK={bquick}')
           print(f'PAIR_PRE_AGENT_STATUS={state}')
           print(f'PAIR_PRE_OUTBOUND_TOTAL={outbound}')
-          print(f'PAIR_PRE_CONNECTED={h.get("connected")}')
-          if str(state).upper()!='PAUSED' or int(outbound)!=77:
+          print(f'PAIR_PRE_PENDING_BRIDGE={pending}')
+          if quick!='ok' or bquick!='ok' or str(state).upper()!='PAUSED' or int(outbound)!=77 or int(pending)!=0:
               raise SystemExit(20)
           PY
 
-      - name: Render one QR only on MacBook screen
+      - name: Stage exact-SHA pairing runtime without touching production
         shell: bash
         run: |
           set -euo pipefail
-          html="/tmp/argos-c10-pairing-${GITHUB_RUN_ID}.html"
-          rm -f "$html"
-          cleanup() { rm -f "$html"; }
-          trap cleanup EXIT
-
           ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
             -o ServerAliveInterval=5 -o ServerAliveCountMax=2 \
             gianlucadistasi@iMac-di-gianluca.local \
-            'curl --fail --silent --max-time 3 http://127.0.0.1:9191/qr' \
-            | HTML_PATH="$html" python3 -c 'import json,os,sys,html; d=json.load(sys.stdin); q=d.get("qr_data_url"); assert isinstance(q,str) and q.startswith("data:image/"); p=os.environ["HTML_PATH"]; open(p,"w",encoding="utf-8").write("<!doctype html><meta charset=utf-8><title>ARGOS C10 Pairing</title><style>body{font-family:-apple-system,sans-serif;text-align:center;padding:30px}img{width:min(70vw,560px);height:auto}p{font-size:20px}</style><h1>ARGOS C10 — WhatsApp pairing</h1><p>Single-shot: WhatsApp → Dispositivi collegati → Collega un dispositivo</p><img alt=QR src=\""+html.escape(q,quote=True)+"\">")'
-          test -s "$html"
-          /usr/bin/open "$html"
-          echo 'PAIRING_QR_FETCH_COUNT=1'
-          echo 'PAIRING_QR_OPENED_LOCALLY=YES'
+            "bash -s -- '$GITHUB_SHA' '$GITHUB_RUN_ID'" <<'REMOTE'
+          set -euo pipefail
+          SHA="$1"; RUN_ID="$2"; SHORT="${SHA:0:12}"
+          RELEASE="$HOME/Documents/argos-c10-release-$SHORT"
+          TMP_RELEASE="${RELEASE}.pair-stage.$$"
+          BASE="$HOME/Documents/argos-c10-pairing-ready"
+          STAGE="$BASE/.stage-$RUN_ID"
+          READY="$BASE/$SHA"
+          CHROME="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+          export PATH="$HOME/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 
-          # Passive health observation only. This loop never requests a new QR,
-          # creates a new pairing challenge, resumes ARGOS or sends a message.
-          connected=0
-          for _ in $(seq 1 72); do
-            verdict="$(ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
-              -o ServerAliveInterval=5 -o ServerAliveCountMax=2 \
-              gianlucadistasi@iMac-di-gianluca.local python3 <<'PY'
-          import json,urllib.request
-          try:
-              with urllib.request.urlopen('http://127.0.0.1:9191/health',timeout=3) as r: h=json.load(r)
-              print('YES' if h.get('connected') is True and str(h.get('agent_status')).upper()=='PAUSED' else 'NO')
-          except Exception: print('NO')
-          PY
-            )"
-            if [ "$verdict" = YES ]; then connected=1; break; fi
+          test -x "$CHROME"
+          test ! -e "$READY"
+          test ! -e "$STAGE"
+          mkdir -m 700 -p "$BASE"
+
+          if [ -e "$RELEASE" ]; then
+            test -d "$RELEASE/.git"
+            test "$(git -C "$RELEASE" rev-parse HEAD)" = "$SHA"
+          else
+            cleanup_release() { rm -rf "$TMP_RELEASE"; }
+            trap cleanup_release EXIT
+            mkdir -p "$TMP_RELEASE"
+            git init -q "$TMP_RELEASE"
+            git -C "$TMP_RELEASE" remote add origin https://github.com/lukeeterna/europeanautoscout.git
+            HTTP_PROXY= HTTPS_PROXY= ALL_PROXY= http_proxy= https_proxy= all_proxy= \
+              git -C "$TMP_RELEASE" -c http.proxy= -c https.proxy= -c protocol.version=2 \
+                fetch --no-tags --depth=1 origin "$SHA"
+            git -C "$TMP_RELEASE" checkout --detach --force FETCH_HEAD
+            test "$(git -C "$TMP_RELEASE" rev-parse HEAD)" = "$SHA"
+            mv "$TMP_RELEASE" "$RELEASE"
+            trap - EXIT
+          fi
+
+          if ! node - "$RELEASE/wa-intelligence" <<'NODE'
+          const path=require('path');
+          const root=process.argv[2];
+          try {
+            const w=require(path.join(root,'node_modules/whatsapp-web.js/package.json'));
+            const q=require(path.join(root,'node_modules/qrcode/package.json'));
+            if (w.version!=='1.34.7' || !q.version) process.exit(1);
+            require(path.join(root,'node_modules/whatsapp-web.js'));
+            require(path.join(root,'node_modules/qrcode'));
+          } catch (_) { process.exit(1); }
+          NODE
+          then
+            npm ci --prefix "$RELEASE/wa-intelligence" --include=optional --no-audit --no-fund
+          fi
+          node --check "$RELEASE/wa-intelligence/tools/argos_c10_pairing_helper.js"
+          mkdir -m 700 "$STAGE"
+          echo "PAIRING_RELEASE_SHA=$SHA"
+          echo 'PAIRING_RUNTIME_DEPS=PASS'
+          echo 'PRODUCTION_PROCESS_MUTATION=NONE'
+          echo 'CANONICAL_LOCALAUTH_MUTATION=NONE'
+          REMOTE
+
+      - name: Start one staged pairing client and display first QR locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET='gianlucadistasi@iMac-di-gianluca.local'
+          SSH=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -o ServerAliveInterval=5 -o ServerAliveCountMax=2)
+          SHORT="${GITHUB_SHA:0:12}"
+          REMOTE_BASE='$HOME/Documents/argos-c10-pairing-ready'
+          REMOTE_STAGE="$REMOTE_BASE/.stage-$GITHUB_RUN_ID"
+          html="/tmp/argos-c10-pairing-${GITHUB_RUN_ID}.html"
+          rm -f "$html"
+          keep_stage=0
+
+          cleanup() {
+            rm -f "$html"
+            if [ "$keep_stage" -ne 1 ]; then
+              ssh "${SSH[@]}" "$TARGET" "bash -s -- '$GITHUB_RUN_ID'" <<'REMOTE' >/dev/null 2>&1 || true
+          RUN_ID="$1"; STAGE="$HOME/Documents/argos-c10-pairing-ready/.stage-$RUN_ID"
+          if [ -f "$STAGE/helper.pid" ]; then kill "$(cat "$STAGE/helper.pid")" >/dev/null 2>&1 || true; fi
+          rm -rf "$STAGE"
+          REMOTE
+            fi
+          }
+          trap cleanup EXIT
+
+          ssh "${SSH[@]}" "$TARGET" "bash -s -- '$GITHUB_SHA' '$GITHUB_RUN_ID'" <<'REMOTE'
+          set -euo pipefail
+          SHA="$1"; RUN_ID="$2"; SHORT="${SHA:0:12}"
+          RELEASE="$HOME/Documents/argos-c10-release-$SHORT"
+          STAGE="$HOME/Documents/argos-c10-pairing-ready/.stage-$RUN_ID"
+          CHROME="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+          test -d "$STAGE"
+          test ! -e "$STAGE/helper.pid"
+          nohup env \
+            ARGOS_PAIR_DATA_PATH="$STAGE/auth" \
+            ARGOS_PAIR_QR_FILE="$STAGE/qr.txt" \
+            ARGOS_PAIR_STATUS_FILE="$STAGE/status" \
+            ARGOS_PAIR_CHROME="$CHROME" \
+            ARGOS_PAIR_CLIENT_ID='argos-business' \
+            ARGOS_PAIR_TIMEOUT_MS='420000' \
+            node "$RELEASE/wa-intelligence/tools/argos_c10_pairing_helper.js" \
+            >"$STAGE/helper.log" 2>&1 </dev/null &
+          pid=$!
+          printf '%s\n' "$pid" > "$STAGE/helper.pid"
+          chmod 600 "$STAGE/helper.pid"
+          echo 'PAIRING_HELPER=STARTED'
+          REMOTE
+
+          status=''
+          for _ in $(seq 1 60); do
+            status="$(ssh "${SSH[@]}" "$TARGET" "cat $REMOTE_STAGE/status 2>/dev/null || true")"
+            case "$status" in
+              QR_READY|AUTHENTICATED|READY) break ;;
+              AUTH_FAILURE|DISCONNECTED*|QR_RENDER_FAILED|INIT_FAILED|TIMEOUT|TERMINATED) echo "PAIRING_HELPER_STATUS=$status" >&2; exit 21 ;;
+            esac
+            sleep 2
+          done
+          test -n "$status"
+
+          if [ "$status" != READY ]; then
+            # The QR payload is consumed exactly once by the local renderer. It
+            # is never echoed, uploaded, persisted as an Actions artifact or
+            # fetched again during this workflow attempt.
+            ssh "${SSH[@]}" "$TARGET" "cat $REMOTE_STAGE/qr.txt" \
+              | QR_HTML="$html" python3 -c 'import os,sys,html; q=sys.stdin.read().strip(); assert q.startswith("data:image/"); p=os.environ["QR_HTML"]; open(p,"w",encoding="utf-8").write("<!doctype html><meta charset=utf-8><title>ARGOS C10 Pairing</title><style>body{font-family:-apple-system,sans-serif;text-align:center;padding:30px}img{width:min(70vw,560px);height:auto}p{font-size:20px}</style><h1>ARGOS C10 — WhatsApp pairing</h1><p>WhatsApp → Dispositivi collegati → Collega un dispositivo</p><img alt=QR src=\""+html.escape(q,quote=True)+"\">")'
+            test -s "$html"
+            /usr/bin/open "$html"
+            echo 'PAIRING_QR_FETCH_COUNT=1'
+            echo 'PAIRING_QR_OPENED_LOCALLY=YES'
+          fi
+
+          ready=0
+          for _ in $(seq 1 84); do
+            status="$(ssh "${SSH[@]}" "$TARGET" "cat $REMOTE_STAGE/status 2>/dev/null || true")"
+            if [ "$status" = READY ]; then ready=1; break; fi
+            case "$status" in
+              AUTH_FAILURE|DISCONNECTED*|QR_RENDER_FAILED|INIT_FAILED|TIMEOUT|TERMINATED) echo "PAIRING_HELPER_STATUS=$status" >&2; exit 22 ;;
+            esac
             sleep 5
           done
-          test "$connected" -eq 1
-          echo 'PAIRING_CONNECTED=YES'
+          test "$ready" -eq 1
+          echo 'PAIRING_WWEBJS_READY=YES'
 
-      - name: Verify pairing did not send anything
+          ssh "${SSH[@]}" "$TARGET" "bash -s -- '$GITHUB_SHA' '$GITHUB_RUN_ID'" <<'REMOTE'
+          set -euo pipefail
+          SHA="$1"; RUN_ID="$2"
+          BASE="$HOME/Documents/argos-c10-pairing-ready"
+          STAGE="$BASE/.stage-$RUN_ID"
+          READY="$BASE/$SHA"
+          test "$(cat "$STAGE/status")" = READY
+          test -d "$STAGE/auth/session-argos-business"
+          test ! -e "$READY"
+          rm -f "$STAGE/qr.txt" "$STAGE/helper.log" "$STAGE/helper.pid" "$STAGE/status"
+          printf 'pairing_source_sha=%s\nclient_id=argos-business\n' "$SHA" > "$STAGE/MANIFEST"
+          chmod 600 "$STAGE/MANIFEST"
+          mv "$STAGE" "$READY"
+          echo 'PAIRING_READY_PROFILE=STAGED'
+          echo "PAIRING_SOURCE_SHA=$SHA"
+          echo 'CANONICAL_LOCALAUTH_MUTATION=NONE'
+          echo 'PRODUCTION_PROCESS_MUTATION=NONE'
+          REMOTE
+          keep_stage=1
+          rm -f "$html"
+          trap - EXIT
+
+      - name: Verify pairing preserved production zero-outbound state
         shell: bash
         run: |
           set -euo pipefail
           ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
             -o ServerAliveInterval=5 -o ServerAliveCountMax=2 \
-            gianlucadistasi@iMac-di-gianluca.local python3 <<'PY'
-          import json, sqlite3, urllib.request
+            gianlucadistasi@iMac-di-gianluca.local \
+            "python3 - '$GITHUB_SHA'" <<'PY'
+          import sqlite3,sys
           from pathlib import Path
-          db=Path.home()/'Documents/app-antigravity-auto/dealer_network.sqlite'
+          sha=sys.argv[1]
+          home=Path.home()
+          db=home/'Documents/app-antigravity-auto/dealer_network.sqlite'
+          ready=home/'Documents/argos-c10-pairing-ready'/sha
+          manifest=ready/'MANIFEST'
+          profile=ready/'auth/session-argos-business'
           c=sqlite3.connect(f'file:{db}?mode=ro',uri=True,timeout=5)
           try:
-              state=c.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status'").fetchone()[0]
+              row=c.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status'").fetchone()
+              state=(row[0] if row else 'ABSENT')
               outbound=c.execute("SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'").fetchone()[0]
           finally: c.close()
-          with urllib.request.urlopen('http://127.0.0.1:9191/health',timeout=3) as r: h=json.load(r)
-          print(f'PAIR_POST_CONNECTED={h.get("connected")}')
-          print(f'PAIR_POST_AGENT_STATUS={state}')
-          print(f'PAIR_POST_OUTBOUND_TOTAL={outbound}')
-          if h.get('connected') is not True or str(state).upper()!='PAUSED' or int(outbound)!=77:
-              raise SystemExit(21)
+          text=manifest.read_text(encoding='utf-8') if manifest.is_file() else ''
+          assert f'pairing_source_sha={sha}' in text
+          assert profile.is_dir() and any(p.is_file() for p in profile.rglob('*'))
+          assert str(state).upper()=='PAUSED' and int(outbound)==77
+          print('PAIR_POST_AGENT_STATUS=PAUSED')
+          print('PAIR_POST_OUTBOUND_TOTAL=77')
+          print('PAIRING_PROFILE_READY=YES')
           print('PAIRING_GATE=GREEN')
+          print('CUTOVER_REQUIRED=YES')
           PY
