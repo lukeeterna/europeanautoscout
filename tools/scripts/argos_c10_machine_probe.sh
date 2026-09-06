@@ -188,6 +188,35 @@ def git_head_from_paths(*raw_paths):
     return "UNKNOWN", "UNKNOWN"
 
 
+def localauth_profile_status(raw_root, client_id):
+    raw_root = str(raw_root or "").strip()
+    client_id = str(client_id or "").strip()
+    root = Path(raw_root).expanduser() if raw_root and raw_root != "UNKNOWN" else None
+    root_ok = bool(root and root.is_dir())
+    canonical = False
+    if root:
+        try:
+            canonical = root.resolve() == session_root.resolve()
+        except OSError:
+            canonical = False
+    profile = root / f"session-{client_id}" if root and client_id and client_id != "UNKNOWN" else None
+    profile_ok = bool(profile and profile.is_dir())
+    files = 0
+    if profile_ok:
+        try:
+            files = sum(1 for p in profile.rglob("*") if p.is_file())
+        except OSError:
+            files = 0
+    return {
+        "root_configured": bool(root),
+        "root_present": root_ok,
+        "root_canonical": canonical,
+        "client_id_configured": bool(client_id and client_id != "UNKNOWN"),
+        "profile_present": profile_ok,
+        "profile_files_positive": files > 0,
+    }
+
+
 processes = process_table()
 by_pid = {pid: (ppid, command) for pid, ppid, command in processes}
 writer_rows = [row for row in processes if "wa-daemon.js" in row[2] and "node" in row[2].lower()]
@@ -214,6 +243,9 @@ safe_keys = (
 safe_env = selected_process_env(writer_pid, safe_keys) if writer_pid else {}
 transport = str(safe_env.get("ARGOS_WA_TRANSPORT") or "UNKNOWN").lower()
 automation = str(safe_env.get("ARGOS_AUTOMATION_ENABLED") or "UNKNOWN")
+writer_session_raw = str(safe_env.get("ARGOS_WA_SESSION_DIR") or "UNKNOWN")
+writer_client_id = str(safe_env.get("ARGOS_WA_CLIENT_ID") or "UNKNOWN")
+localauth = localauth_profile_status(writer_session_raw, writer_client_id)
 
 print(f"WRITER_PID={one_line(writer_pid or 'UNKNOWN')}")
 print(f"WRITER_CWD={one_line(writer_cwd)}")
@@ -221,11 +253,16 @@ print(f"WRITER_SCRIPT={one_line(writer_script)}")
 print(f"WRITER_SUPERVISOR={writer_supervisor}")
 print(f"WRITER_TRANSPORT={one_line(transport)}")
 print(f"WRITER_AUTOMATION_ENABLED={one_line(automation)}")
-print(f"WRITER_SESSION_DIR={one_line(safe_env.get('ARGOS_WA_SESSION_DIR') or 'UNKNOWN')}")
-print(f"WRITER_CLIENT_ID={one_line(safe_env.get('ARGOS_WA_CLIENT_ID') or 'UNKNOWN')}")
+print(f"WRITER_SESSION_DIR={one_line(writer_session_raw)}")
+print(f"WRITER_CLIENT_ID={one_line(writer_client_id)}")
 print(f"WRITER_CHROME_EXECUTABLE={one_line(safe_env.get('CHROME_EXECUTABLE_PATH') or 'UNKNOWN')}")
 print(f"WRITER_PRIMARY_DB_PATH={one_line(safe_env.get('ARGOS_DB_PATH') or 'UNKNOWN')}")
 print(f"WRITER_BRIDGE_DB_PATH={one_line(safe_env.get('BRIDGE_DB_PATH') or 'UNKNOWN')}")
+print(f"LOCALAUTH_SESSION_ROOT_PRESENT={str(localauth['root_present']).upper()}")
+print(f"LOCALAUTH_SESSION_ROOT_CANONICAL={str(localauth['root_canonical']).upper()}")
+print(f"LOCALAUTH_CLIENT_ID_CONFIGURED={str(localauth['client_id_configured']).upper()}")
+print(f"LOCALAUTH_PROFILE_PRESENT={str(localauth['profile_present']).upper()}")
+print(f"LOCALAUTH_PROFILE_FILE_COUNT_POSITIVE={str(localauth['profile_files_positive']).upper()}")
 
 deployed_sha, deployed_root = git_head_from_paths(writer_cwd, writer_script)
 print(f"DEPLOYED_SHA={deployed_sha}")
@@ -367,6 +404,12 @@ if automation != "0":
     blockers.append("AUTOMATION_NOT_DISABLED")
 if transport != "wwebjs":
     blockers.append("TRANSPORT_NOT_WWEBJS")
+if not localauth["root_canonical"]:
+    blockers.append("WRITER_SESSION_DIR_NOT_CANONICAL")
+if not localauth["client_id_configured"]:
+    blockers.append("LOCALAUTH_CLIENT_ID_MISSING")
+if not (localauth["profile_present"] and localauth["profile_files_positive"]):
+    blockers.append("LOCALAUTH_PROFILE_NOT_PERSISTED")
 if outbound_total != 77:
     blockers.append("OUTBOUND_BASELINE_CHANGED")
 if health.get("bridge_enabled") is not True:
