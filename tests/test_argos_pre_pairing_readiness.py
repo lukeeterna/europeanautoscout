@@ -167,6 +167,20 @@ class WorkflowSafetyTests(unittest.TestCase):
         self.assertIn("PRODUCTION_PROCESS_MUTATION=NONE", pairing)
         self.assertIn("OUTBOUND_ACTION=NONE", pairing)
 
+    def test_machine_green_requires_persistent_target_localauth_profile(self) -> None:
+        probe = (ROOT / "tools" / "scripts" / "argos_c10_machine_probe.sh").read_text(encoding="utf-8")
+        for marker in (
+            "LOCALAUTH_SESSION_ROOT_CANONICAL=",
+            "LOCALAUTH_CLIENT_ID_CONFIGURED=",
+            "LOCALAUTH_PROFILE_PRESENT=",
+            "LOCALAUTH_PROFILE_FILE_COUNT_POSITIVE=",
+            'blockers.append("WRITER_SESSION_DIR_NOT_CANONICAL")',
+            'blockers.append("LOCALAUTH_CLIENT_ID_MISSING")',
+            'blockers.append("LOCALAUTH_PROFILE_NOT_PERSISTED")',
+        ):
+            self.assertIn(marker, probe)
+        self.assertIn('profile = root / f"session-{client_id}"', probe)
+
     def test_cutover_has_backup_rollback_exact_sha_and_zero_outbound_contract(self) -> None:
         workflow = self._workflow("argos-c10-wwebjs-cutover.yml")
         script = (WA_DIR / "tools" / "argos_c10_wwebjs_cutover.sh").read_text(encoding="utf-8")
