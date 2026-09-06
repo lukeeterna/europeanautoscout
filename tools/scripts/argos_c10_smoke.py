@@ -4,7 +4,7 @@
 Runs on the production release tree before/after PM2 startup. It never changes
 Git, SQLite, PM2, WhatsApp or Meta state. Both supported transports are checked:
 
-* ``wwebjs`` keeps the historical LocalAuth/session requirements.
+* ``wwebjs`` requires the exact persisted LocalAuth ``session-<client_id>``.
 * ``cloud`` requires the official Meta Cloud API configuration plus a public
   HTTPS webhook URL and the exact approved proactive template names. Predeploy
   performs no Graph API request. On the final ``--require-connected`` postdeploy
@@ -166,6 +166,17 @@ def _pm2_apps(repo_root: Path) -> tuple[dict[str, Mapping[str, Any]], str]:
     return apps, ""
 
 
+def _profile_nonempty(session_dir: Path, client_id: str) -> tuple[bool, bool]:
+    profile = session_dir / f"session-{client_id}" if client_id else None
+    profile_ok = bool(profile and profile.is_dir())
+    if not profile_ok:
+        return False, False
+    try:
+        return True, any(p.is_file() for p in profile.rglob("*"))
+    except OSError:
+        return True, False
+
+
 def _transport_checks(report: SmokeReport, env: Mapping[str, str], root: Path) -> tuple[str, Path]:
     transport = str(env.get("ARGOS_WA_TRANSPORT") or "wwebjs").strip().lower()
     report.add("transport_supported", transport in SUPPORTED_TRANSPORTS, transport)
@@ -194,8 +205,19 @@ def _transport_checks(report: SmokeReport, env: Mapping[str, str], root: Path) -
             required=False,
         )
     elif transport == "wwebjs":
-        session_nonempty = session_dir.is_dir() and any(session_dir.iterdir())
-        report.add("existing_wa_session", session_nonempty, str(session_dir))
+        client_id = str(env.get("ARGOS_WA_CLIENT_ID") or "").strip()
+        root_ok = session_dir.is_dir()
+        profile_ok, files_ok = _profile_nonempty(session_dir, client_id)
+        report.add("wwebjs_client_id_configured", bool(client_id), "configured" if client_id else "missing")
+        report.add(
+            "existing_wa_session",
+            bool(root_ok and profile_ok and files_ok),
+            {
+                "session_root_present": root_ok,
+                "profile_directory_present": profile_ok,
+                "profile_files_positive": files_ok,
+            },
+        )
     else:
         report.add("existing_wa_session", False, f"unsupported transport: {transport}")
 
