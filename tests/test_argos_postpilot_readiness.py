@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import shutil
 import sqlite3
 import sys
 import tempfile
@@ -25,15 +26,19 @@ class PostPilotReadinessTests(unittest.TestCase):
         root = Path(self.tmp.name)
         self.repo = root / "release"
         (self.repo / ".git").mkdir(parents=True)
-        self.session = root / "localauth"
-        self.session.mkdir()
-        (self.session / "session.bin").write_bytes(b"fixture")
+        self.client_id = "argos-business"
+        self.session_root = root / "localauth"
+        self.session_root.mkdir()
+        self.profile = self.session_root / f"session-{self.client_id}"
+        self.profile.mkdir()
+        (self.profile / "profile.bin").write_bytes(b"fixture")
         self.env = self.repo / ".env"
         self.env.write_text(
             "ARGOS_AUTOMATION_ENABLED=0\n"
             "ARGOS_WA_TRANSPORT=wwebjs\n"
             "ARGOS_BIND_HOST=127.0.0.1\n"
-            "ARGOS_WA_SESSION_DIR=%s\n" % self.session,
+            f"ARGOS_WA_SESSION_DIR={self.session_root}\n"
+            f"ARGOS_WA_CLIENT_ID={self.client_id}\n",
             encoding="utf-8",
         )
         os.chmod(self.env, 0o600)
@@ -100,9 +105,33 @@ class PostPilotReadinessTests(unittest.TestCase):
         self.assertTrue(report["ok"], report)
         self.assertEqual(report["safety"]["production_db_mutation"], "NONE")
         self.assertEqual(report["safety"]["restore_target"], "TEMPORARY_ONLY")
+        self.assertTrue(self.check(report, "localauth_client_id_present")["ok"])
+        self.assertTrue(self.check(report, "localauth_session_present")["ok"])
         self.assertTrue(self.check(report, "reboot_proven")["ok"])
         self.assertTrue(self.check(report, "primary_restore_drill")["ok"])
         self.assertTrue(self.check(report, "bridge_restore_drill")["ok"])
+
+    def test_nonempty_root_without_target_profile_is_red(self):
+        shutil.rmtree(self.profile)
+        decoy = self.session_root / "node_modules"
+        decoy.mkdir()
+        (decoy / "sentinel.txt").write_text("not a LocalAuth profile", encoding="utf-8")
+        report = self.run_gate()
+        self.assertFalse(report["ok"])
+        check = self.check(report, "localauth_session_present")
+        self.assertFalse(check["ok"])
+        self.assertTrue(check["detail"]["session_root_present"])
+        self.assertFalse(check["detail"]["profile_directory_present"])
+
+    def test_missing_client_id_is_red_even_with_profile_files(self):
+        text = self.env.read_text(encoding="utf-8")
+        text = "\n".join(line for line in text.splitlines() if not line.startswith("ARGOS_WA_CLIENT_ID=")) + "\n"
+        self.env.write_text(text, encoding="utf-8")
+        os.chmod(self.env, 0o600)
+        report = self.run_gate()
+        self.assertFalse(report["ok"])
+        self.assertFalse(self.check(report, "localauth_client_id_present")["ok"])
+        self.assertFalse(self.check(report, "localauth_session_present")["ok"])
 
     def test_outbound_increment_beyond_single_pilot_is_red(self):
         con = sqlite3.connect(self.primary)
