@@ -2,15 +2,14 @@
 """Read-only ARGOS post-C11 production readiness gate.
 
 This gate is intended to run after the single controlled C11 pilot and, when a
-pre-reboot boot epoch is supplied, after a real host reboot.  It never resumes
+pre-reboot boot epoch is supplied, after a real host reboot. It never resumes
 outreach, sends a message, edits the production databases, or modifies the
-LocalAuth session.  The restore drill uses temporary SQLite backups only.
+LocalAuth session. The restore drill uses temporary SQLite backups only.
 """
 from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
 import re
 import sqlite3
@@ -145,6 +144,21 @@ def _fetch_health(url):
         return json.loads(response.read().decode("utf-8"))
 
 
+def _profile_file_count(session_root, client_id):
+    """Return files only from the exact whatsapp-web.js LocalAuth profile."""
+    if not session_root or not client_id:
+        return 0, False
+    root = Path(session_root).expanduser()
+    profile = root / f"session-{client_id}"
+    if not profile.is_dir():
+        return 0, False
+    try:
+        count = sum(1 for p in profile.rglob("*") if p.is_file())
+    except OSError:
+        return 0, True
+    return count, True
+
+
 def run_gate(
     repo_root,
     db_path,
@@ -181,15 +195,20 @@ def run_gate(
     _check(checks, "loopback_bind", bind_host in {"127.0.0.1", "localhost", "::1"})
 
     session_raw = str(env.get("ARGOS_WA_SESSION_DIR", "")).strip()
-    session_path = Path(session_raw).expanduser() if session_raw else None
-    session_ok = bool(session_path and session_path.is_dir())
-    session_files = 0
-    if session_ok:
-        try:
-            session_files = sum(1 for p in session_path.rglob("*") if p.is_file())
-        except OSError:
-            session_files = 0
-    _check(checks, "localauth_session_present", session_ok and session_files > 0, {"file_count_positive": session_files > 0})
+    client_id = str(env.get("ARGOS_WA_CLIENT_ID", "")).strip()
+    session_root_ok = bool(session_raw and Path(session_raw).expanduser().is_dir())
+    profile_files, profile_dir_ok = _profile_file_count(session_raw, client_id)
+    _check(checks, "localauth_client_id_present", bool(client_id))
+    _check(
+        checks,
+        "localauth_session_present",
+        session_root_ok and profile_dir_ok and profile_files > 0,
+        {
+            "session_root_present": session_root_ok,
+            "profile_directory_present": profile_dir_ok,
+            "file_count_positive": profile_files > 0,
+        },
+    )
 
     primary_ok = db_path.is_file()
     bridge_ok = bridge_db_path.is_file()
@@ -269,7 +288,11 @@ def run_gate(
     _check(checks, "health_connected", health.get("connected") is True)
     _check(checks, "health_transport_wwebjs", str(health.get("transport", "")).lower() == "wwebjs")
     _check(checks, "runtime_paused", str(health.get("agent_status", "")).upper() == "PAUSED")
-    _check(checks, "health_pending_bridge_zero", int(health.get("pending_bridge", -1)) == 0)
+    try:
+        pending_health = int(health.get("pending_bridge", -1))
+    except (TypeError, ValueError):
+        pending_health = -1
+    _check(checks, "health_pending_bridge_zero", pending_health == 0)
     try:
         recent = int(health.get("global_outbound_24h", -1))
     except (TypeError, ValueError):
