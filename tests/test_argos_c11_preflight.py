@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sqlite3
 import sys
 import tempfile
@@ -27,12 +28,20 @@ class C11PreflightTests(unittest.TestCase):
         self.repo = base / "release"
         self.intel = self.repo / "wa-intelligence"
         self.intel.mkdir(parents=True)
+        self.client_id = "argos-business"
+        self.session_root = base / "wa-sender"
+        self.session_root.mkdir()
+        self.profile = self.session_root / f"session-{self.client_id}"
+        self.profile.mkdir()
+        (self.profile / "profile.bin").write_bytes(b"fixture")
         self.env = self.intel / ".env"
         self.env.write_text(
             "ARGOS_API_KEY=local-test-key\n"
             "ARGOS_AUTOMATION_ENABLED=0\n"
             "ARGOS_WA_TRANSPORT=wwebjs\n"
-            "ARGOS_BIND_HOST=127.0.0.1\n",
+            "ARGOS_BIND_HOST=127.0.0.1\n"
+            f"ARGOS_WA_SESSION_DIR={self.session_root}\n"
+            f"ARGOS_WA_CLIENT_ID={self.client_id}\n",
             encoding="utf-8",
         )
         os.chmod(self.env, 0o600)
@@ -120,29 +129,57 @@ class C11PreflightTests(unittest.TestCase):
         with mock.patch.object(c11, "_git_head", return_value=(self.EXPECTED_HEAD, "")):
             return c11.run_preflight(**kwargs)
 
+    def check(self, report, name):
+        return next(x for x in report.checks if x["name"] == name)
+
     def test_green_contract_is_read_only_and_redacts_recipient_details(self) -> None:
         report = self.run_gate()
         self.assertTrue(report.ok, report.as_dict())
         self.assertEqual(report.outbound_baseline, 77)
+        self.assertTrue(self.check(report, "localauth_client_id_present")["ok"])
+        self.assertTrue(self.check(report, "localauth_profile_persistent")["ok"])
         rendered = json.dumps(report.as_dict(), sort_keys=True)
         self.assertNotIn("+390000000001", rendered)
         self.assertNotIn("evidence-secret-001", rendered)
         self.assertNotIn("local-test-key", rendered)
         self.assertNotIn("controlled-test", rendered)
+        self.assertNotIn(str(self.session_root), rendered)
+
+    def test_nonempty_session_root_without_target_profile_is_red(self) -> None:
+        shutil.rmtree(self.profile)
+        decoy = self.session_root / ".wwebjs_cache"
+        decoy.mkdir()
+        (decoy / "cache.bin").write_bytes(b"not-auth")
+        report = self.run_gate()
+        self.assertFalse(report.ok)
+        check = self.check(report, "localauth_profile_persistent")
+        self.assertFalse(check["ok"])
+        self.assertTrue(check["detail"]["session_root_present"])
+        self.assertFalse(check["detail"]["profile_directory_present"])
+
+    def test_missing_localauth_client_id_is_red(self) -> None:
+        text = self.env.read_text(encoding="utf-8")
+        text = "\n".join(line for line in text.splitlines() if not line.startswith("ARGOS_WA_CLIENT_ID=")) + "\n"
+        self.env.write_text(text, encoding="utf-8")
+        os.chmod(self.env, 0o600)
+        report = self.run_gate()
+        self.assertFalse(report.ok)
+        self.assertFalse(self.check(report, "localauth_client_id_present")["ok"])
+        self.assertFalse(self.check(report, "localauth_profile_persistent")["ok"])
 
     def test_disconnected_is_red(self) -> None:
         health = dict(self.health)
         health["connected"] = False
         report = self.run_gate(health_payload=health)
         self.assertFalse(report.ok)
-        self.assertFalse(next(x for x in report.checks if x["name"] == "connected")["ok"])
+        self.assertFalse(self.check(report, "connected")["ok"])
 
     def test_outside_business_hours_is_red(self) -> None:
         health = dict(self.health)
         health["business_hours"] = False
         report = self.run_gate(health_payload=health)
         self.assertFalse(report.ok)
-        self.assertFalse(next(x for x in report.checks if x["name"] == "business_hours")["ok"])
+        self.assertFalse(self.check(report, "business_hours")["ok"])
 
     def test_second_authorized_recipient_is_red(self) -> None:
         con = sqlite3.connect(self.primary)
@@ -159,7 +196,7 @@ class C11PreflightTests(unittest.TestCase):
         con.close()
         report = self.run_gate()
         self.assertFalse(report.ok)
-        check = next(x for x in report.checks if x["name"] == "exactly_one_authorized_recipient")
+        check = self.check(report, "exactly_one_authorized_recipient")
         self.assertFalse(check["ok"])
         self.assertEqual(check["detail"], 2)
 
@@ -172,8 +209,7 @@ class C11PreflightTests(unittest.TestCase):
         con.close()
         report = self.run_gate()
         self.assertFalse(report.ok)
-        check = next(x for x in report.checks if x["name"] == "controlled_test_whatsapp_opt_in")
-        self.assertFalse(check["ok"])
+        self.assertFalse(self.check(report, "controlled_test_whatsapp_opt_in")["ok"])
 
     def test_nonfresh_controlled_recipient_is_red(self) -> None:
         con = sqlite3.connect(self.primary)
@@ -184,8 +220,8 @@ class C11PreflightTests(unittest.TestCase):
         con.close()
         report = self.run_gate()
         self.assertFalse(report.ok)
-        self.assertFalse(next(x for x in report.checks if x["name"] == "controlled_test_state_cold")["ok"])
-        self.assertFalse(next(x for x in report.checks if x["name"] == "controlled_test_outbound_count_zero")["ok"])
+        self.assertFalse(self.check(report, "controlled_test_state_cold")["ok"])
+        self.assertFalse(self.check(report, "controlled_test_outbound_count_zero")["ok"])
 
     def test_historical_outbound_for_controlled_recipient_is_red(self) -> None:
         con = sqlite3.connect(self.primary)
@@ -197,8 +233,8 @@ class C11PreflightTests(unittest.TestCase):
         con.close()
         report = self.run_gate()
         self.assertFalse(report.ok)
-        baseline = next(x for x in report.checks if x["name"] == "outbound_baseline_expected")
-        history = next(x for x in report.checks if x["name"] == "controlled_test_historical_outbound_zero")
+        baseline = self.check(report, "outbound_baseline_expected")
+        history = self.check(report, "controlled_test_historical_outbound_zero")
         self.assertTrue(baseline["ok"])
         self.assertFalse(history["ok"])
         self.assertEqual(history["detail"], 1)
@@ -210,13 +246,12 @@ class C11PreflightTests(unittest.TestCase):
         con.close()
         report = self.run_gate()
         self.assertFalse(report.ok)
-        check = next(x for x in report.checks if x["name"] == "bridge_pending_approved_zero")
-        self.assertFalse(check["ok"])
+        self.assertFalse(self.check(report, "bridge_pending_approved_zero")["ok"])
 
     def test_outbound_baseline_drift_is_red(self) -> None:
         report = self.run_gate(expected_outbound_baseline=76)
         self.assertFalse(report.ok)
-        check = next(x for x in report.checks if x["name"] == "outbound_baseline_expected")
+        check = self.check(report, "outbound_baseline_expected")
         self.assertFalse(check["ok"])
         self.assertEqual(check["detail"], {"expected": 76, "actual": 77})
 
@@ -232,8 +267,7 @@ class C11PreflightTests(unittest.TestCase):
                 health_payload=dict(self.health),
             )
         self.assertFalse(report.ok)
-        check = next(x for x in report.checks if x["name"] == "expected_head")
-        self.assertFalse(check["ok"])
+        self.assertFalse(self.check(report, "expected_head")["ok"])
 
     def test_active_runtime_or_recent_outbound_is_red(self) -> None:
         health = dict(self.health)
@@ -241,8 +275,8 @@ class C11PreflightTests(unittest.TestCase):
         health["global_outbound_24h"] = 1
         report = self.run_gate(health_payload=health)
         self.assertFalse(report.ok)
-        self.assertFalse(next(x for x in report.checks if x["name"] == "runtime_paused")["ok"])
-        self.assertFalse(next(x for x in report.checks if x["name"] == "health_outbound_24h_zero")["ok"])
+        self.assertFalse(self.check(report, "runtime_paused")["ok"])
+        self.assertFalse(self.check(report, "health_outbound_24h_zero")["ok"])
 
 
 if __name__ == "__main__":
