@@ -63,19 +63,63 @@ class C10TransportSmokeTests(unittest.TestCase):
             failed = next(c for c in report.checks if c["name"] == "cloud_required_env")
             self.assertIn("META_WA_TEMPLATE_DAY7_NAME", failed["detail"])
 
-    def test_wwebjs_mode_still_requires_existing_session(self):
+    def test_wwebjs_mode_requires_exact_nonempty_target_profile(self):
         with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "wa-sender"
+            profile = root / "session-argos-business"
+            profile.mkdir(parents=True)
+            (profile / "profile.bin").write_bytes(b"fixture")
             report = SMOKE.SmokeReport("predeploy")
             transport, _ = SMOKE._transport_checks(
                 report,
-                {"ARGOS_WA_TRANSPORT": "wwebjs"},
+                {
+                    "ARGOS_WA_TRANSPORT": "wwebjs",
+                    "ARGOS_WA_SESSION_DIR": str(root),
+                    "ARGOS_WA_CLIENT_ID": "argos-business",
+                },
+                Path(tmp),
+            )
+            self.assertEqual(transport, "wwebjs")
+            self.assertTrue(report.ok, report.as_dict())
+            self.assertTrue(next(c for c in report.checks if c["name"] == "wwebjs_client_id_configured")["ok"])
+            self.assertTrue(next(c for c in report.checks if c["name"] == "existing_wa_session")["ok"])
+
+    def test_wwebjs_nonempty_root_without_target_profile_is_red(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "wa-sender"
+            decoy = root / "node_modules"
+            decoy.mkdir(parents=True)
+            (decoy / "sentinel").write_text("not auth", encoding="utf-8")
+            report = SMOKE.SmokeReport("predeploy")
+            transport, _ = SMOKE._transport_checks(
+                report,
+                {
+                    "ARGOS_WA_TRANSPORT": "wwebjs",
+                    "ARGOS_WA_SESSION_DIR": str(root),
+                    "ARGOS_WA_CLIENT_ID": "argos-business",
+                },
                 Path(tmp),
             )
             self.assertEqual(transport, "wwebjs")
             self.assertFalse(report.ok)
             session = next(check for check in report.checks if check["name"] == "existing_wa_session")
-            self.assertTrue(session["required"])
             self.assertFalse(session["ok"])
+            self.assertTrue(session["detail"]["session_root_present"])
+            self.assertFalse(session["detail"]["profile_directory_present"])
+
+    def test_wwebjs_missing_client_id_is_red(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "wa-sender"
+            root.mkdir()
+            report = SMOKE.SmokeReport("predeploy")
+            SMOKE._transport_checks(
+                report,
+                {"ARGOS_WA_TRANSPORT": "wwebjs", "ARGOS_WA_SESSION_DIR": str(root)},
+                Path(tmp),
+            )
+            self.assertFalse(report.ok)
+            client = next(check for check in report.checks if check["name"] == "wwebjs_client_id_configured")
+            self.assertFalse(client["ok"])
 
     def test_invalid_transport_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
