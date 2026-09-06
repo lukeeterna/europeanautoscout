@@ -4,9 +4,10 @@
 This gate is intentionally safe to prepare before WhatsApp device pairing. It
 never calls /resume, /send or /send-doc and never writes SQLite, Git, PM2 or
 LocalAuth state. After pairing, C11 may proceed only when this preflight proves
-that the exact deployed release is connected while still PAUSED and that the
-only internally authorized recipient is the explicitly named controlled test
-record with traceable WhatsApp opt-in evidence.
+that the exact deployed release is connected while still PAUSED, that its exact
+LocalAuth profile is persistently present, and that the only internally
+authorized recipient is the explicitly named controlled test record with
+traceable WhatsApp opt-in evidence.
 
 The controlled recipient must be a fresh COLD record with outbound_count=0 and
 zero historical OUTBOUND rows, so the pilot cannot accidentally reuse a real or
@@ -119,6 +120,27 @@ def _consent_valid(row: Mapping[str, Any]) -> bool:
     )
 
 
+def _localauth_profile_status(env: Mapping[str, str]) -> dict[str, bool]:
+    session_raw = str(env.get("ARGOS_WA_SESSION_DIR") or "").strip()
+    client_id = str(env.get("ARGOS_WA_CLIENT_ID") or "").strip()
+    root = Path(session_raw).expanduser() if session_raw else None
+    root_ok = bool(root and root.is_dir())
+    profile = root / f"session-{client_id}" if root and client_id else None
+    profile_ok = bool(profile and profile.is_dir())
+    file_count_positive = False
+    if profile_ok:
+        try:
+            file_count_positive = any(p.is_file() for p in profile.rglob("*"))
+        except OSError:
+            file_count_positive = False
+    return {
+        "client_id_configured": bool(client_id),
+        "session_root_present": root_ok,
+        "profile_directory_present": profile_ok,
+        "file_count_positive": file_count_positive,
+    }
+
+
 def run_preflight(
     *,
     repo_root: Path,
@@ -190,6 +212,13 @@ def run_preflight(
         str(env.get("ARGOS_BIND_HOST") or "127.0.0.1").strip() in {"127.0.0.1", "localhost"},
         str(env.get("ARGOS_BIND_HOST") or "127.0.0.1").strip(),
     )
+    localauth = _localauth_profile_status(env)
+    report.add("localauth_client_id_present", localauth["client_id_configured"])
+    report.add(
+        "localauth_profile_persistent",
+        all(localauth.values()),
+        localauth,
+    )
 
     health = health_payload
     health_error = ""
@@ -203,8 +232,16 @@ def run_preflight(
         report.add("runtime_paused", str(health.get("agent_status") or "").upper() == "PAUSED", str(health.get("agent_status")))
         report.add("business_hours", health.get("business_hours") is True, bool(health.get("business_hours")))
         report.add("bridge_enabled", health.get("bridge_enabled") is True, bool(health.get("bridge_enabled")))
-        report.add("health_pending_bridge_zero", int(health.get("pending_bridge") or 0) == 0, int(health.get("pending_bridge") or 0))
-        report.add("health_outbound_24h_zero", int(health.get("global_outbound_24h") or 0) == 0, int(health.get("global_outbound_24h") or 0))
+        try:
+            pending_health = int(health.get("pending_bridge") or 0)
+        except (TypeError, ValueError):
+            pending_health = -1
+        report.add("health_pending_bridge_zero", pending_health == 0, pending_health)
+        try:
+            recent_health = int(health.get("global_outbound_24h") or 0)
+        except (TypeError, ValueError):
+            recent_health = -1
+        report.add("health_outbound_24h_zero", recent_health == 0, recent_health)
 
     try:
         con = _ro_connect(primary)
