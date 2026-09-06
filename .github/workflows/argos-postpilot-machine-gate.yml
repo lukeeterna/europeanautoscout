@@ -1,0 +1,214 @@
+name: ARGOS Post-Pilot Reboot Persistence Gate
+
+# LIVE MACHINE GATE — manual only. Run only after C11_CONTROLLED_PILOT=GREEN on
+# this exact SHA. It performs one controlled iMac reboot, sends nothing, and
+# requires the wwebjs LocalAuth writer to recover PAUSED with outbound total 78.
+on:
+  workflow_dispatch:
+    inputs:
+      expected_outbound_total:
+        description: Exact lifetime outbound total after the single C11 pilot
+        required: true
+        default: '78'
+        type: string
+      confirm_reboot:
+        description: Explicit reboot authorization token
+        required: true
+        default: 'NO'
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: argos-postpilot-reboot-persistence
+  cancel-in-progress: false
+
+jobs:
+  persistence:
+    name: Reboot persistence restore and provenance
+    runs-on: [self-hosted, macbook, argos]
+    timeout-minutes: 15
+    steps:
+      - name: Require explicit post-C11 reboot authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ inputs.expected_outbound_total }}" = '78'
+          test "${{ inputs.confirm_reboot }}" = 'REBOOT_IMAC_AFTER_C11'
+          echo 'POSTPILOT_EXPECTED_OUTBOUND_TOTAL=78'
+          echo 'REBOOT_AUTHORIZATION=EXPLICIT'
+
+      - name: Native exact-SHA checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${GITHUB_WORKSPACE:-}"
+          test -n "${RUNNER_WORKSPACE:-}"
+          case "$GITHUB_WORKSPACE" in
+            "$RUNNER_WORKSPACE"/*) ;;
+            *) echo "BLOCKED: unexpected GITHUB_WORKSPACE=$GITHUB_WORKSPACE" >&2; exit 70 ;;
+          esac
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+          git init -q "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE"
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach --force FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          branch_sha="$(git ls-remote https://github.com/${GITHUB_REPOSITORY}.git refs/heads/sol/argos-wwebjs-c10-production | awk '{print $1}')"
+          test "$branch_sha" = "$GITHUB_SHA"
+          echo "POSTPILOT_CHECKOUT_SHA=$GITHUB_SHA"
+
+      - name: Require GREEN post-C11 state before reboot
+        id: pre
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET='gianlucadistasi@iMac-di-gianluca.local'
+          SSH=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -o ServerAliveInterval=5 -o ServerAliveCountMax=2)
+          ssh "${SSH[@]}" "$TARGET" "bash -s -- '$GITHUB_SHA' '78'" > /tmp/argos-postpilot-pre.txt <<'REMOTE'
+          set -euo pipefail
+          SHA="$1"; EXPECTED="$2"; SHORT="${SHA:0:12}"
+          RELEASE="$HOME/Documents/argos-c10-release-$SHORT"
+          DB="$HOME/Documents/app-antigravity-auto/dealer_network.sqlite"
+          BRIDGE_DB="$HOME/Documents/app-antigravity-auto/comm-broker/bridge.sqlite"
+          ENV_FILE="$RELEASE/wa-intelligence/.env"
+          test -d "$RELEASE/.git"
+          test "$(git -C "$RELEASE" rev-parse HEAD)" = "$SHA"
+          writer_count="$(ps -axo command= | awk '/[w]a-daemon\.js/ && /[n]ode/ {n++} END{print n+0}')"
+          test "$writer_count" = 1
+          python3 "$RELEASE/tools/scripts/argos_postpilot_readiness.py" \
+            --repo-root "$RELEASE" \
+            --db-path "$DB" \
+            --bridge-db-path "$BRIDGE_DB" \
+            --env-path "$ENV_FILE" \
+            --expected-head "$SHA" \
+            --expected-outbound-total "$EXPECTED" \
+            >/tmp/argos-postpilot-pre.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/argos-postpilot-pre.json',encoding='utf-8'))
+          assert d.get('ok') is True and d.get('gate')=='ARGOS_POSTPILOT_READINESS', d
+          PY
+          boot="$(python3 - <<'PY'
+          import re,subprocess
+          p=subprocess.run(['sysctl','-n','kern.boottime'],text=True,stdout=subprocess.PIPE,check=True)
+          m=re.search(r'sec\s*=\s*(\d+)',p.stdout)
+          assert m
+          print(m.group(1))
+          PY
+          )"
+          rm -f /tmp/argos-postpilot-pre.json
+          echo "PRE_WRITER_COUNT=1"
+          echo "PRE_OUTBOUND_TOTAL=78"
+          echo "PRE_RUNTIME_STATUS=PAUSED"
+          echo "PRE_CONNECTED=YES"
+          echo "PRE_BOOT_EPOCH=$boot"
+          REMOTE
+          cat /tmp/argos-postpilot-pre.txt
+          boot="$(awk -F= '$1=="PRE_BOOT_EPOCH"{print $2}' /tmp/argos-postpilot-pre.txt | tail -1)"
+          [[ "$boot" =~ ^[0-9]+$ ]]
+          echo "boot_epoch=$boot" >> "$GITHUB_OUTPUT"
+
+      - name: Reboot iMac once and prove host transition
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET='gianlucadistasi@iMac-di-gianluca.local'
+          SSH=(-o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=yes -o ServerAliveInterval=3 -o ServerAliveCountMax=1)
+          ssh "${SSH[@]}" "$TARGET" 'sudo -n -v'
+          ssh "${SSH[@]}" "$TARGET" 'sudo -n -v && (sudo -n /sbin/shutdown -r now >/dev/null 2>&1 &)' || true
+
+          down=0
+          for _ in $(seq 1 30); do
+            if ! ssh "${SSH[@]}" "$TARGET" 'true' >/dev/null 2>&1; then down=1; break; fi
+            sleep 2
+          done
+          test "$down" = 1
+          echo 'IMAC_REBOOT_DOWN_TRANSITION=PASS'
+
+          up=0
+          for _ in $(seq 1 60); do
+            if ssh "${SSH[@]}" "$TARGET" 'true' >/dev/null 2>&1; then up=1; break; fi
+            sleep 5
+          done
+          test "$up" = 1
+          echo 'IMAC_REBOOT_UP_TRANSITION=PASS'
+
+      - name: Prove persistence recovery restore and exact provenance
+        id: post
+        shell: bash
+        env:
+          PRE_BOOT_EPOCH: ${{ steps.pre.outputs.boot_epoch }}
+        run: |
+          set -euo pipefail
+          TARGET='gianlucadistasi@iMac-di-gianluca.local'
+          SSH=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -o ServerAliveInterval=5 -o ServerAliveCountMax=2)
+          ssh "${SSH[@]}" "$TARGET" "bash -s -- '$GITHUB_SHA' '78' '$PRE_BOOT_EPOCH'" <<'REMOTE'
+          set -euo pipefail
+          SHA="$1"; EXPECTED="$2"; PRE_BOOT="$3"; SHORT="${SHA:0:12}"
+          RELEASE="$HOME/Documents/argos-c10-release-$SHORT"
+          DB="$HOME/Documents/app-antigravity-auto/dealer_network.sqlite"
+          BRIDGE_DB="$HOME/Documents/app-antigravity-auto/comm-broker/bridge.sqlite"
+          ENV_FILE="$RELEASE/wa-intelligence/.env"
+
+          ready=0
+          for _ in $(seq 1 36); do
+            if curl --silent --fail --max-time 3 http://127.0.0.1:9191/health >/dev/null 2>&1; then ready=1; break; fi
+            sleep 5
+          done
+          test "$ready" = 1
+
+          writer_count="$(ps -axo command= | awk '/[w]a-daemon\.js/ && /[n]ode/ {n++} END{print n+0}')"
+          test "$writer_count" = 1
+          python3 "$RELEASE/tools/scripts/argos_postpilot_readiness.py" \
+            --repo-root "$RELEASE" \
+            --db-path "$DB" \
+            --bridge-db-path "$BRIDGE_DB" \
+            --env-path "$ENV_FILE" \
+            --expected-head "$SHA" \
+            --expected-outbound-total "$EXPECTED" \
+            --pre-reboot-boot-epoch "$PRE_BOOT" \
+            >/tmp/argos-postpilot-post.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/argos-postpilot-post.json',encoding='utf-8'))
+          assert d.get('ok') is True and d.get('gate')=='ARGOS_POSTPILOT_READINESS', d
+          required={x['name']:x['ok'] for x in d.get('checks',[])}
+          for name in ('reboot_proven','primary_restore_drill','bridge_restore_drill','expected_head','env_private','localauth_session_present','health_connected','runtime_paused','postpilot_outbound_total','authorized_recipients_zero'):
+              assert required.get(name) is True, (name,required.get(name))
+          PY
+          rm -f /tmp/argos-postpilot-post.json
+          echo 'POST_WRITER_COUNT=1'
+          echo 'POST_OUTBOUND_TOTAL=78'
+          echo 'POST_CONNECTED=YES'
+          echo 'POST_RUNTIME_STATUS=PAUSED'
+          echo 'REBOOT_PERSISTENCE=PASS'
+          echo 'RESTORE_DRILL=PASS'
+          echo 'RECOVERY=PASS'
+          echo 'PROVENANCE_EXACT_SHA=PASS'
+          echo 'POSTPILOT_MACHINE=GREEN'
+          REMOTE
+
+      - name: Publish safe post-pilot evidence to PR 4
+        if: ${{ always() }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          POST_OUTCOME: ${{ steps.post.outcome }}
+        run: |
+          set -euo pipefail
+          body="POSTPILOT_MACHINE_JOB=${POST_OUTCOME^^}\nHEAD=${GITHUB_SHA}\nEXPECTED_OUTBOUND_TOTAL=78\nREBOOT_REQUIRED=YES\nRESTORE_DRILL=TEMPORARY_SQLITE_ONLY\nRECIPIENT_DETAILS_EXPOSED=NO\n"
+          python3 - "$body" <<'PY' >/tmp/argos-postpilot-comment.json
+          import json,sys
+          print(json.dumps({'body':sys.argv[1]}))
+          PY
+          curl --fail --silent --show-error -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/4/comments" \
+            --data-binary @/tmp/argos-postpilot-comment.json >/dev/null

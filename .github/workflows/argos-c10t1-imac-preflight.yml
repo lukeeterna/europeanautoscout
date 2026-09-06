@@ -1,0 +1,155 @@
+name: ARGOS C10T1 iMac Read-Only Preflight
+
+# Production-machine evidence is deliberately NOT run on pull_request.
+# This repository is public: only the controlled production branch or a manual
+# dispatch may reach the self-hosted MacBook runner, which then uses the
+# MacBook's existing strict SSH trust to inspect the iMac read-only.
+#
+# IMPORTANT: this MacBook runs macOS 11.7.10. GitHub's Node 24 action runtime is
+# built for newer macOS and cannot execute here. Keep this workflow shell-native:
+# no Node-based actions are permitted in the machine lane.
+# C10 cutover arm: preserve live wa-sender/session-argos-business LocalAuth identity.
+# Pairing throttle guard: local pairing is manual single-shot; C10 stays fail-closed.
+# Exact-SHA arm after disabling automatic pairing and automatic production cutover.
+# Production gate arm: post-pilot readiness tooling must parse on the same MacBook lane.
+
+on:
+  push:
+    branches:
+      - sol/argos-wwebjs-c10-production
+    paths:
+      - '.github/workflows/argos-c10t1-imac-preflight.yml'
+      - '.github/workflows/argos-c10-wwebjs-cutover.yml'
+      - 'tools/scripts/argos_c10_machine_probe.sh'
+      - 'tools/scripts/argos_c10_runtime_diag.sh'
+      - 'tools/scripts/argos_postpilot_readiness.py'
+      - 'tools/scripts/bootstrap_argos_runner_macbook.sh'
+      - 'wa-intelligence/tools/argos_c10_wwebjs_cutover.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: argos-c10-machine-readonly
+  cancel-in-progress: false
+
+jobs:
+  imac-preflight:
+    name: Read-only iMac production facts
+    runs-on: [self-hosted, macbook, argos]
+    timeout-minutes: 10
+
+    steps:
+      - name: Native exact-SHA checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v git >/dev/null
+          test -n "${GITHUB_WORKSPACE:-}"
+          test -n "${RUNNER_WORKSPACE:-}"
+          case "$GITHUB_WORKSPACE" in
+            "$RUNNER_WORKSPACE"/*) ;;
+            *) echo "BLOCKED: unexpected GITHUB_WORKSPACE=$GITHUB_WORKSPACE" >&2; exit 70 ;;
+          esac
+
+          # Clean only this repository's Actions workspace. Never touch the
+          # runner installation, FLUXION workspace, or the iMac production tree.
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+          git init -q "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE"
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach --force FETCH_HEAD
+          actual_sha="$(git rev-parse HEAD)"
+          test "$actual_sha" = "$GITHUB_SHA"
+          echo "NATIVE_CHECKOUT_SHA=$actual_sha"
+
+      - name: Verify isolated MacBook lane
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -s)" = "Darwin"
+          command -v ssh >/dev/null
+          command -v python3 >/dev/null
+          test -f tools/scripts/argos_c10_machine_probe.sh
+          test -f tools/scripts/argos_c10_runtime_diag.sh
+          test -f tools/scripts/argos_postpilot_readiness.py
+          test -f tools/scripts/bootstrap_argos_runner_macbook.sh
+          test -f wa-intelligence/tools/argos_c10_wwebjs_cutover.sh
+          test -f .github/workflows/argos-c10-wwebjs-cutover.yml
+          bash -n tools/scripts/argos_c10_machine_probe.sh
+          bash -n tools/scripts/argos_c10_runtime_diag.sh
+          bash -n tools/scripts/bootstrap_argos_runner_macbook.sh
+          bash -n wa-intelligence/tools/argos_c10_wwebjs_cutover.sh
+          python3 -m py_compile tools/scripts/argos_postpilot_readiness.py
+          grep -q 'LOCALAUTH_PROFILE_NOT_PERSISTED' tools/scripts/argos_c10_machine_probe.sh
+          echo "RUNNER_LANE=SELF_HOSTED_MACBOOK_ARGOS"
+          echo "EXPECTED_SHA=$GITHUB_SHA"
+          echo "CUTOVER_TOOLING_PRESENT=YES"
+          echo "POSTPILOT_TOOLING_PARSE=PASS"
+          echo "LOCALAUTH_PERSISTENCE_INVARIANT=ENFORCED"
+          echo "PRODUCTION_MUTATION=NONE"
+          echo "OUTBOUND_ACTION=NONE"
+
+      - name: Diagnose DB and LocalAuth runtime read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/scripts/argos_c10_runtime_diag.sh "$GITHUB_SHA"
+
+      - name: Probe iMac read-only and classify C10
+        id: machine_probe
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -uo pipefail
+          : > /tmp/argos-c10-machine-evidence.txt
+          bash tools/scripts/argos_c10_machine_probe.sh "$GITHUB_SHA" \
+            2>&1 | tee /tmp/argos-c10-machine-evidence.txt
+          exit "${PIPESTATUS[0]}"
+
+      - name: Publish safe machine evidence to PR 4
+        if: ${{ always() }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBE_OUTCOME: ${{ steps.machine_probe.outcome }}
+        run: |
+          set -euo pipefail
+          evidence=/tmp/argos-c10-machine-evidence.txt
+          touch "$evidence"
+          summary="$(grep -E '^(EXPECTED_SHA|WRITER_ONLINE_COUNT|WRITER_PID|WRITER_CWD|WRITER_SCRIPT|WRITER_TRANSPORT|WRITER_AUTOMATION_ENABLED|WRITER_SESSION_DIR|WRITER_CLIENT_ID|DEPLOYED_SHA|SCHEDULER_STATUS|SCHEDULER_CWD|PORT_9191_LISTENER_COUNT|HEALTH_(TRANSPORT|CONNECTED|AGENT_STATUS|BRIDGE_ENABLED|PENDING_BRIDGE|GLOBAL_OUTBOUND_24H)|PRIMARY_DB_(PRESENT|QUICK_CHECK)|DB_AGENT_STATUS|OUTBOUND_TOTAL|BRIDGE_DB_(PRESENT|QUICK_CHECK)|BRIDGE_PENDING_APPROVED|LOCALAUTH_(SESSION_ROOT_PRESENT|SESSION_ROOT_CANONICAL|CLIENT_ID_CONFIGURED|PROFILE_PRESENT|PROFILE_FILE_COUNT_POSITIVE)|WA_SENDER_AUTH_(PRESENT|PROFILES|FILE_COUNT|LATEST_MTIME_UTC|LOCKLIKE_COUNT)|LEGACY_WWEBJS_AUTH_(PRESENT|PROFILES|FILE_COUNT|LATEST_MTIME_UTC|LOCKLIKE_COUNT)|C10_MACHINE|BLOCKERS)=' "$evidence" | tail -n 100 || true)"
+          python3 - "$PROBE_OUTCOME" "$GITHUB_SHA" "$summary" <<'PY' >/tmp/argos-pr-comment.json
+          import json, sys
+          outcome, sha, summary = sys.argv[1:]
+          body = (
+              "C10T1_MACHINE_PROBE=" + outcome.upper() + "\n"
+              + "HEAD=" + sha + "\n"
+              + "PRODUCTION_MUTATED=NO\nOUTBOUND_ACTION=NONE\n\n```text\n"
+              + (summary or "NO_MACHINE_EVIDENCE") + "\n```"
+          )
+          print(json.dumps({"body": body}))
+          PY
+          curl --fail --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/4/comments" \
+            --data-binary @/tmp/argos-pr-comment.json >/dev/null
+
+      - name: Enforce real C10 machine verdict
+        if: ${{ always() }}
+        shell: bash
+        env:
+          PROBE_OUTCOME: ${{ steps.machine_probe.outcome }}
+        run: |
+          set -euo pipefail
+          evidence=/tmp/argos-c10-machine-evidence.txt
+          test "$PROBE_OUTCOME" = success
+          grep -qx 'C10_MACHINE=GREEN' "$evidence"
+          grep -qx 'BLOCKERS=NONE' "$evidence"
+          echo 'C10T1_IMAC_PREFLIGHT=PASS'

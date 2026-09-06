@@ -2,11 +2,13 @@
 """ARGOS S292 production daemon entrypoint.
 
 PM2 starts this tiny process instead of invoking ``wa-daemon.js`` directly.
-It establishes one deployment invariant before Node opens WhatsApp:
+Before Node opens any WhatsApp transport it establishes deployment invariants:
 
 - on the FIRST boot of a DB, ``agent_status`` is PAUSED;
 - an existing PAUSED/ACTIVE value is never overwritten, so an explicit
-  ``/resume`` survives ordinary restarts.
+  ``/resume`` survives ordinary restarts;
+- traceable WhatsApp consent columns exist before the official Cloud policy
+  adapter can resolve a dealer.
 
 The wrapper then ``exec``s the same single-writer Node daemon; it is not a
 second writer and contains no transport code.
@@ -24,6 +26,10 @@ from typing import Optional
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+
+from whatsapp_consent import ensure_consent_columns  # noqa: E402
 
 
 def initialize_runtime_state(db_path: str) -> str:
@@ -76,6 +82,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     try:
         db_path, _ = validate_required_environment()
         status = initialize_runtime_state(db_path)
+        ensure_consent_columns(db_path)
         node = shutil.which("node")
         if not node:
             raise RuntimeError("node executable not found in PATH")
@@ -88,6 +95,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                     "ok": True,
                     "entrypoint": "argos-s292",
                     "initial_agent_status": status,
+                    "consent_schema": "ready",
                     "daemon": str(daemon),
                 },
                 sort_keys=True,

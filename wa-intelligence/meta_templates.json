@@ -1,0 +1,20 @@
+{
+  "DAY1_PREMIUM": {
+    "env_name": "META_WA_TEMPLATE_DAY1_NAME",
+    "category": "MARKETING",
+    "body": "Buongiorno, sono Azzurra, assistente di Luca Ferretti.\nHo trovato la sua attività tramite {{1}}. Luca lavora sulla ricerca e verifica di auto premium europee per operatori italiani, soprattutto quando c'è una richiesta specifica da coprire.\nLe capita di ricevere richieste per {{2}} o SUV premium che non riesce a coprire subito?\nSe non è un tema utile, mi scriva pure 'no' e chiudo qui.",
+    "parameters": ["source", "brand_focus"]
+  },
+  "DAY7_RECOVERY": {
+    "env_name": "META_WA_TEMPLATE_DAY7_NAME",
+    "category": "MARKETING",
+    "body": "{{1}}, le avevo scritto riguardo al supporto per ricerche auto su richiesta. Se non è un tema utile, nessun problema: mi basta un 'no' e chiudo il contatto.",
+    "parameters": ["dealer_name"]
+  },
+  "DAY12_FINAL": {
+    "env_name": "META_WA_TEMPLATE_DAY12_NAME",
+    "category": "MARKETING",
+    "body": "{{1}}, chiudo qui il contatto su questo tema. Se in futuro avrà una richiesta specifica da verificare sul mercato europeo, potrà riscrivermi. Buon lavoro.",
+    "parameters": ["dealer_name"]
+  }
+}
