@@ -8,6 +8,8 @@ on:
       - '.github/workflows/argos-c10-*.yml'
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
       - '.github/workflows/argos-prepairing-contract.yml'
+      - 'tests/test_argos_c10_pairing_helper.cjs'
+      - 'wa-intelligence/tools/argos_c10_pairing_helper.js'
       - 'tests/test_argos_pre_pairing_readiness.py'
       - 'tests/test_argos_c11_preflight.py'
       - 'tools/scripts/argos_c11_preflight.py'
@@ -22,6 +24,8 @@ on:
       - '.github/workflows/argos-c10-*.yml'
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
       - '.github/workflows/argos-prepairing-contract.yml'
+      - 'tests/test_argos_c10_pairing_helper.cjs'
+      - 'wa-intelligence/tools/argos_c10_pairing_helper.js'
       - 'tests/test_argos_pre_pairing_readiness.py'
       - 'tests/test_argos_c11_preflight.py'
       - 'tools/scripts/argos_c11_preflight.py'
@@ -43,6 +47,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run isolated pairing lifecycle tests
+        run: node --test tests/test_argos_c10_pairing_helper.cjs
 
       - name: Setup Python
         uses: actions/setup-python@v5

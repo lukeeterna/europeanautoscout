@@ -40,7 +40,7 @@ function harness(t, options = {}) {
   processMock.exit = code => { exits.push(code); };
   const fakeRequire = name => {
     requested.push(name);
-    if (name === 'fs') return fs;
+    if (name === 'fs') return options.fs || fs;
     if (name === 'path') return path;
     if (name === 'qrcode') return { toDataURL: options.qr || (async () => 'data:image/png;base64,bW9jaw==') };
     if (name === 'whatsapp-web.js') return { Client: FakeClient, LocalAuth: FakeLocalAuth };
@@ -52,7 +52,7 @@ function harness(t, options = {}) {
     clearTimeout(id) { timers.delete(id); },
   }, { filename: 'argos_c10_pairing_helper.js' });
   const status = () => fs.existsSync(env.ARGOS_PAIR_STATUS_FILE) ? fs.readFileSync(env.ARGOS_PAIR_STATUS_FILE, 'utf8').trim() : null;
-  return { root, env, exits, timers, requested, get client() { return instance; }, status,
+  return { root, env, exits, timers, requested, process: processMock, get client() { return instance; }, status,
     async emit(event, value) { instance.emit(event, value); await flush(); },
   };
 }
@@ -166,4 +166,70 @@ test('synchronous initialize exception is caught and fails closed', async t => {
   await flush();
   assert.equal(h.status(), 'INIT_FAILED');
   assert.deepEqual(h.exits, [24]);
+});
+
+
+test('authentication without QR completes without QR retrieval or rendering', async t => {
+  let renders = 0;
+  const h = harness(t, { qr: async () => { renders++; return 'unused'; } });
+  await h.emit('authenticated');
+  assert.equal(h.status(), 'AUTHENTICATED_NO_QR');
+  await h.emit('ready');
+  assert.equal(h.status(), 'READY');
+  assert.equal(renders, 0);
+  assert.equal(fs.existsSync(h.env.ARGOS_PAIR_QR_FILE), false);
+  assert.deepEqual(h.exits, [0]);
+});
+
+for (const authenticated of [false, true]) {
+  test(`disconnect authenticated=${authenticated} is terminal`, async t => {
+    const h = harness(t);
+    if (authenticated) await h.emit('authenticated');
+    await h.emit('disconnected');
+    await h.emit('ready');
+    await h.emit('authenticated');
+    assert.equal(h.status(), authenticated ? 'DISCONNECTED_AFTER_AUTH' : 'DISCONNECTED');
+    assert.deepEqual(h.exits, [22]);
+    assert.equal(h.client.destroyCount, 1);
+  });
+}
+
+for (const [signal, code] of [['SIGTERM', 143], ['SIGINT', 130]]) {
+  test(`${signal} destroys once and prevents late READY`, async t => {
+    const h = harness(t);
+    h.client.emit('qr', 'mock');
+    h.process.emit(signal);
+    await flush();
+    await h.emit('ready');
+    assert.equal(h.status(), 'TERMINATED');
+    assert.deepEqual(h.exits, [code]);
+    assert.equal(h.client.destroyCount, 1);
+  });
+}
+
+test('READY status write failure exits nonzero', async t => {
+  const h = harness(t, { fs: { ...fs, writeFileSync(file, value, options) {
+    if (value === 'READY\n') throw new Error('disk full');
+    return fs.writeFileSync(file, value, options);
+  } } });
+  await h.emit('ready');
+  assert.equal(h.status(), 'STOPPING');
+  assert.deepEqual(h.exits, [25]);
+});
+
+test('pairing uses only staged filesystem and allowed dependencies, never send/resume/DB', async t => {
+  const paths = [];
+  const tracked = { ...fs };
+  for (const method of ['existsSync', 'mkdirSync', 'writeFileSync', 'chmodSync', 'renameSync']) {
+    tracked[method] = (...args) => { paths.push(args[0]); if (method === 'renameSync') paths.push(args[1]); return fs[method](...args); };
+  }
+  const h = harness(t, { fs: tracked });
+  h.client.sendMessage = () => assert.fail('outbound forbidden');
+  await h.emit('qr', 'mock');
+  await h.emit('authenticated');
+  await h.emit('ready');
+  assert.deepEqual(h.requested, ['fs', 'path', 'qrcode', 'whatsapp-web.js']);
+  assert.ok(paths.every(p => p.startsWith(h.root + path.sep)));
+  assert.equal(h.client.config.authStrategy.config.clientId, 'argos-business');
+  assert.equal(h.client.config.authStrategy.config.dataPath, h.env.ARGOS_PAIR_DATA_PATH);
 });
