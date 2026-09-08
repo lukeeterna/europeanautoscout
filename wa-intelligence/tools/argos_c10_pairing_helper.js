@@ -21,6 +21,7 @@ const statusFile = process.env.ARGOS_PAIR_STATUS_FILE || '';
 const chromeExecutable = process.env.ARGOS_PAIR_CHROME || '';
 const clientId = process.env.ARGOS_PAIR_CLIENT_ID || 'argos-business';
 const timeoutMs = Math.max(60_000, Number(process.env.ARGOS_PAIR_TIMEOUT_MS || 360_000));
+const shutdownTimeoutMs = 30_000;
 
 function fail(message) {
   throw new Error(message);
@@ -54,10 +55,25 @@ async function finish(status, exitCode) {
   if (finished) return;
   finished = true;
   if (timer) clearTimeout(timer);
-  try { setStatus(status); } catch (_) {}
+  // READY is a promotion credential: never publish it before shutdown.
+  // STOPPING is deliberately not accepted as success by the workflow.
+  try { setStatus('STOPPING'); } catch (_) {}
+  let shutdownTimer;
   try {
-    if (client) await client.destroy();
-  } catch (_) {}
+    await Promise.race([
+      Promise.resolve().then(() => client && client.destroy()),
+      new Promise((_, reject) => {
+        shutdownTimer = setTimeout(() => reject(new Error('shutdown timeout')), shutdownTimeoutMs);
+      }),
+    ]);
+  } catch (_) {
+    status = 'DESTROY_FAILED';
+    exitCode = 25;
+  } finally {
+    if (shutdownTimer) clearTimeout(shutdownTimer);
+  }
+  // A failed status write must also prevent a successful process exit.
+  try { setStatus(status); } catch (_) { exitCode = 25; }
   process.exit(exitCode);
 }
 
@@ -77,6 +93,8 @@ client.on('qr', async (qr) => {
   firstQrCaptured = true;
   try {
     const dataUrl = await QRCode.toDataURL(qr, { type: 'image/png', errorCorrectionLevel: 'M' });
+    // Rendering is asynchronous: authentication or shutdown may have won.
+    if (finished || authenticated) return;
     atomicWrite(qrFile, `${dataUrl}\n`, 0o600);
     setStatus('QR_READY');
   } catch (_) {
@@ -99,4 +117,4 @@ process.on('SIGINT', () => finish('TERMINATED', 130));
 // One initialize call only. Subsequent qr events from the same client are
 // deliberately ignored; a fresh attempt requires a fresh manual workflow run.
 timer = setTimeout(() => finish('TIMEOUT', 23), timeoutMs);
-client.initialize().catch(() => finish('INIT_FAILED', 24));
+Promise.resolve().then(() => client.initialize()).catch(() => finish('INIT_FAILED', 24));
