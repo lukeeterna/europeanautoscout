@@ -172,7 +172,10 @@ jobs:
           test -x "$PM2" || fail PM2_MISSING
           test -f "$READY_ROOT/MANIFEST" || fail READY_MANIFEST_MISSING
           grep -qx "pairing_source_sha=$SHA" "$READY_ROOT/MANIFEST" || fail READY_SHA_MISMATCH
+          grep -qx 'client_id=argos-business' "$READY_ROOT/MANIFEST" || fail READY_CLIENT_MISMATCH
           test -d "$READY_PROFILE" || fail READY_PROFILE_MISSING
+          test ! -L "$READY_PROFILE" || fail READY_PROFILE_SYMLINK
+          test -n "$(find "$READY_PROFILE" -type f -print -quit)" || fail READY_PROFILE_EMPTY
           test -d "$SESSION" || fail CANONICAL_PROFILE_MISSING
           test ! -e "$PROMO" || fail PROMOTION_STATE_EXISTS
 
@@ -198,39 +201,55 @@ jobs:
 
           mkdir -m 700 -p "$(dirname "$PROMO")"
           mkdir -m 700 "$PROMO"
-          cp -R "$SESSION" "$PROMO/original-session"
           printf '%s\n' "$OLD_CWD" > "$PROMO/old-cwd"
           chmod 600 "$PROMO/old-cwd"
 
+          browser_closed() {
+            for _ in $(seq 1 20); do
+              if ! ps -axo command= | grep -F "$SESSION_ROOT" | grep -i '[c]hrome' >/dev/null; then return 0; fi
+              sleep 1
+            done
+            return 1
+          }
           rollback() {
             rc="$?"
+            trap - EXIT
             if [ "$MUTATED" = 1 ]; then
               echo 'PAIRING_PROFILE_ROLLBACK=BEGIN' >&2
-              "$PM2" stop argos-outreach-scheduler argos-wa-daemon >/dev/null 2>&1 || true
-              "$PM2" delete argos-outreach-scheduler argos-wa-daemon >/dev/null 2>&1 || true
-              rm -rf "$SESSION"
-              if [ -d "$PROMO/original-session" ]; then cp -R "$PROMO/original-session" "$SESSION"; fi
-              if [ -f "$OLD_CWD/ecosystem.config.js" ]; then
-                (cd "$OLD_CWD" && "$PM2" start ecosystem.config.js --only argos-wa-daemon,argos-outreach-scheduler --update-env) >/dev/null 2>&1 || true
-                "$PM2" save >/dev/null 2>&1 || true
+              "$PM2" stop argos-outreach-scheduler argos-wa-daemon >/dev/null 2>&1 || { echo 'PAIRING_PROFILE_ROLLBACK=BLOCKED_STOP' >&2; exit 30; }
+              browser_closed || { echo 'PAIRING_PROFILE_ROLLBACK=BLOCKED_BROWSER' >&2; exit 30; }
+              if [ -d "$PROMO/original-session" ]; then
+                # Retain the closed original until restore and machine proof succeed.
+                cp -R "$PROMO/original-session" "$PROMO/restore-session" || exit 30
+                if [ -e "$SESSION" ]; then mv "$SESSION" "$PROMO/failed-session" || exit 30; fi
+                mv "$PROMO/restore-session" "$SESSION" || exit 30
               fi
+              (cd "$OLD_CWD" && "$PM2" start ecosystem.config.js --only argos-wa-daemon,argos-outreach-scheduler --update-env) >/dev/null 2>&1 || exit 30
               echo 'PAIRING_PROFILE_ROLLBACK=ATTEMPTED' >&2
             fi
             exit "$rc"
           }
-          trap rollback ERR
+          trap rollback EXIT
+          trap 'exit 143' TERM
+          trap 'exit 130' INT
           MUTATED=1
 
           "$PM2" stop argos-outreach-scheduler argos-wa-daemon >/dev/null
-          for _ in $(seq 1 20); do
-            if ! ps -axo command= | grep -F "$SESSION_ROOT" | grep -i '[c]hrome' >/dev/null; then break; fi
-            sleep 1
-          done
-          if ps -axo command= | grep -F "$SESSION_ROOT" | grep -i '[c]hrome' >/dev/null; then false; fi
+          browser_closed || fail BROWSER_SHUTDOWN_TIMEOUT
+          test "$(ps -axo command= | awk '/[w]a-daemon\.js/ && /[n]ode/ {n++} END{print n+0}')" = 0 || fail WRITER_STILL_RUNNING
 
-          rm -rf "$SESSION"
-          cp -R "$READY_PROFILE" "$SESSION"
-          chmod -R go-rwx "$SESSION"
+          # Copy only the closed staged profile, then keep the exact closed old
+          # profile by rename. Both renames are on the same volume; on failure
+          # EXIT rollback restores original-session without deleting credentials.
+          cp -R "$READY_PROFILE" "$PROMO/new-session"
+          chmod -R go-rwx "$PROMO/new-session"
+          test ! -L "$SESSION" || fail CANONICAL_PROFILE_SYMLINK
+          python3 - "$SESSION_ROOT" "$PROMO" <<'PYDEV'
+          import os,sys
+          assert os.stat(sys.argv[1]).st_dev == os.stat(sys.argv[2]).st_dev, 'CROSS_DEVICE_PROMOTION'
+          PYDEV
+          mv "$SESSION" "$PROMO/original-session"
+          mv "$PROMO/new-session" "$SESSION"
           (cd "$OLD_CWD" && "$PM2" start ecosystem.config.js --only argos-wa-daemon,argos-outreach-scheduler --update-env) >/dev/null
           sleep 5
 
@@ -248,7 +267,7 @@ jobs:
           test "$POST" = 'PAUSED|77'
           "$PM2" save >/dev/null
           MUTATED=0
-          trap - ERR
+          trap - EXIT INT TERM
           echo 'PAIRING_PROFILE_PROMOTION=PASS'
           echo 'PAIRING_SOURCE=STAGED_READY'
           echo 'PAIRING_POST_WRITER_COUNT=1'
@@ -310,8 +329,10 @@ jobs:
             echo 'PAIRING_PROFILE_ROLLBACK=BLOCKED_BROWSER' >&2
             exit 30
           fi
-          rm -rf "$SESSION"
-          cp -R "$PROMO/original-session" "$SESSION"
+          test ! -e "$PROMO/external-restore" || { echo 'ROLLBACK=RECOVERY_STATE_EXISTS' >&2; exit 30; }
+          cp -R "$PROMO/original-session" "$PROMO/external-restore"
+          if [ -e "$SESSION" ]; then mv "$SESSION" "$PROMO/external-failed-session"; fi
+          mv "$PROMO/external-restore" "$SESSION"
           (cd "$OLD_CWD" && "$PM2" start ecosystem.config.js --only argos-wa-daemon,argos-outreach-scheduler --update-env) >/dev/null
           sleep 5
           writer_count="$(ps -axo command= | awk '/[w]a-daemon\.js/ && /[n]ode/ {n++} END{print n+0}')"

@@ -8,6 +8,8 @@ on:
       - '.github/workflows/argos-c10-*.yml'
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
       - '.github/workflows/argos-prepairing-contract.yml'
+      - 'tests/test_argos_cutover_recovery.py'
+      - 'tests/test_argos_pairing_workflow.py'
       - 'tests/test_argos_c10_pairing_helper.cjs'
       - 'wa-intelligence/tools/argos_c10_pairing_helper.js'
       - 'tests/test_argos_pre_pairing_readiness.py'
@@ -24,6 +26,8 @@ on:
       - '.github/workflows/argos-c10-*.yml'
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
       - '.github/workflows/argos-prepairing-contract.yml'
+      - 'tests/test_argos_cutover_recovery.py'
+      - 'tests/test_argos_pairing_workflow.py'
       - 'tests/test_argos_c10_pairing_helper.cjs'
       - 'wa-intelligence/tools/argos_c10_pairing_helper.js'
       - 'tests/test_argos_pre_pairing_readiness.py'
@@ -76,6 +80,8 @@ jobs:
           PYTHONPATH: .
         run: |
           python -m unittest -v \
+            tests.test_argos_cutover_recovery \
+            tests.test_argos_pairing_workflow \
             tests.test_argos_pre_pairing_readiness \
             tests.test_argos_c11_preflight
 

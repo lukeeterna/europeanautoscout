@@ -169,7 +169,16 @@ jobs:
               ssh "${SSH[@]}" "$TARGET" "bash -s -- '$GITHUB_RUN_ID'" <<'REMOTE' >/dev/null 2>&1 || true
           RUN_ID="$1"; STAGE="$HOME/Documents/argos-c10-pairing-ready/.stage-$RUN_ID"
           if [ -f "$STAGE/helper.pid" ]; then kill "$(cat "$STAGE/helper.pid")" >/dev/null 2>&1 || true; fi
-          rm -rf "$STAGE"
+          # SIGTERM begins asynchronous destroy; never remove an open profile.
+          for _ in $(seq 1 35); do
+            if ! ps -axo command= | grep -F "$STAGE" | grep -E '[c]hrome|[n]ode' >/dev/null; then
+              rm -rf "$STAGE"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo 'PAIRING_CLEANUP=BLOCKED_PROCESS_STILL_OPEN' >&2
+          exit 30
           REMOTE
             fi
           }
@@ -202,14 +211,17 @@ jobs:
           for _ in $(seq 1 60); do
             status="$(ssh "${SSH[@]}" "$TARGET" "cat $REMOTE_STAGE/status 2>/dev/null || true")"
             case "$status" in
-              QR_READY|AUTHENTICATED|READY) break ;;
-              AUTH_FAILURE|DISCONNECTED*|QR_RENDER_FAILED|INIT_FAILED|TIMEOUT|TERMINATED) echo "PAIRING_HELPER_STATUS=$status" >&2; exit 21 ;;
+              QR_READY|AUTHENTICATED|AUTHENTICATED_NO_QR|STOPPING|READY) break ;;
+              AUTH_FAILURE|DISCONNECTED*|QR_RENDER_FAILED|INIT_FAILED|TIMEOUT|TERMINATED|DESTROY_FAILED) echo "PAIRING_HELPER_STATUS=$status" >&2; exit 21 ;;
             esac
             sleep 2
           done
-          test -n "$status"
+          case "$status" in
+            QR_READY|AUTHENTICATED|AUTHENTICATED_NO_QR|STOPPING|READY) ;;
+            *) echo 'PAIRING_INITIAL_STATUS=TIMEOUT' >&2; exit 23 ;;
+          esac
 
-          if [ "$status" != READY ]; then
+          if [ "$status" = QR_READY ]; then
             # The QR payload is consumed exactly once by the local renderer. It
             # is never echoed, uploaded, persisted as an Actions artifact or
             # fetched again during this workflow attempt.
@@ -226,7 +238,7 @@ jobs:
             status="$(ssh "${SSH[@]}" "$TARGET" "cat $REMOTE_STAGE/status 2>/dev/null || true")"
             if [ "$status" = READY ]; then ready=1; break; fi
             case "$status" in
-              AUTH_FAILURE|DISCONNECTED*|QR_RENDER_FAILED|INIT_FAILED|TIMEOUT|TERMINATED) echo "PAIRING_HELPER_STATUS=$status" >&2; exit 22 ;;
+              AUTH_FAILURE|DISCONNECTED*|QR_RENDER_FAILED|INIT_FAILED|TIMEOUT|TERMINATED|DESTROY_FAILED) echo "PAIRING_HELPER_STATUS=$status" >&2; exit 22 ;;
             esac
             sleep 5
           done
@@ -241,6 +253,12 @@ jobs:
           READY="$BASE/$SHA"
           test "$(cat "$STAGE/status")" = READY
           test -d "$STAGE/auth/session-argos-business"
+          test -n "$(find "$STAGE/auth/session-argos-business" -type f -print -quit)"
+          for _ in $(seq 1 10); do
+            if ! ps -axo command= | grep -F "$STAGE" | grep -E '[c]hrome|[n]ode' >/dev/null; then break; fi
+            sleep 1
+          done
+          if ps -axo command= | grep -F "$STAGE" | grep -E '[c]hrome|[n]ode' >/dev/null; then exit 30; fi
           test ! -e "$READY"
           rm -f "$STAGE/qr.txt" "$STAGE/helper.log" "$STAGE/helper.pid" "$STAGE/status"
           printf 'pairing_source_sha=%s\nclient_id=argos-business\n' "$SHA" > "$STAGE/MANIFEST"

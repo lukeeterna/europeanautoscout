@@ -19,14 +19,21 @@ Confirmed no workflow invoked that test file. Added mandatory Node test step and
 both helper/test paths to pre-pairing push/PR triggers. Expanded to 19 passing
 mock-client tests: auth without QR, disconnect before/after auth, SIGINT/SIGTERM,
 failed READY persistence, allowed dependencies and isolated filesystem access.
-Hosted verification of this new unit is pending publication.
+Published pairing unit: 2928c863072c7395077e33a05eb3a3db90eb4be6.
+Hosted pre-pairing run 34275500270 succeeded, including the new Node step.
+https://github.com/lukeeterna/europeanautoscout/actions/runs/34275500270
+
+Second unit: reproduced 3 polling RED tests and 6 LocalAuth recovery RED tests.
+Corrected auth-without-QR polling, terminal destroy failure handling, closed-profile
+backup order, exact client/nonempty profile checks, recoverable rename promotion,
+EXIT/signal traps, and browser guards before internal/external restore.
+9 filesystem/SQLite/process-mock recovery tests pass; 3 polling tests pass.
+All modified workflow shell steps parse. These are simulations, not machine proof.
+Hosted verification of second unit pending publication.
 
 ## Open RED / unclosed gates
-- Pairing workflow tries to retrieve QR after authentication even when no QR file
-  was written. DESTROY_FAILED is not included in its terminal failure cases.
-- Cutover promotion copies the old LocalAuth profile BEFORE browser shutdown.
-  Its internal rollback can replace the profile without a browser-exit proof.
-  Functional filesystem/process failure-injection tests are still required.
+- Full cutover shell rollback and process recovery still need additional audit;
+  promotion tests above do not certify the entire machine cutover.
 - wwebjs sendMessage exceptions remain generic; bridge catch defers generic
   errors, including potentially delivered sends. Crash window before sent_ts and
   durable idempotency across HTTP/bridge remain to be tested and closed.
@@ -34,9 +41,8 @@ Hosted verification of this new unit is pending publication.
 - No immutable certified release candidate produced in this session yet.
 
 ## Next executable action
-Fix pairing workflow state handling with executable workflow tests; close
-cutover backup/rollback failures using temporary filesystems and mock processes.
-Then exercise durable send ambiguity/idempotency and release provenance.
+Exercise durable send ambiguity/idempotency, then audit remaining cutover shell
+rollback, security and release provenance. Verify hosted second-unit tests first.
 
 ## External gates and truth levels
 REPO GREEN: previous three contracts only; expanded unit pending hosted CI.
