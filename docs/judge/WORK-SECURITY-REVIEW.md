@@ -43,9 +43,11 @@ Commands used redaction=100 and stored only redacted local reports.
 - Repository-native full-history scan: 12 unique historical blob matches, all the
   strong `gmail-app-password` rule. See WORK-SECRET-HISTORY.md for the redacted
   scope and required closure evidence; its counting model differs from Gitleaks.
-- A repository-native exact-Git-object scanner is pending publication in S292. It
-  reports only path, line, rule and count, scans binary/text blobs, and has tests
-  for exact-revision isolation, token/app-password detection and redacted output.
+- The repository-native exact-Git-object scanner is published and mandatory in
+  S292. It reports only path, line, rule and count, scans binary/text blobs, and
+  has tests for exact-revision isolation, token/app-password detection, history
+  persistence and redacted output. Exact current tree `5c4980b` is GREEN; the
+  historical findings and provider-side revocation remain RED.
 
 ## Runtime hardening verified offline
 
@@ -69,6 +71,11 @@ Commands used redaction=100 and stored only redacted local reports.
 - The candidate bundle is generated from an explicit allowlist and exact Git
   blobs, with per-file hashes and an external archive checksum. Its security
   status remains OPEN in the embedded manifest.
+- S292 executes a fail-closed npm audit regression gate. It accepts a clean audit
+  or only the exact five-node, two-advisory optional dependency chain documented
+  above at the reviewed lock versions. New advisories, critical severity, package
+  versions or dependency edges fail CI. Acceptance of the known result emits
+  `ARGOS_RELEASE_SECURITY=OPEN`; it is explicitly not a waiver.
 
 These tests do not prove live WhatsApp receipt, iMac reboot, Chrome shutdown,
 provider credential revocation, or an independent production security review.

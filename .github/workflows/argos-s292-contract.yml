@@ -15,6 +15,9 @@ on:
       - 'tools/scripts/argos_release_bundle.py'
       - 'tools/scripts/argos-release-files.txt'
       - 'tools/scripts/argos_secret_scan.py'
+      - 'tools/scripts/argos_npm_audit_gate.py'
+      - 'docs/judge/WORK-*.md'
+      - 'docs/runbooks/ARGOS_WWEBJS_RELEASE.md'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
@@ -28,6 +31,9 @@ on:
       - 'tools/scripts/argos_release_bundle.py'
       - 'tools/scripts/argos-release-files.txt'
       - 'tools/scripts/argos_secret_scan.py'
+      - 'tools/scripts/argos_npm_audit_gate.py'
+      - 'docs/judge/WORK-*.md'
+      - 'docs/runbooks/ARGOS_WWEBJS_RELEASE.md'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
@@ -71,6 +77,17 @@ jobs:
 
       - name: Execute native runtime dependency smoke
         run: npm --prefix wa-intelligence run verify:runtime-deps
+
+      - name: Enforce reviewed npm audit boundary
+        run: |
+          set +e
+          npm audit --prefix wa-intelligence --package-lock-only --include=optional --json > "$RUNNER_TEMP/argos-npm-audit.json"
+          audit_rc=$?
+          set -e
+          test "$audit_rc" -eq 0 -o "$audit_rc" -eq 1
+          python tools/scripts/argos_npm_audit_gate.py \
+            --audit "$RUNNER_TEMP/argos-npm-audit.json" \
+            --lock wa-intelligence/package-lock.json
 
       - name: Compile production Python modules
         run: |
@@ -131,6 +148,7 @@ jobs:
             tests.test_argos_runtime_entrypoint \
             tests.test_argos_daemon_integration \
             tests.test_argos_release_bundle \
+            tests.test_argos_npm_audit_gate \
             tests.test_argos_secret_scan \
             tests.test_argos_c10_transport_smoke
 

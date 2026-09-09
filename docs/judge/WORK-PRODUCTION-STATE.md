@@ -4,14 +4,15 @@
 - Repository: lukeeterna/europeanautoscout
 - Branch: sol/argos-wwebjs-c10-production
 - PR #4: open draft; base sol/argos-canonicalization-20260817; not merged.
-- Observed remote HEAD before this unit: 00183f325b8fe7d098e2b8f5789b2b53560d65c8.
+- Observed remote HEAD before the npm-audit regression unit:
+  5c4980b60bd3242d2b9094adce40a4213c1c3091.
 - This checkpoint's containing commit records the new unit; resolve it with Git.
 - Last observed SHA with all three hosted contracts passing:
-  af37fc3a5a4a6b92193161e0e6d30e996cf73eae. This is NOT full offline
+  5c4980b60bd3242d2b9094adce40a4213c1c3091. This is NOT full offline
   certification because the security gate remains open.
-- Runs: https://github.com/lukeeterna/europeanautoscout/actions/runs/34314437228
-  (S292), https://github.com/lukeeterna/europeanautoscout/actions/runs/34314437189
-  (pre-pairing), https://github.com/lukeeterna/europeanautoscout/actions/runs/34314437282
+- PR runs: https://github.com/lukeeterna/europeanautoscout/actions/runs/34380862558
+  (S292), https://github.com/lukeeterna/europeanautoscout/actions/runs/34380862548
+  (pre-pairing), https://github.com/lukeeterna/europeanautoscout/actions/runs/34380862555
   (post-pilot). All success, observed through GitHub connector.
 
 ## Completed unit
@@ -60,13 +61,13 @@ New WhatsApp Web runbook records safe reconciliation and old-runtime rollback li
   require triage/revocation evidence. See WORK-SECURITY-REVIEW.md.
 
 ## Next executable action
-Publish and verify the native exact-SHA checkout correction, then download and
-verify the hosted source-candidate artifact. Continue cutover-shell failure
-injection and outstanding security mitigation/triage.
+Publish and verify the npm-audit regression boundary. Then rebuild and verify the
+hosted exact-SHA source candidate and refresh this checkpoint with its immutable
+SHA/run/checksum. External security revocation/history coordination remains RED.
 
 ## External gates and truth levels
-REPO GREEN: all three functional contracts observed on e5411d5; the newer pending
-cutover-recovery unit requires its own hosted proof before it can replace that SHA.
+REPO GREEN: all three functional contracts observed on 5c4980b. The pending
+npm-audit regression unit requires its own hosted proof before replacing that SHA.
 Full release certification remains RED because of the open security gate.
 MACHINE GREEN: NOT VERIFIED. Existing read-only workflow triggered by second-unit
 push is queued: https://github.com/lukeeterna/europeanautoscout/actions/runs/34275927601.
@@ -213,3 +214,26 @@ Against the Work clone (1,049 commits / 7,093 objects), it found 12 unique
 historical blob matches, all `gmail-app-password`, without emitting values.
 WORK-SECRET-HISTORY.md records scope and closure requirements. Gitleaks' prior
 21-finding result uses broader rules/counting and remains separately recorded.
+
+Tenth unit published: 5c4980b60bd3242d2b9094adce40a4213c1c3091.
+All applicable hosted runs succeeded: S292 push 34380856720; S292 PR
+34380862558; pre-pairing PR 34380862548; post-pilot PR 34380862555. Hosted
+artifact 10115791491 has GitHub archive SHA-256
+`00e44ac4b433008b26fd9bc540722520e641defee63b59e480855540966a5a74`.
+Its external checksum and independent bundle verifier passed; manifest source SHA
+is 5c4980b, source tree 54035806dbc31e9a4c8c0217b4dbfc6193fe3ee4,
+with 39 inventoried source files and truthful security OPEN / machine and
+production NOT_CERTIFIED gates. Full local regression: 152 Python and 82 Node
+tests passed. PR #4 remains open, draft, mergeable and unmerged.
+
+## Eleventh unit (publication pending)
+
+Added a mandatory npm audit regression boundary. A clean audit passes; otherwise
+only the exact reviewed five-node optional WhatsApp/Puppeteer/extract-zip chain,
+two advisory identifiers and locked versions may pass. New vulnerabilities,
+critical severity, version changes, topology changes and malformed reports fail
+closed. Six functional tests pass against synthetic positive/negative cases and
+the current real npm audit JSON passes as `KNOWN_OPEN_EXCEPTION` while explicitly
+emitting `ARGOS_RELEASE_SECURITY=OPEN`. S292 source-artifact triggers now include
+every allowlisted WORK/runbook document, preventing an artifact from silently
+lagging a documentation-only candidate change.

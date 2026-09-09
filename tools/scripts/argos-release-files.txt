@@ -12,6 +12,7 @@ tools/scripts/argos_c10_smoke.py
 tools/scripts/argos_c11_preflight.py
 tools/scripts/argos_postpilot_readiness.py
 tools/scripts/argos_release_bundle.py
+tools/scripts/argos_npm_audit_gate.py
 tools/scripts/argos_secret_scan.py
 wa-intelligence/.env.example
 wa-intelligence/demand_capture.py
