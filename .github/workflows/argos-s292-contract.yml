@@ -110,6 +110,7 @@ jobs:
             tests.test_argos_runtime_production \
             tests.test_argos_delivery_artifact \
             tests.test_argos_runtime_entrypoint \
+            tests.test_argos_daemon_integration \
             tests.test_argos_c10_transport_smoke
 
       - name: Run C10T1 Cloud transport tests

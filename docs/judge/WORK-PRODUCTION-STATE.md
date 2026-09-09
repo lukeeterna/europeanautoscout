@@ -35,7 +35,10 @@ https://github.com/lukeeterna/europeanautoscout/actions/runs/34275932165 (pre-pa
 https://github.com/lukeeterna/europeanautoscout/actions/runs/34275932172 (S292)
 https://github.com/lukeeterna/europeanautoscout/actions/runs/34275932195 (post-pilot)
 
-Third unit (publication pending): reproduced four transport ambiguity failures,
+Third unit published: d987a685e4332c7128fd5f84b65cbfa6fce0c8ce.
+All three contracts succeeded: S292 34313737237; pre-pairing 34313737233; post-pilot 34313737214.
+Run URL prefix: https://github.com/lukeeterna/europeanautoscout/actions/runs/
+Third-unit work: reproduced four transport ambiguity failures,
 restart/DB-write/key-reuse failures. Added durable pre-send journal in primary DB,
 FULL synchronization, nonretryable ambiguous wwebjs outcomes, stored message ID
 before post-send persistence, and post-pilot unresolved-intent gate. Uses existing
@@ -50,15 +53,21 @@ New WhatsApp Web runbook records safe reconciliation and old-runtime rollback li
   promotion tests above do not certify the entire machine cutover.
 - Full HTTP/bridge/inbound/analyzer end-to-end reconciliation remains unclosed;
   the guardedSend boundary and crash journal now have functional SQLite coverage.
+  Fourth-unit localhost integration covers HTTP/bridge/inbound/analyzer with real
+  Python guards and SQLite; live receipt and reconciliation remain unclosed.
 - Full cutover script, runtime/C11, durability/security and release audit incomplete.
 - No immutable certified release candidate produced in this session yet.
+- Security RED: 5 high npm audit entries remain after js-yaml fix; upstream
+  extract-zip has no published patched version observed. History secret findings
+  require triage/revocation evidence. See WORK-SECURITY-REVIEW.md.
 
 ## Next executable action
-Verify third-unit hosted CI, then complete cutover-shell process recovery tests,
-full runtime integration, dependency/security audit and reproducible release packaging.
+Verify fourth-unit hosted CI; prepare deterministic source bundle and inventory.
+Complete cutover-shell recovery failure injection and outstanding security triage.
 
 ## External gates and truth levels
-REPO GREEN: previous three contracts only; expanded unit pending hosted CI.
+REPO GREEN: three functional contracts observed on d987a685; fourth unit pending.
+Full release certification remains RED because of the open security gate.
 MACHINE GREEN: NOT VERIFIED. Existing read-only workflow triggered by second-unit
 push is queued: https://github.com/lukeeterna/europeanautoscout/actions/runs/34275927601.
 Runner inventory/protection REST endpoints returned HTTP 401 unauthenticated;
@@ -73,3 +82,16 @@ Git clone works in this Work environment; do not assume prior DNS failure persis
 Canonical STATE.md is dated July 30 and its transport/operating procedures are stale
 relative to the current user mandate. Read WORK-PRODUCTION-MANDATE.md for precedence.
 No unattended AI agent or persistent execution has been provisioned.
+
+
+## Fourth unit (publication pending)
+Compatible js-yaml lock update to 4.3.2; no direct dependency changes.
+Kernel writer/profile locks inherited across exec, direct daemon launch guard,
+and PM2 scheduler credential separation. 81 Node tests pass. New integrated test
+runs real wrapper/HTTP/SQLite/Python/analyzer with only transport mocked:
+one outbound, replay, bridge marker recovery without second send, duplicate
+inbound once, CONTACTED -> ENGAGED, second writer rejection. Initial test expected
+an undefined NOT_INTERESTED state; corrected fixture to canonical CURIOSITY ->
+ENGAGED after checking existing TRANSITIONS (no production logic changed).
+Full history scanner found 21 suspected exposures; runtime scan zero findings.
+Reports contain counts only; no credentials or message contents persisted here.

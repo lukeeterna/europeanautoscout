@@ -39,9 +39,20 @@ const ANALYZER = path.join(__dirname, 'response-analyzer.py');
 const OUTBOUND_GUARD = path.join(__dirname, 'outbound_guard.py');
 const POST_SEND_UPDATE = path.join(__dirname, 'post_send_update.py');
 const PORT = Number(process.env.ARGOS_WA_PORT || 9191);
+// A direct launch must not open a second writer outside the canonical wrapper.
+const writerLockFd = Number(process.env.ARGOS_WRITER_LOCK_FD);
+if (!Number.isInteger(writerLockFd) || writerLockFd < 3 || !fs.fstatSync(writerLockFd).isFile()) {
+  throw new Error('canonical runtime_entrypoint.py writer lock required');
+}
 const HOST = process.env.ARGOS_BIND_HOST || '127.0.0.1';
 const API_KEY = process.env.ARGOS_API_KEY || '';
 const TRANSPORT_MODE = String(process.env.ARGOS_WA_TRANSPORT || 'wwebjs').trim().toLowerCase();
+if (TRANSPORT_MODE === 'wwebjs') {
+  const profileLockFd = Number(process.env.ARGOS_PROFILE_LOCK_FD);
+  if (!Number.isInteger(profileLockFd) || profileLockFd < 3 || !fs.fstatSync(profileLockFd).isFile()) {
+    throw new Error('canonical LocalAuth profile lock required');
+  }
+}
 const BUSINESS_START = Number(process.env.ARGOS_BUSINESS_START_HOUR || 9);
 const BUSINESS_END = Number(process.env.ARGOS_BUSINESS_END_HOUR || 18);
 const BUSINESS_DAYS = new Set(

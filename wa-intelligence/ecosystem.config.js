@@ -78,6 +78,12 @@ const SHARED_ENV = {
     ARGOS_ADMIN_SECRET: dotEnv.ARGOS_ADMIN_SECRET || '',
 };
 
+// The queue-only scheduler needs policy/configuration, never credentials for
+// outbound HTTP, Telegram, email or administration.
+const SCHEDULER_ENV = Object.fromEntries(Object.entries(SHARED_ENV).filter(([key]) =>
+    !['ARGOS_API_KEY', 'ARGOS_TELEGRAM_TOKEN', 'GMAIL_FERRETTI_APP_PASSWORD', 'ARGOS_ADMIN_SECRET'].includes(key)
+));
+
 // Official WhatsApp Cloud API credentials are least-privilege daemon-only.
 // Empty values fail closed when ARGOS_WA_TRANSPORT=cloud.
 const WA_DAEMON_ENV = {
@@ -131,7 +137,7 @@ module.exports = {
             out_file: '/tmp/argos-outreach-scheduler-out.log',
             error_file: '/tmp/argos-outreach-scheduler-err.log',
             log_date_format: 'DD/MM/YYYY HH:mm:ss',
-            env: { ...SHARED_ENV },
+            env: { ...SCHEDULER_ENV },
             kill_timeout: 5000,
         },
         {

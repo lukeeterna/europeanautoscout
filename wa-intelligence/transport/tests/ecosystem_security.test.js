@@ -104,3 +104,10 @@ test('44 temporary branch mutation workflows are absent from release candidate',
     assert.equal(fs.existsSync(path.join(workflows, name)), false, `${name} must not ship`);
   }
 });
+
+test('canonical queue-only scheduler receives no outbound/admin credentials', () => {
+  const scheduler = require('../../ecosystem.config.js').apps.find(a => a.name === 'argos-outreach-scheduler');
+  for (const key of ['ARGOS_API_KEY', 'ARGOS_TELEGRAM_TOKEN', 'GMAIL_FERRETTI_APP_PASSWORD', 'ARGOS_ADMIN_SECRET']) {
+    assert.equal(Object.hasOwn(scheduler.env, key), false, key);
+  }
+});
