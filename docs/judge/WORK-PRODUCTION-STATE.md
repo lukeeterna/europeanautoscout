@@ -84,7 +84,7 @@ relative to the current user mandate. Read WORK-PRODUCTION-MANDATE.md for preced
 No unattended AI agent or persistent execution has been provisioned.
 
 
-## Fourth unit (publication pending)
+## Fourth unit
 Compatible js-yaml lock update to 4.3.2; no direct dependency changes.
 Kernel writer/profile locks inherited across exec, direct daemon launch guard,
 and PM2 scheduler credential separation. 81 Node tests pass. New integrated test
@@ -95,3 +95,23 @@ an undefined NOT_INTERESTED state; corrected fixture to canonical CURIOSITY ->
 ENGAGED after checking existing TRANSITIONS (no production logic changed).
 Full history scanner found 21 suspected exposures; runtime scan zero findings.
 Reports contain counts only; no credentials or message contents persisted here.
+
+Fourth unit published: af37fc3a5a4a6b92193161e0e6d30e996cf73eae.
+Hosted runs all succeeded:
+- S292: https://github.com/lukeeterna/europeanautoscout/actions/runs/34314437228
+- pre-pairing: https://github.com/lukeeterna/europeanautoscout/actions/runs/34314437189
+- post-pilot: https://github.com/lukeeterna/europeanautoscout/actions/runs/34314437282
+
+## Fifth unit (publication pending)
+
+Added an allowlisted, deterministic source-candidate builder that reads only exact
+Git objects. It rejects dirty-worktree substitution, duplicate paths, symlinks,
+database/LocalAuth/secret paths, and package/lock disagreement. Six functional
+bundle tests cover reproducibility, contamination and tampering. The hosted S292
+contract builds and retains the exact-SHA bundle plus external checksum for 30
+days. All third-party actions in the three hosted contracts are pinned to exact
+commit SHAs; checkout credentials are not persisted and PR runs explicitly build
+the PR head SHA rather than GitHub's synthetic merge ref.
+
+This is a source candidate only. Its manifest records security OPEN, machine
+NOT_CERTIFIED and production NOT_CERTIFIED. It is not a production release.

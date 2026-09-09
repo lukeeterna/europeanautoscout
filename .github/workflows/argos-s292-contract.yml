@@ -12,6 +12,8 @@ on:
       - 'tools/scripts/pdf_generator_enterprise.py'
       - 'tools/scripts/argos_dealer_delivery.py'
       - 'tools/scripts/argos_c10_smoke.py'
+      - 'tools/scripts/argos_release_bundle.py'
+      - 'tools/scripts/argos-release-files.txt'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
@@ -22,6 +24,8 @@ on:
       - 'tools/scripts/pdf_generator_enterprise.py'
       - 'tools/scripts/argos_dealer_delivery.py'
       - 'tools/scripts/argos_c10_smoke.py'
+      - 'tools/scripts/argos_release_bundle.py'
+      - 'tools/scripts/argos-release-files.txt'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
@@ -36,15 +40,18 @@ jobs:
     timeout-minutes: 12
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
           cache: npm
@@ -111,6 +118,7 @@ jobs:
             tests.test_argos_delivery_artifact \
             tests.test_argos_runtime_entrypoint \
             tests.test_argos_daemon_integration \
+            tests.test_argos_release_bundle \
             tests.test_argos_c10_transport_smoke
 
       - name: Run C10T1 Cloud transport tests
@@ -288,3 +296,15 @@ jobs:
 
           print('PASS semantic anti-drift assertions')
           PY
+
+      - name: Build reproducible exact-SHA source candidate
+        run: |
+          python tools/scripts/argos_release_bundle.py --sha "$(git rev-parse HEAD)" --output /tmp/argos-source-candidate
+
+      - name: Preserve source candidate and checksum
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: argos-source-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/argos-source-candidate/*
+          if-no-files-found: error
+          retention-days: 30

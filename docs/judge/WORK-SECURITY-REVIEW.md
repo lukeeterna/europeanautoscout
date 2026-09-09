@@ -45,6 +45,11 @@ Commands used redaction=100 and stored only redacted local reports.
   inspection; this proves declared configuration only.
 - Localhost integration exercises real guards, primary/bridge persistence,
   inbound dedupe and analyzer state transition using synthetic fixtures.
+- Hosted workflow actions for checkout, Node, Python and artifact upload are
+  pinned to resolved commit SHAs. Checkout does not persist its token.
+- The candidate bundle is generated from an explicit allowlist and exact Git
+  blobs, with per-file hashes and an external archive checksum. Its security
+  status remains OPEN in the embedded manifest.
 
 These tests do not prove live WhatsApp receipt, iMac reboot, Chrome shutdown,
 provider credential revocation, or an independent production security review.
