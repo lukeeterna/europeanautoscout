@@ -5,14 +5,14 @@
 - Branch: sol/argos-wwebjs-c10-production
 - PR #4: open draft; base sol/argos-canonicalization-20260817; not merged.
 - Observed remote HEAD before this final checkpoint:
-  45b61494b05ba7c90b84fb6787f32975d5a3301a.
+  9ea480a0052449c971ef9b73f8ca0ec001f0246b.
 - This checkpoint's containing commit records the new unit; resolve it with Git.
 - Last observed SHA with all three hosted contracts passing:
-  45b61494b05ba7c90b84fb6787f32975d5a3301a. This is NOT full production
+  9ea480a0052449c971ef9b73f8ca0ec001f0246b. This is NOT full production
   certification because the security gate remains open.
-- PR runs: https://github.com/lukeeterna/europeanautoscout/actions/runs/34382871855
-  (S292), https://github.com/lukeeterna/europeanautoscout/actions/runs/34382871951
-  (pre-pairing), https://github.com/lukeeterna/europeanautoscout/actions/runs/34382872479
+- PR runs: https://github.com/lukeeterna/europeanautoscout/actions/runs/34406053670
+  (S292), https://github.com/lukeeterna/europeanautoscout/actions/runs/34406053773
+  (pre-pairing), https://github.com/lukeeterna/europeanautoscout/actions/runs/34406053671
   (post-pilot). All success, observed through GitHub connector.
 
 ## Completed unit
@@ -61,17 +61,16 @@ New WhatsApp Web runbook records safe reconciliation and old-runtime rollback li
   require triage/revocation evidence. See WORK-SECURITY-REVIEW.md.
 
 ## Next executable action
-Publish and verify the containing provenance-attestation unit. If the repository
-accepts the OIDC attestation, no independent offline implementation gate remains.
-Next is branch-protection/review configuration plus external credential revocation
-and coordinated history rewrite, then real iMac pairing/cutover/C10, an explicitly
-authorized C11 recipient, and reboot/recovery proof. Do not dispatch those without
-the required administrative/provider access, machine/session and authorization.
+No independent offline implementation gate remains. Next is branch-protection and
+review configuration plus external credential revocation and coordinated history
+rewrite, then real iMac pairing/cutover/C10, an explicitly authorized C11
+recipient, and reboot/recovery proof. Do not dispatch those without the required
+administrative/provider access, machine/session and authorization.
 
 ## External gates and truth levels
-REPO GREEN: all three functional contracts and the S292 push build are observed
-GREEN on 45b6149. Release security remains OPEN, so REPO GREEN is not a claim of
-full release certification.
+REPO GREEN: all three functional contracts, the S292 push build and Sigstore
+source attestation are observed GREEN on 9ea480a. Release security remains OPEN,
+so REPO GREEN is not a claim of full release certification.
 Full release certification remains RED because of the open security gate.
 MACHINE GREEN: NOT VERIFIED. Existing read-only workflow triggered by second-unit
 push is queued: https://github.com/lukeeterna/europeanautoscout/actions/runs/34275927601.
@@ -285,3 +284,15 @@ artifact and attests its checksum file. OIDC, attestation and artifact-metadata
 write permissions are isolated to that push-only job; PR test execution remains
 read-only. Both official actions are pinned to exact commits. Functional tests
 require the event boundary, privilege separation, pins and exact checksum subject.
+
+Thirteenth unit published: 9ea480a0052449c971ef9b73f8ca0ec001f0246b.
+All applicable runs succeeded: S292 push 34406049790; S292 PR 34406053670;
+pre-pairing PR 34406053773; post-pilot PR 34406053671. Hosted artifact
+10125355937 has outer GitHub archive SHA-256
+`1ee9a62d53e7b8afd88148674acd149b5fb0baa7d22eb78f2a6ba27b39ec3e52`.
+The verified inner exact-SHA source ZIP digest is
+`f35d2d7902dd9910dbd104502a90e11e23d8f652b47c122f656211fa0b54a4a4`,
+tree fd4fcbbd59e480de0dbcd64aaf4d9687711f6660, 40 files. GitHub
+attestation 46374843 was signed through Public Good Sigstore, uploaded to the
+Rekor transparency log and stored at:
+https://github.com/lukeeterna/europeanautoscout/attestations/46374843
