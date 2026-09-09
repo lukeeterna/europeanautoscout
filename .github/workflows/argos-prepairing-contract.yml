@@ -49,11 +49,18 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 5
     steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          persist-credentials: false
+      - name: Native exact-SHA checkout
+        env:
+          ARGOS_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "${GITHUB_RUNNER_ENVIRONMENT:-}" = github-hosted
+          test "${GITHUB_WORKSPACE:-}" = "$PWD"
+          git init -q .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --depth=1 origin "$ARGOS_SOURCE_SHA"
+          git checkout --detach --force FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$ARGOS_SOURCE_SHA"
 
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

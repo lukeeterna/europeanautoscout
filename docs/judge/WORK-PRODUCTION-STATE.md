@@ -1,16 +1,17 @@
-# ARGOS Work production checkpoint — 2026-09-08
+# ARGOS Work production checkpoint — 2026-09-09
 
 ## Verified coordinates
 - Repository: lukeeterna/europeanautoscout
 - Branch: sol/argos-wwebjs-c10-production
 - PR #4: open draft; base sol/argos-canonicalization-20260817; not merged.
-- Observed remote HEAD before this unit: 5222ae4665a6a9aaacab97e2ddfee6a4d5fa9551.
+- Observed remote HEAD before this unit: 00183f325b8fe7d098e2b8f5789b2b53560d65c8.
 - This checkpoint's containing commit records the new unit; resolve it with Git.
-- Last observed SHA with all three existing hosted contracts passing:
-  5222ae4665a6a9aaacab97e2ddfee6a4d5fa9551. This was NOT full offline certification.
-- Runs: https://github.com/lukeeterna/europeanautoscout/actions/runs/34273512797
-  (S292), https://github.com/lukeeterna/europeanautoscout/actions/runs/34273512796
-  (pre-pairing), https://github.com/lukeeterna/europeanautoscout/actions/runs/34273512814
+- Last observed SHA with all three hosted contracts passing:
+  af37fc3a5a4a6b92193161e0e6d30e996cf73eae. This is NOT full offline
+  certification because the security gate remains open.
+- Runs: https://github.com/lukeeterna/europeanautoscout/actions/runs/34314437228
+  (S292), https://github.com/lukeeterna/europeanautoscout/actions/runs/34314437189
+  (pre-pairing), https://github.com/lukeeterna/europeanautoscout/actions/runs/34314437282
   (post-pilot). All success, observed through GitHub connector.
 
 ## Completed unit
@@ -62,11 +63,13 @@ New WhatsApp Web runbook records safe reconciliation and old-runtime rollback li
   require triage/revocation evidence. See WORK-SECURITY-REVIEW.md.
 
 ## Next executable action
-Verify fourth-unit hosted CI; prepare deterministic source bundle and inventory.
-Complete cutover-shell recovery failure injection and outstanding security triage.
+Publish and verify the native exact-SHA checkout correction, then download and
+verify the hosted source-candidate artifact. Continue cutover-shell failure
+injection and outstanding security mitigation/triage.
 
 ## External gates and truth levels
-REPO GREEN: three functional contracts observed on d987a685; fourth unit pending.
+REPO GREEN: three functional contracts observed on af37fc3; the newer 00183f
+candidate is RED at checkout, so it is not certified.
 Full release certification remains RED because of the open security gate.
 MACHINE GREEN: NOT VERIFIED. Existing read-only workflow triggered by second-unit
 push is queued: https://github.com/lukeeterna/europeanautoscout/actions/runs/34275927601.
@@ -102,7 +105,7 @@ Hosted runs all succeeded:
 - pre-pairing: https://github.com/lukeeterna/europeanautoscout/actions/runs/34314437189
 - post-pilot: https://github.com/lukeeterna/europeanautoscout/actions/runs/34314437282
 
-## Fifth unit (publication pending)
+## Fifth unit
 
 Added an allowlisted, deterministic source-candidate builder that reads only exact
 Git objects. It rejects dirty-worktree substitution, duplicate paths, symlinks,
@@ -115,3 +118,18 @@ the PR head SHA rather than GitHub's synthetic merge ref.
 
 This is a source candidate only. Its manifest records security OPEN, machine
 NOT_CERTIFIED and production NOT_CERTIFIED. It is not a production release.
+
+Fifth unit published: 00183f325b8fe7d098e2b8f5789b2b53560d65c8.
+All three hosted contracts failed before tests because the repository contains
+the historical gitlink `tools/gsd` but no `.gitmodules`; actions/checkout attempted
+submodule cleanup and reported `No url found for submodule path 'tools/gsd'`.
+Observed RED runs:
+- S292: https://github.com/lukeeterna/europeanautoscout/actions/runs/34345672998
+- pre-pairing: https://github.com/lukeeterna/europeanautoscout/actions/runs/34345673033
+- post-pilot: https://github.com/lukeeterna/europeanautoscout/actions/runs/34345672997
+
+The pending correction replaces actions/checkout in the three hosted contracts
+with a credential-free native fetch of the event's exact SHA and verifies HEAD
+before any test. A regression test requires that boundary. Local validation:
+three YAML parses, 22 shell blocks parse, 12 pre-pairing Python tests pass and
+19 isolated pairing Node tests pass. Publication and hosted proof remain pending.

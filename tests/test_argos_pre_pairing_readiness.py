@@ -138,6 +138,25 @@ class WorkflowSafetyTests(unittest.TestCase):
     def _on_block(self, name: str) -> str:
         return self._workflow(name).split("\npermissions:", 1)[0]
 
+    def test_hosted_contracts_use_native_exact_sha_checkout(self) -> None:
+        """A malformed historical gitlink must not prevent contract execution."""
+        hosted_contracts = (
+            "argos-s292-contract.yml",
+            "argos-prepairing-contract.yml",
+            "argos-postpilot-contract.yml",
+        )
+        for name in hosted_contracts:
+            with self.subTest(name=name):
+                workflow = self._workflow(name)
+                self.assertNotIn("actions/checkout@", workflow)
+                self.assertIn("Native exact-SHA checkout", workflow)
+                self.assertIn(
+                    "ARGOS_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}",
+                    workflow,
+                )
+                self.assertIn("fetch --no-tags --depth=1 origin \"$ARGOS_SOURCE_SHA\"", workflow)
+                self.assertIn('test "$(git rev-parse HEAD)" = "$ARGOS_SOURCE_SHA"', workflow)
+
     def test_pairing_mutation_and_live_pilot_workflows_are_manual_only(self) -> None:
         manual_only = (
             "argos-c10-local-pairing.yml",
