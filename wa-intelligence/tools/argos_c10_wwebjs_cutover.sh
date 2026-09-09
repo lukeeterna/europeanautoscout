@@ -139,7 +139,8 @@ os.chmod(path,0o600)
 PY
 
 # Locked runtime, including the optional production wwebjs adapter.
-npm ci --prefix "$RELEASE/wa-intelligence" --include=optional --no-audit --no-fund
+PUPPETEER_SKIP_DOWNLOAD=true \
+  npm ci --prefix "$RELEASE/wa-intelligence" --include=optional --no-audit --no-fund
 npm --prefix "$RELEASE/wa-intelligence" run verify:runtime-deps
 node - "$RELEASE/wa-intelligence" <<'NODE'
 const path=require('path');

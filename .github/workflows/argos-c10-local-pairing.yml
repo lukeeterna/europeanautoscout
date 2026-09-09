@@ -140,7 +140,8 @@ jobs:
           } catch (_) { process.exit(1); }
           NODE
           then
-            npm ci --prefix "$RELEASE/wa-intelligence" --include=optional --no-audit --no-fund
+            PUPPETEER_SKIP_DOWNLOAD=true \
+              npm ci --prefix "$RELEASE/wa-intelligence" --include=optional --no-audit --no-fund
           fi
           node --check "$RELEASE/wa-intelligence/tools/argos_c10_pairing_helper.js"
           mkdir -m 700 "$STAGE"

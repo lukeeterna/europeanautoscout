@@ -133,3 +133,10 @@ with a credential-free native fetch of the event's exact SHA and verifies HEAD
 before any test. A regression test requires that boundary. Local validation:
 three YAML parses, 22 shell blocks parse, 12 pre-pairing Python tests pass and
 19 isolated pairing Node tests pass. Publication and hosted proof remain pending.
+
+First correction published: ec87371321df2d5c6262f4aaf091a03f4cc7d15c.
+Its push and PR runs all failed at the new first guard because the documented
+runner variable is `RUNNER_ENVIRONMENT`, not `GITHUB_RUNNER_ENVIRONMENT`; no Git
+operation or test ran. Representative PR runs: S292 34346252448, pre-pairing
+34346252445, post-pilot 34346252456. The pending correction uses the real variable
+and tests that the nonexistent name cannot return.

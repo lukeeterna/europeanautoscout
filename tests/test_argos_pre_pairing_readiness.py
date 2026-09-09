@@ -149,13 +149,27 @@ class WorkflowSafetyTests(unittest.TestCase):
             with self.subTest(name=name):
                 workflow = self._workflow(name)
                 self.assertNotIn("actions/checkout@", workflow)
+                self.assertNotIn("GITHUB_RUNNER_ENVIRONMENT", workflow)
                 self.assertIn("Native exact-SHA checkout", workflow)
+                self.assertIn('test "${RUNNER_ENVIRONMENT:-}" = github-hosted', workflow)
                 self.assertIn(
                     "ARGOS_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}",
                     workflow,
                 )
                 self.assertIn("fetch --no-tags --depth=1 origin \"$ARGOS_SOURCE_SHA\"", workflow)
                 self.assertIn('test "$(git rev-parse HEAD)" = "$ARGOS_SOURCE_SHA"', workflow)
+
+    def test_optional_wwebjs_installs_cannot_download_a_browser_archive(self) -> None:
+        pairing = self._workflow("argos-c10-local-pairing.yml")
+        cutover = (WA_DIR / "tools" / "argos_c10_wwebjs_cutover.sh").read_text(
+            encoding="utf-8"
+        )
+        for name, source in {"pairing": pairing, "cutover": cutover}.items():
+            with self.subTest(name=name):
+                self.assertEqual(source.count("npm ci"), 1)
+                self.assertIn("PUPPETEER_SKIP_DOWNLOAD=true", source)
+                self.assertIn("--include=optional", source)
+                self.assertIn("CHROME", source)
 
     def test_pairing_mutation_and_live_pilot_workflows_are_manual_only(self) -> None:
         manual_only = (

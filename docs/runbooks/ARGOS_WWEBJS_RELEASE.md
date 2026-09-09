@@ -9,9 +9,11 @@ Pin a full commit SHA and require all three ARGOS hosted contracts on that exact
 SHA. Keep PR #4 draft until real machine/C11/post-pilot gates pass. A successful
 mock test is not evidence of a live WhatsApp session or a delivered message.
 
-Install only from package-lock.json with `npm ci --include=optional`; production
-requires the optional whatsapp-web.js dependency. Native dependency smoke and all
-transport tests must pass. Use the canonical runtime_entrypoint.py via PM2.
+Install only from package-lock.json with
+`PUPPETEER_SKIP_DOWNLOAD=true npm ci --include=optional`; production requires the
+optional whatsapp-web.js dependency but uses the separately provisioned exact
+Chrome executable. Native dependency smoke and all transport tests must pass. Use
+the canonical runtime_entrypoint.py via PM2.
 
 ## Safe machine sequence
 

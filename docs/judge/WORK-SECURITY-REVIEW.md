@@ -18,9 +18,12 @@ confirmed exploits of ARGOS.
 Registry observation: extract-zip latest 2.0.1, whatsapp-web.js latest 1.34.7.
 The reviewed extract-zip advisory lists no patched release. Do not apply npm's
 suggested whatsapp-web.js downgrade automatically. Current production browser is
-explicitly configured, but that alone does not remove the vulnerable dependency
-or certify all archive-extraction paths unreachable. Browser provenance/install
-and remediation or a reviewed mitigation remain open.
+explicitly configured. Pairing and cutover now set `PUPPETEER_SKIP_DOWNLOAD=true`
+on their locked optional dependency installs, so the deployment path cannot invoke
+Puppeteer's browser archive download/extraction and must find the separately
+provisioned executable first. This narrows the reviewed path; it does not remove
+the vulnerable dependency or certify every archive-extraction path unreachable.
+Browser provenance and upstream remediation remain open.
 
 ## Secret scanning
 

@@ -54,7 +54,7 @@ jobs:
           ARGOS_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
-          test "${GITHUB_RUNNER_ENVIRONMENT:-}" = github-hosted
+          test "${RUNNER_ENVIRONMENT:-}" = github-hosted
           test "${GITHUB_WORKSPACE:-}" = "$PWD"
           git init -q .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
