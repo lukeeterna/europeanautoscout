@@ -4,15 +4,15 @@
 - Repository: lukeeterna/europeanautoscout
 - Branch: sol/argos-wwebjs-c10-production
 - PR #4: open draft; base sol/argos-canonicalization-20260817; not merged.
-- Observed remote HEAD before the npm-audit regression unit:
-  5c4980b60bd3242d2b9094adce40a4213c1c3091.
+- Observed remote HEAD before this final checkpoint:
+  45b61494b05ba7c90b84fb6787f32975d5a3301a.
 - This checkpoint's containing commit records the new unit; resolve it with Git.
 - Last observed SHA with all three hosted contracts passing:
-  b2752a20a0a4f9bd8a5254137d28cbea12677ec3. This is NOT full offline
+  45b61494b05ba7c90b84fb6787f32975d5a3301a. This is NOT full production
   certification because the security gate remains open.
-- PR runs: https://github.com/lukeeterna/europeanautoscout/actions/runs/34382412705
-  (S292), https://github.com/lukeeterna/europeanautoscout/actions/runs/34382412723
-  (pre-pairing), https://github.com/lukeeterna/europeanautoscout/actions/runs/34382412729
+- PR runs: https://github.com/lukeeterna/europeanautoscout/actions/runs/34382871855
+  (S292), https://github.com/lukeeterna/europeanautoscout/actions/runs/34382871951
+  (pre-pairing), https://github.com/lukeeterna/europeanautoscout/actions/runs/34382872479
   (post-pilot). All success, observed through GitHub connector.
 
 ## Completed unit
@@ -61,15 +61,15 @@ New WhatsApp Web runbook records safe reconciliation and old-runtime rollback li
   require triage/revocation evidence. See WORK-SECURITY-REVIEW.md.
 
 ## Next executable action
-Publish the containing release-trigger coverage unit and verify its exact-SHA
-hosted contracts/artifact. If GREEN, no independent offline gate remains: next is
-external credential revocation/history-rewrite coordination, followed by real
-iMac pairing/cutover/C10/C11/reboot proof. Do not dispatch those without the
-required machine, session and recipient authorization.
+No independent offline implementation gate remains. Next is external credential
+revocation and coordinated history rewrite, then real iMac pairing/cutover/C10,
+an explicitly authorized C11 recipient, and reboot/recovery proof. Do not dispatch
+those without the required provider access, machine/session and authorization.
 
 ## External gates and truth levels
-REPO GREEN: all three functional contracts observed on b2752a2. The containing
-release-trigger coverage unit requires its own hosted proof before replacing it.
+REPO GREEN: all three functional contracts and the S292 push build are observed
+GREEN on 45b6149. Release security remains OPEN, so REPO GREEN is not a claim of
+full release certification.
 Full release certification remains RED because of the open security gate.
 MACHINE GREEN: NOT VERIFIED. Existing read-only workflow triggered by second-unit
 push is queued: https://github.com/lukeeterna/europeanautoscout/actions/runs/34275927601.
@@ -257,3 +257,13 @@ scripts could change without starting a new S292 source artifact. Added wildcard
 coverage for `tools/scripts/argos_*.py` and `tools/scripts/argos_*.sh`, plus a
 functional test that matches every release inventory entry against the S292 path
 filters. Seven bundle tests pass, including the new complete-coverage assertion.
+
+Twelfth unit published: 45b61494b05ba7c90b84fb6787f32975d5a3301a.
+All applicable runs succeeded: S292 push 34382865135; S292 PR 34382871855;
+pre-pairing PR 34382871951; post-pilot PR 34382872479. Hosted artifact
+10116563976, retained through 2026-10-09, has GitHub archive SHA-256
+`ca09ee77b34713ff05be67131361eb8973fc04225a624bdacce840156376263b`.
+External checksum and independent verification passed. The manifest binds source
+SHA 45b6149 to tree ab4d819216fbe976a971c2a702e1026856a263f6,
+contains 40 allowlisted files and records security OPEN, machine NOT_CERTIFIED and
+production NOT_CERTIFIED. This exact SHA is the immutable offline source candidate.
