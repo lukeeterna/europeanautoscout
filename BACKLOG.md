@@ -288,7 +288,7 @@ Regola `/contract/* /contract/index.html 200` testata: produce HTTP 200 ma serve
 `ssh imac "source .env && cmd"` NON esporta KEY=val come env var (default bash limita a var locale). Pattern corretto: `set -a; source .env; set +a; cmd`. Documentato in S177c memory. Aggiornare reference `wiki/projects/ARGOS/runbooks/ssh-imac.md` se esiste, o aggiungere snippet in CLAUDE.md.
 
 ### 🟡 .env iMac linea 12 quote
-`GMAIL_FERRETTI_APP_PASSWORD=jzge syej rqex zkrw` senza quote → spazi rompono source → tutte le var sotto linea 12 (incluso `ARGOS_ADMIN_SECRET`) non esportate. Fixed S177c con sed quote. Audit altri .env del progetto per pattern simile.
+`GMAIL_FERRETTI_APP_PASSWORD=<REDACTED-ROTATE-REQUIRED>` senza quote → spazi rompono source → tutte le var sotto linea 12 (incluso `ARGOS_ADMIN_SECRET`) non esportate. Fixed S177c con sed quote. Audit altri .env del progetto per pattern simile.
 
 ## S176-finalize 2026-05-16 — Findings collaterali (priorità ordinata)
 

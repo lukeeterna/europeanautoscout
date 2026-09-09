@@ -31,11 +31,18 @@ Gitleaks v8.30.1 Linux release binary, verified against its publisher's SHA256 f
 Commands used redaction=100 and stored only redacted local reports.
 
 - Current wa-intelligence directory: 0 findings.
+- Exact full tree bb1172ac had one strong current-tree finding: a historical
+  Gmail app-password-shaped value in BACKLOG.md. The value was never copied into
+  this report and is redacted in the pending tree; provider revocation/rotation
+  still requires external evidence.
 - Git history: 21 findings across generic-api-key, curl-auth-header, curl-auth-user.
   Findings are suspected exposures, not verified active credentials. No credential
   was tested with a provider. No secret values are included in this report.
 - Historical provider rotation and exposure triage remain external/security gates.
   Do not rewrite history or treat deleting a current value as revocation.
+- A repository-native exact-Git-object scanner is pending publication in S292. It
+  reports only path, line, rule and count, scans binary/text blobs, and has tests
+  for exact-revision isolation, token/app-password detection and redacted output.
 
 ## Runtime hardening verified offline
 

@@ -165,3 +165,13 @@ tests remain GREEN. A discovered rollback defect was fixed: internal rollback no
 refuses to restart over a browser still holding canonical LocalAuth, and it cannot
 claim PASS unless the old runtime restart succeeds with exactly one writer.
 These are controlled simulations, not iMac execution.
+
+## Seventh unit (publication pending)
+
+Strong-signature scanning of the exact bb1172ac Git tree reproduced one current
+finding in BACKLOG.md without printing it: an app-password-shaped historical value.
+The pending tree redacts that value. Five functional scanner tests prove exact Git
+revision isolation, text and binary token detection, app-password detection and
+metadata-only reporting. S292 now runs the scanner on exact HEAD and packages the
+scanner in the source candidate. Deleting the current copy is not proof of provider
+revocation and does not clean the existing history; the security gate remains RED.

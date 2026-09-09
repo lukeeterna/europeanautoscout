@@ -14,6 +14,7 @@ on:
       - 'tools/scripts/argos_c10_smoke.py'
       - 'tools/scripts/argos_release_bundle.py'
       - 'tools/scripts/argos-release-files.txt'
+      - 'tools/scripts/argos_secret_scan.py'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
@@ -26,6 +27,7 @@ on:
       - 'tools/scripts/argos_c10_smoke.py'
       - 'tools/scripts/argos_release_bundle.py'
       - 'tools/scripts/argos-release-files.txt'
+      - 'tools/scripts/argos_secret_scan.py'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
       - '.github/workflows/argos-c10t1-imac-preflight.yml'
@@ -97,6 +99,9 @@ jobs:
             tools/scripts/argos_dealer_delivery.py \
             tools/scripts/argos_c10_smoke.py
 
+      - name: Scan exact Git tree for strong secret signatures
+        run: python tools/scripts/argos_secret_scan.py --repo . --rev HEAD
+
       - name: Parse Node production configuration
         run: |
           node --check wa-intelligence/wa-daemon.js
@@ -126,6 +131,7 @@ jobs:
             tests.test_argos_runtime_entrypoint \
             tests.test_argos_daemon_integration \
             tests.test_argos_release_bundle \
+            tests.test_argos_secret_scan \
             tests.test_argos_c10_transport_smoke
 
       - name: Run C10T1 Cloud transport tests
