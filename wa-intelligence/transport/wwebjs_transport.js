@@ -71,9 +71,14 @@ class WwebjsTransport {
     const chatId = await this._chatId(phone);
     const text = String(body || '').trim();
     if (!text) throw new TransportError('TRANSPORT_INVALID_ARGUMENT', 'body is required');
-    const sent = await this.client.sendMessage(chatId, text);
+    let sent;
+    try {
+      sent = await this.client.sendMessage(chatId, text);
+    } catch (_) {
+      throw new TransportError('TRANSPORT_DELIVERY_AMBIGUOUS', 'whatsapp-web.js send outcome requires reconciliation', { ambiguous: true });
+    }
     const waMessageId = String(sent?.id?._serialized || '');
-    if (!waMessageId) throw new TransportError('TRANSPORT_INVALID_RESPONSE', 'whatsapp-web.js response is missing message id');
+    if (!waMessageId) throw new TransportError('TRANSPORT_DELIVERY_AMBIGUOUS', 'whatsapp-web.js response is missing message id', { ambiguous: true });
     return { ok: true, wa_msg_id: waMessageId };
   }
 
@@ -81,12 +86,17 @@ class WwebjsTransport {
     const chatId = await this._chatId(phone);
     if (!filePath) throw new TransportError('TRANSPORT_INVALID_ARGUMENT', 'filePath is required');
     const media = this.MessageMedia.fromFilePath(filePath);
-    const sent = await this.client.sendMessage(chatId, media, {
-      caption: String(caption || ''),
-      sendMediaAsDocument: true,
-    });
+    let sent;
+    try {
+      sent = await this.client.sendMessage(chatId, media, {
+        caption: String(caption || ''),
+        sendMediaAsDocument: true,
+      });
+    } catch (_) {
+      throw new TransportError('TRANSPORT_DELIVERY_AMBIGUOUS', 'whatsapp-web.js send outcome requires reconciliation', { ambiguous: true });
+    }
     const waMessageId = String(sent?.id?._serialized || '');
-    if (!waMessageId) throw new TransportError('TRANSPORT_INVALID_RESPONSE', 'whatsapp-web.js response is missing message id');
+    if (!waMessageId) throw new TransportError('TRANSPORT_DELIVERY_AMBIGUOUS', 'whatsapp-web.js response is missing message id', { ambiguous: true });
     return { ok: true, wa_msg_id: waMessageId };
   }
 

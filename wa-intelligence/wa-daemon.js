@@ -99,6 +99,7 @@ function transportConnected() {
 function dbOpen(file) {
   const db = new Database(file);
   db.pragma('journal_mode = WAL');
+  db.pragma('synchronous = FULL');
   db.pragma('busy_timeout = 10000');
   return db;
 }
@@ -152,6 +153,13 @@ function ensurePrimarySchema() {
       payload TEXT,
       timestamp_it TEXT,
       created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS argos_send_intents (
+      intent_key TEXT PRIMARY KEY,
+      request_hash TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL CHECK(status IN ('IN_FLIGHT', 'DELIVERED', 'SENT')),
+      wa_msg_id TEXT,
+      created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS argos_runtime_state (
       key TEXT PRIMARY KEY,
@@ -451,6 +459,7 @@ function persistOutbound({ dealerId, message, templateId, waMessageId }) {
       template_id: templateId,
       error: update.stderr || update.error || update.json || null,
     });
+    throw new GuardError('POST_SEND_STATE_ERROR', 'delivered message requires state reconciliation');
   }
 }
 
@@ -467,6 +476,7 @@ async function guardedSend({
   message,
   documentPath = null,
   dossierMetadataPath = null,
+  idempotencyKey = null,
 }) {
   const dealer = getDealerById(dealerId);
   assertTransportPreconditions(dealer, phone);
@@ -474,10 +484,36 @@ async function guardedSend({
   if (!text || text.length > MAX_BODY_CHARS) {
     throw new GuardError('INVALID_MESSAGE_LENGTH', 'message must be 1..4000 characters');
   }
-  const policy = finalPolicyGuard(dealerId, templateId, text);
 
   if (documentPath) {
     verifyDossierMetadata({ dealer, filePath: documentPath, metadataPath: dossierMetadataPath });
+  }
+
+  // Stable request identity also protects callers which lose/change their key.
+  // No message content or phone is persisted in the intent journal, only hashes.
+  const requestHash = sha256(JSON.stringify([dealerId, normalizePhone(phone), templateId, text,
+    documentPath ? sha256(fs.readFileSync(documentPath)) : null]));
+  const intentKey = idempotencyKey ? sha256(String(idempotencyKey)) : requestHash;
+  const existing = db.prepare('SELECT * FROM argos_send_intents WHERE intent_key=? OR request_hash=?').all(intentKey, requestHash);
+  if (existing.some(row => row.request_hash !== requestHash)) {
+    throw new GuardError('IDEMPOTENCY_CONFLICT', 'idempotency key belongs to another request');
+  }
+  if (existing.length) {
+    const prior = existing[0];
+    if (prior.status === 'SENT' && prior.wa_msg_id) {
+      if (prior.intent_key !== intentKey) throw new GuardError('IDEMPOTENCY_CONFLICT', 'request already delivered under another key');
+      return { ok: true, wa_msg_id: prior.wa_msg_id, idempotency_key: prior.intent_key, replayed: true };
+    }
+    throw new GuardError('TRANSPORT_DELIVERY_AMBIGUOUS', 'persisted send intent requires reconciliation; automatic resend forbidden');
+  }
+  const policy = finalPolicyGuard(dealerId, templateId, text);
+  // Commit BEFORE calling transport. A crash or hung call retains IN_FLIGHT;
+  // no timer or stale bridge claim is allowed to clear that evidence.
+  const claim = db.prepare(`INSERT OR IGNORE INTO argos_send_intents
+    (intent_key, request_hash, status, created_at) VALUES (?, ?, 'IN_FLIGHT', ?)`)
+    .run(intentKey, requestHash, nowIso());
+  if (claim.changes !== 1) {
+    throw new GuardError('TRANSPORT_DELIVERY_AMBIGUOUS', 'send intent already claimed');
   }
 
   const digits = normalizePhone(phone);
@@ -487,7 +523,12 @@ async function guardedSend({
       ? await activeTransport.sendDocument({ phone: digits, filePath: documentPath, caption: text })
       : await activeTransport.sendText({ phone: digits, body: text });
   } catch (err) {
-    const wrapped = transportGuardError(err);
+    // Only errors proven to precede sendMessage may release a reservation.
+    const safeBeforeSend = err instanceof TransportError && !err.ambiguous &&
+      ['TRANSPORT_NOT_READY', 'WHATSAPP_NOT_REGISTERED', 'TRANSPORT_INVALID_ARGUMENT'].includes(err.code);
+    if (safeBeforeSend) db.prepare("DELETE FROM argos_send_intents WHERE intent_key=? AND status='IN_FLIGHT'").run(intentKey);
+    const wrapped = safeBeforeSend ? transportGuardError(err) :
+      new GuardError('TRANSPORT_DELIVERY_AMBIGUOUS', 'send outcome requires reconciliation');
     audit('TRANSPORT_SEND_BLOCKED', dealerId, {
       template_id: templateId,
       code: wrapped.code || 'TRANSPORT_ERROR',
@@ -498,9 +539,16 @@ async function guardedSend({
 
   const waMessageId = String(sent?.wa_msg_id || '');
   if (!waMessageId) {
-    throw new GuardError('TRANSPORT_INVALID_RESPONSE', 'transport response is missing message id');
+    throw new GuardError('TRANSPORT_DELIVERY_AMBIGUOUS', 'transport response is missing message id');
   }
-  persistOutbound({ dealerId, message: text, templateId, waMessageId });
+  // Preserve the observed message id even if primary persistence then fails.
+  try {
+    db.prepare("UPDATE argos_send_intents SET status='DELIVERED', wa_msg_id=? WHERE intent_key=?").run(waMessageId, intentKey);
+    persistOutbound({ dealerId, message: text, templateId, waMessageId });
+    db.prepare("UPDATE argos_send_intents SET status='SENT' WHERE intent_key=?").run(intentKey);
+  } catch (_) {
+    throw new GuardError('TRANSPORT_DELIVERY_AMBIGUOUS', 'delivered message persistence requires reconciliation');
+  }
   audit('OUTBOUND_SENT', dealerId, {
     template_id: templateId,
     phone_suffix: digits.slice(-4),
@@ -509,7 +557,7 @@ async function guardedSend({
     transport: TRANSPORT_MODE,
     policy,
   });
-  return { ok: true, wa_msg_id: waMessageId, policy };
+  return { ok: true, wa_msg_id: waMessageId, idempotency_key: intentKey, policy };
 }
 
 function persistInbound(dealer, msg) {
@@ -703,6 +751,7 @@ async function pollBridgeOutbound() {
         phone: row.target_phone,
         templateId: row.template_id,
         message: row.body,
+        idempotencyKey: `bridge:${row.id}`,
       });
       bridgeDb.prepare(`
         UPDATE bridge_outbound
@@ -902,6 +951,7 @@ async function handleHttp(req, res) {
   try {
     if (url.pathname === '/send') {
       const result = await guardedSend({
+        idempotencyKey: payload.idempotency_key || null,
         dealerId: String(payload.dealer_id || ''),
         phone: String(payload.phone || ''),
         templateId: String(payload.template_id || ''),
@@ -911,6 +961,7 @@ async function handleHttp(req, res) {
     }
     if (url.pathname === '/send-doc') {
       const result = await guardedSend({
+        idempotencyKey: payload.idempotency_key || null,
         dealerId: String(payload.dealer_id || ''),
         phone: String(payload.phone || ''),
         templateId: String(payload.template_id || ''),

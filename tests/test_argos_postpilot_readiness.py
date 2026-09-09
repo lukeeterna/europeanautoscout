@@ -47,6 +47,7 @@ class PostPilotReadinessTests(unittest.TestCase):
         con = sqlite3.connect(self.primary)
         con.executescript(
             """
+            CREATE TABLE argos_send_intents (intent_key TEXT PRIMARY KEY, status TEXT);
             CREATE TABLE messages (id TEXT PRIMARY KEY, direction TEXT NOT NULL);
             CREATE TABLE conversations (dealer_id TEXT PRIMARY KEY, outreach_authorized INTEGER DEFAULT 0);
             INSERT INTO conversations VALUES ('controlled', 0);
@@ -186,6 +187,18 @@ class PostPilotReadinessTests(unittest.TestCase):
         report = self.run_gate(health_payload=health)
         self.assertFalse(report["ok"])
         self.assertFalse(self.check(report, "health_recent_outbound_bounded")["ok"])
+
+    def test_uncertain_send_blocks_production_green(self):
+        with sqlite3.connect(self.primary) as con:
+            con.execute("INSERT INTO argos_send_intents VALUES('mock-intent','IN_FLIGHT')")
+        report = self.run_gate()
+        self.assertFalse(report['ok'])
+        self.assertFalse(self.check(report, 'send_intents_reconciled')['ok'])
+
+    def test_missing_intent_journal_blocks_production_green(self):
+        with sqlite3.connect(self.primary) as con:
+            con.execute('DROP TABLE argos_send_intents')
+        self.assertFalse(self.run_gate()['ok'])
 
 
 if __name__ == "__main__":

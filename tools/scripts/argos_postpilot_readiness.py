@@ -234,6 +234,13 @@ def run_gate(
     )
     _check(checks, "authorized_recipients_zero", authorized == 0, {"actual": authorized})
 
+    unresolved_intents = None
+    try:
+        unresolved_intents = int(_scalar(db_path, "SELECT COUNT(*) FROM argos_send_intents WHERE status != 'SENT'") or 0)
+    except (sqlite3.Error, TypeError, ValueError):
+        pass
+    _check(checks, "send_intents_reconciled", unresolved_intents == 0, {"unresolved": unresolved_intents})
+
     bridge_quick = None
     bridge_pending = None
     bridge_cols = set()
@@ -260,6 +267,7 @@ def run_gate(
                 [
                     ("SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'", ()),
                     ("SELECT COUNT(*) FROM conversations WHERE COALESCE(outreach_authorized,0)=1", ()),
+                    ("SELECT COUNT(*) FROM argos_send_intents", ()),
                 ],
             )
         except sqlite3.Error:

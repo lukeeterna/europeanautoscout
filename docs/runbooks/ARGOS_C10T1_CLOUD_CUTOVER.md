@@ -1,3 +1,5 @@
+> Historical Cloud API procedure; superseded for PR #4 by [ARGOS_WWEBJS_RELEASE.md](ARGOS_WWEBJS_RELEASE.md). Do not use this procedure for the current WhatsApp Web mandate.
+
 # ARGOS C10T1 — Official WhatsApp Cloud API Cutover
 
 This is the canonical deployment procedure for the S292 single-writer runtime after the unofficial `whatsapp-web.js` pairing path became unusable.
