@@ -156,13 +156,38 @@ NODE
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 BACKUP_DIR="$HOME_DIR/Documents/argos-c10-backups/${STAMP}-${SHORT}"
 mkdir -m 700 -p "$BACKUP_DIR"
-"$PY313" - "$CANONICAL_PRIMARY" "$BACKUP_DIR/dealer_network.sqlite" "$CANONICAL_BRIDGE" "$BACKUP_DIR/bridge.sqlite" <<'PY'
-import sqlite3,sys
+"$PY313" - \
+  "$CANONICAL_PRIMARY" "$BACKUP_DIR/dealer_network.sqlite" \
+  "$CANONICAL_BRIDGE" "$BACKUP_DIR/bridge.sqlite" \
+  "$BACKUP_DIR/MANIFEST.json" "$SHA" "$OLD_SHA" "$STAMP" <<'PY'
+import hashlib,json,os,sqlite3,sys
 for src,dst in ((sys.argv[1],sys.argv[2]),(sys.argv[3],sys.argv[4])):
     s=sqlite3.connect(f'file:{src}?mode=ro',uri=True); d=sqlite3.connect(dst)
     s.backup(d); d.close(); s.close()
+    os.chmod(dst,0o600)
     c=sqlite3.connect(f'file:{dst}?mode=ro',uri=True); q=c.execute('PRAGMA quick_check').fetchone()[0]; c.close()
     if q!='ok': raise SystemExit(f'backup quick_check={q}')
+def digest(path):
+    h=hashlib.sha256()
+    with open(path,'rb') as f:
+        for chunk in iter(lambda:f.read(1024*1024),b''): h.update(chunk)
+    return h.hexdigest()
+manifest={
+ 'format':1,
+ 'kind':'ARGOS_C10_PRE_CUTOVER_BACKUP',
+ 'candidate_sha':sys.argv[6],
+ 'previous_sha':sys.argv[7],
+ 'created_at_utc':sys.argv[8],
+ 'files':{
+   'dealer_network.sqlite':{'sha256':digest(sys.argv[2])},
+   'bridge.sqlite':{'sha256':digest(sys.argv[4])},
+ },
+}
+tmp=sys.argv[5]+'.tmp'
+with open(tmp,'x',encoding='utf-8') as f:
+    json.dump(manifest,f,sort_keys=True,separators=(',',':')); f.write('\n')
+os.chmod(tmp,0o600)
+os.replace(tmp,sys.argv[5])
 print('DB_BACKUP=PASS')
 PY
 

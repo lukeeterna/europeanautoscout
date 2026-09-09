@@ -200,6 +200,27 @@ class PostPilotReadinessTests(unittest.TestCase):
             con.execute('DROP TABLE argos_send_intents')
         self.assertFalse(self.run_gate()['ok'])
 
+    def test_restore_drill_reads_consistent_wal_snapshot_during_writer_lock(self):
+        with sqlite3.connect(self.primary, timeout=5) as writer:
+            writer.execute('PRAGMA journal_mode=WAL')
+            writer.execute("INSERT INTO argos_send_intents VALUES('committed','SENT')")
+            writer.commit()
+            writer.execute('BEGIN IMMEDIATE')
+            writer.execute("INSERT INTO argos_send_intents VALUES('uncommitted','IN_FLIGHT')")
+            self.assertTrue(
+                gate._sqlite_restore_drill(
+                    self.primary,
+                    [("SELECT COUNT(*) FROM argos_send_intents", ())],
+                )
+            )
+            writer.rollback()
+
+    def test_corrupt_source_cannot_pass_restore_drill(self):
+        corrupt = self.primary.with_name('corrupt.sqlite')
+        corrupt.write_bytes(b'not-a-sqlite-database')
+        with self.assertRaises(sqlite3.DatabaseError):
+            gate._sqlite_restore_drill(corrupt, [])
+
 
 if __name__ == "__main__":
     unittest.main()

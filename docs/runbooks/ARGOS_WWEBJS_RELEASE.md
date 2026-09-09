@@ -23,6 +23,8 @@ the canonical runtime_entrypoint.py via PM2.
    accepting the SHA/client manifest. Never log/upload QR or LocalAuth.
 3. Require exact-SHA hosted contracts before cutover. Keep PAUSED, automation 0,
    no approved bridge work, no authorized dealers, and the verified outbound baseline.
+   The pre-mutation SQLite online backups must be mode 0600 and accompanied by
+   `MANIFEST.json` recording candidate SHA, previous SHA and both SHA-256 digests.
 4. Close the writer/browser before preserving the old LocalAuth. Profile promotion
    keeps the closed original and uses same-volume renames. A surviving browser
    blocks restore and restart; retain recovery files for inspection.

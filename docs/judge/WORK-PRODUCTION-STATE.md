@@ -189,3 +189,13 @@ dashboard have explicit minimal sets matching their source. No app receives Meta
 Cloud credentials. Ten ecosystem security tests and all 63 transport tests pass.
 This certifies repository declarations only; inherited host/PM2 environment needs
 read-only machine inspection before MACHINE GREEN.
+
+## Ninth unit (publication pending)
+
+C10 online SQLite backups are now forced to mode 0600 and receive an atomically
+published mode-0600 manifest with candidate SHA, previous deployed SHA, UTC stamp
+and SHA-256 for both primary and bridge copies. The full cutover test verifies
+manifest provenance, checksums, permissions and `PRAGMA quick_check`. Post-pilot
+restore tests additionally prove a consistent committed snapshot while another
+connection holds a WAL `BEGIN IMMEDIATE` write and reject corrupt source bytes.
+These are temporary/offline drills only, not production DB or reboot evidence.

@@ -4,8 +4,11 @@ Only process/PM2 commands are mocked. SQLite, copy, rename and error traps run.
 Never SSH, WhatsApp, or the user's production home.
 """
 import os
+import hashlib
+import json
 from pathlib import Path
 import sqlite3
+import stat
 import subprocess
 import sys
 import tempfile
@@ -284,6 +287,16 @@ esac
         for path in backups:
             with sqlite3.connect(f'file:{path}?mode=ro', uri=True) as conn:
                 self.assertEqual(conn.execute('PRAGMA quick_check').fetchone()[0], 'ok')
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+        manifest_path = backups[0].parent / 'MANIFEST.json'
+        self.assertEqual(stat.S_IMODE(manifest_path.stat().st_mode), 0o600)
+        manifest = json.loads(manifest_path.read_text())
+        self.assertEqual(manifest['kind'], 'ARGOS_C10_PRE_CUTOVER_BACKUP')
+        self.assertEqual(manifest['candidate_sha'], SHA)
+        self.assertEqual(manifest['previous_sha'], SHA)
+        for path in backups:
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            self.assertEqual(manifest['files'][path.name]['sha256'], digest)
         self.assertIn('|save', (self.root / 'pm2-actions').read_text())
 
     def test_predeploy_failure_never_mutates_processes(self):
