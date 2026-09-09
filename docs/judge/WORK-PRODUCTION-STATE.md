@@ -8,11 +8,11 @@
   5c4980b60bd3242d2b9094adce40a4213c1c3091.
 - This checkpoint's containing commit records the new unit; resolve it with Git.
 - Last observed SHA with all three hosted contracts passing:
-  5c4980b60bd3242d2b9094adce40a4213c1c3091. This is NOT full offline
+  b2752a20a0a4f9bd8a5254137d28cbea12677ec3. This is NOT full offline
   certification because the security gate remains open.
-- PR runs: https://github.com/lukeeterna/europeanautoscout/actions/runs/34380862558
-  (S292), https://github.com/lukeeterna/europeanautoscout/actions/runs/34380862548
-  (pre-pairing), https://github.com/lukeeterna/europeanautoscout/actions/runs/34380862555
+- PR runs: https://github.com/lukeeterna/europeanautoscout/actions/runs/34382412705
+  (S292), https://github.com/lukeeterna/europeanautoscout/actions/runs/34382412723
+  (pre-pairing), https://github.com/lukeeterna/europeanautoscout/actions/runs/34382412729
   (post-pilot). All success, observed through GitHub connector.
 
 ## Completed unit
@@ -61,13 +61,15 @@ New WhatsApp Web runbook records safe reconciliation and old-runtime rollback li
   require triage/revocation evidence. See WORK-SECURITY-REVIEW.md.
 
 ## Next executable action
-Publish and verify the npm-audit regression boundary. Then rebuild and verify the
-hosted exact-SHA source candidate and refresh this checkpoint with its immutable
-SHA/run/checksum. External security revocation/history coordination remains RED.
+Publish the containing release-trigger coverage unit and verify its exact-SHA
+hosted contracts/artifact. If GREEN, no independent offline gate remains: next is
+external credential revocation/history-rewrite coordination, followed by real
+iMac pairing/cutover/C10/C11/reboot proof. Do not dispatch those without the
+required machine, session and recipient authorization.
 
 ## External gates and truth levels
-REPO GREEN: all three functional contracts observed on 5c4980b. The pending
-npm-audit regression unit requires its own hosted proof before replacing that SHA.
+REPO GREEN: all three functional contracts observed on b2752a2. The containing
+release-trigger coverage unit requires its own hosted proof before replacing it.
 Full release certification remains RED because of the open security gate.
 MACHINE GREEN: NOT VERIFIED. Existing read-only workflow triggered by second-unit
 push is queued: https://github.com/lukeeterna/europeanautoscout/actions/runs/34275927601.
@@ -237,3 +239,21 @@ the current real npm audit JSON passes as `KNOWN_OPEN_EXCEPTION` while explicitl
 emitting `ARGOS_RELEASE_SECURITY=OPEN`. S292 source-artifact triggers now include
 every allowlisted WORK/runbook document, preventing an artifact from silently
 lagging a documentation-only candidate change.
+
+Eleventh unit published: b2752a20a0a4f9bd8a5254137d28cbea12677ec3.
+All applicable runs succeeded: S292 push 34382407787; S292 PR 34382412705;
+pre-pairing PR 34382412723; post-pilot PR 34382412729. Hosted artifact
+10116396479, retained through 2026-10-09, has GitHub archive SHA-256
+`78e2014f945dc3499150542361a8aecbae5d1f91dbc38626527b8c882f66269a`.
+The external checksum and independent verifier passed; its manifest binds SHA
+b2752a2 to tree 4444cfecf24f421fff4ce9c068cb8dc06fc3ef1b, contains 40
+allowlisted source files including the audit gate, and remains truthfully OPEN /
+NOT_CERTIFIED / NOT_CERTIFIED.
+
+## Twelfth unit (publication pending)
+
+Release-trigger coverage review found that several allowlisted machine/readiness
+scripts could change without starting a new S292 source artifact. Added wildcard
+coverage for `tools/scripts/argos_*.py` and `tools/scripts/argos_*.sh`, plus a
+functional test that matches every release inventory entry against the S292 path
+filters. Seven bundle tests pass, including the new complete-coverage assertion.

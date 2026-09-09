@@ -1,5 +1,6 @@
 """Source candidate reproducibility, contamination exclusion and integrity."""
 import importlib.util
+import fnmatch
 import json
 from pathlib import Path
 import subprocess
@@ -75,3 +76,22 @@ class SourceBundleTests(unittest.TestCase):
         self.write('wa-intelligence/package.json',json.dumps({'version':'1','engines':{'node':'>=22'},'dependencies':{'unlocked':'1.0.0'}}))
         self.commit()
         with self.assertRaises(ValueError): bundle.build(self.repo,self.sha,self.root/'out')
+
+    def test_every_release_source_change_triggers_candidate_rebuild(self):
+        workflow = (ROOT/'.github/workflows/argos-s292-contract.yml').read_text()
+        trigger_block = workflow.split('\npermissions:', 1)[0]
+        patterns = [
+            line.strip()[3:-1]
+            for line in trigger_block.splitlines()
+            if line.strip().startswith("- '") and line.strip().endswith("'")
+        ]
+        inventory = [
+            line.strip()
+            for line in (ROOT/bundle.LIST).read_text().splitlines()
+            if line.strip() and not line.lstrip().startswith('#')
+        ]
+        uncovered = [
+            path for path in inventory
+            if not any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
+        ]
+        self.assertEqual(uncovered, [], f'release paths without S292 trigger: {uncovered}')
