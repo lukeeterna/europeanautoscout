@@ -53,6 +53,12 @@ Commands used redaction=100 and stored only redacted local reports.
 - Queue-only scheduler no longer receives outbound/admin/email/Telegram credential
   keys from the PM2 configuration. Inherited host environment still needs machine
   inspection; this proves declared configuration only.
+- PM2 declarations are now split by process: the wwebjs daemon receives only its
+  localhost API key; the scheduler receives no sensitive key; Telegram, alert
+  monitor and dashboard receive only the keys their source consumes. No process
+  receives Meta Cloud credentials in the PR #4 wwebjs release. A functional Node
+  test compares every app against its allowed sensitive-key set. Inherited PM2
+  host environment still requires real machine inspection.
 - Localhost integration exercises real guards, primary/bridge persistence,
   inbound dedupe and analyzer state transition using synthetic fixtures.
 - Hosted workflow actions for checkout, Node, Python and artifact upload are

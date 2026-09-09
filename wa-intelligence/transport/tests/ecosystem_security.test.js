@@ -29,18 +29,13 @@ function app(name) {
   return found;
 }
 
-test('30 only argos-wa-daemon receives official Meta credentials', () => {
-  const daemon = app('argos-wa-daemon');
-  for (const key of META_SECRET_KEYS) {
-    assert.ok(Object.prototype.hasOwnProperty.call(daemon.env, key), `daemon missing ${key}`);
-  }
-
-  for (const other of ecosystem.apps.filter((item) => item.name !== 'argos-wa-daemon')) {
+test('30 wwebjs PM2 release distributes no Meta credentials', () => {
+  for (const process of ecosystem.apps) {
     for (const key of META_SECRET_KEYS) {
       assert.equal(
-        Object.prototype.hasOwnProperty.call(other.env || {}, key),
+        Object.prototype.hasOwnProperty.call(process.env || {}, key),
         false,
-        `${other.name} must not inherit ${key}`,
+        `${process.name} must not receive ${key}`,
       );
     }
   }
@@ -109,5 +104,31 @@ test('canonical queue-only scheduler receives no outbound/admin credentials', ()
   const scheduler = require('../../ecosystem.config.js').apps.find(a => a.name === 'argos-outreach-scheduler');
   for (const key of ['ARGOS_API_KEY', 'ARGOS_TELEGRAM_TOKEN', 'GMAIL_FERRETTI_APP_PASSWORD', 'ARGOS_ADMIN_SECRET']) {
     assert.equal(Object.hasOwn(scheduler.env, key), false, key);
+  }
+});
+
+test('each PM2 process declares only its required sensitive credentials', () => {
+  const sensitive = [
+    'ARGOS_API_KEY', 'ARGOS_TELEGRAM_TOKEN', 'GMAIL_FERRETTI_APP_PASSWORD',
+    'ARGOS_ADMIN_SECRET', 'ARGOS_DASHBOARD_PASSWORD', 'GOOGLE_AI_API_KEY',
+    'TELEGRAM_BOT_TOKEN',
+    ...META_SECRET_KEYS,
+  ];
+  const allowed = {
+    'argos-wa-daemon': ['ARGOS_API_KEY'],
+    'argos-outreach-scheduler': [],
+    'argos-tg-bot': ['ARGOS_API_KEY', 'ARGOS_TELEGRAM_TOKEN', 'GOOGLE_AI_API_KEY'],
+    'argos-cf-monitor': ['ARGOS_TELEGRAM_TOKEN', 'GMAIL_FERRETTI_APP_PASSWORD'],
+    'argos-dashboard': [
+      'ARGOS_API_KEY', 'ARGOS_ADMIN_SECRET', 'ARGOS_DASHBOARD_PASSWORD',
+      'TELEGRAM_BOT_TOKEN',
+    ],
+  };
+  for (const process of ecosystem.apps) {
+    assert.deepEqual(
+      sensitive.filter(key => Object.hasOwn(process.env || {}, key)).sort(),
+      allowed[process.name].slice().sort(),
+      process.name,
+    );
   }
 });

@@ -175,3 +175,17 @@ revision isolation, text and binary token detection, app-password detection and
 metadata-only reporting. S292 now runs the scanner on exact HEAD and packages the
 scanner in the source candidate. Deleting the current copy is not proof of provider
 revocation and does not clean the existing history; the security gate remains RED.
+
+Seventh unit published: dd51e7e7f4d9488f6de4a551c7629e29467ba898.
+Hosted runs succeeded: S292 push 34378644317; S292 PR 34378651935;
+pre-pairing PR 34378651801; post-pilot PR 34378651970. The S292 run includes
+the exact-tree scanner and completed GREEN with zero current strong findings.
+
+## Eighth unit (publication pending)
+
+PM2 declared credential scope is separated per process. The wwebjs daemon has
+only `ARGOS_API_KEY`; scheduler has no sensitive keys; Telegram, CF monitor and
+dashboard have explicit minimal sets matching their source. No app receives Meta
+Cloud credentials. Ten ecosystem security tests and all 63 transport tests pass.
+This certifies repository declarations only; inherited host/PM2 environment needs
+read-only machine inspection before MACHINE GREEN.

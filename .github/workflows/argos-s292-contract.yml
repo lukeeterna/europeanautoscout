@@ -252,14 +252,14 @@ jobs:
               'META_WA_WEBHOOK_VERIFY_TOKEN',
               'META_APP_SECRET',
           ):
-              assert key in ecosystem, f'PM2 does not pass {key}'
+              assert key not in ecosystem, f'wwebjs PM2 release must not distribute {key}'
           for key in (
               'META_WA_TEMPLATE_DAY1_NAME',
               'META_WA_TEMPLATE_DAY7_NAME',
               'META_WA_TEMPLATE_DAY12_NAME',
           ):
               assert key in ecosystem and key in smoke, f'proactive Meta template wiring missing: {key}'
-          print('PASS PM2 first boot is PAUSED, dependency-locked, external-state aware, transport-aware and execs the only writer')
+          print('PASS PM2 is PAUSED, dependency-locked, least-privilege wwebjs and execs the only writer')
           PY
 
       - name: Static anti-drift assertions
