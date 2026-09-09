@@ -178,8 +178,20 @@ rollback() {
     echo "ROLLBACK=BEGIN" >&2
     "$PM2" stop argos-outreach-scheduler argos-wa-daemon >/dev/null 2>&1 || true
     "$PM2" delete argos-outreach-scheduler argos-wa-daemon >/dev/null 2>&1 || true
-    if [[ -f "$OLD_CWD/ecosystem.config.js" ]]; then
-      (cd "$OLD_CWD" && "$PM2" start ecosystem.config.js --only argos-wa-daemon,argos-outreach-scheduler --update-env) >/dev/null 2>&1 || true
+    # Never restart either runtime over a browser that still owns the canonical
+    # LocalAuth profile. Preserve the stopped state for external recovery.
+    for _ in $(seq 1 20); do
+      if ! ps -axo command= | grep -F "$SESSION_DIR" | grep -i '[c]hrome' >/dev/null; then break; fi
+      sleep 1
+    done
+    if ps -axo command= | grep -F "$SESSION_DIR" | grep -i '[c]hrome' >/dev/null; then
+      echo "ROLLBACK=BLOCKED_BROWSER" >&2
+      exit 30
+    fi
+    rb_restart="NO"
+    if [[ -f "$OLD_CWD/ecosystem.config.js" ]] && \
+       (cd "$OLD_CWD" && "$PM2" start ecosystem.config.js --only argos-wa-daemon,argos-outreach-scheduler --update-env) >/dev/null 2>&1; then
+      rb_restart="YES"
     fi
     sleep 5
     rb_out="$("$PY313" - "$CANONICAL_PRIMARY" <<'PY'
@@ -192,9 +204,15 @@ import sqlite3,sys
 c=sqlite3.connect(f'file:{sys.argv[1]}?mode=ro',uri=True); r=c.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status'").fetchone(); print((r[0] if r else 'ABSENT').upper()); c.close()
 PY
 )"
+    rb_writer="$(ps -axo command= | awk '/[w]a-daemon\.js/ && /[n]ode/ {n++} END {print n+0}')"
     echo "ROLLBACK_OUTBOUND_TOTAL=$rb_out" >&2
     echo "ROLLBACK_AGENT_STATUS=$rb_state" >&2
-    if [[ "$rb_out" == "77" && "$rb_state" == "PAUSED" ]]; then echo "ROLLBACK=PASS" >&2; else echo "ROLLBACK=DEGRADED" >&2; fi
+    echo "ROLLBACK_WRITER_COUNT=$rb_writer" >&2
+    if [[ "$rb_out" == "77" && "$rb_state" == "PAUSED" && "$rb_restart" == "YES" && "$rb_writer" == "1" ]]; then
+      echo "ROLLBACK=PASS" >&2
+    else
+      echo "ROLLBACK=DEGRADED" >&2
+    fi
   fi
   exit "$rc"
 }

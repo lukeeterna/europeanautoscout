@@ -228,6 +228,7 @@ class WorkflowSafetyTests(unittest.TestCase):
             "PREDEPLOY=GREEN",
             "rollback()",
             "ROLLBACK=PASS",
+            "ROLLBACK=BLOCKED_BROWSER",
             "WWEBJS_CONNECTED=YES",
             "POST_OUTBOUND_DELTA",
             "PM2_SAVE=PASS",

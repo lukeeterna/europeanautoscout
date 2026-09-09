@@ -50,14 +50,11 @@ failed extracting Node headers (fchown); explicit local headers resolved the bui
 New WhatsApp Web runbook records safe reconciliation and old-runtime rollback limits.
 
 ## Open RED / unclosed gates
-- Full cutover shell rollback and process recovery still need additional audit;
-  promotion tests above do not certify the entire machine cutover.
-- Full HTTP/bridge/inbound/analyzer end-to-end reconciliation remains unclosed;
-  the guardedSend boundary and crash journal now have functional SQLite coverage.
-  Fourth-unit localhost integration covers HTTP/bridge/inbound/analyzer with real
+- Fourth-unit localhost integration covers HTTP/bridge/inbound/analyzer with real
   Python guards and SQLite; live receipt and reconciliation remain unclosed.
-- Full cutover script, runtime/C11, durability/security and release audit incomplete.
-- No immutable certified release candidate produced in this session yet.
+- Runtime/C11 live proof, machine durability/reboot and security remain incomplete.
+- A reproducible source candidate exists, but no artifact is a production release
+  while its manifest truthfully records security OPEN and machine NOT_CERTIFIED.
 - Security RED: 5 high npm audit entries remain after js-yaml fix; upstream
   extract-zip has no published patched version observed. History secret findings
   require triage/revocation evidence. See WORK-SECURITY-REVIEW.md.
@@ -68,8 +65,8 @@ verify the hosted source-candidate artifact. Continue cutover-shell failure
 injection and outstanding security mitigation/triage.
 
 ## External gates and truth levels
-REPO GREEN: three functional contracts observed on af37fc3; the newer 00183f
-candidate is RED at checkout, so it is not certified.
+REPO GREEN: all three functional contracts observed on e5411d5; the newer pending
+cutover-recovery unit requires its own hosted proof before it can replace that SHA.
 Full release certification remains RED because of the open security gate.
 MACHINE GREEN: NOT VERIFIED. Existing read-only workflow triggered by second-unit
 push is queued: https://github.com/lukeeterna/europeanautoscout/actions/runs/34275927601.
@@ -140,3 +137,31 @@ runner variable is `RUNNER_ENVIRONMENT`, not `GITHUB_RUNNER_ENVIRONMENT`; no Git
 operation or test ran. Representative PR runs: S292 34346252448, pre-pairing
 34346252445, post-pilot 34346252456. The pending correction uses the real variable
 and tests that the nonexistent name cannot return.
+
+Second correction published: e5411d5e8d2e36ca1fface8b082a77fac0bba0c2.
+All push contracts succeeded: S292 34346762623, pre-pairing 34346763279,
+post-pilot 34346762462. All PR contracts also succeeded: S292 34346766016,
+pre-pairing 34346766135, post-pilot 34346765963. Run URL prefix:
+https://github.com/lukeeterna/europeanautoscout/actions/runs/
+
+S292 artifact 10102017608 is named
+`argos-source-e5411d5e8d2e36ca1fface8b082a77fac0bba0c2`, retained through
+2026-10-09. Downloaded archive checksum verified:
+`41fd8316b7a533b837b76559d103f181ddd33fd29804db7635e506d8fbde5a22`.
+The independent bundle verifier passed and confirmed source SHA e5411d5, tree
+c01c80a9743e2e47b7e85213cf5b56e1967e7d55, 37 inventoried source files,
+security OPEN, machine/production NOT_CERTIFIED. No database, LocalAuth or secret
+was found in the allowlisted artifact.
+
+## Sixth unit (publication pending)
+
+The actual remote body of `argos_c10_wwebjs_cutover.sh` now runs in a temporary
+filesystem with real SQLite online backups and integrity checks while only its
+external process/network commands are mocked. Seven full-body scenarios cover
+success with outbound delta zero, failure before process mutation, new-runtime
+start failure, postdeploy failure, PM2 save failure, browser shutdown timeout and
+old-runtime restart failure. The existing nine exact-profile promotion/recovery
+tests remain GREEN. A discovered rollback defect was fixed: internal rollback now
+refuses to restart over a browser still holding canonical LocalAuth, and it cannot
+claim PASS unless the old runtime restart succeeds with exactly one writer.
+These are controlled simulations, not iMac execution.

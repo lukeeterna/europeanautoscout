@@ -66,6 +66,12 @@ runtime, remaining PAUSED with automation 0 and outbound delta zero. A backup ma
 while Chrome is writing is not a valid credential backup. Never run the historical
 writer or scheduler. Preserve backups until independent recovery proof succeeds.
 
+Internal cutover rollback keeps both processes stopped if Chrome still owns the
+canonical LocalAuth directory. It is GREEN only after the previous runtime starts,
+exactly one writer is observed, SQLite remains PAUSED and outbound total remains
+77. `ROLLBACK=BLOCKED_BROWSER` or `ROLLBACK=DEGRADED` requires external recovery;
+do not start another writer manually over that state.
+
 After a possible C11 delivery, never restore a pre-send primary DB or an older
 runtime without accounting for its intent journal: doing so can erase dedupe
 history. Keep the release PAUSED and reconcile instead. No rollback may authorize
