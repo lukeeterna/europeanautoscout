@@ -40,6 +40,9 @@ Commands used redaction=100 and stored only redacted local reports.
   was tested with a provider. No secret values are included in this report.
 - Historical provider rotation and exposure triage remain external/security gates.
   Do not rewrite history or treat deleting a current value as revocation.
+- Repository-native full-history scan: 12 unique historical blob matches, all the
+  strong `gmail-app-password` rule. See WORK-SECRET-HISTORY.md for the redacted
+  scope and required closure evidence; its counting model differs from Gitleaks.
 - A repository-native exact-Git-object scanner is pending publication in S292. It
   reports only path, line, rule and count, scans binary/text blobs, and has tests
   for exact-revision isolation, token/app-password detection and redacted output.

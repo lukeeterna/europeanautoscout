@@ -199,3 +199,17 @@ manifest provenance, checksums, permissions and `PRAGMA quick_check`. Post-pilot
 restore tests additionally prove a consistent committed snapshot while another
 connection holds a WAL `BEGIN IMMEDIATE` write and reject corrupt source bytes.
 These are temporary/offline drills only, not production DB or reboot evidence.
+
+Ninth unit published: 9b5661fe6d31fec8ddb4249ba763d35040a18e75.
+All push contracts succeeded: S292 34379764768, pre-pairing 34379764763,
+post-pilot 34379764776. PR contracts also succeeded: S292 34379768923,
+pre-pairing 34379768974, post-pilot 34379768942. The read-only iMac run
+34379764770 remains pending and is not machine evidence.
+
+## Tenth unit (publication pending)
+
+The repository-native scanner now supports a redacted all-refs history mode.
+Against the Work clone (1,049 commits / 7,093 objects), it found 12 unique
+historical blob matches, all `gmail-app-password`, without emitting values.
+WORK-SECRET-HISTORY.md records scope and closure requirements. Gitleaks' prior
+21-finding result uses broader rules/counting and remains separately recorded.

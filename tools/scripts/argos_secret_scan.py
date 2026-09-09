@@ -8,6 +8,7 @@ current-tree exposure without reading untracked machine files.
 from __future__ import annotations
 
 import argparse
+import io
 import re
 import subprocess
 from pathlib import Path
@@ -17,7 +18,7 @@ RULES = {
     "github-token": re.compile(
         rb"(?<![A-Za-z0-9_])(?:ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})"
     ),
-    "openai-key": re.compile(rb"(?<![A-Za-z0-9_])sk-[A-Za-z0-9_-]{20,}"),
+    "openai-key": re.compile(rb"(?<![A-Za-z0-9_])sk-(?!or-v1-)[A-Za-z0-9_-]{20,}"),
     "openrouter-key": re.compile(rb"(?<![A-Za-z0-9_])sk-or-v1-[A-Za-z0-9_-]{20,}"),
     "telegram-token": re.compile(rb"(?<![0-9])\d{8,10}:AA[A-Za-z0-9_-]{30,}"),
     "aws-access-key": re.compile(rb"(?<![A-Z0-9])AKIA[0-9A-Z]{16}(?![A-Z0-9])"),
@@ -34,6 +35,18 @@ RULES = {
     "private-key": re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
 }
 
+PREFILTERS = {
+    "github-token": (b"ghp_", b"github_pat_"),
+    "openai-key": (b"sk-",),
+    "openrouter-key": (b"sk-or-v1-",),
+    "telegram-token": (b":AA",),
+    "aws-access-key": (b"AKIA",),
+    "gmail-app-password": (b"GMAIL", b"gmail"),
+    "authorization-bearer": (b"uthorization", b"UTHORIZATION"),
+    "authorization-basic": (b"uthorization", b"UTHORIZATION"),
+    "private-key": (b"PRIVATE KEY",),
+}
+
 
 def _git(repo: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
     return subprocess.run(
@@ -46,34 +59,51 @@ def _git(repo: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
 
 
 def _blobs(repo: Path, shas: list[str]) -> list[bytes]:
-    process = subprocess.Popen(
+    process = subprocess.run(
         ["git", "-C", str(repo), "cat-file", "--batch"],
-        stdin=subprocess.PIPE,
+        input="".join(f"{sha}\n" for sha in shas).encode("ascii"),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        check=True,
     )
-    assert process.stdin is not None and process.stdout is not None
-    process.stdin.write("".join(f"{sha}\n" for sha in shas).encode("ascii"))
-    process.stdin.close()
+    output = io.BytesIO(process.stdout)
     bodies: list[bytes] = []
     for expected in shas:
-        header = process.stdout.readline().decode("ascii").strip().split()
+        header = output.readline().decode("ascii").strip().split()
         if len(header) != 3 or header[0] != expected or header[1] != "blob":
-            process.kill()
             raise ValueError("unexpected git cat-file response")
         size = int(header[2])
-        body = process.stdout.read(size)
-        if len(body) != size or process.stdout.read(1) != b"\n":
-            process.kill()
+        body = output.read(size)
+        if len(body) != size or output.read(1) != b"\n":
             raise ValueError("truncated git cat-file response")
         bodies.append(body)
-    returncode = process.wait()
-    process.stdout.close()
-    assert process.stderr is not None
-    process.stderr.close()
-    if returncode != 0:
-        raise subprocess.CalledProcessError(returncode, process.args)
     return bodies
+
+
+def _types(repo: Path, shas: list[str]) -> list[str]:
+    process = subprocess.run(
+        ["git", "-C", str(repo), "cat-file", "--batch-check=%(objecttype)"],
+        input="".join(f"{sha}\n" for sha in shas).encode("ascii"),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    result = process.stdout.decode("ascii").splitlines()
+    if len(result) != len(shas):
+        raise ValueError("unexpected git object type response")
+    return result
+
+
+def _scan_objects(repo: Path, objects: list[tuple[str, str]]) -> list[tuple[str, int, str]]:
+    findings: list[tuple[str, int, str]] = []
+    for (path, _), body in zip(objects, _blobs(repo, [sha for _, sha in objects]), strict=True):
+        for rule, pattern in RULES.items():
+            if not any(marker in body for marker in PREFILTERS[rule]):
+                continue
+            for match in pattern.finditer(body):
+                line = body.count(b"\n", 0, match.start()) + 1
+                findings.append((path, line, rule))
+    return sorted(findings)
 
 
 def scan(repo: Path, rev: str) -> list[tuple[str, int, str]]:
@@ -87,20 +117,31 @@ def scan(repo: Path, rev: str) -> list[tuple[str, int, str]]:
         if obj_type == "blob" and mode != "160000":
             path = raw_path.decode("utf-8", errors="surrogateescape")
             objects.append((path, blob_sha))
+    return _scan_objects(repo, objects)
 
-    findings: list[tuple[str, int, str]] = []
-    for (path, _), body in zip(objects, _blobs(repo, [sha for _, sha in objects]), strict=True):
-        for rule, pattern in RULES.items():
-            for match in pattern.finditer(body):
-                line = body.count(b"\n", 0, match.start()) + 1
-                findings.append((path, line, rule))
-    return sorted(findings)
+
+def scan_history(repo: Path) -> list[tuple[str, int, str]]:
+    raw = _git(repo, "rev-list", "--objects", "--all").decode(
+        "utf-8", errors="surrogateescape"
+    )
+    candidates: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for line in raw.splitlines():
+        sha, separator, path = line.partition(" ")
+        if sha in seen:
+            continue
+        seen.add(sha)
+        candidates.append((path if separator else f"object-{sha}", sha))
+    types = _types(repo, [sha for _, sha in candidates])
+    blobs = [item for item, obj_type in zip(candidates, types, strict=True) if obj_type == "blob"]
+    return _scan_objects(repo, blobs)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--rev", default="HEAD")
+    parser.add_argument("--history", action="store_true")
     args = parser.parse_args()
     repo = args.repo.resolve()
     try:
@@ -110,16 +151,17 @@ def main() -> int:
         return 2
     sha = resolved.decode("ascii").strip()
     try:
-        findings = scan(repo, sha)
+        findings = scan_history(repo) if args.history else scan(repo, sha)
     except (subprocess.CalledProcessError, ValueError, UnicodeError):
         print("SECRET_SCAN=BLOCKED_GIT_READ")
         return 2
     for path, line, rule in findings:
         print(f"SECRET_FINDING={path}:{line}:{rule}:REDACTED")
+    label = "HISTORY_SECRET_SCAN" if args.history else "SECRET_SCAN"
     if findings:
-        print(f"SECRET_SCAN=RED SHA={sha} FINDINGS={len(findings)}")
+        print(f"{label}=RED SHA={sha} FINDINGS={len(findings)}")
         return 1
-    print(f"SECRET_SCAN=GREEN SHA={sha} FINDINGS=0")
+    print(f"{label}=GREEN SHA={sha} FINDINGS=0")
     return 0
 
 

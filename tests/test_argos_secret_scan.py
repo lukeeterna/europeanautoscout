@@ -59,3 +59,12 @@ class ExactTreeSecretScanTests(unittest.TestCase):
         findings = argos_secret_scan.scan(self.repo, sha)
         self.assertEqual(findings, [("image.bin", 1, "github-token")])
         self.assertNotIn(token.decode(), repr(findings))
+
+    def test_history_scan_retains_redacted_revision_finding(self) -> None:
+        token = "ghp_" + "A" * 36
+        self.commit("credential.txt", (token + "\n").encode())
+        current = self.commit("credential.txt", b"<REDACTED-ROTATE-REQUIRED>\n")
+        self.assertEqual(argos_secret_scan.scan(self.repo, current), [])
+        findings = argos_secret_scan.scan_history(self.repo)
+        self.assertEqual(findings, [("credential.txt", 1, "github-token")])
+        self.assertNotIn(token, repr(findings))

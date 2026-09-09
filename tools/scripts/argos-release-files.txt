@@ -2,6 +2,7 @@
 docs/judge/WORK-PRODUCTION-MANDATE.md
 docs/judge/WORK-PRODUCTION-STATE.md
 docs/judge/WORK-SECURITY-REVIEW.md
+docs/judge/WORK-SECRET-HISTORY.md
 docs/runbooks/ARGOS_WWEBJS_RELEASE.md
 src/cove/__init__.py
 src/cove/demand_contract.py
