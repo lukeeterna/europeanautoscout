@@ -343,3 +343,27 @@ jobs:
           path: /tmp/argos-source-candidate/*
           if-no-files-found: error
           retention-days: 30
+
+  attest-source-candidate:
+    name: Attest exact-SHA source candidate
+    if: github.event_name == 'push'
+    needs: contract
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Download candidate produced by contract job
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: argos-source-${{ github.sha }}
+          path: /tmp/argos-source-candidate
+
+      - name: Generate GitHub/Sigstore build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: /tmp/argos-source-candidate/argos-source-${{ github.sha }}.sha256

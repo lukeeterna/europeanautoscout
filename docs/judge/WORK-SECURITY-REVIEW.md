@@ -76,6 +76,12 @@ Commands used redaction=100 and stored only redacted local reports.
   above at the reviewed lock versions. New advisories, critical severity, package
   versions or dependency edges fail CI. Acceptance of the known result emits
   `ARGOS_RELEASE_SECURITY=OPEN`; it is explicitly not a waiver.
+- Source-candidate provenance is generated in a privilege-separated push-only
+  job using the official GitHub `actions/attest` action pinned to an exact commit.
+  PR-controlled test code receives only read permission; OIDC and attestation
+  writes exist only after the contract job succeeds. The attested subject is the
+  external checksum for the exact-SHA inner source ZIP. This does not sign Git
+  commits or close the open dependency/secret-history findings.
 
 These tests do not prove live WhatsApp receipt, iMac reboot, Chrome shutdown,
 provider credential revocation, or an independent production security review.

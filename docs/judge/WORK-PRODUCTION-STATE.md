@@ -61,10 +61,12 @@ New WhatsApp Web runbook records safe reconciliation and old-runtime rollback li
   require triage/revocation evidence. See WORK-SECURITY-REVIEW.md.
 
 ## Next executable action
-No independent offline implementation gate remains. Next is external credential
-revocation and coordinated history rewrite, then real iMac pairing/cutover/C10,
-an explicitly authorized C11 recipient, and reboot/recovery proof. Do not dispatch
-those without the required provider access, machine/session and authorization.
+Publish and verify the containing provenance-attestation unit. If the repository
+accepts the OIDC attestation, no independent offline implementation gate remains.
+Next is branch-protection/review configuration plus external credential revocation
+and coordinated history rewrite, then real iMac pairing/cutover/C10, an explicitly
+authorized C11 recipient, and reboot/recovery proof. Do not dispatch those without
+the required administrative/provider access, machine/session and authorization.
 
 ## External gates and truth levels
 REPO GREEN: all three functional contracts and the S292 push build are observed
@@ -267,3 +269,19 @@ External checksum and independent verification passed. The manifest binds source
 SHA 45b6149 to tree ab4d819216fbe976a971c2a702e1026856a263f6,
 contains 40 allowlisted files and records security OPEN, machine NOT_CERTIFIED and
 production NOT_CERTIFIED. This exact SHA is the immutable offline source candidate.
+
+## Thirteenth unit (publication pending)
+
+GitHub repository inspection found the production, canonicalization and audit
+branches all report `protected:false`; the repository ruleset list and PR #4
+review list are empty. The connector exposes repository admin identity but no
+branch-protection/ruleset mutation operation, so merge governance is an external
+repository-settings gate and PR #4 remains draft/unmerged. The latest checkpoint
+commit is also reported `unsigned`; this is recorded, not disguised as signed.
+
+Added push-only GitHub/Sigstore build provenance for the source candidate. The
+attestation runs in a separate job after S292 succeeds, downloads the exact named
+artifact and attests its checksum file. OIDC, attestation and artifact-metadata
+write permissions are isolated to that push-only job; PR test execution remains
+read-only. Both official actions are pinned to exact commits. Functional tests
+require the event boundary, privilege separation, pins and exact checksum subject.

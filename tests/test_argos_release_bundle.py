@@ -95,3 +95,26 @@ class SourceBundleTests(unittest.TestCase):
             if not any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
         ]
         self.assertEqual(uncovered, [], f'release paths without S292 trigger: {uncovered}')
+
+    def test_provenance_attestation_is_push_only_and_privilege_separated(self):
+        workflow = (ROOT/'.github/workflows/argos-s292-contract.yml').read_text()
+        marker = '\n  attest-source-candidate:'
+        self.assertIn(marker, workflow)
+        contract, attest = workflow.split(marker, 1)
+        self.assertIn("permissions:\n  contents: read", contract)
+        self.assertNotIn('id-token: write', contract)
+        self.assertIn("if: github.event_name == 'push'", attest)
+        self.assertIn('needs: contract', attest)
+        self.assertIn('id-token: write', attest)
+        self.assertIn('attestations: write', attest)
+        self.assertIn('artifact-metadata: write', attest)
+        self.assertIn(
+            'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c',
+            attest,
+        )
+        self.assertIn(
+            'actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6',
+            attest,
+        )
+        self.assertIn('subject-checksums:', attest)
+        self.assertIn('argos-source-${{ github.sha }}.sha256', attest)
