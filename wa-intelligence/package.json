@@ -1,0 +1,20 @@
+{
+  "name": "argos-s292-wa-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Canonical ARGOS S292 WhatsApp runtime dependencies",
+  "engines": {
+    "node": ">=22 <27"
+  },
+  "scripts": {
+    "test:transport": "node --test transport/tests/*.test.js",
+    "verify:runtime-deps": "node -e \"const Database=require('better-sqlite3'); const db=new Database(':memory:'); db.prepare('SELECT 1 AS ok').get(); db.close(); require('qrcode'); console.log('RUNTIME_DEPS=PASS')\""
+  },
+  "dependencies": {
+    "better-sqlite3": "13.0.3",
+    "qrcode": "1.5.4"
+  },
+  "optionalDependencies": {
+    "whatsapp-web.js": "1.34.7"
+  }
+}

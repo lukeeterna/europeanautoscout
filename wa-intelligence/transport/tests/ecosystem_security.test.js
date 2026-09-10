@@ -1,0 +1,134 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const ecosystem = require('../../ecosystem.config.js');
+const REPO_ROOT = path.join(__dirname, '..', '..', '..');
+
+const META_SECRET_KEYS = [
+  'META_WA_ACCESS_TOKEN',
+  'META_WA_PHONE_NUMBER_ID',
+  'META_WA_WABA_ID',
+  'META_WA_WEBHOOK_VERIFY_TOKEN',
+  'META_APP_SECRET',
+];
+
+const META_TEMPLATE_KEYS = [
+  'META_WA_TEMPLATE_LANGUAGE',
+  'META_WA_TEMPLATE_DAY1_NAME',
+  'META_WA_TEMPLATE_DAY7_NAME',
+  'META_WA_TEMPLATE_DAY12_NAME',
+];
+
+function app(name) {
+  const found = ecosystem.apps.find((item) => item.name === name);
+  assert.ok(found, `missing PM2 app ${name}`);
+  return found;
+}
+
+test('30 wwebjs PM2 release distributes no Meta credentials', () => {
+  for (const process of ecosystem.apps) {
+    for (const key of META_SECRET_KEYS) {
+      assert.equal(
+        Object.prototype.hasOwnProperty.call(process.env || {}, key),
+        false,
+        `${process.name} must not receive ${key}`,
+      );
+    }
+  }
+});
+
+test('31 PM2 defaults remain fail-closed and single-writer', () => {
+  const daemon = app('argos-wa-daemon');
+  const scheduler = app('argos-outreach-scheduler');
+  assert.equal(daemon.env.ARGOS_WA_TRANSPORT, 'wwebjs');
+  assert.equal(daemon.env.ARGOS_AUTOMATION_ENABLED, '0');
+  assert.equal(scheduler.env.ARGOS_AUTOMATION_ENABLED, '0');
+  assert.equal(path.basename(daemon.script), 'runtime_entrypoint.py');
+  assert.notEqual(path.basename(scheduler.script), 'wa-daemon.js');
+});
+
+test('32 no second PM2 app executes wa-daemon.js', () => {
+  const writers = ecosystem.apps.filter((item) => path.basename(String(item.script || '')) === 'wa-daemon.js');
+  assert.equal(writers.length, 0, 'PM2 must enter the writer only through runtime_entrypoint.py');
+});
+
+test('40 external DB path is configurable and proactive template names reach scheduler', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', '..', 'ecosystem.config.js'), 'utf8');
+  assert.match(source, /ARGOS_DB_PATH:\s*dotEnv\.ARGOS_DB_PATH\s*\|\|/);
+  const daemon = app('argos-wa-daemon');
+  const scheduler = app('argos-outreach-scheduler');
+  for (const key of META_TEMPLATE_KEYS) {
+    assert.ok(Object.prototype.hasOwnProperty.call(daemon.env, key), `daemon missing ${key}`);
+    assert.ok(Object.prototype.hasOwnProperty.call(scheduler.env, key), `scheduler missing ${key}`);
+  }
+});
+
+test('41 direct daemon boot cannot seed ACTIVE runtime state', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', '..', 'wa-daemon.js'), 'utf8');
+  assert.doesNotMatch(source, /VALUES \('agent_status', 'ACTIVE', \?\)/);
+  assert.match(source, /VALUES \('agent_status', 'PAUSED', \?\)/);
+});
+
+test('42 historical master-push and scheduled Day7 CD paths are retired', () => {
+  const source = fs.readFileSync(path.join(REPO_ROOT, '.github', 'workflows', 'cd.yml'), 'utf8');
+  assert.match(source, /LEGACY_CD_RETIRED=YES/);
+  assert.doesNotMatch(source, /appleboy\/ssh-action/);
+  assert.doesNotMatch(source, /git pull origin master/);
+  assert.doesNotMatch(source, /^\s*schedule:/m);
+  assert.doesNotMatch(source, /^\s*push:/m);
+});
+
+test('43 historical deploy.sh is fail-closed and cannot mutate production', () => {
+  const source = fs.readFileSync(path.join(REPO_ROOT, 'wa-intelligence', 'deploy.sh'), 'utf8');
+  assert.match(source, /RETIRED|retired/i);
+  assert.doesNotMatch(source, /pm2\s+start\s+ecosystem\.config\.js/);
+  assert.doesNotMatch(source, /launchctl\s+load/);
+});
+
+test('44 temporary branch mutation workflows are absent from release candidate', () => {
+  const workflows = path.join(REPO_ROOT, '.github', 'workflows');
+  for (const name of [
+    'argos-c10t1-daemon-failclosed-patch.yml',
+    'argos-c10t1-lockfile-once.yml',
+    'argos-c10t1-smoke-deps-once.yml',
+  ]) {
+    assert.equal(fs.existsSync(path.join(workflows, name)), false, `${name} must not ship`);
+  }
+});
+
+test('canonical queue-only scheduler receives no outbound/admin credentials', () => {
+  const scheduler = require('../../ecosystem.config.js').apps.find(a => a.name === 'argos-outreach-scheduler');
+  for (const key of ['ARGOS_API_KEY', 'ARGOS_TELEGRAM_TOKEN', 'GMAIL_FERRETTI_APP_PASSWORD', 'ARGOS_ADMIN_SECRET']) {
+    assert.equal(Object.hasOwn(scheduler.env, key), false, key);
+  }
+});
+
+test('each PM2 process declares only its required sensitive credentials', () => {
+  const sensitive = [
+    'ARGOS_API_KEY', 'ARGOS_TELEGRAM_TOKEN', 'GMAIL_FERRETTI_APP_PASSWORD',
+    'ARGOS_ADMIN_SECRET', 'ARGOS_DASHBOARD_PASSWORD', 'GOOGLE_AI_API_KEY',
+    'TELEGRAM_BOT_TOKEN',
+    ...META_SECRET_KEYS,
+  ];
+  const allowed = {
+    'argos-wa-daemon': ['ARGOS_API_KEY'],
+    'argos-outreach-scheduler': [],
+    'argos-tg-bot': ['ARGOS_API_KEY', 'ARGOS_TELEGRAM_TOKEN', 'GOOGLE_AI_API_KEY'],
+    'argos-cf-monitor': ['ARGOS_TELEGRAM_TOKEN', 'GMAIL_FERRETTI_APP_PASSWORD'],
+    'argos-dashboard': [
+      'ARGOS_API_KEY', 'ARGOS_ADMIN_SECRET', 'ARGOS_DASHBOARD_PASSWORD',
+      'TELEGRAM_BOT_TOKEN',
+    ],
+  };
+  for (const process of ecosystem.apps) {
+    assert.deepEqual(
+      sensitive.filter(key => Object.hasOwn(process.env || {}, key)).sort(),
+      allowed[process.name].slice().sort(),
+      process.name,
+    );
+  }
+});

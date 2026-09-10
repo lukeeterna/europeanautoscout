@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sqlite3
 import tempfile
 import unittest
@@ -15,7 +16,7 @@ WA_DIR = ROOT / "wa-intelligence"
 if str(WA_DIR) not in sys.path:
     sys.path.insert(0, str(WA_DIR))
 
-from runtime_entrypoint import initialize_runtime_state, validate_required_environment  # noqa: E402
+from runtime_entrypoint import initialize_runtime_state, validate_required_environment, acquire_writer_lock  # noqa: E402
 
 
 class RuntimeEntrypointTests(unittest.TestCase):
@@ -72,6 +73,35 @@ class RuntimeEntrypointTests(unittest.TestCase):
             db_path, api_key = validate_required_environment()
         self.assertEqual(db_path, str(self.db))
         self.assertEqual(api_key, "secret-value")
+
+    def test_second_process_is_blocked_until_lock_owner_exits(self):
+        fd = acquire_writer_lock(str(self.db))
+        self.addCleanup(os.close, fd)
+        code = "from runtime_entrypoint import acquire_writer_lock; import sys; acquire_writer_lock(sys.argv[1])"
+        env = {**os.environ, 'PYTHONPATH': str(WA_DIR)}
+        child = subprocess.run([sys.executable, '-c', code, str(self.db)], env=env, capture_output=True)
+        self.assertNotEqual(child.returncode, 0)
+
+    def test_lock_survives_exec_and_is_released_by_process_exit(self):
+        code = "from runtime_entrypoint import acquire_writer_lock; import os,sys; fd=acquire_writer_lock(sys.argv[1]); os.execvp('node',['node','-e',\"console.log('LOCKED');setInterval(()=>{},1000)\"])"
+        env = {**os.environ, 'PYTHONPATH': str(WA_DIR)}
+        child = subprocess.Popen([sys.executable, '-c', code, str(self.db)], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.addCleanup(lambda: child.poll() is None and child.kill())
+        self.assertEqual(child.stdout.readline().strip(), 'LOCKED')
+        with self.assertRaises(RuntimeError):
+            acquire_writer_lock(str(self.db))
+        child.terminate(); child.wait(timeout=5)
+        fd = acquire_writer_lock(str(self.db))
+        os.close(fd)
+        child.stdout.close(); child.stderr.close()
+
+    def test_symlink_lockfile_is_rejected(self):
+        target = Path(self.tmp.name) / 'untouched'
+        target.write_text('preserve')
+        Path(str(self.db) + '.argos-writer.lock').symlink_to(target)
+        with self.assertRaises(OSError):
+            acquire_writer_lock(str(self.db))
+        self.assertEqual(target.read_text(), 'preserve')
 
 
 if __name__ == "__main__":
