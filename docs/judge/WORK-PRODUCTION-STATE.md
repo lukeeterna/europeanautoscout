@@ -5,14 +5,14 @@
 - Branch: sol/argos-wwebjs-c10-production
 - PR #4: open draft; base sol/argos-canonicalization-20260817; not merged.
 - Observed remote HEAD before this final checkpoint:
-  9ea480a0052449c971ef9b73f8ca0ec001f0246b.
+  5dfa7c2ce0e5b6f7772ea37f002c6913ace4b6a9.
 - This checkpoint's containing commit records the new unit; resolve it with Git.
 - Last observed SHA with all three hosted contracts passing:
-  9ea480a0052449c971ef9b73f8ca0ec001f0246b. This is NOT full production
+  5dfa7c2ce0e5b6f7772ea37f002c6913ace4b6a9. This is NOT full production
   certification because the security gate remains open.
-- PR runs: https://github.com/lukeeterna/europeanautoscout/actions/runs/34406053670
-  (S292), https://github.com/lukeeterna/europeanautoscout/actions/runs/34406053773
-  (pre-pairing), https://github.com/lukeeterna/europeanautoscout/actions/runs/34406053671
+- PR runs: https://github.com/lukeeterna/europeanautoscout/actions/runs/34439443257
+  (S292), https://github.com/lukeeterna/europeanautoscout/actions/runs/34439443249
+  (pre-pairing), https://github.com/lukeeterna/europeanautoscout/actions/runs/34439443267
   (post-pilot). All success, observed through GitHub connector.
 
 ## Completed unit
@@ -61,17 +61,16 @@ New WhatsApp Web runbook records safe reconciliation and old-runtime rollback li
   require triage/revocation evidence. See WORK-SECURITY-REVIEW.md.
 
 ## Next executable action
-Publish and verify the deterministic SBOM plus its Sigstore statement. If GREEN,
-no independent offline implementation gate remains. Next is branch-protection and
+No independent offline implementation gate remains. Next is branch-protection and
 review configuration plus external credential revocation and coordinated history
 rewrite, then real iMac pairing/cutover/C10, an explicitly authorized C11
 recipient, and reboot/recovery proof. Do not dispatch those without the required
 administrative/provider access, machine/session and authorization.
 
 ## External gates and truth levels
-REPO GREEN: all three functional contracts, the S292 push build and Sigstore
-source attestation are observed GREEN on 9ea480a. Release security remains OPEN,
-so REPO GREEN is not a claim of full release certification.
+REPO GREEN: all three functional contracts, S292 push build, deterministic SBOM
+and both Sigstore attestations are observed GREEN on 5dfa7c2. Release security
+remains OPEN, so REPO GREEN is not a claim of full release certification.
 Full release certification remains RED because of the open security gate.
 MACHINE GREEN: NOT VERIFIED. Existing read-only workflow triggered by second-unit
 push is queued: https://github.com/lukeeterna/europeanautoscout/actions/runs/34275927601.
@@ -306,3 +305,17 @@ binds source SHA and package-lock SHA-256, and emits a separate checksum. Four
 functional tests cover reproducibility, source/lock binding and malformed input.
 S292 generates the SBOM from the exact lockfile; the privilege-separated job
 creates a second Sigstore statement binding it to the same source ZIP checksum.
+
+Fourteenth unit published: 5dfa7c2ce0e5b6f7772ea37f002c6913ace4b6a9.
+All applicable runs succeeded: S292 push 34439440473; S292 PR 34439443257;
+pre-pairing PR 34439443249; post-pilot PR 34439443267. Hosted artifact
+10137387314 has outer archive SHA-256
+`63615c84d547ffc505278d42741dba0793c037499a7bbf06b97af22bebe06ff3`.
+The source ZIP digest is
+`080eb6dabb530a09bfa78fabdfff5fd044e68e693c5fd8406253e974457d2f91`.
+Both source and SBOM checksums passed; the SBOM reports CycloneDX 1.5, 195
+components, 196 dependency relations, source SHA 5dfa7c2 and exact lock digest
+cc5458b3b980f2c3b33c496432a137e99354eee227747c7a2a26493b2552cd42.
+GitHub/Sigstore attestations are:
+- provenance: https://github.com/lukeeterna/europeanautoscout/attestations/46465839
+- SBOM: https://github.com/lukeeterna/europeanautoscout/attestations/46465842
