@@ -153,6 +153,7 @@ jobs:
             tests.test_argos_daemon_integration \
             tests.test_argos_release_bundle \
             tests.test_argos_npm_audit_gate \
+            tests.test_argos_sbom \
             tests.test_argos_secret_scan \
             tests.test_argos_c10_transport_smoke
 
@@ -336,6 +337,17 @@ jobs:
         run: |
           python tools/scripts/argos_release_bundle.py --sha "$(git rev-parse HEAD)" --output /tmp/argos-source-candidate
 
+      - name: Build deterministic CycloneDX dependency SBOM
+        run: |
+          npm sbom --prefix wa-intelligence --package-lock-only --sbom-format cyclonedx \
+            > "$RUNNER_TEMP/argos-npm-sbom.json"
+          python tools/scripts/argos_sbom.py \
+            --input "$RUNNER_TEMP/argos-npm-sbom.json" \
+            --lock wa-intelligence/package-lock.json \
+            --source-sha "$(git rev-parse HEAD)" \
+            --source-date-epoch "$(git show -s --format=%ct HEAD)" \
+            --output "/tmp/argos-source-candidate/argos-sbom-$(git rev-parse HEAD).cdx.json"
+
       - name: Preserve source candidate and checksum
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -367,3 +379,9 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-checksums: /tmp/argos-source-candidate/argos-source-${{ github.sha }}.sha256
+
+      - name: Generate GitHub/Sigstore SBOM attestation
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: /tmp/argos-source-candidate/argos-source-${{ github.sha }}.sha256
+          sbom-path: /tmp/argos-source-candidate/argos-sbom-${{ github.sha }}.cdx.json

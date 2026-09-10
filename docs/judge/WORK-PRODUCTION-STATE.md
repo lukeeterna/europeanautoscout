@@ -61,7 +61,8 @@ New WhatsApp Web runbook records safe reconciliation and old-runtime rollback li
   require triage/revocation evidence. See WORK-SECURITY-REVIEW.md.
 
 ## Next executable action
-No independent offline implementation gate remains. Next is branch-protection and
+Publish and verify the deterministic SBOM plus its Sigstore statement. If GREEN,
+no independent offline implementation gate remains. Next is branch-protection and
 review configuration plus external credential revocation and coordinated history
 rewrite, then real iMac pairing/cutover/C10, an explicitly authorized C11
 recipient, and reboot/recovery proof. Do not dispatch those without the required
@@ -296,3 +297,12 @@ tree fd4fcbbd59e480de0dbcd64aaf4d9687711f6660, 40 files. GitHub
 attestation 46374843 was signed through Public Good Sigstore, uploaded to the
 Rekor transparency log and stored at:
 https://github.com/lukeeterna/europeanautoscout/attestations/46374843
+
+## Fourteenth unit (publication pending)
+
+Added a deterministic CycloneDX 1.5 dependency SBOM to the hosted source
+candidate. The normalizer replaces npm's random UUID and wall-clock timestamp,
+binds source SHA and package-lock SHA-256, and emits a separate checksum. Four
+functional tests cover reproducibility, source/lock binding and malformed input.
+S292 generates the SBOM from the exact lockfile; the privilege-separated job
+creates a second Sigstore statement binding it to the same source ZIP checksum.

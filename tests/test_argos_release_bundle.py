@@ -118,3 +118,7 @@ class SourceBundleTests(unittest.TestCase):
         )
         self.assertIn('subject-checksums:', attest)
         self.assertIn('argos-source-${{ github.sha }}.sha256', attest)
+        self.assertEqual(attest.count('actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6'), 2)
+        self.assertIn('Generate GitHub/Sigstore SBOM attestation', attest)
+        self.assertIn('sbom-path:', attest)
+        self.assertIn('argos-sbom-${{ github.sha }}.cdx.json', attest)

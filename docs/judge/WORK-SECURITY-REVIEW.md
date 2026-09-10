@@ -82,6 +82,11 @@ Commands used redaction=100 and stored only redacted local reports.
   writes exist only after the contract job succeeds. The attested subject is the
   external checksum for the exact-SHA inner source ZIP. This does not sign Git
   commits or close the open dependency/secret-history findings.
+- The hosted candidate also contains a normalized CycloneDX 1.5 dependency SBOM
+  generated from the exact package-lock. Random npm UUID/timestamp fields are
+  replaced deterministically using the source SHA, lock digest and commit epoch;
+  the SBOM has its own checksum. A second Sigstore statement binds that SBOM to
+  the same exact source ZIP. SBOM provenance inventories risk; it is not a waiver.
 
 These tests do not prove live WhatsApp receipt, iMac reboot, Chrome shutdown,
 provider credential revocation, or an independent production security review.
