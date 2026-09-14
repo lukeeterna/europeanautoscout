@@ -167,6 +167,8 @@ jobs:
           SHA="$1"; RUN_ID="$2"
           HOME_DIR="$HOME"
           PM2="$HOME_DIR/.npm-global/bin/pm2"
+          export PATH="${PATH:-}:$HOME_DIR/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+          command -v node >/dev/null || fail NODE_MISSING
           DB="$HOME_DIR/Documents/app-antigravity-auto/dealer_network.sqlite"
           SESSION_ROOT="$HOME_DIR/Documents/app-antigravity-auto/wa-sender"
           SESSION="$SESSION_ROOT/session-argos-business"
@@ -319,6 +321,8 @@ jobs:
           set -euo pipefail
           SHA="$1"; RUN_ID="$2"
           PM2="$HOME/.npm-global/bin/pm2"
+          export PATH="${PATH:-}:$HOME/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+          command -v node >/dev/null
           DB="$HOME/Documents/app-antigravity-auto/dealer_network.sqlite"
           SESSION_ROOT="$HOME/Documents/app-antigravity-auto/wa-sender"
           SESSION="$SESSION_ROOT/session-argos-business"
