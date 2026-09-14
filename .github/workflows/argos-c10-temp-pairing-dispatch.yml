@@ -1,5 +1,7 @@
 name: ARGOS C10 TEMP Exact-SHA Pairing Dispatcher
 
+# Authorized manual retry: 2026-09-14T16:00Z
+
 # Pairing is an explicit one-shot human-authorized gate. The temporary push
 # trigger is limited to this dispatcher's own path and is removed after use. QR material never enters logs or artifacts.
 # A fresh LocalAuth profile is created in isolated staging and becomes a
