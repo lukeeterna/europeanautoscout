@@ -18,10 +18,13 @@ class WwebjsTransport {
     this.MessageMedia = MessageMedia;
     const puppeteer = { headless: true };
     if (this.env.CHROME_EXECUTABLE_PATH) puppeteer.executablePath = this.env.CHROME_EXECUTABLE_PATH;
+    const sessionRoot = this.env.ARGOS_WA_SESSION_DIR || path.join(__dirname, '..', '.wwebjs_auth');
+    const webCachePath = this.env.ARGOS_WA_WEB_CACHE_DIR || path.join(sessionRoot, '.wwebjs_cache');
     this.client = new Client({
+      webVersionCache: { type: 'local', path: webCachePath, strict: false },
       authStrategy: new LocalAuth({
         clientId: this.env.ARGOS_WA_CLIENT_ID || 'argos-s292',
-        dataPath: this.env.ARGOS_WA_SESSION_DIR || path.join(__dirname, '..', '.wwebjs_auth'),
+        dataPath: sessionRoot,
       }),
       puppeteer,
     });
