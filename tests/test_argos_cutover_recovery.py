@@ -351,5 +351,5 @@ class WorkflowEnvironmentTests(unittest.TestCase):
         promotion = remote_script('Promote staged READY LocalAuth with rollback boundary')
         recovery = remote_script('Restore pre-pairing LocalAuth and old runtime on any cutover proof failure')
         for script in (promotion, recovery):
-            self.assertIn('export PATH="$HOME/.npm-global/bin:', script)
+            self.assertIn('export PATH="${PATH:-}:$HOME/.npm-global/bin:', script)
             self.assertLess(script.index('export PATH='), script.index('PM2='))
