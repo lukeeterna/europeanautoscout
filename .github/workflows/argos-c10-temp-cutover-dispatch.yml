@@ -20,7 +20,7 @@ permissions:
   pull-requests: write
 
 env:
-  ARGOS_CANDIDATE_SHA: 33cb81f0c21e7802d5dcfe165b8673e30a0bed4a
+  ARGOS_CANDIDATE_SHA: 7151e41a13a159b9ce689310fd7e936ca237323c
 
 concurrency:
   group: argos-c10-wwebjs-cutover
@@ -109,6 +109,37 @@ jobs:
           raise SystemExit(21)
           PY
 
+      - name: Carry forward authenticated profile across cache-only runtime diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_SHA=33cb81f0c21e7802d5dcfe165b8673e30a0bed4a
+          git fetch --no-tags --depth=1 origin "$SOURCE_SHA"
+          changed="$(git diff --name-only "$SOURCE_SHA" "$ARGOS_CANDIDATE_SHA" | sort)"
+          allowed="$(printf '%s\n' tests/test_argos_pre_pairing_readiness.py wa-intelligence/ecosystem.config.js wa-intelligence/tools/argos_c10_wwebjs_cutover.sh wa-intelligence/transport/wwebjs_transport.js | sort)"
+          test "$changed" = "$allowed"
+          ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
+            gianlucadistasi@iMac-di-gianluca.local \
+            "bash -s -- '$SOURCE_SHA' '$ARGOS_CANDIDATE_SHA'" <<'REMOTE'
+          set -euo pipefail
+          SOURCE="$1"; TARGET="$2"
+          BASE="$HOME/Documents/argos-c10-pairing-ready"
+          SRC="$BASE/$SOURCE"; DST="$BASE/$TARGET"; TMP="$BASE/.carry-$TARGET-$"
+          test -d "$SRC/auth/session-argos-business"
+          test -n "$(find "$SRC/auth/session-argos-business" -type f -print -quit)"
+          test ! -e "$DST"; test ! -e "$TMP"
+          mkdir -m 700 "$TMP"
+          cp -R "$SRC/auth" "$TMP/auth"
+          find "$TMP/auth/session-argos-business" -maxdepth 1 \
+            \( -name SingletonLock -o -name SingletonCookie -o -name SingletonSocket \) -exec rm -f -- {} +
+          printf 'pairing_source_sha=%s\ncompatible_target_sha=%s\nclient_id=argos-business\ncompatibility_scope=wwebjs-cache-location-only\n' \
+            "$SOURCE" "$TARGET" > "$TMP/MANIFEST"
+          chmod 600 "$TMP/MANIFEST"; chmod -R go-rwx "$TMP/auth"
+          mv "$TMP" "$DST"
+          echo 'PAIRING_PROFILE_CARRY_FORWARD=PASS'
+          echo 'NEW_WHATSAPP_DEVICE=NONE'
+          REMOTE
+
       - name: Stage exact-SHA release with proxy bypass
         shell: bash
         run: |
@@ -182,7 +213,15 @@ jobs:
           fail() { echo "PAIRING_PROFILE_PROMOTION_BLOCKED=$*" >&2; exit 20; }
           test -x "$PM2" || fail PM2_MISSING
           test -f "$READY_ROOT/MANIFEST" || fail READY_MANIFEST_MISSING
-          grep -qx "pairing_source_sha=$SHA" "$READY_ROOT/MANIFEST" || fail READY_SHA_MISMATCH
+          if grep -qx "pairing_source_sha=$SHA" "$READY_ROOT/MANIFEST"; then
+            :
+          elif grep -qx 'pairing_source_sha=33cb81f0c21e7802d5dcfe165b8673e30a0bed4a' "$READY_ROOT/MANIFEST" &&
+               grep -qx "compatible_target_sha=$SHA" "$READY_ROOT/MANIFEST" &&
+               grep -qx 'compatibility_scope=wwebjs-cache-location-only' "$READY_ROOT/MANIFEST"; then
+            :
+          else
+            fail READY_SHA_MISMATCH
+          fi
           grep -qx 'client_id=argos-business' "$READY_ROOT/MANIFEST" || fail READY_CLIENT_MISMATCH
           test -d "$READY_PROFILE" || fail READY_PROFILE_MISSING
           test ! -L "$READY_PROFILE" || fail READY_PROFILE_SYMLINK
@@ -279,6 +318,7 @@ jobs:
             'BRIDGE_DB_PATH':str(home/'Documents/app-antigravity-auto/comm-broker/bridge.sqlite'),
             'ARGOS_WA_SESSION_DIR':str(home/'Documents/app-antigravity-auto/wa-sender'),
             'ARGOS_WA_CLIENT_ID':'argos-business',
+            'ARGOS_WA_WEB_CACHE_DIR':str(home/'Documents/app-antigravity-auto/wa-sender/.wwebjs_cache'),
             'CHROME_EXECUTABLE_PATH':chrome,
             'ARGOS_WA_TRANSPORT':'wwebjs',
             'ARGOS_AUTOMATION_ENABLED':'0',
