@@ -1,24 +1,27 @@
-name: ARGOS C10 TEMP Cancel Pairing At Device Limit
+name: ARGOS C10 TEMP Locate Preserved Profile
 on:
   push:
     branches: [s210/audit-master-plan]
     paths: [.github/workflows/argos-c10-temp-pairing-diag.yml]
 permissions:
   contents: read
-  actions: write
 jobs:
-  cancel:
-    runs-on: ubuntu-22.04
+  locate:
+    runs-on: [self-hosted, macbook, argos]
+    timeout-minutes: 5
     steps:
-      - name: Cancel pending pairing before authentication
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Locate profile directories without reading credentials
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error -X POST \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/34887322343/cancel"
-          echo 'PAIRING_CANCEL_REQUESTED=YES'
-          echo 'NEW_WHATSAPP_DEVICE=NONE'
+          ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
+            gianlucadistasi@iMac-di-gianluca.local python3 <<'PY'
+          from pathlib import Path
+          root=Path.home()/'Documents/argos-c10-pairing-promotions'
+          for d in sorted(root.glob('33cb81f0c21e7802d5dcfe165b8673e30a0bed4a-*')):
+              kinds=[]
+              for name in ('original-session','failed-session','restore-session','external-restore'):
+                  p=d/name
+                  if p.is_dir() and any(x.is_file() for x in p.rglob('*')): kinds.append(name)
+              print('PROMO_PROFILE='+d.name+':' + (','.join(kinds) if kinds else 'NONE'))
+          print('DIAG_MUTATION=NONE')
+          PY
