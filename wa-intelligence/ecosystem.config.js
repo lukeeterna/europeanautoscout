@@ -45,6 +45,7 @@ const SHARED_ENV = {
     // Preserve the existing LocalAuth identity/path for legacy rollback.
     ARGOS_WA_CLIENT_ID: dotEnv.ARGOS_WA_CLIENT_ID || dotEnv.WA_CLIENT_ID || 'argos-business',
     ARGOS_WA_SESSION_DIR: dotEnv.ARGOS_WA_SESSION_DIR || path.join(BASE, 'wa-sender'),
+    ARGOS_WA_WEB_CACHE_DIR: dotEnv.ARGOS_WA_WEB_CACHE_DIR || path.join(dotEnv.ARGOS_WA_SESSION_DIR || path.join(BASE, 'wa-sender'), '.wwebjs_cache'),
     CHROME_EXECUTABLE_PATH: dotEnv.CHROME_EXECUTABLE_PATH || '',
     ARGOS_WA_PORT: dotEnv.ARGOS_WA_PORT || '9191',
     ARGOS_BIND_HOST: dotEnv.ARGOS_BIND_HOST || '127.0.0.1',
