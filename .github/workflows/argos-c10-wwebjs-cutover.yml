@@ -257,7 +257,15 @@ jobs:
           mv "$SESSION" "$PROMO/original-session"
           mv "$PROMO/new-session" "$SESSION"
           (cd "$OLD_CWD" && "$PM2" start ecosystem.config.js --only argos-wa-daemon,argos-outreach-scheduler --update-env) >/dev/null
-          sleep 5
+          promoted_ready=0
+          for _ in $(seq 1 45); do
+            if curl --fail --silent --max-time 3 http://127.0.0.1:9191/health \
+              | python3 -c 'import json,sys; h=json.load(sys.stdin); raise SystemExit(0 if h.get("connected") is True and str(h.get("agent_status","")).upper()=="PAUSED" else 1)' 2>/dev/null
+            then promoted_ready=1; break; fi
+            sleep 2
+          done
+          test "$promoted_ready" = 1 || fail PROMOTED_RUNTIME_NOT_READY
+          echo 'PAIRING_PROFILE_RUNTIME_READY=PASS'
 
           post_writer="$(ps -axo command= | awk '/[w]a-daemon\.js/ && /[n]ode/ {n++} END{print n+0}')"
           test "$post_writer" = 1
