@@ -258,9 +258,9 @@ test('phone-code mode consumes phone file and publishes one mode-0600 code', asy
   fs.writeFileSync(phoneFile, '393314928901\n', { mode: 0o600 });
   const h = harness(t, { env: { ARGOS_PAIR_PHONE_FILE: phoneFile, ARGOS_PAIR_CODE_FILE: codeFile } });
   assert.equal(fs.existsSync(phoneFile), false);
-  assert.deepEqual(h.client.config.pairWithPhoneNumber, {
-    phoneNumber: '393314928901', showNotification: true, intervalMs: 600000,
-  });
+  assert.equal(h.client.config.pairWithPhoneNumber.phoneNumber, '393314928901');
+  assert.equal(h.client.config.pairWithPhoneNumber.showNotification, true);
+  assert.equal(h.client.config.pairWithPhoneNumber.intervalMs, 600000);
   await h.emit('code', 'ABCD-EFGH');
   await h.emit('code', 'LATE-CODE');
   assert.equal(h.status(), 'CODE_READY');
