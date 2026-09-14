@@ -45,6 +45,8 @@ class ProfileRecoveryTests(unittest.TestCase):
         self.ready = self.home / f'Documents/argos-c10-pairing-ready/{SHA}'
         (self.ready / 'auth/session-argos-business').mkdir(parents=True)
         (self.ready / 'auth/session-argos-business/credential').write_text('paired')
+        for marker in ('SingletonLock', 'SingletonCookie', 'SingletonSocket'):
+            (self.ready / f'auth/session-argos-business/{marker}').write_text('stale-stage-reference')
         (self.ready / 'MANIFEST').write_text(f'pairing_source_sha={SHA}\nclient_id=argos-business\n')
         self.promo = self.home / f'Documents/argos-c10-pairing-promotions/{SHA}-123'
         self.old = self.home / 'old/wa-intelligence'
@@ -107,6 +109,9 @@ esac
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual((self.promo / 'original-session/credential').read_text(), 'after-shutdown')
         self.assertEqual((self.canonical / 'credential').read_text(), 'paired')
+        for marker in ('SingletonLock', 'SingletonCookie', 'SingletonSocket'):
+            self.assertFalse((self.canonical / marker).exists())
+            self.assertTrue((self.ready / f'auth/session-argos-business/{marker}').exists())
 
     def test_browser_timeout_preserves_profile_and_blocks_restart(self):
         result = self.run_script('browser')
