@@ -287,11 +287,10 @@ jobs:
             # is displayed in a native Mac dialog. It is never echoed/artifacted.
             ssh "${SSH[@]}" "$TARGET" "cat $REMOTE_STAGE/code.txt && rm -f $REMOTE_STAGE/code.txt" > "$code_local"
             chmod 600 "$code_local"
-            CODE_LOCAL="$code_local" /usr/bin/osascript <<'APPLESCRIPT'
-            set p to system attribute "CODE_LOCAL"
-            set pairingCode to read POSIX file p as «class utf8»
-            display dialog ("Sul telefono: WhatsApp → Dispositivi collegati → Collega con numero. Inserisci questo codice:" & return & return & pairingCode) with title "ARGOS C10 — Codice WhatsApp" buttons {"Fatto"} default button "Fatto"
-            APPLESCRIPT
+            CODE_LOCAL="$code_local" /usr/bin/osascript \
+              -e 'set p to system attribute "CODE_LOCAL"' \
+              -e 'set pairingCode to read POSIX file p as «class utf8»' \
+              -e 'display dialog ("Sul telefono: WhatsApp → Dispositivi collegati → Collega con numero. Inserisci questo codice:" & return & return & pairingCode) with title "ARGOS C10 — Codice WhatsApp" buttons {"Fatto"} default button "Fatto"'
             rm -f "$code_local"
             echo 'PAIRING_CODE_FETCH_COUNT=1'
             echo 'PAIRING_CODE_OPENED_LOCALLY=YES'
