@@ -49,23 +49,23 @@ jobs:
           except Exception as e:
               print('DIAG_WA_WEB_HTTP=ERROR_'+type(e).__name__)
           js=r"""
-const path=require('path');
-const root=process.argv[2], binary=process.argv[3], label=process.argv[4];
-const puppeteer=require(path.join(root,'node_modules','puppeteer'));
-(async()=>{
-  const browser=await puppeteer.launch({
-    headless:true, executablePath:binary,
-    userDataDir:process.env.ARGOS_DIAG_PROFILE,
-    args:['--no-first-run','--no-default-browser-check']
-  });
-  try {
-    const page=await browser.newPage();
-    const response=await page.goto('https://web.whatsapp.com/',{waitUntil:'domcontentloaded',timeout:30000});
-    console.log('DIAG_'+label+'_PUPPETEER_LAUNCH=PASS');
-    console.log('DIAG_'+label+'_PUPPETEER_HTTP='+(response ? response.status() : 'NONE'));
-  } finally { await browser.close(); }
-})().catch(e=>{console.log('DIAG_'+label+'_PUPPETEER_ERROR='+e.name);process.exit(20);});
-"""
+          const path=require('path');
+          const root=process.argv[2], binary=process.argv[3], label=process.argv[4];
+          const puppeteer=require(path.join(root,'node_modules','puppeteer'));
+          (async()=>{
+            const browser=await puppeteer.launch({
+              headless:true, executablePath:binary,
+              userDataDir:process.env.ARGOS_DIAG_PROFILE,
+              args:['--no-first-run','--no-default-browser-check']
+            });
+            try {
+              const page=await browser.newPage();
+              const response=await page.goto('https://web.whatsapp.com/',{waitUntil:'domcontentloaded',timeout:30000});
+              console.log('DIAG_'+label+'_PUPPETEER_LAUNCH=PASS');
+              console.log('DIAG_'+label+'_PUPPETEER_HTTP='+(response ? response.status() : 'NONE'));
+            } finally { await browser.close(); }
+          })().catch(e=>{console.log('DIAG_'+label+'_PUPPETEER_ERROR='+e.name);process.exit(20);});
+          """
           results=[]
           for label,binary in (('CFT',chrome),('STABLE',stable)):
               tmp=pathlib.Path(tempfile.mkdtemp(prefix='argos-pair-diag-'))
