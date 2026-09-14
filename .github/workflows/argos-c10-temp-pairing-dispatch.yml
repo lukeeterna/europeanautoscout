@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 env:
-  ARGOS_CANDIDATE_SHA: 5dd932e6ab27a43b5486afbd41c18396e5d15830
+  ARGOS_CANDIDATE_SHA: a7e98c158f0f5ea08cc8974131d9953120dcb4c3
 
 concurrency:
   group: argos-c10-local-pairing
@@ -209,6 +209,7 @@ jobs:
           ssh "${SSH[@]}" "$TARGET" "bash -s -- '$ARGOS_CANDIDATE_SHA' '$GITHUB_RUN_ID'" <<'REMOTE'
           set -euo pipefail
           SHA="$1"; RUN_ID="$2"; SHORT="${SHA:0:12}"
+          export PATH="$HOME/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
           RELEASE="$HOME/Documents/argos-c10-release-$SHORT"
           STAGE="$HOME/Documents/argos-c10-pairing-ready/.stage-$RUN_ID"
           STABLE_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
@@ -237,6 +238,12 @@ jobs:
           pid=$!
           printf '%s\n' "$pid" > "$STAGE/helper.pid"
           chmod 600 "$STAGE/helper.pid"
+          sleep 2
+          if ! kill -0 "$pid" 2>/dev/null; then
+            echo 'PAIRING_HELPER=START_FAILED' >&2
+            wait "$pid" || true
+            exit 26
+          fi
           echo 'PAIRING_HELPER=STARTED'
           REMOTE
 
