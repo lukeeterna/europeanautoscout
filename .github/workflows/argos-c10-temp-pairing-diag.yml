@@ -93,6 +93,7 @@ jobs:
           const path=require('path');
           const root=process.argv[2], binary=process.argv[3];
           const {Client,LocalAuth}=require(path.join(root,'node_modules','whatsapp-web.js'));
+          const QRCode=require(path.join(root,'node_modules','qrcode'));
           const client=new Client({
             authStrategy:new LocalAuth({clientId:'argos-diagnostic',dataPath:process.env.ARGOS_DIAG_AUTH}),
             puppeteer:{headless:true,executablePath:binary,args:['--no-first-run','--no-default-browser-check']}
@@ -105,7 +106,18 @@ jobs:
             catch(_){console.log('DIAG_WWEBJS_DESTROY=FAILED');}
             process.exit(code);
           };
-          client.on('qr',()=>done(0,'QR_EVENT'));
+          client.on('qr',async qr=>{
+            console.log('DIAG_WWEBJS_QR_EVENT=YES');
+            try {
+              const dataUrl=await Promise.race([
+                QRCode.toDataURL(qr,{type:'image/png',errorCorrectionLevel:'M'}),
+                new Promise((_,r)=>setTimeout(()=>r(new Error('render timeout')),10000))
+              ]);
+              console.log('DIAG_QR_RENDER_PREFIX_OK='+String(dataUrl.startsWith('data:image/')).toUpperCase());
+              console.log('DIAG_QR_RENDER_BYTES='+Buffer.byteLength(dataUrl));
+              done(0,'QR_RENDERED');
+            } catch(e) { done(25,'QR_RENDER_'+e.name); }
+          });
           client.on('authenticated',()=>console.log('DIAG_WWEBJS_AUTHENTICATED=YES'));
           client.on('ready',()=>done(0,'READY'));
           client.on('auth_failure',()=>done(21,'AUTH_FAILURE'));
