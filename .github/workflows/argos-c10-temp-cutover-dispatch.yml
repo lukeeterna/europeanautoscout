@@ -137,7 +137,7 @@ jobs:
           test -n "$(find "$SRC" -type f -print -quit)"
           test ! -e "$TMP"; test ! -e "$OLD"
           if [ -e "$DST" ]; then mv "$DST" "$OLD"; fi
-          mkdir -m 700 "$TMP/auth"
+          mkdir -m 700 -p "$TMP/auth"
           cp -R "$SRC" "$TMP/auth/session-argos-business"
           find "$TMP/auth/session-argos-business" -maxdepth 1 \
             \( -name SingletonLock -o -name SingletonCookie -o -name SingletonSocket \) -exec rm -f -- {} +
