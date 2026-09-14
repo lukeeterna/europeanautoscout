@@ -20,7 +20,7 @@ permissions:
   pull-requests: write
 
 env:
-  ARGOS_CANDIDATE_SHA: 665131ae4faadea0ad7e3f89df7db0cc0565958f
+  ARGOS_CANDIDATE_SHA: 6321e85f9fa5d726911f6f14585941877982efa4
 
 concurrency:
   group: argos-c10-wwebjs-cutover
@@ -252,6 +252,9 @@ jobs:
           # profile by rename. Both renames are on the same volume; on failure
           # EXIT rollback restores original-session without deleting credentials.
           cp -R "$READY_PROFILE" "$PROMO/new-session"
+          find "$PROMO/new-session" -maxdepth 1 \
+            \( -name SingletonLock -o -name SingletonCookie -o -name SingletonSocket \) \
+            -exec rm -f -- {} +
           chmod -R go-rwx "$PROMO/new-session"
           test ! -L "$SESSION" || fail CANONICAL_PROFILE_SYMLINK
           python3 - "$SESSION_ROOT" "$PROMO" <<'PYDEV'
