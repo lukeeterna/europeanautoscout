@@ -57,6 +57,16 @@ p.write_text('\\n'.join(lines[1:])+'\\n' if len(lines)>1 else p.read_text())
         self.assertIn("const timeoutMs = Math.max(60_000", helper)
         self.assertGreaterEqual(210 * 2, 420)
 
+    def test_remote_helper_start_has_node_path_and_liveness_check(self):
+        workflow = (ROOT / '.github/workflows/argos-c10-local-pairing.yml').read_text()
+        start = workflow.index("          nohup env \\\n")
+        launch = workflow[start:workflow.index("          status=''\n", start)]
+        remote = workflow[workflow.rfind("          export PATH=", 0, start):start]
+        self.assertIn('$HOME/.npm-global/bin', remote)
+        self.assertIn('if ! kill -0 "$pid" 2>/dev/null; then', launch)
+        self.assertIn("PAIRING_HELPER=START_FAILED", launch)
+        self.assertIn('wait "$pid" || true', launch)
+
     def test_stable_chrome_is_preferred_with_bounded_fallback(self):
         workflow = (ROOT / '.github/workflows/argos-c10-local-pairing.yml').read_text()
         stable = 'STABLE_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"'
