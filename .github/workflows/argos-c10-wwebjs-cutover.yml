@@ -243,6 +243,11 @@ jobs:
           # profile by rename. Both renames are on the same volume; on failure
           # EXIT rollback restores original-session without deleting credentials.
           cp -R "$READY_PROFILE" "$PROMO/new-session"
+          # Chromium Singleton* entries refer to the closed staging path/socket.
+          # They are volatile process locks, not LocalAuth credentials.
+          find "$PROMO/new-session" -maxdepth 1 \
+            \( -name SingletonLock -o -name SingletonCookie -o -name SingletonSocket \) \
+            -exec rm -f -- {} +
           chmod -R go-rwx "$PROMO/new-session"
           test ! -L "$SESSION" || fail CANONICAL_PROFILE_SYMLINK
           python3 - "$SESSION_ROOT" "$PROMO" <<'PYDEV'
