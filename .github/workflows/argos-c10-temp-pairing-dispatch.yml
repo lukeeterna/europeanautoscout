@@ -1,13 +1,18 @@
 name: ARGOS C10 TEMP Exact-SHA Pairing Dispatcher
 
-# Pairing is an explicit human gate. It MUST NOT run on push or retry QR
-# acquisition automatically. QR material never enters logs or artifacts.
+# Pairing is an explicit one-shot human-authorized gate. The temporary push
+# trigger is limited to this dispatcher's own path and is removed after use. QR material never enters logs or artifacts.
 # A fresh LocalAuth profile is created in isolated staging and becomes a
 # cutover-ready credential snapshot only after WhatsApp Web emits READY.
 # Production PM2, production DBs and the canonical LocalAuth profile are never
 # mutated by this workflow. C10 remains PAUSED with zero outbound throughout.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - s210/audit-master-plan
+    paths:
+      - .github/workflows/argos-c10-temp-pairing-dispatch.yml
 
 permissions:
   contents: read
