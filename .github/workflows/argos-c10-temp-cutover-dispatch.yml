@@ -265,6 +265,36 @@ jobs:
           mv "$SESSION" "$PROMO/original-session"
           mv "$PROMO/new-session" "$SESSION"
           test -f "$RELEASE/wa-intelligence/ecosystem.config.js" || fail CANDIDATE_ECOSYSTEM_MISSING
+          test -f "$OLD_CWD/.env" || fail OLD_ENV_MISSING
+          cp -p "$OLD_CWD/.env" "$RELEASE/wa-intelligence/.env"
+          chmod 600 "$RELEASE/wa-intelligence/.env"
+          STABLE_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          test -x "$STABLE_CHROME" || fail STABLE_CHROME_MISSING
+          python3 - "$RELEASE/wa-intelligence/.env" "$HOME_DIR" "$STABLE_CHROME" <<'PYENV'
+          from pathlib import Path
+          import os,sys
+          p=Path(sys.argv[1]); home=Path(sys.argv[2]); chrome=sys.argv[3]
+          updates={
+            'ARGOS_DB_PATH':str(home/'Documents/app-antigravity-auto/dealer_network.sqlite'),
+            'BRIDGE_DB_PATH':str(home/'Documents/app-antigravity-auto/comm-broker/bridge.sqlite'),
+            'ARGOS_WA_SESSION_DIR':str(home/'Documents/app-antigravity-auto/wa-sender'),
+            'ARGOS_WA_CLIENT_ID':'argos-business',
+            'CHROME_EXECUTABLE_PATH':chrome,
+            'ARGOS_WA_TRANSPORT':'wwebjs',
+            'ARGOS_AUTOMATION_ENABLED':'0',
+            'ARGOS_PYTHON':'/usr/local/bin/python3.13',
+          }
+          lines=p.read_text(encoding='utf-8').splitlines(); out=[]; seen=set()
+          for line in lines:
+              s=line.strip()
+              if s and not s.startswith('#') and '=' in s:
+                  key=s.split('=',1)[0].strip()
+                  if key in updates:
+                      out.append(f'{key}={updates[key]}'); seen.add(key); continue
+              out.append(line)
+          out.extend(f'{k}={v}' for k,v in updates.items() if k not in seen)
+          p.write_text('\n'.join(out)+'\n',encoding='utf-8'); os.chmod(p,0o600)
+          PYENV
           (cd "$RELEASE/wa-intelligence" && "$PM2" start ecosystem.config.js --only argos-wa-daemon,argos-outreach-scheduler --update-env) >/dev/null
           promoted_ready=0
           for _ in $(seq 1 45); do
