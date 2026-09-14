@@ -30,13 +30,19 @@ jobs:
             -o ServerAliveInterval=5 -o ServerAliveCountMax=2 \
             gianlucadistasi@iMac-di-gianluca.local python3 <<'PY'
           import os, pathlib, shutil, subprocess, tempfile, urllib.request
-          sha='e3856f57997e67c1d5ee0cd5168ddc62c8244671'
+          sha='96529e162e3d5e88acb18ff7bbd6895533c4c294'
           home=pathlib.Path.home()
           chrome=home/'.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'
+          stable=pathlib.Path('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
           release=home/f'Documents/argos-c10-release-{sha[:12]}'
           print('DIAG_EXPECTED_SHA='+sha)
           print('DIAG_CHROME_EXECUTABLE='+str(chrome.is_file() and os.access(chrome,os.X_OK)).upper())
           print('DIAG_RELEASE_PRESENT='+str(release.is_dir()).upper())
+          print('DIAG_STABLE_CHROME='+str(stable.is_file() and os.access(stable,os.X_OK)).upper())
+          for label,binary in (('CFT',chrome),('STABLE',stable)):
+              if binary.is_file():
+                  v=subprocess.run([str(binary),'--version'],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=10).stdout.strip()
+                  print('DIAG_'+label+'_VERSION='+v[:120])
           try:
               with urllib.request.urlopen('https://web.whatsapp.com/',timeout=20) as r:
                   print('DIAG_WA_WEB_HTTP='+str(r.status))
