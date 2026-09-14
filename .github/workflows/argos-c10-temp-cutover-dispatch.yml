@@ -132,7 +132,7 @@ jobs:
           cp -R "$SRC/auth" "$TMP/auth"
           find "$TMP/auth/session-argos-business" -maxdepth 1 \
             \( -name SingletonLock -o -name SingletonCookie -o -name SingletonSocket \) -exec rm -f -- {} +
-          printf 'pairing_source_sha=%s\ncompatible_target_sha=%s\nclient_id=argos-business\ncompatibility_scope=wwebjs-cache-location-only\n' \
+          printf 'pairing_source_sha=%s\ncompatible_target_sha=%s\nclient_id=argos-business\ncompatibility_scope=wwebjs-cache-location-only\ncredential_snapshot=post-connected-rollback-34864525466\n' \
             "$SOURCE" "$TARGET" > "$TMP/MANIFEST"
           chmod 600 "$TMP/MANIFEST"; chmod -R go-rwx "$TMP/auth"
           mv "$TMP" "$DST"
