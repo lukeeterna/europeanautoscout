@@ -169,6 +169,7 @@ jobs:
           PM2="$HOME_DIR/.npm-global/bin/pm2"
           export PATH="${PATH:-}:$HOME_DIR/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
           command -v node >/dev/null || fail NODE_MISSING
+          RELEASE="$HOME_DIR/Documents/argos-c10-release-${SHA:0:12}"
           DB="$HOME_DIR/Documents/app-antigravity-auto/dealer_network.sqlite"
           SESSION_ROOT="$HOME_DIR/Documents/app-antigravity-auto/wa-sender"
           SESSION="$SESSION_ROOT/session-argos-business"
@@ -263,7 +264,8 @@ jobs:
           PYDEV
           mv "$SESSION" "$PROMO/original-session"
           mv "$PROMO/new-session" "$SESSION"
-          (cd "$OLD_CWD" && "$PM2" start ecosystem.config.js --only argos-wa-daemon,argos-outreach-scheduler --update-env) >/dev/null
+          test -f "$RELEASE/wa-intelligence/ecosystem.config.js" || fail CANDIDATE_ECOSYSTEM_MISSING
+          (cd "$RELEASE/wa-intelligence" && "$PM2" start ecosystem.config.js --only argos-wa-daemon,argos-outreach-scheduler --update-env) >/dev/null
           promoted_ready=0
           for _ in $(seq 1 45); do
             if curl --fail --silent --max-time 3 http://127.0.0.1:9191/health \
