@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  ARGOS_CANDIDATE_SHA: 558318c80e6336275caa17efe185dcaae1b68e29
+  ARGOS_CANDIDATE_SHA: ed5916618f23d601b9f2098360b8cdb469e68dbe
 
 concurrency:
   group: argos-c10-local-pairing
@@ -174,7 +174,7 @@ jobs:
           echo 'CANONICAL_LOCALAUTH_MUTATION=NONE'
           REMOTE
 
-      - name: Start one staged pairing client and display first QR locally
+      - name: Start one staged pairing client and display code locally
         shell: bash
         run: |
           set -euo pipefail
@@ -183,12 +183,23 @@ jobs:
           SHORT="${ARGOS_CANDIDATE_SHA:0:12}"
           REMOTE_BASE='$HOME/Documents/argos-c10-pairing-ready'
           REMOTE_STAGE="$REMOTE_BASE/.stage-$GITHUB_RUN_ID"
-          html="/tmp/argos-c10-pairing-${GITHUB_RUN_ID}.html"
-          rm -f "$html"
+          phone_local="/tmp/argos-c10-phone-${GITHUB_RUN_ID}"
+          code_local="/tmp/argos-c10-code-${GITHUB_RUN_ID}"
+          rm -f "$phone_local" "$code_local"
           keep_stage=0
 
+          phone="$(/usr/bin/osascript <<'APPLESCRIPT'
+          set answer to text returned of (display dialog "Inserisci il numero WhatsApp completo di prefisso internazionale, solo cifre (es. 39…)." default answer "" with title "ARGOS C10 — Collegamento sicuro" buttons {"Annulla", "Continua"} default button "Continua" with hidden answer)
+          return answer
+          APPLESCRIPT
+          )"
+          case "$phone" in (*[!0-9]*|'') echo 'PAIRING_PHONE_INPUT=INVALID' >&2; exit 27 ;; esac
+          [ "${#phone}" -ge 8 ] && [ "${#phone}" -le 15 ] || { echo 'PAIRING_PHONE_INPUT=INVALID' >&2; exit 27; }
+          (umask 077; printf '%s\n' "$phone" > "$phone_local")
+          unset phone
+
           cleanup() {
-            rm -f "$html"
+            rm -f "$phone_local" "$code_local"
             if [ "$keep_stage" -ne 1 ]; then
               ssh "${SSH[@]}" "$TARGET" "bash -s -- '$GITHUB_RUN_ID'" <<'REMOTE' >/dev/null 2>&1 || true
           RUN_ID="$1"; STAGE="$HOME/Documents/argos-c10-pairing-ready/.stage-$RUN_ID"
@@ -207,6 +218,9 @@ jobs:
             fi
           }
           trap cleanup EXIT
+
+          ssh "${SSH[@]}" "$TARGET" "umask 077; cat > $REMOTE_STAGE/phone.txt" < "$phone_local"
+          rm -f "$phone_local"
 
           ssh "${SSH[@]}" "$TARGET" "bash -s -- '$ARGOS_CANDIDATE_SHA' '$GITHUB_RUN_ID'" <<'REMOTE'
           set -euo pipefail
@@ -234,6 +248,8 @@ jobs:
             ARGOS_PAIR_STATUS_FILE="$STAGE/status" \
             ARGOS_PAIR_CHROME="$CHROME" \
             ARGOS_PAIR_CLIENT_ID='argos-business' \
+            ARGOS_PAIR_PHONE_FILE="$STAGE/phone.txt" \
+            ARGOS_PAIR_CODE_FILE="$STAGE/code.txt" \
             ARGOS_PAIR_TIMEOUT_MS='420000' \
             node "$RELEASE/wa-intelligence/tools/argos_c10_pairing_helper.js" \
             >"$STAGE/helper.log" 2>&1 </dev/null &
@@ -255,26 +271,29 @@ jobs:
           for _ in $(seq 1 210); do
             status="$(ssh "${SSH[@]}" "$TARGET" "cat $REMOTE_STAGE/status 2>/dev/null || true")"
             case "$status" in
-              QR_READY|AUTHENTICATED|AUTHENTICATED_NO_QR|STOPPING|READY) break ;;
-              AUTH_FAILURE|DISCONNECTED*|QR_RENDER_FAILED|INIT_FAILED|TIMEOUT|TERMINATED|DESTROY_FAILED) echo "PAIRING_HELPER_STATUS=$status" >&2; exit 21 ;;
+              CODE_READY|AUTHENTICATED|AUTHENTICATED_NO_QR|STOPPING|READY) break ;;
+              AUTH_FAILURE|DISCONNECTED*|CODE_INVALID|CODE_WRITE_FAILED|INIT_FAILED|TIMEOUT|TERMINATED|DESTROY_FAILED) echo "PAIRING_HELPER_STATUS=$status" >&2; exit 21 ;;
             esac
             sleep 2
           done
           case "$status" in
-            QR_READY|AUTHENTICATED|AUTHENTICATED_NO_QR|STOPPING|READY) ;;
+            CODE_READY|AUTHENTICATED|AUTHENTICATED_NO_QR|STOPPING|READY) ;;
             *) echo 'PAIRING_INITIAL_STATUS=TIMEOUT' >&2; exit 23 ;;
           esac
 
-          if [ "$status" = QR_READY ]; then
-            # The QR payload is consumed exactly once by the local renderer. It
-            # is never echoed, uploaded, persisted as an Actions artifact or
-            # fetched again during this workflow attempt.
-            ssh "${SSH[@]}" "$TARGET" "cat $REMOTE_STAGE/qr.txt" \
-              | QR_HTML="$html" python3 -c 'import os,sys,html; q=sys.stdin.read().strip(); assert q.startswith("data:image/"); p=os.environ["QR_HTML"]; open(p,"w",encoding="utf-8").write("<!doctype html><meta charset=utf-8><title>ARGOS C10 Pairing</title><style>body{font-family:-apple-system,sans-serif;text-align:center;padding:30px}img{width:min(70vw,560px);height:auto}p{font-size:20px}</style><h1>ARGOS C10 — WhatsApp pairing</h1><p>WhatsApp → Dispositivi collegati → Collega un dispositivo</p><img alt=QR src=\""+html.escape(q,quote=True)+"\">")'
-            test -s "$html"
-            /usr/bin/open "$html"
-            echo 'PAIRING_QR_FETCH_COUNT=1'
-            echo 'PAIRING_QR_OPENED_LOCALLY=YES'
+          if [ "$status" = CODE_READY ]; then
+            # The pairing code crosses only the encrypted local SSH stream and
+            # is displayed in a native Mac dialog. It is never echoed/artifacted.
+            ssh "${SSH[@]}" "$TARGET" "cat $REMOTE_STAGE/code.txt && rm -f $REMOTE_STAGE/code.txt" > "$code_local"
+            chmod 600 "$code_local"
+            CODE_LOCAL="$code_local" /usr/bin/osascript <<'APPLESCRIPT'
+            set p to system attribute "CODE_LOCAL"
+            set pairingCode to read POSIX file p as «class utf8»
+            display dialog ("Sul telefono: WhatsApp → Dispositivi collegati → Collega con numero. Inserisci questo codice:" & return & return & pairingCode) with title "ARGOS C10 — Codice WhatsApp" buttons {"Fatto"} default button "Fatto"
+            APPLESCRIPT
+            rm -f "$code_local"
+            echo 'PAIRING_CODE_FETCH_COUNT=1'
+            echo 'PAIRING_CODE_OPENED_LOCALLY=YES'
           fi
 
           ready=0
@@ -282,7 +301,7 @@ jobs:
             status="$(ssh "${SSH[@]}" "$TARGET" "cat $REMOTE_STAGE/status 2>/dev/null || true")"
             if [ "$status" = READY ]; then ready=1; break; fi
             case "$status" in
-              AUTH_FAILURE|DISCONNECTED*|QR_RENDER_FAILED|INIT_FAILED|TIMEOUT|TERMINATED|DESTROY_FAILED) echo "PAIRING_HELPER_STATUS=$status" >&2; exit 22 ;;
+              AUTH_FAILURE|DISCONNECTED*|CODE_INVALID|CODE_WRITE_FAILED|INIT_FAILED|TIMEOUT|TERMINATED|DESTROY_FAILED) echo "PAIRING_HELPER_STATUS=$status" >&2; exit 22 ;;
             esac
             sleep 5
           done
@@ -304,7 +323,7 @@ jobs:
           done
           if ps -axo command= | grep -F "$STAGE" | grep -E '[c]hrome|[n]ode' >/dev/null; then exit 30; fi
           test ! -e "$READY"
-          rm -f "$STAGE/qr.txt" "$STAGE/helper.log" "$STAGE/helper.pid" "$STAGE/status"
+          rm -f "$STAGE/qr.txt" "$STAGE/code.txt" "$STAGE/phone.txt" "$STAGE/helper.log" "$STAGE/helper.pid" "$STAGE/status"
           printf 'pairing_source_sha=%s\nclient_id=argos-business\n' "$SHA" > "$STAGE/MANIFEST"
           chmod 600 "$STAGE/MANIFEST"
           mv "$STAGE" "$READY"
@@ -314,7 +333,7 @@ jobs:
           echo 'PRODUCTION_PROCESS_MUTATION=NONE'
           REMOTE
           keep_stage=1
-          rm -f "$html"
+          rm -f "$phone_local" "$code_local"
           trap - EXIT
 
       - name: Verify pairing preserved production zero-outbound state
