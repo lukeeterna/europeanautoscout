@@ -64,6 +64,9 @@ class ProfileRecoveryTests(unittest.TestCase):
 if [ "$MOCK_MODE" = browser ]; then printf 'chrome %s\\n' "$MOCK_SESSION"; fi
 if [ ! -f "$MOCK_ROOT/stopped" ]; then echo '123 node wa-daemon.js'; fi
 ''')
+        self.write_exec(self.bin / 'curl', '''#!/bin/sh
+printf '%s\\n' '{"connected":true,"agent_status":"PAUSED"}'
+''')
         self.write_exec(self.bin / 'mv', """#!/bin/sh
 case "$1" in
   */new-session) [ "$MOCK_MODE" != renamefail ] || exit 45 ;;
@@ -109,6 +112,7 @@ esac
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual((self.promo / 'original-session/credential').read_text(), 'after-shutdown')
         self.assertEqual((self.canonical / 'credential').read_text(), 'paired')
+        self.assertIn('PAIRING_PROFILE_RUNTIME_READY=PASS', result.stdout)
         for marker in ('SingletonLock', 'SingletonCookie', 'SingletonSocket'):
             self.assertFalse((self.canonical / marker).exists())
             self.assertTrue((self.ready / f'auth/session-argos-business/{marker}').exists())
