@@ -70,6 +70,22 @@ jobs:
                   print(f'DIAG_LOG_{p.name.upper().replace(".","_")}_BYTES={p.stat().st_size}')
           for label,needles in patterns.items():
               print(f'DIAG_CLASS_{label}={int(any(n.lower() in text.lower() for n in needles))}')
+          import re
+          methods=sorted(set(re.findall(r'Protocol error \\(([-A-Za-z0-9_.]+)\\)', text)))
+          safe_suffixes={
+              'TARGET_CLOSED':'Target closed' in text,
+              'SESSION_CLOSED':'Session closed' in text,
+              'CONTEXT_DESTROYED':'Execution context was destroyed' in text,
+              'CONTEXT_MISSING':'Cannot find context' in text,
+              'TIMED_OUT':'timed out' in text.lower(),
+          }
+          print('DIAG_PROTOCOL_METHODS=' + (','.join(methods) if methods else 'NONE'))
+          for label,value in safe_suffixes.items():
+              print(f'DIAG_PROTOCOL_{label}={int(value)}')
+          events=[]
+          for name in ('WHATSAPP_READY','WHATSAPP_AUTH_FAILURE','WHATSAPP_DISCONNECTED','TRANSPORT_INIT_FAILED'):
+              events.append(f'{name}:{text.count(name)}')
+          print('DIAG_SAFE_EVENT_COUNTS=' + ','.join(events))
 
           c=sqlite3.connect(f'file:{db}?mode=ro',uri=True,timeout=5)
           try:
