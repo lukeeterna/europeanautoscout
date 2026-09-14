@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 env:
-  ARGOS_CANDIDATE_SHA: e3856f57997e67c1d5ee0cd5168ddc62c8244671
+  ARGOS_CANDIDATE_SHA: 96529e162e3d5e88acb18ff7bbd6895533c4c294
 
 concurrency:
   group: argos-c10-local-pairing
@@ -217,7 +217,9 @@ jobs:
           REMOTE
 
           status=''
-          for _ in $(seq 1 60); do
+          # Match the helper's bounded 420s initialization timeout. A slow
+          # Chromium bootstrap must not be mislabeled TIMEOUT while still STARTING.
+          for _ in $(seq 1 210); do
             status="$(ssh "${SSH[@]}" "$TARGET" "cat $REMOTE_STAGE/status 2>/dev/null || true")"
             case "$status" in
               QR_READY|AUTHENTICATED|AUTHENTICATED_NO_QR|STOPPING|READY) break ;;
