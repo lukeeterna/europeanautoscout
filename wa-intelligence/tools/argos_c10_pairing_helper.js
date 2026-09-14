@@ -22,6 +22,7 @@ const chromeExecutable = process.env.ARGOS_PAIR_CHROME || '';
 const clientId = process.env.ARGOS_PAIR_CLIENT_ID || 'argos-business';
 const timeoutMs = Math.max(60_000, Number(process.env.ARGOS_PAIR_TIMEOUT_MS || 360_000));
 const shutdownTimeoutMs = 30_000;
+const qrRenderTimeoutMs = Math.max(1_000, Number(process.env.ARGOS_PAIR_QR_RENDER_TIMEOUT_MS || 15_000));
 
 function fail(message) {
   throw new Error(message);
@@ -91,14 +92,23 @@ client = new Client({
 client.on('qr', async (qr) => {
   if (firstQrCaptured || finished) return;
   firstQrCaptured = true;
+  let renderTimer;
   try {
-    const dataUrl = await QRCode.toDataURL(qr, { type: 'image/png', errorCorrectionLevel: 'M' });
+    setStatus('QR_RECEIVED');
+    const dataUrl = await Promise.race([
+      QRCode.toDataURL(qr, { type: 'image/png', errorCorrectionLevel: 'M' }),
+      new Promise((_, reject) => {
+        renderTimer = setTimeout(() => reject(new Error('QR render timeout')), qrRenderTimeoutMs);
+      }),
+    ]);
     // Rendering is asynchronous: authentication or shutdown may have won.
     if (finished || authenticated) return;
     atomicWrite(qrFile, `${dataUrl}\n`, 0o600);
     setStatus('QR_READY');
   } catch (_) {
     await finish('QR_RENDER_FAILED', 20);
+  } finally {
+    if (renderTimer) clearTimeout(renderTimer);
   }
 });
 
