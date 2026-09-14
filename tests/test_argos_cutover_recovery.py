@@ -52,6 +52,9 @@ class ProfileRecoveryTests(unittest.TestCase):
         self.old = self.home / 'old/wa-intelligence'
         self.old.mkdir(parents=True)
         (self.old / 'ecosystem.config.js').write_text('// mock')
+        self.candidate = self.home / f'Documents/argos-c10-release-{SHA[:12]}/wa-intelligence'
+        self.candidate.mkdir(parents=True)
+        (self.candidate / 'ecosystem.config.js').write_text('// candidate mock')
         db = self.home / 'Documents/app-antigravity-auto/dealer_network.sqlite'
         with sqlite3.connect(db) as conn:
             conn.executescript("CREATE TABLE messages(direction); CREATE TABLE argos_runtime_state(key,value); INSERT INTO argos_runtime_state VALUES('agent_status','PAUSED');")
