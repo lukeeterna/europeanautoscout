@@ -297,5 +297,14 @@ class WorkflowSafetyTests(unittest.TestCase):
             self.assertEqual(values[key], "", f"{key} must be a blank local-only placeholder")
 
 
+    def test_wwebjs_cache_is_external_to_immutable_release(self):
+        transport = (ROOT / "wa-intelligence/transport/wwebjs_transport.js").read_text()
+        ecosystem = (ROOT / "wa-intelligence/ecosystem.config.js").read_text()
+        cutover = (ROOT / "wa-intelligence/tools/argos_c10_wwebjs_cutover.sh").read_text()
+        self.assertIn("webVersionCache: { type: 'local', path: webCachePath, strict: false }", transport)
+        self.assertIn("path.join(sessionRoot, '.wwebjs_cache')", transport)
+        self.assertIn("ARGOS_WA_WEB_CACHE_DIR", ecosystem)
+        self.assertIn("'ARGOS_WA_WEB_CACHE_DIR':str(Path(sys.argv[4])/'.wwebjs_cache')", cutover)
+
 if __name__ == "__main__":
     unittest.main()
