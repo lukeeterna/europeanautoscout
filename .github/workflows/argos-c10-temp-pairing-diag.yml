@@ -1,19 +1,16 @@
-name: ARGOS C10 TEMP Cancel Superseded Read-Only Run
-
+name: ARGOS C10 TEMP Cancel Pairing At Device Limit
 on:
   push:
     branches: [s210/audit-master-plan]
     paths: [.github/workflows/argos-c10-temp-pairing-diag.yml]
-
 permissions:
   contents: read
   actions: write
-
 jobs:
   cancel:
     runs-on: ubuntu-22.04
     steps:
-      - name: Cancel superseded cutover before mutation
+      - name: Cancel pending pairing before authentication
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -22,6 +19,6 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             -H 'Accept: application/vnd.github+json' \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/34862500523/cancel"
-          echo 'SUPERSEDED_READ_ONLY_RUN_CANCEL_REQUESTED=YES'
-          echo 'PRODUCTION_MUTATION=NONE'
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/34887322343/cancel"
+          echo 'PAIRING_CANCEL_REQUESTED=YES'
+          echo 'NEW_WHATSAPP_DEVICE=NONE'
