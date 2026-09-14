@@ -355,6 +355,17 @@ esac
         self.assertTrue((self.root / 'stopped').exists())
 
 
+class CutoverChromeSelectionTests(unittest.TestCase):
+    def test_runtime_prefers_stable_chrome_with_pinned_fallback(self):
+        script = (ROOT / 'wa-intelligence/tools/argos_c10_wwebjs_cutover.sh').read_text()
+        stable = '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"'
+        fallback = 'chrome/mac-148.0.7778.97'
+        self.assertIn(stable, script)
+        self.assertIn(fallback, script)
+        self.assertLess(script.index(stable), script.index(fallback))
+        self.assertIn('if [[ -x "$CHROME_STABLE" ]]', script)
+
+
 class WorkflowEnvironmentTests(unittest.TestCase):
     def test_pm2_remote_boundaries_export_node_path(self):
         workflow = (ROOT / '.github/workflows/argos-c10-wwebjs-cutover.yml').read_text()
