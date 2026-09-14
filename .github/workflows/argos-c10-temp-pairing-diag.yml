@@ -86,5 +86,41 @@ jobs:
             if [ "$label" = STABLE ] && [ "$rc" -ne 0 ]; then failures=1; fi
           done
           test "$failures" -eq 0
+          authroot="$(mktemp -d /tmp/argos-wwebjs-diag.XXXXXX)"
+          export ARGOS_DIAG_AUTH="$authroot"
+          set +e
+          node - "$ROOT" "$STABLE" <<'NODE'
+          const path=require('path');
+          const root=process.argv[2], binary=process.argv[3];
+          const {Client,LocalAuth}=require(path.join(root,'node_modules','whatsapp-web.js'));
+          const client=new Client({
+            authStrategy:new LocalAuth({clientId:'argos-diagnostic',dataPath:process.env.ARGOS_DIAG_AUTH}),
+            puppeteer:{headless:true,executablePath:binary,args:['--no-first-run','--no-default-browser-check']}
+          });
+          let terminal=false;
+          const done=async(code,label)=>{
+            if(terminal)return; terminal=true;
+            console.log('DIAG_WWEBJS_TERMINAL='+label);
+            try{await Promise.race([client.destroy(),new Promise((_,r)=>setTimeout(()=>r(Error()),10000))]);}
+            catch(_){console.log('DIAG_WWEBJS_DESTROY=FAILED');}
+            process.exit(code);
+          };
+          client.on('qr',()=>done(0,'QR_EVENT'));
+          client.on('authenticated',()=>console.log('DIAG_WWEBJS_AUTHENTICATED=YES'));
+          client.on('ready',()=>done(0,'READY'));
+          client.on('auth_failure',()=>done(21,'AUTH_FAILURE'));
+          client.on('disconnected',()=>done(22,'DISCONNECTED'));
+          setTimeout(()=>{
+            const url=client.pupPage && client.pupPage.url ? client.pupPage.url() : 'NO_PAGE';
+            console.log('DIAG_WWEBJS_PAGE='+(url.startsWith('https://web.whatsapp.com')?'WA_WEB':'OTHER'));
+            done(23,'NO_EVENT_TIMEOUT');
+          },60000);
+          client.initialize().catch(e=>done(24,'INIT_ERROR_'+e.name));
+          NODE
+          wrc=$?
+          set -e
+          rm -rf "$authroot"
+          echo "DIAG_WWEBJS_RC=$wrc"
+          test "$wrc" -eq 0
           echo 'PAIRING_DIAGNOSTIC=PASS_READ_ONLY'
           REMOTE
