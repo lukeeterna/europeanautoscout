@@ -126,6 +126,7 @@ updates={
  'BRIDGE_DB_PATH':sys.argv[3],
  'ARGOS_WA_SESSION_DIR':sys.argv[4],
  'ARGOS_WA_CLIENT_ID':sys.argv[5],
+ 'ARGOS_WA_WEB_CACHE_DIR':str(Path(sys.argv[4])/'.wwebjs_cache'),
  'CHROME_EXECUTABLE_PATH':sys.argv[6],
  'ARGOS_WA_TRANSPORT':'wwebjs',
  'ARGOS_AUTOMATION_ENABLED':'0',
