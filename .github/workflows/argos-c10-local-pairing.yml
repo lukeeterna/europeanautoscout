@@ -102,7 +102,18 @@ jobs:
           BASE="$HOME/Documents/argos-c10-pairing-ready"
           STAGE="$BASE/.stage-$RUN_ID"
           READY="$BASE/$SHA"
-          CHROME="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+          STABLE_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          CFT_CHROME="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+          if [ -x "$STABLE_CHROME" ]; then
+            CHROME="$STABLE_CHROME"
+            CHROME_CHANNEL=stable
+          elif [ -x "$CFT_CHROME" ]; then
+            CHROME="$CFT_CHROME"
+            CHROME_CHANNEL=cft-fallback
+          else
+            echo 'BLOCKED: no approved Chrome executable' >&2
+            exit 24
+          fi
           export PATH="$HOME/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 
           test -x "$CHROME"
@@ -147,6 +158,8 @@ jobs:
           mkdir -m 700 "$STAGE"
           echo "PAIRING_RELEASE_SHA=$SHA"
           echo 'PAIRING_RUNTIME_DEPS=PASS'
+          echo "PAIRING_CHROME_CHANNEL=$CHROME_CHANNEL"
+          "$CHROME" --version | sed 's/^/PAIRING_CHROME_VERSION=/'
           echo 'PRODUCTION_PROCESS_MUTATION=NONE'
           echo 'CANONICAL_LOCALAUTH_MUTATION=NONE'
           REMOTE
@@ -190,7 +203,18 @@ jobs:
           SHA="$1"; RUN_ID="$2"; SHORT="${SHA:0:12}"
           RELEASE="$HOME/Documents/argos-c10-release-$SHORT"
           STAGE="$HOME/Documents/argos-c10-pairing-ready/.stage-$RUN_ID"
-          CHROME="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+          STABLE_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          CFT_CHROME="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+          if [ -x "$STABLE_CHROME" ]; then
+            CHROME="$STABLE_CHROME"
+            CHROME_CHANNEL=stable
+          elif [ -x "$CFT_CHROME" ]; then
+            CHROME="$CFT_CHROME"
+            CHROME_CHANNEL=cft-fallback
+          else
+            echo 'BLOCKED: no approved Chrome executable' >&2
+            exit 24
+          fi
           test -d "$STAGE"
           test ! -e "$STAGE/helper.pid"
           nohup env \
