@@ -30,6 +30,7 @@ SESSION_DIR="$HOME_DIR/Documents/app-antigravity-auto/wa-sender"
 CLIENT_ID="argos-business"
 PM2="$HOME_DIR/.npm-global/bin/pm2"
 PY313="/usr/local/bin/python3.13"
+CHROME_STABLE="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 CHROME_FALLBACK="$HOME_DIR/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
 OLD_CWD=""
 OLD_ROOT=""
@@ -104,8 +105,15 @@ cp -p "$ENV_SRC" "$RELEASE/wa-intelligence/.env"
 chmod 600 "$RELEASE/wa-intelligence/.env"
 
 # Reuse the currently proven browser executable if still present.
-CHROME="$CHROME_FALLBACK"
-[[ -x "$CHROME" ]] || fail "CHROME_EXECUTABLE_MISSING"
+if [[ -x "$CHROME_STABLE" ]]; then
+  CHROME="$CHROME_STABLE"
+  echo "CHROME_CHANNEL=stable"
+elif [[ -x "$CHROME_FALLBACK" ]]; then
+  CHROME="$CHROME_FALLBACK"
+  echo "CHROME_CHANNEL=cft-fallback"
+else
+  fail "CHROME_EXECUTABLE_MISSING"
+fi
 
 # Update only non-secret operational keys. All unrelated secret values remain
 # from the local .env copy and are never printed.
