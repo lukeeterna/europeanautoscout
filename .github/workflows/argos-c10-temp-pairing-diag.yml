@@ -1,4 +1,4 @@
-name: ARGOS C10 TEMP Pairing Read-Only Diagnostic
+name: ARGOS C10 TEMP Recovery Read-Only Diagnostic
 
 on:
   push:
@@ -10,129 +10,54 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: argos-c10-pairing-readonly-diagnostic
-  cancel-in-progress: false
-
 jobs:
   diagnose:
     runs-on: [self-hosted, macbook, argos]
     timeout-minutes: 5
     steps:
-      - name: Probe isolated Puppeteer launch from iMac
+      - name: Inspect failed promotion boundary without mutation
         shell: bash
         run: |
           set -euo pipefail
-          echo 'DIAG_MUTATION=TEMP_ONLY'
-          echo 'PRODUCTION_MUTATION=NONE'
+          echo 'DIAG_MUTATION=NONE'
           echo 'OUTBOUND_ACTION=NONE'
           ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
             -o ServerAliveInterval=5 -o ServerAliveCountMax=2 \
             gianlucadistasi@iMac-di-gianluca.local \
-            "bash -s -- '5dd932e6ab27a43b5486afbd41c18396e5d15830'" <<'REMOTE'
-          set -euo pipefail
-          SHA="$1"
-          export PATH="$HOME/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
-          ROOT="$HOME/Documents/argos-c10-release-${SHA:0:12}/wa-intelligence"
-          CFT="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
-          STABLE="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-          test -d "$ROOT/node_modules/puppeteer"
-          echo "DIAG_EXPECTED_SHA=$SHA"
-          failures=0
-          for spec in "CFT|$CFT" "STABLE|$STABLE"; do
-            label="${spec%%|*}"
-            binary="${spec#*|}"
-            test -x "$binary"
-            "$binary" --version | sed "s/^/DIAG_${label}_VERSION=/"
-            profile="$(mktemp -d /tmp/argos-pair-diag.XXXXXX)"
-            export ARGOS_DIAG_PROFILE="$profile"
-            set +e
-            node - "$ROOT" "$binary" "$label" <<'NODE'
-          const path=require('path');
-          const root=process.argv[2], binary=process.argv[3], label=process.argv[4];
-          const puppeteer=require(path.join(root,'node_modules','puppeteer'));
-          const watchdog=setTimeout(()=>{
-            console.log('DIAG_'+label+'_PUPPETEER=TIMEOUT');
-            process.exit(124);
-          },45000);
-          (async()=>{
-            const browser=await puppeteer.launch({
-              headless:true,
-              executablePath:binary,
-              userDataDir:process.env.ARGOS_DIAG_PROFILE,
-              args:['--no-first-run','--no-default-browser-check']
-            });
-            try {
-              console.log('DIAG_'+label+'_PUPPETEER_LAUNCH=PASS');
-              const page=await browser.newPage();
-              const response=await page.goto('https://web.whatsapp.com/',{
-                waitUntil:'domcontentloaded',
-                timeout:30000
-              });
-              console.log('DIAG_'+label+'_PUPPETEER_HTTP='+(response ? response.status() : 'NONE'));
-            } finally {
-              await browser.close();
-              clearTimeout(watchdog);
-            }
-          })().catch(e=>{
-            console.log('DIAG_'+label+'_PUPPETEER_ERROR='+e.name);
-            process.exit(20);
-          });
-          NODE
-            rc=$?
-            set -e
-            rm -rf "$profile"
-            echo "DIAG_${label}_PUPPETEER_RC=$rc"
-            if [ "$label" = STABLE ] && [ "$rc" -ne 0 ]; then failures=1; fi
-          done
-          test "$failures" -eq 0
-          authroot="$(mktemp -d /tmp/argos-wwebjs-diag.XXXXXX)"
-          export ARGOS_DIAG_AUTH="$authroot"
-          set +e
-          node - "$ROOT" "$STABLE" <<'NODE'
-          const path=require('path');
-          const root=process.argv[2], binary=process.argv[3];
-          const {Client,LocalAuth}=require(path.join(root,'node_modules','whatsapp-web.js'));
-          const QRCode=require(path.join(root,'node_modules','qrcode'));
-          const client=new Client({
-            authStrategy:new LocalAuth({clientId:'argos-diagnostic',dataPath:process.env.ARGOS_DIAG_AUTH}),
-            puppeteer:{headless:true,executablePath:binary,args:['--no-first-run','--no-default-browser-check']}
-          });
-          let terminal=false;
-          const done=async(code,label)=>{
-            if(terminal)return; terminal=true;
-            console.log('DIAG_WWEBJS_TERMINAL='+label);
-            try{await Promise.race([client.destroy(),new Promise((_,r)=>setTimeout(()=>r(Error()),10000))]);}
-            catch(_){console.log('DIAG_WWEBJS_DESTROY=FAILED');}
-            process.exit(code);
-          };
-          client.on('qr',async qr=>{
-            console.log('DIAG_WWEBJS_QR_EVENT=YES');
-            try {
-              const dataUrl=await Promise.race([
-                QRCode.toDataURL(qr,{type:'image/png',errorCorrectionLevel:'M'}),
-                new Promise((_,r)=>setTimeout(()=>r(new Error('render timeout')),10000))
-              ]);
-              console.log('DIAG_QR_RENDER_PREFIX_OK='+String(dataUrl.startsWith('data:image/')).toUpperCase());
-              console.log('DIAG_QR_RENDER_BYTES='+Buffer.byteLength(dataUrl));
-              done(0,'QR_RENDERED');
-            } catch(e) { done(25,'QR_RENDER_'+e.name); }
-          });
-          client.on('authenticated',()=>console.log('DIAG_WWEBJS_AUTHENTICATED=YES'));
-          client.on('ready',()=>done(0,'READY'));
-          client.on('auth_failure',()=>done(21,'AUTH_FAILURE'));
-          client.on('disconnected',()=>done(22,'DISCONNECTED'));
-          setTimeout(()=>{
-            const url=client.pupPage && client.pupPage.url ? client.pupPage.url() : 'NO_PAGE';
-            console.log('DIAG_WWEBJS_PAGE='+(url.startsWith('https://web.whatsapp.com')?'WA_WEB':'OTHER'));
-            done(23,'NO_EVENT_TIMEOUT');
-          },60000);
-          client.initialize().catch(e=>done(24,'INIT_ERROR_'+e.name));
-          NODE
-          wrc=$?
-          set -e
-          rm -rf "$authroot"
-          echo "DIAG_WWEBJS_RC=$wrc"
-          test "$wrc" -eq 0
-          echo 'PAIRING_DIAGNOSTIC=PASS_READ_ONLY'
-          REMOTE
+            "python3 - 'a7e98c158f0f5ea08cc8974131d9953120dcb4c3' '34855323454'" <<'PY'
+          import json,sqlite3,subprocess,sys
+          from pathlib import Path
+          sha,run_id=sys.argv[1:]
+          home=Path.home()
+          pm2=home/'.npm-global/bin/pm2'
+          db=home/'Documents/app-antigravity-auto/dealer_network.sqlite'
+          root=home/'Documents/app-antigravity-auto/wa-sender'
+          session=root/'session-argos-business'
+          ready=home/'Documents/argos-c10-pairing-ready'/sha
+          promo=home/'Documents/argos-c10-pairing-promotions'/f'{sha}-{run_id}'
+          try:
+              procs=json.loads(subprocess.run([str(pm2),'jlist'],capture_output=True,text=True,timeout=10,check=True).stdout)
+              for name in ('argos-wa-daemon','argos-outreach-scheduler'):
+                  rows=[p for p in procs if p.get('name')==name]
+                  status=rows[0].get('pm2_env',{}).get('status','ABSENT') if rows else 'ABSENT'
+                  print(f'DIAG_PM2_{name.upper().replace("-","_")}={status}')
+          except Exception as e:
+              print('DIAG_PM2=ERROR_'+type(e).__name__)
+          writer=subprocess.run("ps -axo command= | awk '/[w]a-daemon\\.js/ && /[n]ode/ {n++} END{print n+0}'",shell=True,capture_output=True,text=True).stdout.strip()
+          chrome=subprocess.run(f"ps -axo command= | grep -F '{root}' | grep -i '[c]hrome' | wc -l",shell=True,capture_output=True,text=True).stdout.strip()
+          print('DIAG_WRITER_COUNT='+writer)
+          print('DIAG_CANONICAL_CHROME_COUNT='+chrome)
+          print('DIAG_SESSION_PRESENT='+str(session.is_dir() and any(p.is_file() for p in session.rglob('*'))).upper())
+          print('DIAG_READY_PRESENT='+str(ready.is_dir()).upper())
+          print('DIAG_PROMO_PRESENT='+str(promo.is_dir()).upper())
+          for name in ('original-session','new-session','failed-session','restore-session'):
+              print('DIAG_PROMO_'+name.upper().replace('-','_')+'='+str((promo/name).exists()).upper())
+          c=sqlite3.connect(f'file:{db}?mode=ro',uri=True,timeout=5)
+          q=c.execute('PRAGMA quick_check').fetchone()[0]
+          row=c.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status'").fetchone()
+          out=c.execute("SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'").fetchone()[0]
+          c.close()
+          print('DIAG_DB_QUICK_CHECK='+q)
+          print('DIAG_AGENT_STATUS='+(row[0] if row else 'ABSENT').upper())
+          print('DIAG_OUTBOUND_TOTAL='+str(out))
+          PY
