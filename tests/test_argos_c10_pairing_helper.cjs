@@ -23,6 +23,8 @@ function harness(t, options = {}) {
     ARGOS_PAIR_STATUS_FILE: path.join(root, 'status'),
     ARGOS_PAIR_CHROME: path.join(root, 'chrome'),
     ARGOS_PAIR_CLIENT_ID: 'argos-business',
+    ARGOS_PAIR_PHONE_FILE: '',
+    ARGOS_PAIR_CODE_FILE: '',
     ...options.env,
   };
   fs.writeFileSync(env.ARGOS_PAIR_CHROME, 'mock');
@@ -245,4 +247,35 @@ test('pairing uses only staged filesystem and allowed dependencies, never send/r
   assert.ok(paths.every(p => p.startsWith(h.root + path.sep)));
   assert.equal(h.client.config.authStrategy.config.clientId, 'argos-business');
   assert.equal(h.client.config.authStrategy.config.dataPath, h.env.ARGOS_PAIR_DATA_PATH);
+});
+
+
+test('phone-code mode consumes phone file and publishes one mode-0600 code', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'argos-code-input-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const phoneFile = path.join(root, 'phone.txt');
+  const codeFile = path.join(root, 'code.txt');
+  fs.writeFileSync(phoneFile, '393314928901\n', { mode: 0o600 });
+  const h = harness(t, { env: { ARGOS_PAIR_PHONE_FILE: phoneFile, ARGOS_PAIR_CODE_FILE: codeFile } });
+  assert.equal(fs.existsSync(phoneFile), false);
+  assert.deepEqual(h.client.config.pairWithPhoneNumber, {
+    phoneNumber: '393314928901', showNotification: true, intervalMs: 600000,
+  });
+  await h.emit('code', 'ABCD-EFGH');
+  await h.emit('code', 'LATE-CODE');
+  assert.equal(h.status(), 'CODE_READY');
+  assert.equal(fs.readFileSync(codeFile, 'utf8').trim(), 'ABCD-EFGH');
+  assert.equal(fs.statSync(codeFile).mode & 0o777, 0o600);
+});
+
+test('phone-code mode rejects invalid input without retaining or logging it', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'argos-code-invalid-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const phoneFile = path.join(root, 'phone.txt');
+  fs.writeFileSync(phoneFile, '+39 invalid secret');
+  assert.throws(() => harness(t, { env: {
+    ARGOS_PAIR_PHONE_FILE: phoneFile,
+    ARGOS_PAIR_CODE_FILE: path.join(root, 'code.txt'),
+  } }), /invalid phone input/);
+  assert.equal(fs.existsSync(phoneFile), false);
 });
