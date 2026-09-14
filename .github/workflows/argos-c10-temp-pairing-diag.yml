@@ -1,4 +1,4 @@
-name: ARGOS C10 TEMP Recovery Read-Only Diagnostic
+name: ARGOS C10 TEMP Sanitized Runtime Diagnostic
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
     runs-on: [self-hosted, macbook, argos]
     timeout-minutes: 5
     steps:
-      - name: Inspect failed promotion boundary without mutation
+      - name: Classify daemon readiness failure without mutation
         shell: bash
         run: |
           set -euo pipefail
@@ -23,47 +23,62 @@ jobs:
           echo 'OUTBOUND_ACTION=NONE'
           ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
             -o ServerAliveInterval=5 -o ServerAliveCountMax=2 \
-            gianlucadistasi@iMac-di-gianluca.local \
-            "python3 - 'a7e98c158f0f5ea08cc8974131d9953120dcb4c3' '34855323454'" <<'PY'
-          import json,sqlite3,subprocess,sys
+            gianlucadistasi@iMac-di-gianluca.local python3 <<'PY'
+          import json, sqlite3, subprocess, urllib.request
           from pathlib import Path
-          sha,run_id=sys.argv[1:]
           home=Path.home()
-          pm2=home/'.npm-global/bin/pm2'
-          db=home/'Documents/app-antigravity-auto/dealer_network.sqlite'
           root=home/'Documents/app-antigravity-auto/wa-sender'
           session=root/'session-argos-business'
-          ready=home/'Documents/argos-c10-pairing-ready'/sha
-          promo=home/'Documents/argos-c10-pairing-promotions'/f'{sha}-{run_id}'
-          for name in ('argos-wa-daemon','argos-outreach-scheduler'):
-              p=subprocess.run([str(pm2),'pid',name],capture_output=True,text=True,timeout=10)
-              value=p.stdout.strip()
-              safe=value if value.isdigit() else 'NONE'
-              print(f'DIAG_PM2_PID_{name.upper().replace("-","_")}={safe}')
-              print(f'DIAG_PM2_PID_RC_{name.upper().replace("-","_")}={p.returncode}')
+          err=Path('/tmp/argos-wa-daemon-err.log')
+          out=Path('/tmp/argos-wa-daemon-out.log')
+          db=home/'Documents/app-antigravity-auto/dealer_network.sqlite'
+
+          ps=subprocess.run(['/bin/ps','-axo','command='],text=True,capture_output=True,check=True).stdout.splitlines()
+          writers=[x for x in ps if 'wa-daemon.js' in x and 'node' in x]
+          chromes=[x for x in ps if str(root) in x and ('Chrome' in x or 'chrome' in x)]
+          print(f'DIAG_WRITER_COUNT={len(writers)}')
+          print(f'DIAG_CANONICAL_CHROME_COUNT={len(chromes)}')
+          print(f'DIAG_SESSION_PRESENT={session.is_dir()}')
+          print(f'DIAG_SESSION_FILES_POSITIVE={session.is_dir() and any(p.is_file() for p in session.rglob("*"))}')
+          for name in ('SingletonLock','SingletonCookie','SingletonSocket'):
+              print(f'DIAG_{name.upper()}={int((session/name).exists() or (session/name).is_symlink())}')
+
           try:
-              procs=json.loads(subprocess.run([str(pm2),'jlist'],capture_output=True,text=True,timeout=10,check=True).stdout)
-              for name in ('argos-wa-daemon','argos-outreach-scheduler'):
-                  rows=[p for p in procs if p.get('name')==name]
-                  status=rows[0].get('pm2_env',{}).get('status','ABSENT') if rows else 'ABSENT'
-                  print(f'DIAG_PM2_{name.upper().replace("-","_")}={status}')
-          except Exception as e:
-              print('DIAG_PM2=ERROR_'+type(e).__name__)
-          writer=subprocess.run("ps -axo command= | awk '/[w]a-daemon\\.js/ && /[n]ode/ {n++} END{print n+0}'",shell=True,capture_output=True,text=True).stdout.strip()
-          chrome=subprocess.run(f"ps -axo command= | grep -F '{root}' | grep -i '[c]hrome' | wc -l",shell=True,capture_output=True,text=True).stdout.strip()
-          print('DIAG_WRITER_COUNT='+writer)
-          print('DIAG_CANONICAL_CHROME_COUNT='+chrome)
-          print('DIAG_SESSION_PRESENT='+str(session.is_dir() and any(p.is_file() for p in session.rglob('*'))).upper())
-          print('DIAG_READY_PRESENT='+str(ready.is_dir()).upper())
-          print('DIAG_PROMO_PRESENT='+str(promo.is_dir()).upper())
-          for name in ('original-session','new-session','failed-session','restore-session'):
-              print('DIAG_PROMO_'+name.upper().replace('-','_')+'='+str((promo/name).exists()).upper())
+              with urllib.request.urlopen('http://127.0.0.1:9191/health',timeout=3) as resp:
+                  h=json.load(resp)
+              print(f'DIAG_HEALTH_HTTP=200')
+              for key in ('transport','connected','agent_status','automation_enabled','pending_bridge'):
+                  if key in h: print(f'DIAG_HEALTH_{key.upper()}={h[key]}')
+          except Exception as exc:
+              print(f'DIAG_HEALTH_HTTP=UNAVAILABLE_{type(exc).__name__}')
+
+          patterns={
+            'CHROME_EXECUTABLE':['Could not find Chrome','executablePath','Browser was not found'],
+            'CHROME_LAUNCH':['Failed to launch','spawn','zygote'],
+            'PROFILE_LOCK':['SingletonLock','profile appears to be in use','user data directory is already in use'],
+            'AUTH_FAILURE':['AUTH_FAILURE','auth_failure','Authentication failure'],
+            'DISCONNECTED':['WHATSAPP_DISCONNECTED','disconnected'],
+            'NAVIGATION_TIMEOUT':['Navigation timeout','TimeoutError'],
+            'PROTOCOL_ERROR':['Protocol error','Target closed'],
+            'MODULE_ERROR':['Cannot find module','MODULE_NOT_FOUND'],
+            'PERMISSION':['EACCES','permission denied'],
+          }
+          text=''
+          for p in (err,out):
+              if p.is_file():
+                  text += p.read_text(encoding='utf-8',errors='replace')[-300000:]
+                  print(f'DIAG_LOG_{p.name.upper().replace(".","_")}_BYTES={p.stat().st_size}')
+          for label,needles in patterns.items():
+              print(f'DIAG_CLASS_{label}={int(any(n.lower() in text.lower() for n in needles))}')
+
           c=sqlite3.connect(f'file:{db}?mode=ro',uri=True,timeout=5)
-          q=c.execute('PRAGMA quick_check').fetchone()[0]
-          row=c.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status'").fetchone()
-          out=c.execute("SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'").fetchone()[0]
-          c.close()
-          print('DIAG_DB_QUICK_CHECK='+q)
-          print('DIAG_AGENT_STATUS='+(row[0] if row else 'ABSENT').upper())
-          print('DIAG_OUTBOUND_TOTAL='+str(out))
+          try:
+              quick=c.execute('PRAGMA quick_check').fetchone()[0]
+              state=c.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status'").fetchone()
+              outbound=c.execute("SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'").fetchone()[0]
+          finally: c.close()
+          print(f'DIAG_DB_QUICK={quick}')
+          print(f'DIAG_DB_STATE={state[0] if state else "ABSENT"}')
+          print(f'DIAG_OUTBOUND_TOTAL={outbound}')
+          assert quick=='ok' and str(state[0]).upper()=='PAUSED' and int(outbound)==77 and len(writers)==1
           PY
