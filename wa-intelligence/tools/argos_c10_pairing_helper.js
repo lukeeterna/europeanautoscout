@@ -20,6 +20,9 @@ const qrFile = process.env.ARGOS_PAIR_QR_FILE || '';
 const statusFile = process.env.ARGOS_PAIR_STATUS_FILE || '';
 const chromeExecutable = process.env.ARGOS_PAIR_CHROME || '';
 const clientId = process.env.ARGOS_PAIR_CLIENT_ID || 'argos-business';
+const phoneFile = process.env.ARGOS_PAIR_PHONE_FILE || '';
+const codeFile = process.env.ARGOS_PAIR_CODE_FILE || '';
+const codeMode = Boolean(phoneFile);
 const timeoutMs = Math.max(60_000, Number(process.env.ARGOS_PAIR_TIMEOUT_MS || 360_000));
 const shutdownTimeoutMs = 30_000;
 const qrRenderTimeoutMs = Math.max(1_000, Number(process.env.ARGOS_PAIR_QR_RENDER_TIMEOUT_MS || 15_000));
@@ -32,6 +35,18 @@ if (!dataPath || !qrFile || !statusFile || !chromeExecutable) {
   fail('pairing helper requires staging, qr, status and Chrome paths');
 }
 if (!fs.existsSync(chromeExecutable)) fail('Chrome executable missing');
+if (codeMode && !codeFile) fail('phone-code pairing requires a code path');
+
+let phoneNumber = '';
+if (codeMode) {
+  try {
+    phoneNumber = fs.readFileSync(phoneFile, 'utf8').trim();
+  } finally {
+    // The sensitive input is single-use even when validation fails.
+    try { fs.unlinkSync(phoneFile); } catch (_) {}
+  }
+  if (!/^\d{8,15}$/.test(phoneNumber)) fail('invalid phone input');
+}
 
 fs.mkdirSync(dataPath, { recursive: true, mode: 0o700 });
 
@@ -50,6 +65,7 @@ let client = null;
 let finished = false;
 let firstQrCaptured = false;
 let authenticated = false;
+let firstCodeCaptured = false;
 let timer = null;
 
 async function finish(status, exitCode) {
@@ -82,6 +98,14 @@ setStatus('STARTING');
 
 client = new Client({
   authStrategy: new LocalAuth({ clientId, dataPath }),
+  ...(codeMode ? {
+    pairWithPhoneNumber: {
+      phoneNumber,
+      showNotification: true,
+      // One code per bounded attempt; automatic code rotation is forbidden.
+      intervalMs: 600_000,
+    },
+  } : {}),
   puppeteer: {
     headless: true,
     executablePath: chromeExecutable,
@@ -90,7 +114,7 @@ client = new Client({
 });
 
 client.on('qr', async (qr) => {
-  if (firstQrCaptured || finished) return;
+  if (codeMode || firstQrCaptured || finished) return;
   firstQrCaptured = true;
   let renderTimer;
   try {
@@ -109,6 +133,21 @@ client.on('qr', async (qr) => {
     await finish('QR_RENDER_FAILED', 20);
   } finally {
     if (renderTimer) clearTimeout(renderTimer);
+  }
+});
+
+client.on('code', (code) => {
+  if (!codeMode || firstCodeCaptured || finished || authenticated) return;
+  firstCodeCaptured = true;
+  if (typeof code !== 'string' || !/^[A-Z0-9-]{6,16}$/.test(code)) {
+    void finish('CODE_INVALID', 26);
+    return;
+  }
+  try {
+    atomicWrite(codeFile, `${code}\n`, 0o600);
+    setStatus('CODE_READY');
+  } catch (_) {
+    void finish('CODE_WRITE_FAILED', 26);
   }
 });
 
