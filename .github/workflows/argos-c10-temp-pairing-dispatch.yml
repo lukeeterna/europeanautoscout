@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  ARGOS_CANDIDATE_SHA: d8824d18febf3648d307dd0fe1e0723a0b07289d
+  ARGOS_CANDIDATE_SHA: 33cb81f0c21e7802d5dcfe165b8673e30a0bed4a
 
 concurrency:
   group: argos-c10-local-pairing
