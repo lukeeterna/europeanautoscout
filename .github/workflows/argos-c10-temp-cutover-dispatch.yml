@@ -114,10 +114,16 @@ jobs:
         run: |
           set -euo pipefail
           SOURCE_SHA=33cb81f0c21e7802d5dcfe165b8673e30a0bed4a
-          git fetch --no-tags --depth=1 origin "$SOURCE_SHA"
-          changed="$(git diff --name-only "$SOURCE_SHA" "$ARGOS_CANDIDATE_SHA" | sort)"
-          allowed="$(printf '%s\n' tests/test_argos_pre_pairing_readiness.py wa-intelligence/ecosystem.config.js wa-intelligence/tools/argos_c10_wwebjs_cutover.sh wa-intelligence/transport/wwebjs_transport.js | sort)"
-          test "$changed" = "$allowed"
+          python3 - "$GITHUB_REPOSITORY" "$SOURCE_SHA" "$ARGOS_CANDIDATE_SHA" <<'PYDIFF'
+          import json,sys,urllib.request
+          repo,base,head=sys.argv[1:]
+          with urllib.request.urlopen(f'https://api.github.com/repos/{repo}/compare/{base}...{head}',timeout=20) as r:
+              data=json.load(r)
+          actual={f['filename'] for f in data.get('files',[])}
+          allowed={'tests/test_argos_pre_pairing_readiness.py','wa-intelligence/ecosystem.config.js','wa-intelligence/tools/argos_c10_wwebjs_cutover.sh','wa-intelligence/transport/wwebjs_transport.js'}
+          assert data.get('status')=='ahead' and actual==allowed, (data.get('status'),sorted(actual))
+          print('PAIRING_COMPATIBILITY_DIFF=PASS')
+          PYDIFF
           ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
             gianlucadistasi@iMac-di-gianluca.local \
             "bash -s -- '$SOURCE_SHA' '$ARGOS_CANDIDATE_SHA'" <<'REMOTE'
