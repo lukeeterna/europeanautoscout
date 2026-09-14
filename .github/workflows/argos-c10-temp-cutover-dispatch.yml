@@ -130,6 +130,7 @@ jobs:
           set -euo pipefail
           SOURCE="$1"; TARGET="$2"; RUN_ID="$3"
           BASE="$HOME/Documents/argos-c10-pairing-ready"
+          mkdir -m 700 -p "$BASE"
           SRC="$HOME/Documents/argos-c10-pairing-promotions/$SOURCE-34864176558/failed-session"
           DST="$BASE/$TARGET"; TMP="$BASE/.carry-$TARGET-$$"; OLD="$BASE/.superseded-$TARGET-$RUN_ID"
           test -d "$SRC"
