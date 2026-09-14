@@ -57,6 +57,16 @@ p.write_text('\\n'.join(lines[1:])+'\\n' if len(lines)>1 else p.read_text())
         self.assertIn("const timeoutMs = Math.max(60_000", helper)
         self.assertGreaterEqual(210 * 2, 420)
 
+    def test_stable_chrome_is_preferred_with_bounded_fallback(self):
+        workflow = (ROOT / '.github/workflows/argos-c10-local-pairing.yml').read_text()
+        stable = 'STABLE_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"'
+        fallback = 'CFT_CHROME="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/'
+        self.assertEqual(workflow.count(stable), 2)
+        self.assertEqual(workflow.count(fallback), 2)
+        self.assertEqual(workflow.count('if [ -x "$STABLE_CHROME" ]; then'), 2)
+        self.assertEqual(workflow.count('elif [ -x "$CFT_CHROME" ]; then'), 2)
+        self.assertLess(workflow.index(stable), workflow.index(fallback))
+        self.assertIn('PAIRING_CHROME_CHANNEL=$CHROME_CHANNEL', workflow)
     def test_no_progress_times_out_without_fetching_qr(self):
         result, qr_read = self.run_poll(['STARTING'])
         self.assertNotEqual(result.returncode, 0)
