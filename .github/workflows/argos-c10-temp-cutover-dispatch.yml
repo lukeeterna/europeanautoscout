@@ -126,16 +126,18 @@ jobs:
           PYDIFF
           ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
             gianlucadistasi@iMac-di-gianluca.local \
-            "bash -s -- '$SOURCE_SHA' '$ARGOS_CANDIDATE_SHA'" <<'REMOTE'
+            "bash -s -- '$SOURCE_SHA' '$ARGOS_CANDIDATE_SHA' '$GITHUB_RUN_ID'" <<'REMOTE'
           set -euo pipefail
-          SOURCE="$1"; TARGET="$2"
+          SOURCE="$1"; TARGET="$2"; RUN_ID="$3"
           BASE="$HOME/Documents/argos-c10-pairing-ready"
-          SRC="$BASE/$SOURCE"; DST="$BASE/$TARGET"; TMP="$BASE/.carry-$TARGET-$"
-          test -d "$SRC/auth/session-argos-business"
-          test -n "$(find "$SRC/auth/session-argos-business" -type f -print -quit)"
-          test ! -e "$DST"; test ! -e "$TMP"
-          mkdir -m 700 "$TMP"
-          cp -R "$SRC/auth" "$TMP/auth"
+          SRC="$HOME/Documents/argos-c10-pairing-promotions/$SOURCE-34864176558/failed-session"
+          DST="$BASE/$TARGET"; TMP="$BASE/.carry-$TARGET-$$"; OLD="$BASE/.superseded-$TARGET-$RUN_ID"
+          test -d "$SRC"
+          test -n "$(find "$SRC" -type f -print -quit)"
+          test ! -e "$TMP"; test ! -e "$OLD"
+          if [ -e "$DST" ]; then mv "$DST" "$OLD"; fi
+          mkdir -m 700 "$TMP/auth"
+          cp -R "$SRC" "$TMP/auth/session-argos-business"
           find "$TMP/auth/session-argos-business" -maxdepth 1 \
             \( -name SingletonLock -o -name SingletonCookie -o -name SingletonSocket \) -exec rm -f -- {} +
           printf 'pairing_source_sha=%s\ncompatible_target_sha=%s\nclient_id=argos-business\ncompatibility_scope=wwebjs-cache-location-only\ncredential_snapshot=post-connected-rollback-34864176558\n' \
