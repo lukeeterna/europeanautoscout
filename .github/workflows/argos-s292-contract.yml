@@ -4,14 +4,25 @@ on:
   push:
     branches:
       - sol/argos-canonicalization-20260817
+      - sol/argos-cloudapi-c10t1-gpt56
+      - sol/argos-wwebjs-c10-production
     paths:
       - 'src/cove/**'
       - 'wa-intelligence/**'
       - 'tools/scripts/pdf_generator_enterprise.py'
       - 'tools/scripts/argos_dealer_delivery.py'
       - 'tools/scripts/argos_c10_smoke.py'
+      - 'tools/scripts/argos_release_bundle.py'
+      - 'tools/scripts/argos-release-files.txt'
+      - 'tools/scripts/argos_secret_scan.py'
+      - 'tools/scripts/argos_npm_audit_gate.py'
+      - 'tools/scripts/argos_*.py'
+      - 'tools/scripts/argos_*.sh'
+      - 'docs/judge/WORK-*.md'
+      - 'docs/runbooks/ARGOS_WWEBJS_RELEASE.md'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
+      - '.github/workflows/argos-c10t1-imac-preflight.yml'
   pull_request:
     paths:
       - 'src/cove/**'
@@ -19,8 +30,17 @@ on:
       - 'tools/scripts/pdf_generator_enterprise.py'
       - 'tools/scripts/argos_dealer_delivery.py'
       - 'tools/scripts/argos_c10_smoke.py'
+      - 'tools/scripts/argos_release_bundle.py'
+      - 'tools/scripts/argos-release-files.txt'
+      - 'tools/scripts/argos_secret_scan.py'
+      - 'tools/scripts/argos_npm_audit_gate.py'
+      - 'tools/scripts/argos_*.py'
+      - 'tools/scripts/argos_*.sh'
+      - 'docs/judge/WORK-*.md'
+      - 'docs/runbooks/ARGOS_WWEBJS_RELEASE.md'
       - 'tests/test_argos_*.py'
       - '.github/workflows/argos-s292-contract.yml'
+      - '.github/workflows/argos-c10t1-imac-preflight.yml'
 
 permissions:
   contents: read
@@ -31,18 +51,47 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 12
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Native exact-SHA checkout
+        env:
+          ARGOS_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "${RUNNER_ENVIRONMENT:-}" = github-hosted
+          test "${GITHUB_WORKSPACE:-}" = "$PWD"
+          git init -q .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --depth=1 origin "$ARGOS_SOURCE_SHA"
+          git checkout --detach --force FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$ARGOS_SOURCE_SHA"
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
+          cache: npm
+          cache-dependency-path: wa-intelligence/package-lock.json
+
+      - name: Install locked Cloud runtime dependencies
+        run: npm ci --prefix wa-intelligence --omit=optional --no-audit --no-fund
+
+      - name: Execute native runtime dependency smoke
+        run: npm --prefix wa-intelligence run verify:runtime-deps
+
+      - name: Enforce reviewed npm audit boundary
+        run: |
+          set +e
+          npm audit --prefix wa-intelligence --package-lock-only --include=optional --json > "$RUNNER_TEMP/argos-npm-audit.json"
+          audit_rc=$?
+          set -e
+          test "$audit_rc" -eq 0 -o "$audit_rc" -eq 1
+          python tools/scripts/argos_npm_audit_gate.py \
+            --audit "$RUNNER_TEMP/argos-npm-audit.json" \
+            --lock wa-intelligence/package-lock.json
 
       - name: Compile production Python modules
         run: |
@@ -66,14 +115,24 @@ jobs:
             wa-intelligence/post_send_update.py \
             wa-intelligence/outreach_scheduler.py \
             wa-intelligence/runtime_entrypoint.py \
+            wa-intelligence/whatsapp_consent.py \
             tools/scripts/pdf_generator_enterprise.py \
             tools/scripts/argos_dealer_delivery.py \
             tools/scripts/argos_c10_smoke.py
+
+      - name: Scan exact Git tree for strong secret signatures
+        run: python tools/scripts/argos_secret_scan.py --repo . --rev HEAD
 
       - name: Parse Node production configuration
         run: |
           node --check wa-intelligence/wa-daemon.js
           node --check wa-intelligence/ecosystem.config.js
+          node --check wa-intelligence/transport/index.js
+          node --check wa-intelligence/transport/errors.js
+          node --check wa-intelligence/transport/cloud_api_transport.js
+          node --check wa-intelligence/transport/cloud_policy_transport.js
+          node --check wa-intelligence/transport/wwebjs_transport.js
+          node --check wa-intelligence/transport/webhook.js
 
       - name: Validate C10 smoke CLI is side-effect free on help
         run: python tools/scripts/argos_c10_smoke.py --help >/dev/null
@@ -90,33 +149,92 @@ jobs:
             tests.test_argos_demand_capture \
             tests.test_argos_runtime_production \
             tests.test_argos_delivery_artifact \
-            tests.test_argos_runtime_entrypoint
+            tests.test_argos_runtime_entrypoint \
+            tests.test_argos_daemon_integration \
+            tests.test_argos_release_bundle \
+            tests.test_argos_npm_audit_gate \
+            tests.test_argos_sbom \
+            tests.test_argos_secret_scan \
+            tests.test_argos_c10_transport_smoke
+
+      - name: Run C10T1 Cloud transport tests
+        run: npm --prefix wa-intelligence run test:transport
 
       - name: Assert single guarded WhatsApp transport boundary
         run: |
           python - <<'PY'
           from pathlib import Path
-          text = Path('wa-intelligence/wa-daemon.js').read_text(encoding='utf-8')
+
+          root = Path('wa-intelligence')
+          daemon_path = root / 'wa-daemon.js'
+          legacy_path = root / 'transport' / 'wwebjs_transport.js'
+          daemon = daemon_path.read_text(encoding='utf-8')
+
           marker = 'async function guardedSend('
           end_marker = '\nfunction persistInbound('
-          assert marker in text and end_marker in text, 'guardedSend boundary missing'
-          start = text.index(marker)
-          end = text.index(end_marker, start)
+          assert marker in daemon and end_marker in daemon, 'guardedSend boundary missing'
+          start = daemon.index(marker)
+          end = daemon.index(end_marker, start)
+          guarded = daemon[start:end]
+
+          assert 'client.sendMessage(' not in daemon, 'raw whatsapp-web.js send leaked back into daemon'
+
+          transport_needles = ('activeTransport.sendText(', 'activeTransport.sendDocument(')
           occurrences = []
-          offset = 0
-          needle = 'client.sendMessage('
-          while True:
-              idx = text.find(needle, offset)
-              if idx < 0:
-                  break
-              occurrences.append(idx)
-              offset = idx + len(needle)
-          assert occurrences, 'WhatsApp transport call missing'
-          assert all(start <= idx < end for idx in occurrences), (
-              f'client.sendMessage outside guardedSend at offsets {occurrences}'
+          for needle in transport_needles:
+              offset = 0
+              while True:
+                  idx = daemon.find(needle, offset)
+                  if idx < 0:
+                      break
+                  occurrences.append((needle, idx))
+                  offset = idx + len(needle)
+          assert occurrences, 'transport send delegation missing from daemon'
+          assert all(start <= idx < end for _, idx in occurrences), (
+              f'transport send outside guardedSend: {occurrences}'
           )
-          assert 'LEGACY_TRANSPORT_RETIRED' in text, 'legacy multi/voice transport not retired'
-          print(f'PASS guardedSend owns {len(occurrences)} WhatsApp transport call sites')
+          assert 'activeTransport.sendText(' in guarded, 'guardedSend text delegation missing'
+          assert 'activeTransport.sendDocument(' in guarded, 'guardedSend document delegation missing'
+
+          assert "url.pathname === '/send'" in daemon and "url.pathname === '/send-doc'" in daemon
+          assert daemon.count('guardedSend({') >= 3, 'bridge/send/send-doc must route through guardedSend'
+          assert "url.pathname === '/send-multi'" in daemon
+          assert "url.pathname === '/send-voice'" in daemon
+          assert 'LEGACY_TRANSPORT_RETIRED' in daemon, 'legacy multi/voice transport not retired'
+
+          allowed_raw_send = legacy_path.as_posix()
+          raw_send_files = []
+          for path in root.rglob('*.js'):
+              rel = path.as_posix()
+              if '/node_modules/' in f'/{rel}/' or '/tests/' in f'/{rel}/' or rel.endswith('.test.js'):
+                  continue
+              if 'client.sendMessage(' in path.read_text(encoding='utf-8'):
+                  raw_send_files.append(rel)
+          assert raw_send_files == [allowed_raw_send], (
+              f'raw client.sendMessage allowed only in legacy adapter, found {raw_send_files}'
+          )
+          legacy = legacy_path.read_text(encoding='utf-8')
+          assert legacy.count('client.sendMessage(') >= 1, 'legacy adapter transport primitive missing'
+
+          webhook_start = daemon.index('async function handleWebhook(')
+          webhook_end = daemon.index('\nasync function handleHttp(', webhook_start)
+          webhook = daemon[webhook_start:webhook_end]
+          for forbidden in ('activeTransport.sendText(', 'activeTransport.sendDocument(', 'guardedSend('):
+              assert forbidden not in webhook, f'webhook became outbound trigger via {forbidden}'
+
+          for path in root.rglob('*.js'):
+              rel = path.as_posix()
+              if rel == daemon_path.as_posix() or '/tests/' in f'/{rel}/' or '/node_modules/' in f'/{rel}/':
+                  continue
+              text = path.read_text(encoding='utf-8')
+              assert 'activeTransport.sendText(' not in text and 'activeTransport.sendDocument(' not in text, (
+                  f'non-daemon consumer bypasses guardedSend in {rel}'
+              )
+
+          print(
+              'PASS guardedSend owns adapter sends; raw wwebjs primitive is confined to '
+              f'{allowed_raw_send}'
+          )
           PY
 
       - name: Assert dealer-delivery sidecar matches daemon contract
@@ -139,11 +257,32 @@ jobs:
           from pathlib import Path
           ecosystem = Path('wa-intelligence/ecosystem.config.js').read_text(encoding='utf-8')
           entry = Path('wa-intelligence/runtime_entrypoint.py').read_text(encoding='utf-8')
+          smoke = Path('tools/scripts/argos_c10_smoke.py').read_text(encoding='utf-8')
+          package = Path('wa-intelligence/package.json').read_text(encoding='utf-8')
+          lock = Path('wa-intelligence/package-lock.json').read_text(encoding='utf-8')
           assert "script: path.join(INTEL, 'runtime_entrypoint.py')" in ecosystem
           assert "'agent_status', 'PAUSED'" in entry
           assert "os.execv(node, [node, str(daemon)])" in entry
           assert 'client.sendMessage(' not in entry
-          print('PASS PM2 first boot is PAUSED and execs the only writer')
+          assert "ARGOS_WA_TRANSPORT: dotEnv.ARGOS_WA_TRANSPORT || 'wwebjs'" in ecosystem
+          assert 'ARGOS_DB_PATH: dotEnv.ARGOS_DB_PATH ||' in ecosystem
+          assert 'env.get("ARGOS_DB_PATH")' in smoke
+          assert '"better-sqlite3": "13.0.3"' in package and '"better-sqlite3": "13.0.3"' in lock
+          for key in (
+              'META_WA_ACCESS_TOKEN',
+              'META_WA_PHONE_NUMBER_ID',
+              'META_WA_WABA_ID',
+              'META_WA_WEBHOOK_VERIFY_TOKEN',
+              'META_APP_SECRET',
+          ):
+              assert key not in ecosystem, f'wwebjs PM2 release must not distribute {key}'
+          for key in (
+              'META_WA_TEMPLATE_DAY1_NAME',
+              'META_WA_TEMPLATE_DAY7_NAME',
+              'META_WA_TEMPLATE_DAY12_NAME',
+          ):
+              assert key in ecosystem and key in smoke, f'proactive Meta template wiring missing: {key}'
+          print('PASS PM2 is PAUSED, dependency-locked, least-privilege wwebjs and execs the only writer')
           PY
 
       - name: Static anti-drift assertions
@@ -193,3 +332,56 @@ jobs:
 
           print('PASS semantic anti-drift assertions')
           PY
+
+      - name: Build reproducible exact-SHA source candidate
+        run: |
+          python tools/scripts/argos_release_bundle.py --sha "$(git rev-parse HEAD)" --output /tmp/argos-source-candidate
+
+      - name: Build deterministic CycloneDX dependency SBOM
+        run: |
+          npm sbom --prefix wa-intelligence --package-lock-only --sbom-format cyclonedx \
+            > "$RUNNER_TEMP/argos-npm-sbom.json"
+          python tools/scripts/argos_sbom.py \
+            --input "$RUNNER_TEMP/argos-npm-sbom.json" \
+            --lock wa-intelligence/package-lock.json \
+            --source-sha "$(git rev-parse HEAD)" \
+            --source-date-epoch "$(git show -s --format=%ct HEAD)" \
+            --output "/tmp/argos-source-candidate/argos-sbom-$(git rev-parse HEAD).cdx.json"
+
+      - name: Preserve source candidate and checksum
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: argos-source-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/argos-source-candidate/*
+          if-no-files-found: error
+          retention-days: 30
+
+  attest-source-candidate:
+    name: Attest exact-SHA source candidate
+    if: github.event_name == 'push'
+    needs: contract
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Download candidate produced by contract job
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: argos-source-${{ github.sha }}
+          path: /tmp/argos-source-candidate
+
+      - name: Generate GitHub/Sigstore build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: /tmp/argos-source-candidate/argos-source-${{ github.sha }}.sha256
+
+      - name: Generate GitHub/Sigstore SBOM attestation
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: /tmp/argos-source-candidate/argos-source-${{ github.sha }}.sha256
+          sbom-path: /tmp/argos-source-candidate/argos-sbom-${{ github.sha }}.cdx.json

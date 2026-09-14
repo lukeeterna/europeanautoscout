@@ -3,14 +3,24 @@
 
 The scheduler NEVER sends WhatsApp messages. It only enqueues fixed templates;
 ``wa-daemon.js`` remains the single writer and re-runs the final guard before
-transport. A dealer is eligible only with ``outreach_authorized=1``.
+transport.
+
+A dealer is eligible for business-initiated WhatsApp outreach only when BOTH:
+
+* ``outreach_authorized=1`` (ARGOS internal business authorization), and
+* traceable WhatsApp opt-in evidence is present.
+
+For the official Cloud API, proactive Day1/Day7/Day12 rows also carry an exact
+approved Meta template payload. Free-form text is not used to initiate a Cloud
+conversation outside the 24-hour customer-service window.
 
 Cadence:
 - COLD/outbound=0 -> credibility-first Day1;
 - CONTACTED/outbound=1 and 7 days silent -> Day7 recovery;
 - CONTACTED/outbound=2 and 5 more days silent -> Day12 final.
 
-Default runtime is disabled. Set ``ARGOS_AUTOMATION_ENABLED=1`` only at C10.
+Default runtime is disabled. Set ``ARGOS_AUTOMATION_ENABLED=1`` only at the
+separate rollout gate after C10 is fully GREEN.
 """
 from __future__ import annotations
 
@@ -24,7 +34,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 _HERE = Path(__file__).resolve().parent
 _REPO = _HERE.parent
@@ -35,9 +45,11 @@ for candidate in (str(_HERE), str(_REPO)):
 from outbound_guard import evaluate as evaluate_outbound  # noqa: E402
 from state_machine import ensure_state_columns  # noqa: E402
 from templates import fill_template  # noqa: E402
+from whatsapp_consent import consent_is_valid, ensure_consent_columns  # noqa: E402
 
 DAY7_SECONDS = 7 * 24 * 3600
 DAY12_AFTER_DAY7_SECONDS = 5 * 24 * 3600
+_META_CONTRACT = json.loads((_HERE / "meta_templates.json").read_text(encoding="utf-8"))
 
 
 @dataclass(frozen=True)
@@ -48,6 +60,8 @@ class ScheduledCandidate:
     message: str
     state: str
     reason: str
+    meta_parameters: tuple[str, ...] = ()
+    opt_in_evidence_id: str = ""
 
 
 def _connect(path: str) -> sqlite3.Connection:
@@ -82,6 +96,7 @@ def _parse_ts(value: Any) -> Optional[float]:
 
 def ensure_runtime_schema(db_path: str, bridge_path: str) -> None:
     ensure_state_columns(db_path)
+    ensure_consent_columns(db_path)
     con = _connect(db_path)
     try:
         con.execute(
@@ -128,6 +143,8 @@ def ensure_runtime_schema(db_path: str, bridge_path: str) -> None:
             "guard_status": "TEXT",
             "guard_reason": "TEXT",
             "next_attempt_ts": "INTEGER",
+            "meta_template_json": "TEXT",
+            "whatsapp_opt_in_evidence_id": "TEXT",
         }.items():
             if name not in cols:
                 bcon.execute(f'ALTER TABLE bridge_outbound ADD COLUMN "{name}" {definition}')
@@ -171,7 +188,18 @@ def _source_for(row: sqlite3.Row) -> str:
 
 def _eligible_rows(con: sqlite3.Connection) -> list[sqlite3.Row]:
     cols = _columns(con, "conversations")
-    required = {"dealer_id", "phone_number", "conversation_state", "outbound_count", "outreach_authorized"}
+    required = {
+        "dealer_id",
+        "phone_number",
+        "conversation_state",
+        "outbound_count",
+        "outreach_authorized",
+        "whatsapp_opt_in",
+        "whatsapp_opt_in_at",
+        "whatsapp_opt_in_source",
+        "whatsapp_opt_in_evidence_id",
+        "whatsapp_opt_out_at",
+    }
     if not required.issubset(cols):
         return []
     dealer_name_expr = "dealer_name" if "dealer_name" in cols else "dealer_id AS dealer_name"
@@ -179,9 +207,16 @@ def _eligible_rows(con: sqlite3.Connection) -> list[sqlite3.Row]:
     extra_sql = (", " + ", ".join(extras)) if extras else ""
     return con.execute(
         f"""SELECT dealer_id, phone_number, conversation_state, outbound_count,
-                   outreach_authorized, {dealer_name_expr}{extra_sql}
+                   outreach_authorized, whatsapp_opt_in, whatsapp_opt_in_at,
+                   whatsapp_opt_in_source, whatsapp_opt_in_evidence_id,
+                   whatsapp_opt_out_at, {dealer_name_expr}{extra_sql}
             FROM conversations
             WHERE outreach_authorized=1
+              AND whatsapp_opt_in=1
+              AND whatsapp_opt_in_at IS NOT NULL
+              AND TRIM(COALESCE(whatsapp_opt_in_source,'')) <> ''
+              AND TRIM(COALESCE(whatsapp_opt_in_evidence_id,'')) <> ''
+              AND whatsapp_opt_out_at IS NULL
               AND conversation_state IN ('COLD','CONTACTED')"""
     ).fetchall()
 
@@ -191,19 +226,34 @@ def _candidate(con: sqlite3.Connection, row: sqlite3.Row, now_ts: float) -> Opti
     phone = str(row["phone_number"] or "").strip()
     state = str(row["conversation_state"] or "COLD").upper()
     outbound_count = int(row["outbound_count"] or 0)
-    if not dealer_id or not phone or int(row["outreach_authorized"] or 0) != 1:
+    evidence_id = str(row["whatsapp_opt_in_evidence_id"] or "").strip()
+    if (
+        not dealer_id
+        or not phone
+        or int(row["outreach_authorized"] or 0) != 1
+        or not consent_is_valid(dict(row))
+    ):
         return None
 
     if state == "COLD" and outbound_count == 0:
-        # DAY1_PREMIUM is used intentionally even for an unprofiled dealer: its
-        # default brand_focus is generic "auto premium" and, unlike the legacy
-        # GENERALIST wording, it contains no availability/"in stock" language.
+        source = _source_for(row)
+        brand_focus = "auto premium"
         template_id = "DAY1_PREMIUM"
-        message = fill_template(
-            template_id,
-            {"source": _source_for(row), "brand_focus": "auto premium"},
+        message = fill_template(template_id, {"source": source, "brand_focus": brand_focus})
+        return (
+            ScheduledCandidate(
+                dealer_id,
+                phone,
+                template_id,
+                message,
+                state,
+                "authorized_opted_in_day1",
+                (source, brand_focus),
+                evidence_id,
+            )
+            if message
+            else None
         )
-        return ScheduledCandidate(dealer_id, phone, template_id, message, state, "authorized_day1") if message else None
 
     if state != "CONTACTED" or outbound_count not in {1, 2}:
         return None
@@ -214,14 +264,74 @@ def _candidate(con: sqlite3.Connection, row: sqlite3.Row, now_ts: float) -> Opti
         return None
 
     age = max(0.0, now_ts - last_outbound)
-    dealer_name = str(row["dealer_name"] or "")
+    dealer_name = str(row["dealer_name"] or "").strip() or "Buongiorno"
     if outbound_count == 1 and age >= DAY7_SECONDS:
         message = fill_template("DAY7_RECOVERY", {"dealer_name": dealer_name})
-        return ScheduledCandidate(dealer_id, phone, "DAY7_RECOVERY", message, state, "authorized_day7") if message else None
+        return (
+            ScheduledCandidate(
+                dealer_id,
+                phone,
+                "DAY7_RECOVERY",
+                message,
+                state,
+                "authorized_opted_in_day7",
+                (dealer_name,),
+                evidence_id,
+            )
+            if message
+            else None
+        )
     if outbound_count == 2 and age >= DAY12_AFTER_DAY7_SECONDS:
         message = fill_template("DAY12_FINAL", {"dealer_name": dealer_name})
-        return ScheduledCandidate(dealer_id, phone, "DAY12_FINAL", message, state, "authorized_day12") if message else None
+        return (
+            ScheduledCandidate(
+                dealer_id,
+                phone,
+                "DAY12_FINAL",
+                message,
+                state,
+                "authorized_opted_in_day12",
+                (dealer_name,),
+                evidence_id,
+            )
+            if message
+            else None
+        )
     return None
+
+
+def _meta_template_payload(
+    candidate: ScheduledCandidate,
+    *,
+    env: Mapping[str, str],
+) -> dict[str, Any]:
+    contract = _META_CONTRACT.get(candidate.template_id)
+    if not isinstance(contract, Mapping):
+        raise ValueError(f"META_TEMPLATE_CONTRACT_MISSING: {candidate.template_id}")
+    env_name = str(contract.get("env_name") or "").strip()
+    template_name = str(env.get(env_name) or "").strip()
+    language = str(env.get("META_WA_TEMPLATE_LANGUAGE") or "it").strip()
+    expected_count = len(contract.get("parameters") or [])
+    if not env_name or not template_name or not language:
+        raise ValueError(f"META_TEMPLATE_CONFIG_MISSING: {candidate.template_id}")
+    if len(candidate.meta_parameters) != expected_count or any(not str(value).strip() for value in candidate.meta_parameters):
+        raise ValueError(f"META_TEMPLATE_PARAMETERS_INVALID: {candidate.template_id}")
+    components: list[dict[str, Any]] = []
+    if candidate.meta_parameters:
+        components.append(
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": str(value)} for value in candidate.meta_parameters
+                ],
+            }
+        )
+    return {
+        "name": template_name,
+        "language": {"code": language},
+        "components": components,
+        "internal_template_id": candidate.template_id,
+    }
 
 
 def _audit(con: sqlite3.Connection, cycle_id: str, candidate: ScheduledCandidate, decision: str, reason: str) -> None:
@@ -240,7 +350,13 @@ def _audit(con: sqlite3.Connection, cycle_id: str, candidate: ScheduledCandidate
     )
 
 
-def _enqueue(bridge_path: str, candidate: ScheduledCandidate, now_ts: float) -> tuple[bool, str]:
+def _enqueue(
+    bridge_path: str,
+    candidate: ScheduledCandidate,
+    now_ts: float,
+    *,
+    meta_template: Optional[Mapping[str, Any]],
+) -> tuple[bool, str]:
     row_id = "sched_" + hashlib.sha256(
         f"{candidate.dealer_id}|{candidate.template_id}".encode("utf-8")
     ).hexdigest()[:24]
@@ -250,9 +366,10 @@ def _enqueue(bridge_path: str, candidate: ScheduledCandidate, now_ts: float) -> 
             """INSERT OR IGNORE INTO bridge_outbound
                (id, deal_id, target_role, target_phone, template_phase,
                 template_lang, body, state_at_send, created_ts, approved_ts,
-                action_type, template_id, inbound_msg_id, guard_status, guard_reason)
+                action_type, template_id, inbound_msg_id, guard_status, guard_reason,
+                meta_template_json, whatsapp_opt_in_evidence_id)
                VALUES (?, ?, 'dealer', ?, ?, 'it', ?, ?, ?, ?,
-                       's292_scheduler', ?, NULL, 'PASS', ?)""",
+                       's292_scheduler', ?, NULL, 'PASS', ?, ?, ?)""",
             [
                 row_id,
                 candidate.dealer_id,
@@ -264,6 +381,8 @@ def _enqueue(bridge_path: str, candidate: ScheduledCandidate, now_ts: float) -> 
                 int(now_ts),
                 candidate.template_id,
                 candidate.reason,
+                json.dumps(meta_template, ensure_ascii=False, sort_keys=True) if meta_template else None,
+                candidate.opt_in_evidence_id,
             ],
         )
         bcon.commit()
@@ -279,6 +398,8 @@ def run_cycle(
     enabled: bool,
     dry_run: bool = False,
     now_ts: Optional[float] = None,
+    transport_mode: Optional[str] = None,
+    env: Optional[Mapping[str, str]] = None,
 ) -> dict:
     if not db_path or not bridge_path:
         raise ValueError("db_path and bridge_path are required")
@@ -289,6 +410,11 @@ def run_cycle(
 
     ensure_runtime_schema(db_path, bridge_path)
     now_value = float(now_ts if now_ts is not None else time.time())
+    runtime_env: Mapping[str, str] = env if env is not None else os.environ
+    transport = str(transport_mode or runtime_env.get("ARGOS_WA_TRANSPORT") or "wwebjs").strip().lower()
+    if transport not in {"wwebjs", "cloud"}:
+        raise ValueError(f"unsupported transport: {transport}")
+
     cycle_id = "cycle_" + hashlib.sha256(f"{int(now_value)}|{db_path}".encode("utf-8")).hexdigest()[:16]
     con = _connect(db_path)
     queued = blocked = candidates = 0
@@ -308,10 +434,25 @@ def run_cycle(
                 blocked += 1
                 _audit(con, cycle_id, candidate, "BLOCK", str(guard.get("reason") or "UNKNOWN"))
                 continue
+
+            meta_template: Optional[Mapping[str, Any]] = None
+            if transport == "cloud":
+                try:
+                    meta_template = _meta_template_payload(candidate, env=runtime_env)
+                except ValueError as exc:
+                    blocked += 1
+                    _audit(con, cycle_id, candidate, "BLOCK", str(exc))
+                    continue
+
             if dry_run:
                 _audit(con, cycle_id, candidate, "DRY_RUN", candidate.reason)
                 continue
-            inserted, row_id = _enqueue(bridge_path, candidate, now_value)
+            inserted, row_id = _enqueue(
+                bridge_path,
+                candidate,
+                now_value,
+                meta_template=meta_template,
+            )
             if inserted:
                 queued += 1
             _audit(con, cycle_id, candidate, "QUEUED" if inserted else "DEDUP", f"{candidate.reason}:{row_id}")
@@ -322,6 +463,7 @@ def run_cycle(
         "ok": True,
         "enabled": True,
         "dry_run": dry_run,
+        "transport": transport,
         "cycle_id": cycle_id,
         "candidates": candidates,
         "queued": queued,

@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """ARGOS pre-send guardrail.
 
-Called by wa-daemon.js before every /send.  The order is deliberate:
+Called by wa-daemon.js before every /send. The order is deliberate:
+explicit outreach authorization + traceable WhatsApp opt-in ->
 conversation/state gate -> S292 business policy -> dedup -> legacy content
-validator.  Any unavailable/corrupt state fails closed.
+validator. Any unavailable/corrupt state fails closed.
+
+The scheduler already filters authorization/consent, but that is not a security
+boundary: direct API sends and bridge delivery also converge here, so the final
+transport guard must independently enforce the same requirements.
 """
 from __future__ import annotations
 
@@ -17,6 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from s292_outbound_policy import evaluate_outbound_policy
 from state_machine import can_send, get_dealer_state, is_duplicate
 from validator import validate
+from whatsapp_consent import consent_is_valid
 
 
 def evaluate(
@@ -27,13 +33,27 @@ def evaluate(
     message: str,
 ) -> dict:
     """Pure-ish callable boundary used by CLI/tests; never sends a message."""
-    ok, reason = can_send(db_path, dealer_id, template_id)
-    if not ok:
-        return {"ok": False, "reason": reason, "check": "can_send"}
-
     dealer = get_dealer_state(db_path, dealer_id)
     if not dealer:
         return {"ok": False, "reason": "DEALER_NOT_FOUND", "check": "state"}
+
+    if int(dealer.get("outreach_authorized") or 0) != 1:
+        return {
+            "ok": False,
+            "reason": "OUTREACH_NOT_AUTHORIZED",
+            "check": "authorization",
+        }
+
+    if not consent_is_valid(dealer):
+        return {
+            "ok": False,
+            "reason": "WHATSAPP_OPT_IN_REQUIRED",
+            "check": "whatsapp_consent",
+        }
+
+    ok, reason = can_send(db_path, dealer_id, template_id)
+    if not ok:
+        return {"ok": False, "reason": reason, "check": "can_send"}
 
     policy = evaluate_outbound_policy(
         dealer_state=dealer,

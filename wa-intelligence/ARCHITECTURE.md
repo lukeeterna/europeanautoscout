@@ -1,73 +1,120 @@
-# ARGOS™ WA Intelligence — Enterprise Architecture
-# CoVe 2026 | Event-Driven | Human-in-Loop | Time-Aware
+# ARGOS S292 — Canonical WhatsApp Runtime Architecture
 
-## PROBLEMA DA RISOLVERE
+ARGOS uses a **single outbound policy boundary** and a transport adapter. The production target is the official WhatsApp Business Platform / Cloud API; the historical `whatsapp-web.js` adapter is retained only as a controlled compatibility/rollback path.
 
-Il sistema attuale è **reattivo-manuale**:
-- L'agente non sa che ore sono, che giorno è, da quanto aspetta
-- Non rileva quando Mario risponde
-- Non genera una risposta oculata in tempo reale
-- Dipende da Luke per ogni check
+## Runtime topology
 
-## ARCHITETTURA TARGET
+```text
+                           ┌──────────────────────────┐
+Dealer inbound ───────────>│ Official Meta webhook    │
+                           │ /webhooks/whatsapp       │
+                           └────────────┬─────────────┘
+                                        │ signature verified
+                                        v
+                               handleInbound()
+                                        │
+                      persist -> bridge -> analyzer
 
-```
-iMac 2012 (server sempre acceso)
-│
-├── wa-daemon.js          [PM2 PERSISTENT]
-│   Listener WA eventi in real-time
-│   ↓ su ogni messaggio in arrivo
-│   → scrive DuckDB (audit trail completo)
-│   → chiama response-analyzer.py
-│   → invia Telegram alert immediato
-│
-├── response-analyzer.py  [chiamato da daemon]
-│   Carica context: archetipo + storico + objection_library
-│   Classifica messaggio: POSITIVE / OBJECTION / NEGATIVE / CURIOSITY
-│   Genera 2 candidate replies calibrate su archetipo
-│   Valuta timing (orario, giorno, urgenza)
-│   Invia a Telegram con bottoni APPROVA / MODIFICA / RIFIUTA
-│
-├── scheduler.py           [CRON ogni 5 min via launchd]
-│   Calcola SEMPRE: ora IT, giorno settimana, business hours
-│   Monitora: scadenze Day 7, Day 12, follow-up pendenti
-│   Alert proattivi: "Day 7 Mario scade tra 2 ore"
-│   Non invia nulla — solo allerta. Invio = umano approva
-│
-├── telegram-handler.py    [PM2 PERSISTENT]
-│   Bot Telegram human-in-loop
-│   Bottone APPROVA → schedule invio WA (anti-ban sleep)
-│   Bottone MODIFICA → chiede testo manuale
-│   Bottone RIFIUTA → log + nessuna azione
-│   Bottone POSTICIPA 1H / POSTICIPA 1G → reschedule
-│
-└── DuckDB [dealer_network.duckdb]
-    Tabelle: conversations, messages, pending_replies,
-             scheduled_actions, audit_log
-
-MacBook (client sviluppo)
-└── Claude Code → SSH → legge DuckDB → suggerisce azioni strategiche
+HTTP /send, /send-doc          approved bridge rows
+          │                              │
+          └──────────────┬───────────────┘
+                         v
+                    guardedSend()
+                         │
+          assertTransportPreconditions()
+          - runtime must be ACTIVE
+          - business hours
+          - target/dealer match
+          - global/dealer daily limits
+                         │
+                  finalPolicyGuard()
+                         │
+             dossier verifier (documents)
+                         │
+                         v
+                  activeTransport
+             ┌───────────┴───────────┐
+             │                       │
+      CloudApiTransport       WwebjsTransport
+      official production     legacy compatibility
 ```
 
-## PRINCIPI ENTERPRISE
+`guardedSend()` is the only daemon path that may call `activeTransport.sendText()` or `activeTransport.sendDocument()`. CI scans all production JavaScript to prevent a second send boundary.
 
-1. **EVENT-DRIVEN** — non polling. Il daemon reagisce in ms all'arrivo.
-2. **HUMAN-IN-LOOP OBBLIGATORIO** — nessun messaggio parte senza approvazione.
-3. **AUDIT TRAIL COMPLETO** — ogni evento (arrivo, analisi, approvazione, invio) è loggato con timestamp IT preciso.
-4. **FAULT-TOLERANT** — PM2 restarta il daemon se crasha. LaunchAgent lo riavvia al boot.
-5. **TIME-AWARE** — ogni azione porta il contesto temporale completo: ora IT, business hours, giorni dall'ultimo contatto, scadenza prossima.
-6. **ARCHETIPO-CALIBRATO** — la risposta generata usa il framework Cialdini corretto per l'archetipo identificato.
-7. **ZERO API KEYS ESPOSTE** — le credenziali non passano mai per chat.
+## Production safety invariants
 
-## STACK
+1. **First boot is PAUSED.** `runtime_entrypoint.py` creates a missing `agent_status` as `PAUSED` before execing the Node daemon.
+2. **PAUSED blocks transport.** `assertTransportPreconditions()` fails closed before any transport call.
+3. **Single writer.** Bridge, `/send` and `/send-doc` all converge on `guardedSend()`.
+4. **Legacy bypasses retired.** `/send-multi` and `/send-voice` return HTTP 410.
+5. **Scheduler is queue-only.** `outreach_scheduler.py` never sends WhatsApp itself and defaults disabled through `ARGOS_AUTOMATION_ENABLED=0`.
+6. **Legacy launchd scheduler stays disabled.** `com.argos.scheduler` is not part of the canonical runtime.
+7. **Evidence before outbound.** `outbound_guard.py` runs immediately before transport and ambiguous/legacy bridge rows fail closed.
+8. **No delivery guessing.** Cloud API message IDs come from Meta; ARGOS never invents a successful `wamid`.
+9. **No duplicate-send retry on ambiguous delivery.** Timeout/reset or 5xx on the final Cloud `/messages` request becomes `TRANSPORT_DELIVERY_AMBIGUOUS`, non-transient at the bridge boundary.
+10. **No secret in Git.** Meta tokens, app secret, webhook verification token and ARGOS API key live only in the local `.env`.
 
-| Componente | Tecnologia | Perché |
-|---|---|---|
-| WA daemon | Node.js + whatsapp-web.js | nativo, no Docker |
-| Process manager | PM2 | no Docker, auto-restart, log |
-| Autostart macOS | LaunchAgent plist | persistenza al boot |
-| Database | DuckDB | già in uso, zero setup |
-| LLM locale | Ollama mistral:7b | no API key, sempre disponibile |
-| Alert human | Telegram Bot | già configurato |
-| Scheduler | Python + schedule + launchd | leggero, affidabile |
-| Timezone | IT = Europe/Rome | hardcoded |
+## Official Cloud transport
+
+Selected with:
+
+```text
+ARGOS_WA_TRANSPORT=cloud
+```
+
+The adapter uses only Node built-ins and the Graph API:
+
+- read-only initialize: `GET /{PHONE_NUMBER_ID}?fields=id,display_phone_number`;
+- text outbound: `POST /{PHONE_NUMBER_ID}/messages`;
+- document outbound: upload to `/{PHONE_NUMBER_ID}/media`, then `POST /{PHONE_NUMBER_ID}/messages`;
+- no automatic retry inside the transport.
+
+`connected=true` means the Cloud transport successfully validated the configured token/Phone Number ID. It does **not** mean the ARGOS runtime is ACTIVE. The desired C10 state is:
+
+```text
+connected=true
+agent_status=PAUSED
+ARGOS_AUTOMATION_ENABLED=0
+```
+
+## Webhook boundary
+
+The canonical daemon exposes only one Meta callback path:
+
+```text
+/webhooks/whatsapp
+```
+
+For POST deliveries it reads the raw body, verifies `X-Hub-Signature-256` using HMAC-SHA256 and `META_APP_SECRET` with constant-time comparison, and parses JSON only after verification succeeds.
+
+Handled conservatively:
+
+- `messages` text -> normalized into the existing inbound persistence/analyzer path;
+- delivery `statuses` -> audit only;
+- `smb_message_echoes` -> audit/dedupe only, never dealer inbound and never outbound;
+- `history` / `smb_app_state_sync` -> audit/ignore in C10T1.
+
+The public reverse proxy/tunnel must expose **only this webhook path**, not `/send`, `/resume`, `/pause`, `/qr` or local health/admin endpoints.
+
+## Process model
+
+PM2 canonical processes for C10 are:
+
+```text
+argos-wa-daemon
+argos-outreach-scheduler
+```
+
+Existing dashboard/Telegram/monitor processes are observability/admin components and are not WhatsApp writers.
+
+The old pre-S292 `wa-intelligence/deploy.sh` is intentionally retired because it enabled the historical scheduler and mutated the old runtime in place.
+
+## Persistence
+
+The primary SQLite database and bridge database are external production state and are preserved across release trees. Runtime source is deployed as an exact reviewed Git SHA into a dedicated release tree; C10 smoke checks the SHA, worktree, databases, transport configuration, PAUSED state and outbound invariants before/after PM2 cutover.
+
+See:
+
+- `tools/scripts/argos_c10_smoke.py`
+- `docs/runbooks/ARGOS_C10T1_CLOUD_CUTOVER.md`
+- `.github/workflows/argos-s292-contract.yml`

@@ -8,6 +8,9 @@ data/models/*.pkl
 .claude/HANDOFF_*.md
 src/cove/data/cove_tracker.duckdb
 
+# Node release dependencies are reproducible from package-lock.json and are not source.
+node_modules/
+
 # Database files — NEVER commit (GDPR + PII)
 *.sqlite
 *.sqlite3

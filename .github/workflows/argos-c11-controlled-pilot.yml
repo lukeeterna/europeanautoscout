@@ -1,0 +1,269 @@
+name: ARGOS C11 Controlled WhatsApp Pilot
+
+# LIVE EXTERNAL GATE — deliberately manual-only.
+# Do not dispatch until WHATSAPP_DEVICE_LINK_PAIRING is complete and C10 can
+# prove GREEN on the exact candidate. This workflow sends exactly ONE normal
+# Day1 message to the locally configured controlled test record, then returns
+# the runtime to PAUSED and clears internal outreach authorization.
+on:
+  workflow_dispatch:
+    inputs:
+      expected_outbound_baseline:
+        description: Lifetime outbound total immediately before the first C11 pilot
+        required: true
+        default: '77'
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: argos-c11-controlled-pilot
+  cancel-in-progress: false
+
+jobs:
+  pilot:
+    name: One-shot controlled recipient E2E
+    runs-on: [self-hosted, macbook, argos]
+    timeout-minutes: 12
+    steps:
+      - name: Native exact-SHA checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${GITHUB_WORKSPACE:-}"
+          test -n "${RUNNER_WORKSPACE:-}"
+          case "$GITHUB_WORKSPACE" in
+            "$RUNNER_WORKSPACE"/*) ;;
+            *) echo "BLOCKED: unexpected GITHUB_WORKSPACE=$GITHUB_WORKSPACE" >&2; exit 70 ;;
+          esac
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+          git init -q "$GITHUB_WORKSPACE"
+          cd "$GITHUB_WORKSPACE"
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c protocol.version=2 fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach --force FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          branch_sha="$(git ls-remote https://github.com/${GITHUB_REPOSITORY}.git refs/heads/sol/argos-wwebjs-c10-production | awk '{print $1}')"
+          test "$branch_sha" = "$GITHUB_SHA"
+          echo "C11_CHECKOUT_SHA=$GITHUB_SHA"
+
+      - name: Require real C10 machine GREEN immediately before pilot
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ inputs.expected_outbound_baseline }}" = '77'
+          bash tools/scripts/argos_c10_machine_probe.sh "$GITHUB_SHA" \
+            > /tmp/argos-c11-c10-machine.txt 2>&1
+          grep -qx 'C10_MACHINE=GREEN' /tmp/argos-c11-c10-machine.txt
+          grep -qx 'BLOCKERS=NONE' /tmp/argos-c11-c10-machine.txt
+          grep -qx 'OUTBOUND_TOTAL=77' /tmp/argos-c11-c10-machine.txt
+          echo 'C11_PRE_C10_MACHINE=GREEN'
+          echo 'C11_PRE_OUTBOUND_BASELINE=77'
+
+      - name: Execute exactly one controlled WhatsApp send
+        id: c11
+        shell: bash
+        env:
+          EXPECTED_BASELINE: ${{ inputs.expected_outbound_baseline }}
+        run: |
+          set -euo pipefail
+          ssh \
+            -o BatchMode=yes \
+            -o ConnectTimeout=10 \
+            -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=5 \
+            -o ServerAliveCountMax=2 \
+            gianlucadistasi@iMac-di-gianluca.local \
+            "bash -s -- '$GITHUB_SHA' '$EXPECTED_BASELINE'" <<'REMOTE'
+          set -euo pipefail
+          SHA="$1"
+          BASELINE="$2"
+          SHORT="${SHA:0:12}"
+          RELEASE="$HOME/Documents/argos-c10-release-$SHORT"
+          INTEL="$RELEASE/wa-intelligence"
+          ENV_FILE="$INTEL/.env"
+          DB="$HOME/Documents/app-antigravity-auto/dealer_network.sqlite"
+          BRIDGE_DB="$HOME/Documents/app-antigravity-auto/comm-broker/bridge.sqlite"
+          PAYLOAD="$(mktemp /tmp/argos-c11-payload.XXXXXX)"
+          RESPONSE="$(mktemp /tmp/argos-c11-response.XXXXXX)"
+          chmod 600 "$PAYLOAD" "$RESPONSE"
+
+          test "$BASELINE" = 77
+          test -d "$RELEASE/.git"
+          test "$(git -C "$RELEASE" rev-parse HEAD)" = "$SHA"
+          test -f "$ENV_FILE"
+          test -f "$DB"
+          test -f "$BRIDGE_DB"
+
+          read_env_value() {
+            python3 - "$ENV_FILE" "$1" <<'PY'
+          import sys
+          path,key=sys.argv[1:]
+          value=''
+          for raw in open(path,encoding='utf-8'):
+              line=raw.strip()
+              if not line or line.startswith('#') or '=' not in line: continue
+              k,v=line.split('=',1)
+              if k.strip()==key:
+                  value=v.strip().strip('"').strip("'")
+                  break
+          print(value)
+          PY
+          }
+
+          API_KEY="$(read_env_value ARGOS_API_KEY)"
+          TEST_DEALER_ID="$(read_env_value ARGOS_C11_TEST_DEALER_ID)"
+          test -n "$API_KEY"
+          test -n "$TEST_DEALER_ID"
+
+          deauthorize() {
+            TEST_DEALER_ID="$TEST_DEALER_ID" DB="$DB" python3 <<'PY' >/dev/null 2>&1 || true
+          import os,sqlite3
+          con=sqlite3.connect(os.environ['DB'],timeout=5)
+          try:
+              con.execute('UPDATE conversations SET outreach_authorized=0 WHERE dealer_id=?',[os.environ['TEST_DEALER_ID']])
+              con.commit()
+          finally: con.close()
+          PY
+          }
+
+          pause_runtime() {
+            curl --silent --show-error --max-time 5 \
+              -H "x-api-key: $API_KEY" -H 'Content-Type: application/json' \
+              -X POST -d '{}' http://127.0.0.1:9191/pause >/dev/null 2>&1 || true
+          }
+
+          cleanup() {
+            pause_runtime
+            deauthorize
+            rm -f "$PAYLOAD" "$RESPONSE"
+          }
+          trap cleanup EXIT INT TERM
+
+          python3 "$RELEASE/tools/scripts/argos_c11_preflight.py" \
+            --repo-root "$RELEASE" \
+            --db-path "$DB" \
+            --bridge-db-path "$BRIDGE_DB" \
+            --expected-head "$SHA" \
+            --test-dealer-id "$TEST_DEALER_ID" \
+            --expected-outbound-baseline "$BASELINE" \
+            >/tmp/argos-c11-preflight.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/argos-c11-preflight.json',encoding='utf-8'))
+          assert d.get('ok') is True and d.get('gate')=='C11_PREFLIGHT', d
+          PY
+          echo 'C11_PREFLIGHT=GREEN'
+
+          RELEASE="$RELEASE" DB="$DB" TEST_DEALER_ID="$TEST_DEALER_ID" PAYLOAD="$PAYLOAD" \
+            PYTHONPATH="$INTEL" python3 <<'PY'
+          import json,os,sqlite3,sys
+          sys.path.insert(0, os.path.join(os.environ['RELEASE'],'wa-intelligence'))
+          from templates import fill_template
+          db=os.environ['DB']; dealer_id=os.environ['TEST_DEALER_ID']
+          con=sqlite3.connect(f'file:{db}?mode=ro',uri=True,timeout=5)
+          try:
+              row=con.execute('SELECT phone_number FROM conversations WHERE dealer_id=?',[dealer_id]).fetchone()
+          finally: con.close()
+          assert row and str(row[0] or '').strip(), 'controlled test phone missing'
+          message=fill_template('DAY1_PREMIUM', {
+              'source':'contatto di test autorizzato',
+              'brand_focus':'BMW',
+          })
+          assert message, 'controlled Day1 template did not render'
+          with open(os.environ['PAYLOAD'],'w',encoding='utf-8') as f:
+              json.dump({
+                  'dealer_id':dealer_id,
+                  'phone':str(row[0]),
+                  'template_id':'DAY1_PREMIUM',
+                  'message':message,
+              },f,ensure_ascii=False)
+          PY
+          chmod 600 "$PAYLOAD"
+
+          resume_http="$(curl --silent --show-error --max-time 5 --output /tmp/argos-c11-resume.json --write-out '%{http_code}' \
+            -H "x-api-key: $API_KEY" -H 'Content-Type: application/json' \
+            -X POST -d '{}' http://127.0.0.1:9191/resume)"
+          test "$resume_http" = 200
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/argos-c11-resume.json',encoding='utf-8'))
+          assert d.get('ok') is True and d.get('agent_status')=='ACTIVE', d
+          PY
+          echo 'C11_RUNTIME_ACTIVE_WINDOW=OPEN'
+
+          send_http="$(curl --silent --show-error --max-time 45 --output "$RESPONSE" --write-out '%{http_code}' \
+            -H "x-api-key: $API_KEY" -H 'Content-Type: application/json' \
+            -X POST --data-binary @"$PAYLOAD" http://127.0.0.1:9191/send)"
+          test "$send_http" = 200
+          python3 - "$RESPONSE" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1],encoding='utf-8'))
+          assert d.get('ok') is True and str(d.get('wa_msg_id') or ''), d
+          PY
+          echo 'C11_SINGLE_SEND_ACK=PASS'
+
+          pause_http="$(curl --silent --show-error --max-time 5 --output /tmp/argos-c11-pause.json --write-out '%{http_code}' \
+            -H "x-api-key: $API_KEY" -H 'Content-Type: application/json' \
+            -X POST -d '{}' http://127.0.0.1:9191/pause)"
+          test "$pause_http" = 200
+          deauthorize
+
+          TEST_DEALER_ID="$TEST_DEALER_ID" DB="$DB" BASELINE="$BASELINE" python3 <<'PY'
+          import json,os,sqlite3,urllib.request
+          db=os.environ['DB']; dealer=os.environ['TEST_DEALER_ID']; baseline=int(os.environ['BASELINE'])
+          con=sqlite3.connect(f'file:{db}?mode=ro',uri=True,timeout=5)
+          try:
+              quick=con.execute('PRAGMA quick_check').fetchone()[0]
+              total=con.execute("SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'").fetchone()[0]
+              own=con.execute("SELECT COUNT(*) FROM messages WHERE dealer_id=? AND UPPER(direction)='OUTBOUND' AND template_id='DAY1_PREMIUM'",[dealer]).fetchone()[0]
+              row=con.execute('SELECT conversation_state,outbound_count,outreach_authorized FROM conversations WHERE dealer_id=?',[dealer]).fetchone()
+          finally: con.close()
+          with urllib.request.urlopen('http://127.0.0.1:9191/health',timeout=5) as r:
+              health=json.load(r)
+          assert quick=='ok'
+          assert int(total)==baseline+1, (baseline,total)
+          assert int(own)==1, own
+          assert row and str(row[0]).upper()=='CONTACTED' and int(row[1] or 0)==1 and int(row[2] or 0)==0, row
+          assert health.get('connected') is True
+          assert str(health.get('transport') or '').lower()=='wwebjs'
+          assert str(health.get('agent_status') or '').upper()=='PAUSED'
+          assert int(health.get('pending_bridge') or 0)==0
+          assert int(health.get('global_outbound_24h') or 0)==1
+          print('C11_POST_DB_QUICK_CHECK=ok')
+          print(f'C11_OUTBOUND_BASELINE={baseline}')
+          print(f'C11_OUTBOUND_FINAL={total}')
+          print('C11_OUTBOUND_DELTA=1')
+          print('C11_TEST_RECIPIENT_DEAUTHORIZED=YES')
+          print('C11_RUNTIME_STATUS=PAUSED')
+          print('C11_CONNECTED=YES')
+          print('C11_CONTROLLED_PILOT=GREEN')
+          PY
+
+          rm -f /tmp/argos-c11-preflight.json /tmp/argos-c11-resume.json /tmp/argos-c11-pause.json
+          trap - EXIT INT TERM
+          cleanup
+          REMOTE
+
+      - name: Publish safe C11 evidence to PR 4
+        if: ${{ always() }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          C11_OUTCOME: ${{ steps.c11.outcome }}
+        run: |
+          set -euo pipefail
+          body="C11_CONTROLLED_PILOT_JOB=${C11_OUTCOME^^}\nHEAD=${GITHUB_SHA}\nPAIRING_REQUIRED_BEFORE_DISPATCH=YES\nRECIPIENT_DETAILS_EXPOSED=NO\n"
+          python3 - "$body" <<'PY' >/tmp/argos-c11-comment.json
+          import json,sys
+          print(json.dumps({'body':sys.argv[1]}))
+          PY
+          curl --fail --silent --show-error -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/4/comments" \
+            --data-binary @/tmp/argos-c11-comment.json >/dev/null
