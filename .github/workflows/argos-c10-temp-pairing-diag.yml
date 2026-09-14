@@ -32,6 +32,7 @@ jobs:
             "bash -s -- '5dd932e6ab27a43b5486afbd41c18396e5d15830'" <<'REMOTE'
           set -euo pipefail
           SHA="$1"
+          export PATH="$HOME/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
           ROOT="$HOME/Documents/argos-c10-release-${SHA:0:12}/wa-intelligence"
           CFT="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
           STABLE="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
