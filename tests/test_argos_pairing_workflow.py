@@ -49,6 +49,14 @@ p.write_text('\\n'.join(lines[1:])+'\\n' if len(lines)>1 else p.read_text())
         self.assertEqual(result.returncode, 21, result.stderr)
         self.assertFalse(qr_read)
 
+    def test_initial_poll_covers_helper_initialization_timeout(self):
+        workflow = (ROOT / '.github/workflows/argos-c10-local-pairing.yml').read_text()
+        helper = (ROOT / 'wa-intelligence/tools/argos_c10_pairing_helper.js').read_text()
+        self.assertIn("ARGOS_PAIR_TIMEOUT_MS='420000'", workflow)
+        self.assertIn("for _ in $(seq 1 210); do", workflow)
+        self.assertIn("const timeoutMs = Math.max(60_000", helper)
+        self.assertGreaterEqual(210 * 2, 420)
+
     def test_no_progress_times_out_without_fetching_qr(self):
         result, qr_read = self.run_poll(['STARTING'])
         self.assertNotEqual(result.returncode, 0)
