@@ -192,7 +192,7 @@ class WorkflowSafetyTests(unittest.TestCase):
         self.assertNotIn("http://127.0.0.1:9191/qr", pairing)
         self.assertEqual(helper.count("client.initialize()"), 1)
         self.assertIn("firstQrCaptured", helper)
-        self.assertIn("if (firstQrCaptured || finished) return;", helper)
+        self.assertIn("if (codeMode || firstQrCaptured || finished) return;", helper)
         self.assertIn("PAIRING_QR_FETCH_COUNT=1", pairing)
         self.assertIn("PAIRING_AUTOMATIC_RETRY=DISABLED", pairing)
         self.assertIn("PAIRING_READY_PROFILE=STAGED", pairing)
