@@ -1,91 +1,27 @@
-name: ARGOS C10 TEMP Isolated Runtime Differential
+name: ARGOS C10 TEMP Cancel Superseded Read-Only Run
 
 on:
   push:
-    branches:
-      - s210/audit-master-plan
-    paths:
-      - .github/workflows/argos-c10-temp-pairing-diag.yml
+    branches: [s210/audit-master-plan]
+    paths: [.github/workflows/argos-c10-temp-pairing-diag.yml]
 
 permissions:
   contents: read
-
-concurrency:
-  group: argos-c10-runtime-differential
-  cancel-in-progress: false
+  actions: write
 
 jobs:
-  diagnose:
-    runs-on: [self-hosted, macbook, argos]
-    timeout-minutes: 8
+  cancel:
+    runs-on: ubuntu-22.04
     steps:
-      - name: Compare daemon and pairing Chrome options on closed staged profile
-        shell: bash
+      - name: Cancel superseded cutover before mutation
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          echo 'DIAG_MUTATION=STAGING_ONLY'
+          curl --fail --silent --show-error -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/34862500523/cancel"
+          echo 'SUPERSEDED_READ_ONLY_RUN_CANCEL_REQUESTED=YES'
           echo 'PRODUCTION_MUTATION=NONE'
-          echo 'OUTBOUND_ACTION=NONE'
-          ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
-            -o ServerAliveInterval=5 -o ServerAliveCountMax=2 \
-            gianlucadistasi@iMac-di-gianluca.local \
-            "bash -s -- '6321e85f9fa5d726911f6f14585941877982efa4' '$GITHUB_RUN_ID'" <<'REMOTE'
-          set -euo pipefail
-          SHA="$1"; RUN_ID="$2"; SHORT="${SHA:0:12}"
-          export PATH="${PATH:-}:$HOME/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-          RELEASE="$HOME/Documents/argos-c10-release-$SHORT"
-          READY="$HOME/Documents/argos-c10-pairing-ready/$SHA/auth/session-argos-business"
-          ROOT="$HOME/Documents/argos-c10-runtime-diag-$RUN_ID"
-          STABLE="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-          CFT="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
-          test -d "$READY"; test -d "$RELEASE/wa-intelligence/node_modules/whatsapp-web.js"
-          if [ -x "$STABLE" ]; then CHROME="$STABLE"; else CHROME="$CFT"; fi
-          test -x "$CHROME"; test ! -e "$ROOT"; mkdir -m 700 "$ROOT"
-          cleanup() {
-            for p in "$ROOT"/*/pid; do [ -f "$p" ] && kill "$(cat "$p")" >/dev/null 2>&1 || true; done
-            for _ in $(seq 1 20); do
-              if ! ps -axo command= | grep -F "$ROOT" | grep -Ei '[c]hrome|[n]ode' >/dev/null; then rm -rf "$ROOT"; return; fi
-              sleep 1
-            done
-            echo 'DIAG_CLEANUP=BLOCKED' >&2
-          }
-          trap cleanup EXIT
-          for variant in daemon helper; do
-            DATA="$ROOT/$variant/auth"; mkdir -m 700 -p "$DATA"
-            cp -R "$READY" "$DATA/session-argos-business"
-            find "$DATA/session-argos-business" -maxdepth 1 \
-              \( -name SingletonLock -o -name SingletonCookie -o -name SingletonSocket \) -exec rm -f -- {} +
-            set +e
-            VARIANT="$variant" DATA="$DATA" CHROME="$CHROME" NODE_PATH="$RELEASE/wa-intelligence/node_modules" \
-              node <<'NODE'
-          const fs=require('fs');
-          const {Client,LocalAuth}=require('whatsapp-web.js');
-          const variant=process.env.VARIANT;
-          const args=variant==='helper' ? ['--no-first-run','--no-default-browser-check'] : [];
-          const client=new Client({authStrategy:new LocalAuth({clientId:'argos-business',dataPath:process.env.DATA}),
-            puppeteer:{headless:true,executablePath:process.env.CHROME,args}});
-          let terminal=false;
-          const finish=async (status,code)=>{
-            if(terminal)return; terminal=true; clearTimeout(timer);
-            try{await client.destroy();}catch(_){status='DESTROY_FAILED';code=25;}
-            console.log('DIAG_'+variant.toUpperCase()+'_RESULT='+status);
-            process.exit(code);
-          };
-          client.on('ready',()=>finish('READY',0));
-          client.on('authenticated',()=>console.log('DIAG_'+variant.toUpperCase()+'_AUTHENTICATED=YES'));
-          client.on('qr',()=>finish('QR_UNEXPECTED',21));
-          client.on('auth_failure',()=>finish('AUTH_FAILURE',22));
-          client.on('disconnected',()=>finish('DISCONNECTED',23));
-          const timer=setTimeout(()=>finish('TIMEOUT',24),90000);
-          client.initialize().catch(e=>{
-            const s=String(e&&e.message||e);
-            const kind=/Execution context was destroyed/i.test(s)?'CONTEXT_DESTROYED':
-              /Protocol error/i.test(s)?'PROTOCOL_ERROR':'INIT_ERROR';
-            finish(kind,25);
-          });
-          NODE
-            rc=$?
-            set -e
-            echo "DIAG_${variant^^}_EXIT=$rc"
-          done
-          REMOTE
