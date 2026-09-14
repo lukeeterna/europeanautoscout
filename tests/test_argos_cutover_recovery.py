@@ -343,3 +343,13 @@ esac
         actions = (self.root / 'pm2-actions').read_text()
         self.assertNotIn(f'{self.old}|start ', actions)
         self.assertTrue((self.root / 'stopped').exists())
+
+
+class WorkflowEnvironmentTests(unittest.TestCase):
+    def test_pm2_remote_boundaries_export_node_path(self):
+        workflow = (ROOT / '.github/workflows/argos-c10-wwebjs-cutover.yml').read_text()
+        promotion = remote_script('Promote staged READY LocalAuth with rollback boundary')
+        recovery = remote_script('Restore pre-pairing LocalAuth and old runtime on any cutover proof failure')
+        for script in (promotion, recovery):
+            self.assertIn('export PATH="$HOME/.npm-global/bin:', script)
+            self.assertLess(script.index('export PATH='), script.index('PM2='))
