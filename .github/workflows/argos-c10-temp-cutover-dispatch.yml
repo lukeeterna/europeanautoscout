@@ -20,7 +20,7 @@ permissions:
   pull-requests: write
 
 env:
-  ARGOS_CANDIDATE_SHA: a7e98c158f0f5ea08cc8974131d9953120dcb4c3
+  ARGOS_CANDIDATE_SHA: 665131ae4faadea0ad7e3f89df7db0cc0565958f
 
 concurrency:
   group: argos-c10-wwebjs-cutover
