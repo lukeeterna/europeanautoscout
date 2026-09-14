@@ -148,7 +148,8 @@ esac
         self.assertTrue((self.promo / 'original-session/credential').is_file())
 
     def test_empty_exact_profile_blocks_before_mutation(self):
-        (self.ready / 'auth/session-argos-business/credential').unlink()
+        for child in (self.ready / 'auth/session-argos-business').iterdir():
+            child.unlink()
         result = self.run_script()
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual((self.canonical / 'credential').read_text(), 'before-shutdown')
