@@ -88,6 +88,19 @@ test('late asynchronous QR result cannot overwrite terminal state', async t => {
   assert.deepEqual(h.exits, [21]);
 });
 
+test('QR receipt is observable and render timeout fails closed', async t => {
+  const qr = deferred();
+  const h = harness(t, { qr: () => qr.promise });
+  await h.emit('qr', 'secret-qr');
+  assert.equal(h.status(), 'QR_RECEIVED');
+  const renderTimeout = [...h.timers.values()].find(timer => timer.ms === 15000);
+  assert.ok(renderTimeout);
+  renderTimeout.fn(); await flush();
+  assert.equal(h.status(), 'QR_RENDER_FAILED');
+  assert.deepEqual(h.exits, [20]);
+  assert.equal(fs.existsSync(h.env.ARGOS_PAIR_QR_FILE), false);
+});
+
 test('first QR is captured once, mode 0600, with no re-generation', async t => {
   let calls = 0;
   const h = harness(t, { qr: async () => { calls++; return 'data:image/png;base64,bW9jaw=='; } });
