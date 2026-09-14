@@ -1,4 +1,4 @@
-name: ARGOS C10 TEMP Sanitized Runtime Diagnostic
+name: ARGOS C10 TEMP Isolated Runtime Differential
 
 on:
   push:
@@ -10,91 +10,80 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: argos-c10-runtime-differential
+  cancel-in-progress: false
+
 jobs:
   diagnose:
     runs-on: [self-hosted, macbook, argos]
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
-      - name: Classify daemon readiness failure without mutation
+      - name: Compare daemon and pairing Chrome options on closed staged profile
         shell: bash
         run: |
           set -euo pipefail
-          echo 'DIAG_MUTATION=NONE'
+          echo 'DIAG_MUTATION=STAGING_ONLY'
+          echo 'PRODUCTION_MUTATION=NONE'
           echo 'OUTBOUND_ACTION=NONE'
           ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
             -o ServerAliveInterval=5 -o ServerAliveCountMax=2 \
-            gianlucadistasi@iMac-di-gianluca.local python3 <<'PY'
-          import json, sqlite3, subprocess, urllib.request
-          from pathlib import Path
-          home=Path.home()
-          root=home/'Documents/app-antigravity-auto/wa-sender'
-          session=root/'session-argos-business'
-          err=Path('/tmp/argos-wa-daemon-err.log')
-          out=Path('/tmp/argos-wa-daemon-out.log')
-          db=home/'Documents/app-antigravity-auto/dealer_network.sqlite'
-
-          ps=subprocess.run(['/bin/ps','-axo','command='],text=True,capture_output=True,check=True).stdout.splitlines()
-          writers=[x for x in ps if 'wa-daemon.js' in x and 'node' in x]
-          chromes=[x for x in ps if str(root) in x and ('Chrome' in x or 'chrome' in x)]
-          print(f'DIAG_WRITER_COUNT={len(writers)}')
-          print(f'DIAG_CANONICAL_CHROME_COUNT={len(chromes)}')
-          print(f'DIAG_SESSION_PRESENT={session.is_dir()}')
-          print(f'DIAG_SESSION_FILES_POSITIVE={session.is_dir() and any(p.is_file() for p in session.rglob("*"))}')
-          for name in ('SingletonLock','SingletonCookie','SingletonSocket'):
-              print(f'DIAG_{name.upper()}={int((session/name).exists() or (session/name).is_symlink())}')
-
-          try:
-              with urllib.request.urlopen('http://127.0.0.1:9191/health',timeout=3) as resp:
-                  h=json.load(resp)
-              print(f'DIAG_HEALTH_HTTP=200')
-              for key in ('transport','connected','agent_status','automation_enabled','pending_bridge'):
-                  if key in h: print(f'DIAG_HEALTH_{key.upper()}={h[key]}')
-          except Exception as exc:
-              print(f'DIAG_HEALTH_HTTP=UNAVAILABLE_{type(exc).__name__}')
-
-          patterns={
-            'CHROME_EXECUTABLE':['Could not find Chrome','executablePath','Browser was not found'],
-            'CHROME_LAUNCH':['Failed to launch','spawn','zygote'],
-            'PROFILE_LOCK':['SingletonLock','profile appears to be in use','user data directory is already in use'],
-            'AUTH_FAILURE':['AUTH_FAILURE','auth_failure','Authentication failure'],
-            'DISCONNECTED':['WHATSAPP_DISCONNECTED','disconnected'],
-            'NAVIGATION_TIMEOUT':['Navigation timeout','TimeoutError'],
-            'PROTOCOL_ERROR':['Protocol error','Target closed'],
-            'MODULE_ERROR':['Cannot find module','MODULE_NOT_FOUND'],
-            'PERMISSION':['EACCES','permission denied'],
+            gianlucadistasi@iMac-di-gianluca.local \
+            "bash -s -- '6321e85f9fa5d726911f6f14585941877982efa4' '$GITHUB_RUN_ID'" <<'REMOTE'
+          set -euo pipefail
+          SHA="$1"; RUN_ID="$2"; SHORT="${SHA:0:12}"
+          export PATH="${PATH:-}:$HOME/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+          RELEASE="$HOME/Documents/argos-c10-release-$SHORT"
+          READY="$HOME/Documents/argos-c10-pairing-ready/$SHA/auth/session-argos-business"
+          ROOT="$HOME/Documents/argos-c10-runtime-diag-$RUN_ID"
+          STABLE="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          CFT="$HOME/.cache/puppeteer/chrome/mac-148.0.7778.97/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+          test -d "$READY"; test -d "$RELEASE/wa-intelligence/node_modules/whatsapp-web.js"
+          if [ -x "$STABLE" ]; then CHROME="$STABLE"; else CHROME="$CFT"; fi
+          test -x "$CHROME"; test ! -e "$ROOT"; mkdir -m 700 "$ROOT"
+          cleanup() {
+            for p in "$ROOT"/*/pid; do [ -f "$p" ] && kill "$(cat "$p")" >/dev/null 2>&1 || true; done
+            for _ in $(seq 1 20); do
+              if ! ps -axo command= | grep -F "$ROOT" | grep -Ei '[c]hrome|[n]ode' >/dev/null; then rm -rf "$ROOT"; return; fi
+              sleep 1
+            done
+            echo 'DIAG_CLEANUP=BLOCKED' >&2
           }
-          text=''
-          for p in (err,out):
-              if p.is_file():
-                  text += p.read_text(encoding='utf-8',errors='replace')[-300000:]
-                  print(f'DIAG_LOG_{p.name.upper().replace(".","_")}_BYTES={p.stat().st_size}')
-          for label,needles in patterns.items():
-              print(f'DIAG_CLASS_{label}={int(any(n.lower() in text.lower() for n in needles))}')
-          import re
-          methods=sorted(set(re.findall(r'Protocol error \\(([-A-Za-z0-9_.]+)\\)', text)))
-          safe_suffixes={
-              'TARGET_CLOSED':'Target closed' in text,
-              'SESSION_CLOSED':'Session closed' in text,
-              'CONTEXT_DESTROYED':'Execution context was destroyed' in text,
-              'CONTEXT_MISSING':'Cannot find context' in text,
-              'TIMED_OUT':'timed out' in text.lower(),
-          }
-          print('DIAG_PROTOCOL_METHODS=' + (','.join(methods) if methods else 'NONE'))
-          for label,value in safe_suffixes.items():
-              print(f'DIAG_PROTOCOL_{label}={int(value)}')
-          events=[]
-          for name in ('WHATSAPP_READY','WHATSAPP_AUTH_FAILURE','WHATSAPP_DISCONNECTED','TRANSPORT_INIT_FAILED'):
-              events.append(f'{name}:{text.count(name)}')
-          print('DIAG_SAFE_EVENT_COUNTS=' + ','.join(events))
-
-          c=sqlite3.connect(f'file:{db}?mode=ro',uri=True,timeout=5)
-          try:
-              quick=c.execute('PRAGMA quick_check').fetchone()[0]
-              state=c.execute("SELECT value FROM argos_runtime_state WHERE key='agent_status'").fetchone()
-              outbound=c.execute("SELECT COUNT(*) FROM messages WHERE UPPER(direction)='OUTBOUND'").fetchone()[0]
-          finally: c.close()
-          print(f'DIAG_DB_QUICK={quick}')
-          print(f'DIAG_DB_STATE={state[0] if state else "ABSENT"}')
-          print(f'DIAG_OUTBOUND_TOTAL={outbound}')
-          assert quick=='ok' and str(state[0]).upper()=='PAUSED' and int(outbound)==77 and len(writers)==1
-          PY
+          trap cleanup EXIT
+          for variant in daemon helper; do
+            DATA="$ROOT/$variant/auth"; mkdir -m 700 -p "$DATA"
+            cp -R "$READY" "$DATA/session-argos-business"
+            find "$DATA/session-argos-business" -maxdepth 1 \
+              \( -name SingletonLock -o -name SingletonCookie -o -name SingletonSocket \) -exec rm -f -- {} +
+            VARIANT="$variant" DATA="$DATA" CHROME="$CHROME" NODE_PATH="$RELEASE/wa-intelligence/node_modules" \
+              node <<'NODE'
+          const fs=require('fs');
+          const {Client,LocalAuth}=require('whatsapp-web.js');
+          const variant=process.env.VARIANT;
+          const args=variant==='helper' ? ['--no-first-run','--no-default-browser-check'] : [];
+          const client=new Client({authStrategy:new LocalAuth({clientId:'argos-business',dataPath:process.env.DATA}),
+            puppeteer:{headless:true,executablePath:process.env.CHROME,args}});
+          let terminal=false;
+          const finish=async (status,code)=>{
+            if(terminal)return; terminal=true; clearTimeout(timer);
+            try{await client.destroy();}catch(_){status='DESTROY_FAILED';code=25;}
+            console.log('DIAG_'+variant.toUpperCase()+'_RESULT='+status);
+            process.exit(code);
+          };
+          client.on('ready',()=>finish('READY',0));
+          client.on('authenticated',()=>console.log('DIAG_'+variant.toUpperCase()+'_AUTHENTICATED=YES'));
+          client.on('qr',()=>finish('QR_UNEXPECTED',21));
+          client.on('auth_failure',()=>finish('AUTH_FAILURE',22));
+          client.on('disconnected',()=>finish('DISCONNECTED',23));
+          const timer=setTimeout(()=>finish('TIMEOUT',24),90000);
+          client.initialize().catch(e=>{
+            const s=String(e&&e.message||e);
+            const kind=/Execution context was destroyed/i.test(s)?'CONTEXT_DESTROYED':
+              /Protocol error/i.test(s)?'PROTOCOL_ERROR':'INIT_ERROR';
+            finish(kind,25);
+          });
+          NODE
+            rc=$?
+            echo "DIAG_${variant^^}_EXIT=$rc"
+          done
+          REMOTE
