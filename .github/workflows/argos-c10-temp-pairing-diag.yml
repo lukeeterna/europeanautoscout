@@ -35,6 +35,12 @@ jobs:
           session=root/'session-argos-business'
           ready=home/'Documents/argos-c10-pairing-ready'/sha
           promo=home/'Documents/argos-c10-pairing-promotions'/f'{sha}-{run_id}'
+          for name in ('argos-wa-daemon','argos-outreach-scheduler'):
+              p=subprocess.run([str(pm2),'pid',name],capture_output=True,text=True,timeout=10)
+              value=p.stdout.strip()
+              safe=value if value.isdigit() else 'NONE'
+              print(f'DIAG_PM2_PID_{name.upper().replace("-","_")}={safe}')
+              print(f'DIAG_PM2_PID_RC_{name.upper().replace("-","_")}={p.returncode}')
           try:
               procs=json.loads(subprocess.run([str(pm2),'jlist'],capture_output=True,text=True,timeout=10,check=True).stdout)
               for name in ('argos-wa-daemon','argos-outreach-scheduler'):
