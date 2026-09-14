@@ -55,6 +55,7 @@ jobs:
             cp -R "$READY" "$DATA/session-argos-business"
             find "$DATA/session-argos-business" -maxdepth 1 \
               \( -name SingletonLock -o -name SingletonCookie -o -name SingletonSocket \) -exec rm -f -- {} +
+            set +e
             VARIANT="$variant" DATA="$DATA" CHROME="$CHROME" NODE_PATH="$RELEASE/wa-intelligence/node_modules" \
               node <<'NODE'
           const fs=require('fs');
@@ -84,6 +85,7 @@ jobs:
           });
           NODE
             rc=$?
+            set -e
             echo "DIAG_${variant^^}_EXIT=$rc"
           done
           REMOTE
