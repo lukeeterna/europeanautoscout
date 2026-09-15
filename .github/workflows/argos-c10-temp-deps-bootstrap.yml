@@ -40,8 +40,10 @@ jobs:
           test -f "$INTEL/package.json"
           test -f "$INTEL/package-lock.json"
 
-          writer_pid="$(ps -axo pid=,command= | awk '/[w]a-daemon\.js/ && /[n]ode/ {print $1; exit}')"
-          test -n "$writer_pid"
+          ps_output="$(ps -axo pid=,command=)"
+          writer_pids="$(printf '%s\\n' "$ps_output" | awk '/[w]a-daemon\\.js/ && /[n]ode/ {print $1}')"
+          test "$(printf '%s\\n' "$writer_pids" | awk 'NF{n++} END{print n+0}')" = 1
+          writer_pid="$(printf '%s\\n' "$writer_pids" | sed -n '1p')"
           lsof_output="$(/usr/sbin/lsof -a -p "$writer_pid" -d cwd -Fn)"
           old_cwd="$(printf '%s\\n' "$lsof_output" | sed -n 's/^n//p' | sed -n '1p')"
           test -f "$old_cwd/.env"
