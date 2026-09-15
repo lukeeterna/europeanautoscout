@@ -22,7 +22,7 @@ jobs:
     env:
       ARGOS_CANDIDATE_SHA: 7151e41a13a159b9ce689310fd7e936ca237323c
     steps:
-      - name: Install exact lockfile dependencies without process mutation
+      - name: Prepare private candidate runtime without process mutation
         shell: bash
         run: |
           set -euo pipefail
@@ -30,13 +30,59 @@ jobs:
           set -euo pipefail
           SHA="$1"
           export PATH="$HOME/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
+          PM2="$HOME/.npm-global/bin/pm2"
           RELEASE="$HOME/Documents/argos-c10-release-${SHA:0:12}"
           INTEL="$RELEASE/wa-intelligence"
           command -v node >/dev/null
           command -v npm >/dev/null
+          test -x "$PM2"
           test "$(git -C "$RELEASE" rev-parse HEAD)" = "$SHA"
           test -f "$INTEL/package.json"
           test -f "$INTEL/package-lock.json"
+
+          writer_pid="$(ps -axo pid=,command= | awk '/[w]a-daemon\.js/ && /[n]ode/ {print $1; exit}')"
+          test -n "$writer_pid"
+          old_cwd="$(/usr/sbin/lsof -a -p "$writer_pid" -d cwd -Fn | sed -n 's/^n//p' | head -n1)"
+          test -f "$old_cwd/.env"
+          pm2_snapshot="$(mktemp /tmp/argos-pm2-private.XXXXXX)"
+          chmod 600 "$pm2_snapshot"
+          trap 'rm -f "$pm2_snapshot"' EXIT
+          "$PM2" jlist > "$pm2_snapshot"
+          python3 - "$pm2_snapshot" "$old_cwd/.env" <<'PY'
+          import json,os,pathlib,sys,tempfile
+          snapshot,target=map(pathlib.Path,sys.argv[1:])
+          apps=json.loads(snapshot.read_text())
+          app=next((x for x in apps if x.get("name")=="argos-wa-daemon"),None)
+          if not app:
+              raise SystemExit("ARGOS_DAEMON_PM2_ENV_MISSING")
+          env=app.get("pm2_env",{})
+          secret=env.get("ARGOS_API_KEY") or env.get("WA_API_KEY")
+          if not secret:
+              raise SystemExit("ARGOS_API_KEY_SOURCE_MISSING")
+          lines=target.read_text().splitlines()
+          out=[]; done=False
+          for line in lines:
+              key=line.split("=",1)[0].strip() if "=" in line and not line.lstrip().startswith("#") else ""
+              if key=="ARGOS_API_KEY":
+                  out.append("ARGOS_API_KEY="+secret); done=True
+              else:
+                  out.append(line)
+          if not done:
+              out.append("ARGOS_API_KEY="+secret)
+          fd,tmp=tempfile.mkstemp(prefix=".env.argos.",dir=target.parent)
+          try:
+              with os.fdopen(fd,"w") as h:
+                  h.write("\n".join(out)+"\n")
+                  h.flush(); os.fsync(h.fileno())
+              os.chmod(tmp,0o600)
+              os.replace(tmp,target)
+          finally:
+              if os.path.exists(tmp): os.unlink(tmp)
+          print("PRIVATE_DAEMON_CREDENTIAL_MATERIALIZED=PASS")
+          PY
+          rm -f "$pm2_snapshot"
+          trap - EXIT
+
           npm ci --prefix "$INTEL" --include=optional --no-audit --no-fund
           npm --prefix "$INTEL" run verify:runtime-deps
           node - "$INTEL" <<'NODE'
