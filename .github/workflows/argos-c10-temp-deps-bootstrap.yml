@@ -41,11 +41,11 @@ jobs:
           test -f "$INTEL/package-lock.json"
 
           ps_output="$(ps -axo pid=,command=)"
-          writer_pids="$(printf '%s\\n' "$ps_output" | awk '/[w]a-daemon\\.js/ && /[n]ode/ {print $1}')"
-          test "$(printf '%s\\n' "$writer_pids" | awk 'NF{n++} END{print n+0}')" = 1
-          writer_pid="$(printf '%s\\n' "$writer_pids" | sed -n '1p')"
+          writer_pids="$(awk '/[w]a-daemon\\.js/ && /[n]ode/ {print $1}' <<< "$ps_output")"
+          test "$(awk 'NF{n++} END{print n+0}' <<< "$writer_pids")" = 1
+          writer_pid="$(sed -n '1p' <<< "$writer_pids")"
           lsof_output="$(/usr/sbin/lsof -a -p "$writer_pid" -d cwd -Fn)"
-          old_cwd="$(printf '%s\\n' "$lsof_output" | sed -n 's/^n//p' | sed -n '1p')"
+          old_cwd="$(sed -n 's/^n//p' <<< "$lsof_output" | sed -n '1p')"
           test -f "$old_cwd/.env"
           pm2_snapshot="$(mktemp /tmp/argos-pm2-private.XXXXXX)"
           chmod 600 "$pm2_snapshot"
