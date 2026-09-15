@@ -42,7 +42,8 @@ jobs:
 
           writer_pid="$(ps -axo pid=,command= | awk '/[w]a-daemon\.js/ && /[n]ode/ {print $1; exit}')"
           test -n "$writer_pid"
-          old_cwd="$(/usr/sbin/lsof -a -p "$writer_pid" -d cwd -Fn | sed -n 's/^n//p' | head -n1)"
+          lsof_output="$(/usr/sbin/lsof -a -p "$writer_pid" -d cwd -Fn)"
+          old_cwd="$(printf '%s\\n' "$lsof_output" | sed -n 's/^n//p' | sed -n '1p')"
           test -f "$old_cwd/.env"
           pm2_snapshot="$(mktemp /tmp/argos-pm2-private.XXXXXX)"
           chmod 600 "$pm2_snapshot"
