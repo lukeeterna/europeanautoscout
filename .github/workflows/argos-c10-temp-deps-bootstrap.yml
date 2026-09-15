@@ -27,18 +27,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes             -o ServerAliveInterval=5 -o ServerAliveCountMax=2             gianlucadistasi@iMac-di-gianluca.local             "bash -s -- '$ARGOS_CANDIDATE_SHA'" <<'REMOTE'
+          ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -o ServerAliveInterval=5 -o ServerAliveCountMax=2 gianlucadistasi@iMac-di-gianluca.local "bash -s -- '$ARGOS_CANDIDATE_SHA'" <<'REMOTE'
           set -euo pipefail
           SHA="$1"
+          export PATH="$HOME/.npm-global/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
           RELEASE="$HOME/Documents/argos-c10-release-${SHA:0:12}"
           INTEL="$RELEASE/wa-intelligence"
+          command -v node >/dev/null
+          command -v npm >/dev/null
           test "$(git -C "$RELEASE" rev-parse HEAD)" = "$SHA"
           test -f "$INTEL/package.json"
           test -f "$INTEL/package-lock.json"
-          cd "$INTEL"
-          npm ci --omit=dev --no-audit --no-fund
-          npm run verify:runtime-deps
-          node -e "require('whatsapp-web.js'); console.log('WWEBJS_LOAD=PASS')"
+          npm ci --prefix "$INTEL" --include=optional --no-audit --no-fund
+          npm --prefix "$INTEL" run verify:runtime-deps
+          node - "$INTEL" <<'NODE'
+          const path=require('path');
+          const root=process.argv[2];
+          require(path.join(root,'node_modules/whatsapp-web.js'));
+          console.log('WWEBJS_LOAD=PASS');
+          NODE
           test -z "$(git -C "$RELEASE" status --short --untracked-files=no)"
           echo 'CANDIDATE_RUNTIME_DEPS=PASS'
           echo 'PRODUCTION_PROCESS_MUTATION=NONE'
@@ -51,5 +58,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error -X POST             -H "Authorization: Bearer $GH_TOKEN"             -H 'Accept: application/vnd.github+json'             -H 'X-GitHub-Api-Version: 2022-11-28'             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${ARGOS_CUTOVER_RUN_ID}/rerun"
+          curl --fail --silent --show-error -X POST -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${ARGOS_CUTOVER_RUN_ID}/rerun"
           echo "CUTOVER_RERUN_DISPATCHED=${ARGOS_CUTOVER_RUN_ID}"
