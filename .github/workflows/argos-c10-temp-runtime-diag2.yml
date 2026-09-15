@@ -1,0 +1,62 @@
+name: ARGOS C10 TEMP Runtime Failure Diagnostic
+
+on:
+  push:
+    branches:
+      - s210/audit-master-plan
+    paths:
+      - .github/workflows/argos-c10-temp-runtime-diag2.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, macbook, argos]
+    timeout-minutes: 10
+    steps:
+      - name: Read-only classified runtime diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes gianlucadistasi@iMac-di-gianluca.local "python3 - 7151e41a13a159b9ce689310fd7e936ca237323c 34951488910" <<'PY'
+          import pathlib,re,sys,json,subprocess
+          sha,run=sys.argv[1:]
+          home=pathlib.Path.home()
+          release=home/f"Documents/argos-c10-release-{sha[:12]}"
+          promo=home/f"Documents/argos-c10-pairing-promotions/{sha}-{run}"
+          canonical=home/"Documents/app-antigravity-auto/wa-sender/session-argos-business"
+          failed=promo/"failed-session"
+          cache=home/"Documents/app-antigravity-auto/wa-sender/.wwebjs_cache"
+          print("DIAG_RELEASE_EXACT="+("YES" if subprocess.run(["git","-C",str(release),"rev-parse","HEAD"],capture_output=True,text=True).stdout.strip()==sha else "NO"))
+          print("DIAG_WWEBJS_INSTALLED="+("YES" if (release/"wa-intelligence/node_modules/whatsapp-web.js/package.json").is_file() else "NO"))
+          print("DIAG_FAILED_PROFILE="+("PRESENT" if failed.is_dir() and next(failed.rglob("*"),None) else "ABSENT"))
+          print("DIAG_CANONICAL_PROFILE="+("PRESENT" if canonical.is_dir() and next(canonical.rglob("*"),None) else "ABSENT"))
+          print("DIAG_EXTERNAL_CACHE="+("PRESENT" if cache.is_dir() else "ABSENT"))
+          data=""
+          for p in [pathlib.Path("/tmp/argos-wa-daemon-err.log"),pathlib.Path("/tmp/argos-wa-daemon-combined.log"),pathlib.Path("/tmp/argos-wa-daemon-out.log")]:
+              if p.is_file():
+                  data += "\n".join(p.read_text(errors="replace").splitlines()[-400:])+"\n"
+          pats={
+            "MODULE_NOT_FOUND":r"MODULE_NOT_FOUND|Cannot find module",
+            "AUTH_FAILURE":r"auth_failure|Authentication failure|LOGOUT",
+            "QR_EVENT":r"(^|[^A-Za-z])QR([^A-Za-z]|$)|qr code",
+            "READY_EVENT":r"WWEBJS_READY|client ready|transport ready",
+            "CHROME_ERROR":r"Chrome|Chromium|puppeteer|Target closed|Protocol error",
+            "CACHE_ERROR":r"LocalWebCache|webVersionCache|\.wwebjs_cache",
+            "PROFILE_LOCK":r"SingletonLock|profile.*in use|ProcessSingleton",
+            "PERMISSION":r"EACCES|Permission denied",
+            "PORT_CONFLICT":r"EADDRINUSE|address already in use",
+            "UNHANDLED":r"Unhandled|uncaught|Traceback|\bError:",
+          }
+          for k,p in pats.items():
+              print(f"DIAG_{k}_COUNT={len(re.findall(p,data,re.I|re.M))}")
+          lines=[x for x in data.splitlines() if re.search(r"error|failure|exception|traceback|cannot|timeout|disconnected|qr|ready",x,re.I)]
+          for i,line in enumerate(lines[-20:],1):
+              line=re.sub(r"https?://\S+","[URL]",line)
+              line=re.sub(r"(?<![A-Za-z0-9])[A-Za-z0-9_+/=-]{32,}(?![A-Za-z0-9])","[REDACTED]",line)
+              line=re.sub(r"\b\d{7,}\b","[NUMBER]",line)
+              print(f"DIAG_LINE_{i}={line[:500]}")
+          print("OUTBOUND_ACTION=NONE")
+          print("PRODUCTION_PROCESS_MUTATION=NONE")
+          PY
